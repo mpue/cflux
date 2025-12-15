@@ -37,4 +37,32 @@ export const reportService = {
     });
     return response.data;
   },
+
+  getAbsenceAnalytics: async (startDate?: string, endDate?: string): Promise<any[]> => {
+    const response = await api.get('/reports/absence-analytics', {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
+
+  getAttendanceByMonth: async (year?: number): Promise<any> => {
+    const response = await api.get('/reports/attendance-by-month', {
+      params: { year },
+    });
+    return response.data;
+  },
+
+  getOvertimeReport: async (startDate?: string, endDate?: string): Promise<any[]> => {
+    const response = await api.get('/reports/overtime-report', {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
+
+  getProjectTimeByUser: async (startDate?: string, endDate?: string): Promise<any> => {
+    const response = await api.get('/reports/project-time-by-user', {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
 };
