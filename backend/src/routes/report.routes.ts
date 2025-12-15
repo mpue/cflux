@@ -14,4 +14,10 @@ router.get('/user-summary/:userId', authorize('ADMIN'), reportController.getUser
 router.get('/all-users-summary', authorize('ADMIN'), reportController.getAllUsersSummary);
 router.get('/project-summary/:projectId', authorize('ADMIN'), reportController.getProjectSummary);
 
+// Advanced analytics
+router.get('/absence-analytics', authorize('ADMIN'), reportController.getAbsenceAnalytics);
+router.get('/attendance-by-month', authorize('ADMIN'), reportController.getAttendanceByMonth);
+router.get('/overtime-report', authorize('ADMIN'), reportController.getOvertimeReport);
+router.get('/project-time-by-user', authorize('ADMIN'), reportController.getProjectTimeByUser);
+
 export default router;

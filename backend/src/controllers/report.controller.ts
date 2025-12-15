@@ -266,3 +266,246 @@ export const getProjectSummary = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to get project summary' });
   }
 };
+
+// Neue erweiterte Report-Funktionen
+export const getAbsenceAnalytics = async (req: AuthRequest, res: Response) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const users = await prisma.user.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true
+      }
+    });
+
+    const analytics = await Promise.all(
+      users.map(async (user) => {
+        const where: any = { 
+          userId: user.id,
+          status: 'APPROVED'
+        };
+
+        if (startDate && endDate) {
+          where.startDate = {
+            gte: new Date(startDate as string),
+            lte: new Date(endDate as string)
+          };
+        }
+
+        const absenceRequests = await prisma.absenceRequest.findMany({ where });
+
+        const byType = absenceRequests.reduce((acc, req) => {
+          acc[req.type] = (acc[req.type] || 0) + req.days;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const totalDays = absenceRequests.reduce((sum, req) => sum + req.days, 0);
+
+        return {
+          user,
+          totalDays,
+          sickDays: byType['SICK_LEAVE'] || 0,
+          vacationDays: byType['VACATION'] || 0,
+          personalDays: byType['PERSONAL_LEAVE'] || 0,
+          unpaidDays: byType['UNPAID_LEAVE'] || 0,
+          otherDays: byType['OTHER'] || 0
+        };
+      })
+    );
+
+    // Sortiere nach Gesamtfehlzeiten
+    analytics.sort((a, b) => b.totalDays - a.totalDays);
+
+    res.json(analytics);
+  } catch (error) {
+    console.error('Get absence analytics error:', error);
+    res.status(500).json({ error: 'Failed to get absence analytics' });
+  }
+};
+
+export const getAttendanceByMonth = async (req: AuthRequest, res: Response) => {
+  try {
+    const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
+    
+    const monthlyData = [];
+    
+    for (let month = 0; month < 12; month++) {
+      const startDate = new Date(year, month, 1);
+      const endDate = new Date(year, month + 1, 0);
+      
+      const entries = await prisma.timeEntry.findMany({
+        where: {
+          clockIn: {
+            gte: startDate,
+            lte: endDate
+          },
+          status: 'CLOCKED_OUT'
+        }
+      });
+
+      const totalHours = entries.reduce((sum, entry) => {
+        return sum + calculateWorkHours(entry.clockIn, entry.clockOut);
+      }, 0);
+
+      const absences = await prisma.absenceRequest.findMany({
+        where: {
+          status: 'APPROVED',
+          startDate: {
+            gte: startDate,
+            lte: endDate
+          }
+        }
+      });
+
+      const totalAbsenceDays = absences.reduce((sum, req) => sum + req.days, 0);
+
+      monthlyData.push({
+        month: new Date(year, month).toLocaleString('de-DE', { month: 'long' }),
+        monthNumber: month + 1,
+        workHours: Math.round(totalHours * 10) / 10,
+        workDays: Math.round((totalHours / 8) * 10) / 10,
+        absenceDays: totalAbsenceDays,
+        entries: entries.length
+      });
+    }
+
+    res.json({ year, data: monthlyData });
+  } catch (error) {
+    console.error('Get attendance by month error:', error);
+    res.status(500).json({ error: 'Failed to get attendance by month' });
+  }
+};
+
+export const getOvertimeReport = async (req: AuthRequest, res: Response) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const expectedHoursPerDay = 8;
+    
+    const users = await prisma.user.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true
+      }
+    });
+
+    const overtimeData = await Promise.all(
+      users.map(async (user) => {
+        const where: any = { 
+          userId: user.id,
+          status: 'CLOCKED_OUT'
+        };
+
+        if (startDate && endDate) {
+          where.clockIn = {
+            gte: new Date(startDate as string),
+            lte: new Date(endDate as string)
+          };
+        }
+
+        const entries = await prisma.timeEntry.findMany({ where });
+
+        const totalHours = entries.reduce((sum, entry) => {
+          return sum + calculateWorkHours(entry.clockIn, entry.clockOut);
+        }, 0);
+
+        const workDays = entries.length;
+        const expectedHours = workDays * expectedHoursPerDay;
+        const overtime = totalHours - expectedHours;
+
+        return {
+          user,
+          totalHours: Math.round(totalHours * 10) / 10,
+          expectedHours: Math.round(expectedHours * 10) / 10,
+          overtime: Math.round(overtime * 10) / 10,
+          workDays
+        };
+      })
+    );
+
+    // Sortiere nach Überstunden
+    overtimeData.sort((a, b) => b.overtime - a.overtime);
+
+    res.json(overtimeData);
+  } catch (error) {
+    console.error('Get overtime report error:', error);
+    res.status(500).json({ error: 'Failed to get overtime report' });
+  }
+};
+
+export const getProjectTimeByUser = async (req: AuthRequest, res: Response) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const users = await prisma.user.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true
+      }
+    });
+
+    const projects = await prisma.project.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true
+      }
+    });
+
+    const data = await Promise.all(
+      users.map(async (user) => {
+        const projectHours: Record<string, number> = {};
+        
+        for (const project of projects) {
+          const where: any = { 
+            userId: user.id,
+            projectId: project.id,
+            status: 'CLOCKED_OUT'
+          };
+
+          if (startDate && endDate) {
+            where.clockIn = {
+              gte: new Date(startDate as string),
+              lte: new Date(endDate as string)
+            };
+          }
+
+          const entries = await prisma.timeEntry.findMany({ where });
+
+          const hours = entries.reduce((sum, entry) => {
+            return sum + calculateWorkHours(entry.clockIn, entry.clockOut);
+          }, 0);
+
+          if (hours > 0) {
+            projectHours[project.name] = Math.round(hours * 10) / 10;
+          }
+        }
+
+        const totalHours = Object.values(projectHours).reduce((sum, h) => sum + h, 0);
+
+        return {
+          user,
+          projectHours,
+          totalHours: Math.round(totalHours * 10) / 10
+        };
+      })
+    );
+
+    // Filtere Benutzer ohne Projektzeit heraus
+    const filteredData = data.filter(d => d.totalHours > 0);
+
+    res.json({ users: filteredData, projects: projects.map(p => p.name) });
+  } catch (error) {
+    console.error('Get project time by user error:', error);
+    res.status(500).json({ error: 'Failed to get project time by user' });
+  }
+};

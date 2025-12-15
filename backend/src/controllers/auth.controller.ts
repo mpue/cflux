@@ -14,7 +14,7 @@ export const register = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password, firstName, lastName, role, vacationDays, isActive } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -28,7 +28,10 @@ export const register = async (req: AuthRequest, res: Response) => {
         email,
         password: hashedPassword,
         firstName,
-        lastName
+        lastName,
+        role: role || 'USER',
+        vacationDays: vacationDays !== undefined ? vacationDays : 30,
+        isActive: isActive !== undefined ? isActive : true
       }
     });
 
@@ -48,7 +51,9 @@ export const register = async (req: AuthRequest, res: Response) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role
+        role: user.role,
+        vacationDays: user.vacationDays,
+        isActive: user.isActive
       },
       token
     });
