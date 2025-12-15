@@ -1,0 +1,71 @@
+# Docker setup for Time Tracking System
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: timetracking-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: timetracking
+      POSTGRES_PASSWORD: timetracking123
+      POSTGRES_DB: timetracking
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - timetracking-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timetracking"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: timetracking-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: "postgresql://timetracking:timetracking123@db:5432/timetracking?schema=public"
+      JWT_SECRET: "change-this-secret-in-production"
+      JWT_EXPIRES_IN: "7d"
+      PORT: 3001
+      NODE_ENV: "production"
+      CORS_ORIGIN: "http://localhost:3002"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - timetracking-network
+    volumes:
+      - ./backend/prisma:/app/prisma
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: timetracking-frontend
+    restart: unless-stopped
+    ports:
+      - "3002:80"
+    environment:
+      REACT_APP_API_URL: "http://localhost:3001/api"
+    depends_on:
+      - backend
+    networks:
+      - timetracking-network
+
+networks:
+  timetracking-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
