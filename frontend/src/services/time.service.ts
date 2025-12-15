@@ -24,6 +24,13 @@ export const timeService = {
     return response.data;
   },
 
+  getUserTimeEntries: async (userId: string, startDate?: string, endDate?: string): Promise<TimeEntry[]> => {
+    const response = await api.get(`/time/user/${userId}`, {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
+
   updateTimeEntry: async (id: string, data: Partial<TimeEntry>): Promise<TimeEntry> => {
     const response = await api.put(`/time/${id}`, data);
     return response.data;

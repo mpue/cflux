@@ -12,6 +12,19 @@ export const userService = {
     return response.data;
   },
 
+  createUser: async (data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    role?: string;
+    vacationDays?: number;
+    isActive?: boolean;
+  }): Promise<User> => {
+    const response = await api.post('/auth/register', data);
+    return response.data.user;
+  },
+
   updateUser: async (id: string, data: Partial<User>): Promise<User> => {
     const response = await api.put(`/users/${id}`, data);
     return response.data;
