@@ -10,6 +10,9 @@ COPY tsconfig.json ./
 # Install dependencies
 RUN npm ci
 
+# Copy environment files
+COPY .env* ./
+
 # Copy source code
 COPY public ./public
 COPY src ./src
