@@ -14,8 +14,9 @@ COPY prisma ./prisma/
 # Install dependencies
 RUN npm ci
 
-# Copy source code
+# Copy source code (exclude __tests__)
 COPY src ./src
+RUN rm -rf ./src/__tests__
 
 # Generate Prisma Client
 RUN npx prisma generate

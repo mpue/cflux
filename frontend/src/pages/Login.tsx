@@ -37,8 +37,9 @@ const Login: React.FC = () => {
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>E-Mail</label>
+            <label htmlFor="email">E-Mail</label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -47,8 +48,9 @@ const Login: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label>Passwort</label>
+            <label htmlFor="password">Passwort</label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
