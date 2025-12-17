@@ -7,6 +7,8 @@ import timeRoutes from './routes/time.routes';
 import projectRoutes from './routes/project.routes';
 import absenceRoutes from './routes/absence.routes';
 import reportRoutes from './routes/report.routes';
+import backupRoutes from './routes/backup.routes';
+import locationRoutes from './routes/location.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -28,6 +30,8 @@ app.use('/api/time', timeRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/absences', absenceRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/backup', backupRoutes);
+app.use('/api/locations', locationRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

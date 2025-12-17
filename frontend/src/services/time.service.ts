@@ -2,8 +2,8 @@ import api from './api';
 import { TimeEntry } from '../types';
 
 export const timeService = {
-  clockIn: async (projectId?: string, description?: string): Promise<TimeEntry> => {
-    const response = await api.post('/time/clock-in', { projectId, description });
+  clockIn: async (projectId?: string, locationId?: string, description?: string): Promise<TimeEntry> => {
+    const response = await api.post('/time/clock-in', { projectId, locationId, description });
     return response.data;
   },
 
@@ -36,7 +36,16 @@ export const timeService = {
     return response.data;
   },
 
+  updateMyTimeEntry: async (id: string, data: Partial<TimeEntry>): Promise<TimeEntry> => {
+    const response = await api.put(`/time/my-entries/${id}`, data);
+    return response.data;
+  },
+
   deleteTimeEntry: async (id: string): Promise<void> => {
     await api.delete(`/time/${id}`);
+  },
+
+  deleteMyTimeEntry: async (id: string): Promise<void> => {
+    await api.delete(`/time/my-entries/${id}`);
   },
 };

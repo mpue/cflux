@@ -19,6 +19,16 @@ export interface Project {
   assignments?: ProjectAssignment[];
 }
 
+export interface Location {
+  id: string;
+  name: string;
+  address?: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ProjectAssignment {
   id: string;
   projectId: string;
@@ -32,6 +42,7 @@ export interface TimeEntry {
   id: string;
   userId: string;
   projectId?: string;
+  locationId?: string;
   clockIn: string;
   clockOut?: string;
   status: 'CLOCKED_IN' | 'CLOCKED_OUT';
@@ -39,6 +50,7 @@ export interface TimeEntry {
   createdAt: string;
   updatedAt: string;
   project?: Project;
+  location?: Location;
   user?: User;
 }
 

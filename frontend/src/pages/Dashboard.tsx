@@ -5,7 +5,8 @@ import { timeService } from '../services/time.service';
 import { projectService } from '../services/project.service';
 import { absenceService } from '../services/absence.service';
 import { reportService } from '../services/report.service';
-import { TimeEntry, Project, AbsenceRequest, Report } from '../types';
+import { locationService } from '../services/location.service';
+import { TimeEntry, Project, AbsenceRequest, Report, Location } from '../types';
 import '../App.css';
 
 const Dashboard: React.FC = () => {
@@ -13,11 +14,14 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [currentEntry, setCurrentEntry] = useState<TimeEntry | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
   const [absenceRequests, setAbsenceRequests] = useState<AbsenceRequest[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [report, setReport] = useState<Report | null>(null);
   const [showAbsenceModal, setShowAbsenceModal] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -25,9 +29,10 @@ const Dashboard: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [current, projectsData, absences, entries, reportData] = await Promise.all([
+      const [current, projectsData, locationsData, absences, entries, reportData] = await Promise.all([
         timeService.getCurrentTimeEntry(),
         projectService.getAllProjects(),
+        locationService.getActiveLocations(),
         absenceService.getMyAbsenceRequests(),
         timeService.getMyTimeEntries(),
         reportService.getMySummary(),
@@ -35,6 +40,7 @@ const Dashboard: React.FC = () => {
 
       setCurrentEntry(current);
       setProjects(projectsData);
+      setLocations(locationsData);
       setAbsenceRequests(absences);
       setTimeEntries(entries);
       setReport(reportData);
@@ -45,7 +51,10 @@ const Dashboard: React.FC = () => {
 
   const handleClockIn = async () => {
     try {
-      await timeService.clockIn(selectedProject || undefined);
+      await timeService.clockIn(
+        selectedProject || undefined, 
+        selectedLocation || undefined
+      );
       await loadData();
     } catch (error: any) {
       alert(error.response?.data?.error || 'Einstempeln fehlgeschlagen');
@@ -117,6 +126,7 @@ const Dashboard: React.FC = () => {
                 <span>
                   Eingestempelt seit {new Date(currentEntry.clockIn).toLocaleString('de-DE')}
                   {currentEntry.project && ` - ${currentEntry.project.name}`}
+                  {currentEntry.location && ` (${currentEntry.location.name})`}
                 </span>
               </div>
               <button className="btn btn-danger" onClick={handleClockOut}>
@@ -132,6 +142,17 @@ const Dashboard: React.FC = () => {
                   {projects.map((project) => (
                     <option key={project.id} value={project.id}>
                       {project.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Standort (optional)</label>
+                <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)}>
+                  <option value="">Kein Standort</option>
+                  {locations.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
                     </option>
                   ))}
                 </select>
@@ -201,28 +222,76 @@ const Dashboard: React.FC = () => {
                 <th>Ausstempeln</th>
                 <th>Dauer</th>
                 <th>Projekt</th>
-                <th>Aktion</th>
+                <th>Standort</th>
+                <th>Beschreibung</th>
+                <th>Aktionen</th>
               </tr>
             </thead>
             <tbody>
               {timeEntries.slice(0, 10).map((entry) => (
                 <tr key={entry.id}>
                   <td>{new Date(entry.clockIn).toLocaleDateString('de-DE')}</td>
-                  <td>{new Date(entry.clockIn).toLocaleTimeString('de-DE')}</td>
-                  <td>{entry.clockOut ? new Date(entry.clockOut).toLocaleTimeString('de-DE') : '-'}</td>
+                  <td>
+                    {editingEntry === entry.id && entry.clockOut ? (
+                      <input
+                        type="time"
+                        defaultValue={new Date(entry.clockIn).toTimeString().slice(0, 5)}
+                        onBlur={async (e) => {
+                          const [hours, minutes] = e.target.value.split(':');
+                          const newClockIn = new Date(entry.clockIn);
+                          newClockIn.setHours(parseInt(hours), parseInt(minutes));
+                          try {
+                            await timeService.updateMyTimeEntry(entry.id, {
+                              clockIn: newClockIn.toISOString()
+                            });
+                            await loadData();
+                          } catch (error: any) {
+                            alert(error.response?.data?.error || 'Fehler beim Aktualisieren');
+                          }
+                        }}
+                        style={{ padding: '4px', fontSize: '12px', width: '80px' }}
+                      />
+                    ) : (
+                      new Date(entry.clockIn).toLocaleTimeString('de-DE')
+                    )}
+                  </td>
+                  <td>
+                    {editingEntry === entry.id && entry.clockOut ? (
+                      <input
+                        type="time"
+                        defaultValue={new Date(entry.clockOut).toTimeString().slice(0, 5)}
+                        onBlur={async (e) => {
+                          const [hours, minutes] = e.target.value.split(':');
+                          const newClockOut = new Date(entry.clockOut!);
+                          newClockOut.setHours(parseInt(hours), parseInt(minutes));
+                          try {
+                            await timeService.updateMyTimeEntry(entry.id, {
+                              clockOut: newClockOut.toISOString()
+                            });
+                            await loadData();
+                          } catch (error: any) {
+                            alert(error.response?.data?.error || 'Fehler beim Aktualisieren');
+                          }
+                        }}
+                        style={{ padding: '4px', fontSize: '12px', width: '80px' }}
+                      />
+                    ) : (
+                      entry.clockOut ? new Date(entry.clockOut).toLocaleTimeString('de-DE') : '-'
+                    )}
+                  </td>
                   <td>{entry.clockOut ? formatDuration(entry.clockIn, entry.clockOut) : 'Läuft...'}</td>
                   <td>
-                    {entry.clockOut ? (
+                    {editingEntry === entry.id && entry.clockOut ? (
                       <select
                         value={entry.projectId || ''}
                         onChange={async (e) => {
                           try {
-                            await timeService.updateTimeEntry(entry.id, {
+                            await timeService.updateMyTimeEntry(entry.id, {
                               projectId: e.target.value || undefined
                             });
                             await loadData();
-                          } catch (error) {
-                            alert('Fehler beim Aktualisieren');
+                          } catch (error: any) {
+                            alert(error.response?.data?.error || 'Fehler beim Aktualisieren');
                           }
                         }}
                         style={{ padding: '4px', fontSize: '12px' }}
@@ -239,8 +308,57 @@ const Dashboard: React.FC = () => {
                     )}
                   </td>
                   <td>
+                    <span>{entry.location?.name || '-'}</span>
+                  </td>
+                  <td>
+                    {editingEntry === entry.id && entry.clockOut ? (
+                      <input
+                        type="text"
+                        defaultValue={entry.description || ''}
+                        onBlur={async (e) => {
+                          try {
+                            await timeService.updateMyTimeEntry(entry.id, {
+                              description: e.target.value
+                            });
+                            await loadData();
+                          } catch (error: any) {
+                            alert(error.response?.data?.error || 'Fehler beim Aktualisieren');
+                          }
+                        }}
+                        placeholder="Beschreibung..."
+                        style={{ padding: '4px', fontSize: '12px', width: '100%' }}
+                      />
+                    ) : (
+                      <span>{entry.description || '-'}</span>
+                    )}
+                  </td>
+                  <td>
                     {entry.clockOut && (
-                      <span style={{ fontSize: '12px', color: '#999' }}>✓ Änderbar</span>
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        <button
+                          className="btn btn-small"
+                          onClick={() => setEditingEntry(editingEntry === entry.id ? null : entry.id)}
+                          style={{ fontSize: '12px', padding: '4px 8px' }}
+                        >
+                          {editingEntry === entry.id ? '✓' : '✏️'}
+                        </button>
+                        <button
+                          className="btn btn-small btn-danger"
+                          onClick={async () => {
+                            if (window.confirm('Zeiteintrag wirklich löschen?')) {
+                              try {
+                                await timeService.deleteMyTimeEntry(entry.id);
+                                await loadData();
+                              } catch (error: any) {
+                                alert(error.response?.data?.error || 'Fehler beim Löschen');
+                              }
+                            }
+                          }}
+                          style={{ fontSize: '12px', padding: '4px 8px' }}
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

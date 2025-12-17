@@ -11,6 +11,8 @@ router.post('/clock-in', timeController.clockIn);
 router.post('/clock-out', timeController.clockOut);
 router.get('/my-entries', timeController.getMyTimeEntries);
 router.get('/current', timeController.getCurrentTimeEntry);
+router.put('/my-entries/:id', timeController.updateMyTimeEntry);
+router.delete('/my-entries/:id', timeController.deleteMyTimeEntry);
 
 // Admin time corrections
 router.put('/:id', authorize('ADMIN'), timeController.updateTimeEntry);

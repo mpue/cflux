@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 export const clockIn = async (req: AuthRequest, res: Response) => {
   try {
-    const { projectId, description } = req.body;
+    const { projectId, locationId, description } = req.body;
     const userId = req.user!.id;
 
     // Check if user is already clocked in
@@ -25,12 +25,14 @@ export const clockIn = async (req: AuthRequest, res: Response) => {
       data: {
         userId,
         projectId,
+        locationId,
         clockIn: new Date(),
         description,
         status: 'CLOCKED_IN'
       },
       include: {
-        project: true
+        project: true,
+        location: true
       }
     });
 
@@ -63,7 +65,8 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
         status: 'CLOCKED_OUT'
       },
       include: {
-        project: true
+        project: true,
+        location: true
       }
     });
 
@@ -84,7 +87,8 @@ export const getCurrentTimeEntry = async (req: AuthRequest, res: Response) => {
         status: 'CLOCKED_IN'
       },
       include: {
-        project: true
+        project: true,
+        location: true
       }
     });
 
@@ -112,7 +116,8 @@ export const getMyTimeEntries = async (req: AuthRequest, res: Response) => {
     const entries = await prisma.timeEntry.findMany({
       where,
       include: {
-        project: true
+        project: true,
+        location: true
       },
       orderBy: { clockIn: 'desc' }
     });
@@ -158,6 +163,75 @@ export const getUserTimeEntries = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Get user time entries error:', error);
     res.status(500).json({ error: 'Failed to get time entries' });
+  }
+};
+
+export const updateMyTimeEntry = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { clockIn, clockOut, projectId, description } = req.body;
+    const userId = req.user!.id;
+
+    // Check if the time entry belongs to the user
+    const existingEntry = await prisma.timeEntry.findFirst({
+      where: { id, userId }
+    });
+
+    if (!existingEntry) {
+      return res.status(404).json({ error: 'Time entry not found or access denied' });
+    }
+
+    // Check if the entry is already clocked out
+    if (existingEntry.status === 'CLOCKED_IN') {
+      return res.status(400).json({ error: 'Cannot edit active time entry. Clock out first.' });
+    }
+
+    const timeEntry = await prisma.timeEntry.update({
+      where: { id },
+      data: {
+        clockIn: clockIn ? new Date(clockIn) : undefined,
+        clockOut: clockOut ? new Date(clockOut) : undefined,
+        projectId: projectId === null ? null : projectId,
+        description
+      },
+      include: {
+        project: true,
+        location: true
+      }
+    });
+
+    res.json(timeEntry);
+  } catch (error) {
+    console.error('Update my time entry error:', error);
+    res.status(500).json({ error: 'Failed to update time entry' });
+  }
+};
+
+export const deleteMyTimeEntry = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    // Check if the time entry belongs to the user
+    const existingEntry = await prisma.timeEntry.findFirst({
+      where: { id, userId }
+    });
+
+    if (!existingEntry) {
+      return res.status(404).json({ error: 'Time entry not found or access denied' });
+    }
+
+    // Check if the entry is already clocked out
+    if (existingEntry.status === 'CLOCKED_IN') {
+      return res.status(400).json({ error: 'Cannot delete active time entry. Clock out first.' });
+    }
+
+    await prisma.timeEntry.delete({ where: { id } });
+
+    res.json({ message: 'Time entry deleted successfully' });
+  } catch (error) {
+    console.error('Delete my time entry error:', error);
+    res.status(500).json({ error: 'Failed to delete time entry' });
   }
 };
 

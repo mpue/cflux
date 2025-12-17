@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cflux - Moderne Zeiterfassung</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            color: var(--text-dark);
+            background: var(--bg-light);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        header {
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.625rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--bg-white);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-light);
+        }
+
+        /* Hero Section */
+        .hero {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-light);
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Features Section */
+        .features {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+
+        .features-subtitle {
+            text-align: center;
+            color: var(--text-light);
+            font-size: 1.125rem;
+            margin-bottom: 4rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: var(--bg-white);
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-dark);
+        }
+
+        .feature-card p {
+            color: var(--text-light);
+            line-height: 1.7;
+        }
+
+        /* Pricing Section */
+        .pricing {
+            max-width: 1200px;
+            margin: 6rem auto;
+            padding: 2rem;
+        }
+
+        .pricing h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+
+        .pricing-subtitle {
+            text-align: center;
+            color: var(--text-light);
+            font-size: 1.125rem;
+            margin-bottom: 3rem;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .pricing-card {
+            background: var(--bg-white);
+            border: 2px solid var(--border);
+            border-radius: 1.5rem;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .pricing-card:first-child {
+            border-color: var(--primary);
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .pricing-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .pricing-card:last-child .pricing-badge {
+            background: var(--text-light);
+        }
+
+        .pricing-amount {
+            font-size: 4rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-period {
+            color: var(--text-light);
+            font-size: 1.125rem;
+            margin-bottom: 2rem;
+        }
+
+        .pricing-features {
+            text-align: left;
+            margin: 2rem 0;
+            padding: 2rem 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .pricing-feature {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+
+        .pricing-feature::before {
+            content: "✓";
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            background: var(--success);
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .pricing-cta {
+            margin-top: 2rem;
+        }
+
+        .pricing-cta .btn {
+            font-size: 1.125rem;
+            padding: 1rem 2.5rem;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .pricing-note {
+            margin-top: 1.5rem;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .pricing-footer {
+            text-align: center;
+            padding: 2rem;
+            background: var(--bg-light);
+            border-radius: 1rem;
+            color: var(--text-light);
+        }
+
+        .pricing-footer p {
+            margin: 0.5rem 0;
+        }
+
+        .pricing-footer strong {
+            color: var(--text-dark);
+        }
+
+        /* Stats Section */
+        .stats {
+            background: var(--bg-white);
+            padding: 4rem 2rem;
+            margin: 4rem 0;
+        }
+
+        .stats-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 3rem;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-item p {
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        /* CTA Section */
+        .cta {
+            max-width: 800px;
+            margin: 6rem auto;
+            padding: 4rem 2rem;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            border-radius: 2rem;
+            color: white;
+        }
+
+        .cta h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .cta p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .cta .btn {
+            background: var(--bg-white);
+            color: var(--primary);
+            font-size: 1.125rem;
+            padding: 1rem 2rem;
+        }
+
+        .cta .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--bg-white);
+            border-top: 1px solid var(--border);
+            padding: 3rem 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+        }
+
+        .footer-section h4 {
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section a {
+            color: var(--text-light);
+            text-decoration: none;
+            line-height: 2;
+        }
+
+        .footer-section a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 2rem auto 0;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+
+        /* Screenshots Section */
+        .screenshots {
+            max-width: 1200px;
+            margin: 6rem auto;
+            padding: 2rem;
+        }
+
+        .screenshots h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+
+        .screenshots-subtitle {
+            text-align: center;
+            color: var(--text-light);
+            font-size: 1.125rem;
+            margin-bottom: 4rem;
+        }
+
+        .screenshot-item {
+            margin-bottom: 6rem;
+        }
+
+        .screenshot-item:nth-child(even) .screenshot-content {
+            flex-direction: row-reverse;
+        }
+
+        .screenshot-content {
+            display: flex;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .screenshot-info {
+            flex: 1;
+        }
+
+        .screenshot-info h3 {
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+
+        .screenshot-info p {
+            color: var(--text-light);
+            line-height: 1.8;
+            font-size: 1.125rem;
+        }
+
+        .screenshot-image {
+            flex: 1;
+            position: relative;
+        }
+
+        .screenshot-image img {
+            width: 100%;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            transition: transform 0.3s;
+        }
+
+        .screenshot-image img:hover {
+            transform: scale(1.02);
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-cta {
+                flex-direction: column;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .pricing-amount {
+                font-size: 3rem;
+            }
+
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .screenshot-content {
+                flex-direction: column !important;
+            }
+
+            .screenshot-item:nth-child(even) .screenshot-content {
+                flex-direction: column !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="#" class="logo">cflux</a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#screenshots">Screenshots</a>
+                <a href="#pricing">Preise</a>
+                <a href="mailto:info@cflux.org" class="btn btn-secondary">Kontakt</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h1>Zeiterfassung.<br>Einfach gemacht.</h1>
+            <p>Moderne, übersichtliche Zeiterfassung für Teams jeder Größe. Projektbuchung, Urlaubsverwaltung und Reports – alles an einem Ort.</p>
+            <div class="hero-cta">
+                <a href="mailto:info@cflux.org?subject=cflux%20Demo%20Anfrage" class="btn btn-primary">Jetzt starten</a>
+                <a href="#features" class="btn btn-secondary">Mehr erfahren</a>
+            </div>
+        </section>
+
+        <section class="stats">
+            <div class="stats-container">
+                <div class="stat-item">
+                    <h3>∞</h3>
+                    <p>Unbegrenzte Benutzer</p>
+                </div>
+                <div class="stat-item">
+                    <h3>49€</h3>
+                    <p>Ein Preis für alles</p>
+                </div>
+                <div class="stat-item">
+                    <h3>100%</h3>
+                    <p>Alle Features inklusive</p>
+                </div>
+                <div class="stat-item">
+                    <h3>0</h3>
+                    <p>Versteckte Kosten</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="features" id="features">
+            <h2>Alles, was du brauchst</h2>
+            <p class="features-subtitle">Professionelle Zeiterfassung ohne Kompromisse</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⏱️</div>
+                    <h3>Ein-/Ausstempeln</h3>
+                    <p>Erfasse deine Arbeitszeit mit einem Klick. Starte und stoppe die Zeiterfassung direkt über das Dashboard.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Projekt-Tracking</h3>
+                    <p>Buche deine Zeit direkt auf Projekte. Behalte den Überblick über Projektzeiten und Ressourcen.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🖐️</div>
+                    <h3>Urlaubsverwaltung</h3>
+                    <p>Stelle Urlaubsanträge digital und verwalte Abwesenheiten. Admins können Anträge direkt genehmigen.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h3>Reports & Analytics</h3>
+                    <p>Detaillierte Auswertungen deiner Arbeitszeiten. Exportiere Reports für Buchhaltung und Controlling.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">👥</div>
+                    <h3>Team-Management</h3>
+                    <p>Verwalte Benutzer, Rollen und Berechtigungen zentral. Perfekt für Teams jeder Größe.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Sicher & DSGVO-konform</h3>
+                    <p>Deine Daten bleiben sicher. Verschlüsselt und vollständig unter deiner Kontrolle.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="screenshots" id="screenshots">
+            <h2>Einblick in cflux</h2>
+            <p class="screenshots-subtitle">Entdecke die intuitive Benutzeroberfläche unserer Zeiterfassungslösung</p>
+            
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>⏱️ Zeiterfassung</h3>
+                        <p>Erfasse deine Arbeitszeit mit nur einem Klick. Die übersichtliche Dashboard-Ansicht zeigt dir alle wichtigen Informationen auf einen Blick: aktuelle Buchungen, Tagessummen und Projektzuordnungen.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="time_recording.png" alt="Zeiterfassung Dashboard" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>📅 Zeitverwaltung</h3>
+                        <p>Verwalte deine Zeiteinträge komfortabel. Bearbeite, ergänze oder korrigiere Buchungen nachträglich. Die übersichtliche Kalenderansicht hilft dir, den Überblick über deine Arbeitszeiten zu behalten.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="time_management.png" alt="Zeitverwaltung" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>📊 Projekt-Management</h3>
+                        <p>Verwalte alle deine Projekte an einem zentralen Ort. Erstelle neue Projekte, weise Teammitglieder zu und behalte den Überblick über die investierte Zeit pro Projekt.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="project_management.png" alt="Projekt-Management" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>🏖️ Abwesenheits-Verwaltung</h3>
+                        <p>Stelle Urlaubsanträge digital und verwalte Abwesenheiten zentral. Admins können Anträge direkt genehmigen oder ablehnen. Der Genehmigungsprozess ist transparent und nachvollziehbar.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="absence_management.png" alt="Urlaubsverwaltung" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>📈 Detaillierte Reports</h3>
+                        <p>Erstelle aussagekräftige Reports über Arbeitszeiten, Projektfortschritte und Ressourcenauslastung. Filtere nach Zeitraum, Projekt oder Mitarbeiter und exportiere die Daten für Buchhaltung und Controlling.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="reporting.png" alt="Reporting Dashboard" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>📊 Erweiterte Analysen</h3>
+                        <p>Nutze erweiterte Analysefunktionen für tiefere Einblicke. Visualisiere Zeitverteilungen, identifiziere Trends und optimiere deine Ressourcenplanung basierend auf fundierten Daten.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="more_reporting.png" alt="Erweiterte Analysen" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>👥 Benutzerverwaltung</h3>
+                        <p>Verwalte alle Benutzer deines Teams zentral. Lege Rollen und Berechtigungen fest, passe Urlaubskontingente an und behalte den Überblick über alle Teammitglieder.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="user_management.png" alt="Benutzerverwaltung" loading="lazy">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="pricing" id="pricing">
+            <h2>Einfache Preise</h2>
+            <p class="pricing-subtitle">Wähle die passende Option für dein Team</p>
+            
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <div class="pricing-badge">Cloud-Hosted</div>
+                    <div class="pricing-amount">49€</div>
+                    <div class="pricing-period">pro Monat</div>
+                    
+                    <div class="pricing-features">
+                        <div class="pricing-feature">Unbegrenzte Benutzer</div>
+                        <div class="pricing-feature">Alle Features inklusive</div>
+                        <div class="pricing-feature">Hosting & Wartung inklusive</div>
+                        <div class="pricing-feature">Automatische Updates</div>
+                        <div class="pricing-feature">Backup & Security</div>
+                        <div class="pricing-feature">Email-Support</div>
+                        <div class="pricing-feature">99,9% Uptime</div>
+                        <div class="pricing-feature">Monatlich kündbar</div>
+                    </div>
+
+                    <div class="pricing-cta">
+                        <a href="mailto:info@cflux.org?subject=cflux%20Cloud%20Anfrage" class="btn btn-primary">Jetzt starten</a>
+                    </div>
+
+                    <div class="pricing-note">
+                        Perfekt für Teams die sofort loslegen wollen
+                    </div>
+                </div>
+
+                <div class="pricing-card">
+                    <div class="pricing-badge">Self-Hosted</div>
+                    <div class="pricing-amount">29€</div>
+                    <div class="pricing-period">pro Monat</div>
+                    
+                    <div class="pricing-features">
+                        <div class="pricing-feature">Unbegrenzte Benutzer</div>
+                        <div class="pricing-feature">Alle Features inklusive</div>
+                        <div class="pricing-feature">Installation auf eigener Infrastruktur</div>
+                        <div class="pricing-feature">Volle Datenkontrolle</div>
+                        <div class="pricing-feature">Docker-Images & Dokumentation</div>
+                        <div class="pricing-feature">Email-Support</div>
+                        <div class="pricing-feature">Einmalige Setup-Hilfe</div>
+                        <div class="pricing-feature">Update-Benachrichtigungen</div>
+                    </div>
+
+                    <div class="pricing-cta">
+                        <a href="mailto:info@cflux.org?subject=cflux%20Self-Hosted%20Anfrage" class="btn btn-secondary">Mehr erfahren</a>
+                    </div>
+
+                    <div class="pricing-note">
+                        Für Unternehmen mit eigener IT-Infrastruktur
+                    </div>
+                </div>
+            </div>
+
+            <div class="pricing-footer">
+                <p><strong>Setup-Service:</strong> Wir helfen bei der Installation – einmalig 290€</p>
+                <p><strong>On-Premise für Behörden/Banken:</strong> Individuelle Angebote auf Anfrage</p>
+            </div>
+        </section>
+
+        <section class="cta">
+            <h2>Bereit zu starten?</h2>
+            <p>Teste cflux 14 Tage kostenlos – keine Kreditkarte erforderlich.</p>
+            <a href="mailto:info@cflux.org?subject=cflux%20kostenlos%20testen" class="btn">Kostenlos testen →</a>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>cflux</h4>
+                <p style="color: var(--text-light);">Moderne Zeiterfassung für Teams.</p>
+            </div>
+            <div class="footer-section">
+                <h4>Produkt</h4>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#pricing">Preise</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="mailto:info@cflux.org">Kontakt</a></li>
+                    <li><a href="mailto:support@cflux.org">Support</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Rechtliches</h4>
+                <ul>
+                    <li><a href="impressum.html">Impressum</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 Matthias Püski. Alle Rechte vorbehalten.</p>
+        </div>
+    </footer>
+</body>
+</html>
