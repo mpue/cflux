@@ -14,7 +14,7 @@ export const register = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password, firstName, lastName, role, vacationDays, isActive } = req.body;
+    const { email, password, firstName, lastName, role, vacationDays, isActive, ...additionalFields } = req.body;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -23,16 +23,30 @@ export const register = async (req: AuthRequest, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Datum-Strings in DateTime konvertieren
+    const userData: any = {
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      role: role || 'USER',
+      vacationDays: vacationDays !== undefined ? vacationDays : 30,
+      isActive: isActive !== undefined ? isActive : true,
+      ...additionalFields
+    };
+    
+    if (userData.dateOfBirth) {
+      userData.dateOfBirth = new Date(userData.dateOfBirth);
+    }
+    if (userData.entryDate) {
+      userData.entryDate = new Date(userData.entryDate);
+    }
+    if (userData.exitDate) {
+      userData.exitDate = new Date(userData.exitDate);
+    }
+
     const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        role: role || 'USER',
-        vacationDays: vacationDays !== undefined ? vacationDays : 30,
-        isActive: isActive !== undefined ? isActive : true
-      }
+      data: userData
     });
 
     const jwtOptions: SignOptions = {

@@ -40,6 +40,38 @@ model User {
   role          UserRole        @default(USER)
   isActive      Boolean         @default(true)
   vacationDays  Float           @default(30)
+  
+  // Personalien
+  dateOfBirth   DateTime?
+  placeOfBirth  String?
+  nationality   String?
+  
+  // Kontakt
+  phone         String?
+  mobile        String?
+  street        String?
+  streetNumber  String?
+  zipCode       String?
+  city          String?
+  country       String?         @default("Schweiz")
+  
+  // Anstellung
+  employeeNumber String?        @unique
+  entryDate     DateTime?
+  exitDate      DateTime?
+  
+  // Bankverbindung
+  iban          String?
+  bankName      String?
+  
+  // Persönliche Angaben
+  civilStatus   String?         // ledig, verheiratet, geschieden, verwitwet
+  religion      String?         // römisch-katholisch, evangelisch-reformiert, andere, keine
+  
+  // Sozialversicherung & Steuern
+  ahvNumber     String?         @unique  // AHV-Nummer (Schweizer SV-Nummer)
+  isCrossBorderCommuter Boolean @default(false)  // Grenzgänger
+  
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 

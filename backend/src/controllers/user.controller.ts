@@ -17,6 +17,25 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
         role: true,
         isActive: true,
         vacationDays: true,
+        dateOfBirth: true,
+        placeOfBirth: true,
+        nationality: true,
+        phone: true,
+        mobile: true,
+        street: true,
+        streetNumber: true,
+        zipCode: true,
+        city: true,
+        country: true,
+        employeeNumber: true,
+        entryDate: true,
+        exitDate: true,
+        iban: true,
+        bankName: true,
+        civilStatus: true,
+        religion: true,
+        ahvNumber: true,
+        isCrossBorderCommuter: true,
         createdAt: true
       }
     });
@@ -43,6 +62,25 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
         role: true,
         isActive: true,
         vacationDays: true,
+        dateOfBirth: true,
+        placeOfBirth: true,
+        nationality: true,
+        phone: true,
+        mobile: true,
+        street: true,
+        streetNumber: true,
+        zipCode: true,
+        city: true,
+        country: true,
+        employeeNumber: true,
+        entryDate: true,
+        exitDate: true,
+        iban: true,
+        bankName: true,
+        civilStatus: true,
+        religion: true,
+        ahvNumber: true,
+        isCrossBorderCommuter: true,
         createdAt: true
       },
       orderBy: { createdAt: 'desc' }
@@ -87,19 +125,22 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
 export const updateUser = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { email, firstName, lastName, role, isActive, vacationDays, password } = req.body;
-
-    const updateData: any = {
-      email,
-      firstName,
-      lastName,
-      role,
-      isActive,
-      vacationDays
-    };
-
-    if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
+    const updateData: any = { ...req.body };
+    
+    // Passwort hashen falls vorhanden
+    if (updateData.password) {
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+    }
+    
+    // Datum-Strings in DateTime konvertieren
+    if (updateData.dateOfBirth) {
+      updateData.dateOfBirth = new Date(updateData.dateOfBirth);
+    }
+    if (updateData.entryDate) {
+      updateData.entryDate = new Date(updateData.entryDate);
+    }
+    if (updateData.exitDate) {
+      updateData.exitDate = new Date(updateData.exitDate);
     }
 
     const user = await prisma.user.update({
@@ -112,7 +153,27 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
         lastName: true,
         role: true,
         isActive: true,
-        vacationDays: true
+        vacationDays: true,
+        dateOfBirth: true,
+        placeOfBirth: true,
+        nationality: true,
+        phone: true,
+        mobile: true,
+        street: true,
+        streetNumber: true,
+        zipCode: true,
+        city: true,
+        country: true,
+        employeeNumber: true,
+        entryDate: true,
+        exitDate: true,
+        iban: true,
+        bankName: true,
+        civilStatus: true,
+        religion: true,
+        ahvNumber: true,
+        isCrossBorderCommuter: true,
+        createdAt: true
       }
     });
 

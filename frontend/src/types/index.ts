@@ -6,6 +6,38 @@ export interface User {
   role: 'ADMIN' | 'USER';
   isActive: boolean;
   vacationDays: number;
+  
+  // Personalien
+  dateOfBirth?: string;
+  placeOfBirth?: string;
+  nationality?: string;
+  
+  // Kontakt
+  phone?: string;
+  mobile?: string;
+  street?: string;
+  streetNumber?: string;
+  zipCode?: string;
+  city?: string;
+  country?: string;
+  
+  // Anstellung
+  employeeNumber?: string;
+  entryDate?: string;
+  exitDate?: string;
+  
+  // Bankverbindung
+  iban?: string;
+  bankName?: string;
+  
+  // Persönliche Angaben
+  civilStatus?: string;
+  religion?: string;
+  
+  // Sozialversicherung & Steuern
+  ahvNumber?: string;
+  isCrossBorderCommuter?: boolean;
+  
   createdAt: string;
 }
 

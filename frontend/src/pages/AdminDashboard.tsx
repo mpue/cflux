@@ -10,6 +10,7 @@ import { backupService, Backup } from '../services/backup.service';
 import { locationService } from '../services/location.service';
 import { User, Project, AbsenceRequest, TimeEntry, Report, Location } from '../types';
 import VacationPlanner from './VacationPlanner';
+import { UserDetailModal } from '../components/UserDetailModal';
 import {
   BarChart,
   Bar,
@@ -38,10 +39,18 @@ const AdminDashboard: React.FC = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [absences, setAbsences] = useState<AbsenceRequest[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
 
   useEffect(() => {
     loadData();
   }, [activeTab]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString('de-DE'));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loadData = async () => {
     try {
@@ -82,6 +91,7 @@ const AdminDashboard: React.FC = () => {
       <nav className="navbar">
         <h1>Admin Panel</h1>
         <div className="navbar-right">
+          <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{currentTime}</span>
           <span>{user?.firstName} {user?.lastName}</span>
           <button className="btn btn-secondary" onClick={() => navigate('/dashboard')}>
             Benutzer Ansicht
@@ -191,26 +201,33 @@ const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ users, on
         </button>
       </div>
 
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>E-Mail</th>
-            <th>Rolle</th>
-            <th>Status</th>
-            <th>Urlaubstage</th>
-            <th>Aktionen</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td>{user.firstName} {user.lastName}</td>
-              <td>{user.email}</td>
-              <td>{user.role}</td>
-              <td>{user.isActive ? 'Aktiv' : 'Inaktiv'}</td>
-              <td>{user.vacationDays}</td>
-              <td>
+      <div className="data-table-wrapper">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Personalnr.</th>
+              <th>Name</th>
+              <th>E-Mail</th>
+              <th>Telefon</th>
+              <th>Ort</th>
+              <th>Eintrittsdatum</th>
+              <th>Rolle</th>
+              <th>Status</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td>{user.employeeNumber || '-'}</td>
+                <td>{user.firstName} {user.lastName}</td>
+                <td>{user.email}</td>
+                <td>{user.mobile || user.phone || '-'}</td>
+                <td>{user.city || '-'}</td>
+                <td>{user.entryDate ? new Date(user.entryDate).toLocaleDateString('de-DE') : '-'}</td>
+                <td>{user.role}</td>
+                <td>{user.isActive ? 'Aktiv' : 'Inaktiv'}</td>
+                <td>
                 <button
                   className="btn btn-primary"
                   style={{ marginRight: '5px', padding: '5px 10px', fontSize: '12px' }}
@@ -238,9 +255,10 @@ const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ users, on
           ))}
         </tbody>
       </table>
+      </div>
 
       {showModal && editingUser && (
-        <UserEditModal
+        <UserDetailModal
           user={editingUser}
           onClose={() => {
             setShowModal(false);

@@ -22,9 +22,17 @@ const Dashboard: React.FC = () => {
   const [report, setReport] = useState<Report | null>(null);
   const [showAbsenceModal, setShowAbsenceModal] = useState(false);
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString('de-DE'));
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
   const loadData = async () => {
@@ -88,6 +96,7 @@ const Dashboard: React.FC = () => {
       <nav className="navbar">
         <h1>Zeiterfassung</h1>
         <div className="navbar-right">
+          <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{currentTime}</span>
           <span>{user?.firstName} {user?.lastName}</span>
           {user?.role === 'ADMIN' && (
             <button className="btn btn-secondary" onClick={() => navigate('/admin')}>
