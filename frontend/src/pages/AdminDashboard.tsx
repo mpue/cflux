@@ -9,6 +9,7 @@ import { reportService } from '../services/report.service';
 import { backupService, Backup } from '../services/backup.service';
 import { locationService } from '../services/location.service';
 import { User, Project, AbsenceRequest, TimeEntry, Report, Location } from '../types';
+import VacationPlanner from './VacationPlanner';
 import {
   BarChart,
   Bar,
@@ -26,7 +27,7 @@ import {
 } from 'recharts';
 import '../App.css';
 
-type TabType = 'users' | 'projects' | 'locations' | 'absences' | 'timeEntries' | 'reports' | 'backup';
+type TabType = 'users' | 'projects' | 'locations' | 'absences' | 'timeEntries' | 'reports' | 'backup' | 'vacationPlanner';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -93,7 +94,7 @@ const AdminDashboard: React.FC = () => {
 
       <div className="container">
         <div className="card">
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #ddd' }}>
+          <div className="tab-navigation" style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #ddd', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <TabButton
               active={activeTab === 'users'}
               onClick={() => setActiveTab('users')}
@@ -129,15 +130,23 @@ const AdminDashboard: React.FC = () => {
               onClick={() => setActiveTab('backup')}
               label="Backup"
             />
+            <TabButton
+              active={activeTab === 'vacationPlanner'}
+              onClick={() => setActiveTab('vacationPlanner')}
+              label="Urlaubsplaner"
+            />
           </div>
 
-          {activeTab === 'users' && <UsersTab users={users} onUpdate={loadData} />}
-          {activeTab === 'projects' && <ProjectsTab projects={projects} onUpdate={loadData} />}
-          {activeTab === 'locations' && <LocationsTab locations={locations} onUpdate={loadData} />}
-          {activeTab === 'absences' && <AbsencesTab absences={absences} onUpdate={loadData} />}
-          {activeTab === 'timeEntries' && <TimeEntriesTab />}
-          {activeTab === 'reports' && <ReportsTab reports={reports} />}
-          {activeTab === 'backup' && <BackupTab />}
+          <>
+            {activeTab === 'users' && <UsersTab users={users} onUpdate={loadData} />}
+            {activeTab === 'projects' && <ProjectsTab projects={projects} onUpdate={loadData} />}
+            {activeTab === 'locations' && <LocationsTab locations={locations} onUpdate={loadData} />}
+            {activeTab === 'absences' && <AbsencesTab absences={absences} onUpdate={loadData} />}
+            {activeTab === 'timeEntries' && <TimeEntriesTab />}
+            {activeTab === 'reports' && <ReportsTab reports={reports} />}
+            {activeTab === 'backup' && <BackupTab />}
+            {activeTab === 'vacationPlanner' && <VacationPlanner />}
+          </>
         </div>
       </div>
     </div>

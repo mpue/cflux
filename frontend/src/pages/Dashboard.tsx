@@ -172,7 +172,8 @@ const Dashboard: React.FC = () => {
             </button>
           </div>
 
-          <table className="table">
+          <div className="data-table-wrapper">
+            <table className="table">
             <thead>
               <tr>
                 <th>Typ</th>
@@ -210,11 +211,13 @@ const Dashboard: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
         <div className="card">
           <h2>Letzte Zeiteinträge</h2>
-          <table className="table">
+          <div className="data-table-wrapper">
+            <table className="table">
             <thead>
               <tr>
                 <th>Datum</th>
@@ -365,6 +368,7 @@ const Dashboard: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 

@@ -1,0 +1,148 @@
+.vacation-planner {
+  padding: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.vp-table-wrapper {
+  overflow: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  margin-bottom: 16px;
+  flex: 1;
+  max-height: calc(100vh - 400px);
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+.vp-table {
+  border-collapse: collapse;
+  width: max-content;
+  min-width: 100%;
+  font-size: 12px;
+}
+.vp-table th, .vp-table td {
+  border: 1px solid #eee;
+  padding: 2px 4px;
+  text-align: center;
+  min-width: 22px;
+  max-width: 22px;
+}
+.vp-table th {
+  background: #f5f5f5;
+  font-weight: bold;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.vp-user {
+  font-weight: bold;
+  background: #f9f9f9;
+  min-width: 120px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+.vp-day-header {
+  background: #fafafa;
+  color: #bbb;
+}
+.vp-absent {
+  border: 1px solid #bbb;
+  color: #fff;
+  cursor: pointer;
+}
+.vp-legend {
+  margin-top: 12px;
+  font-size: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.vp-legend span {
+  white-space: nowrap;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+
+@media (max-width: 768px) {
+  .vacation-planner {
+    padding: 0;
+  }
+  
+  .vp-table-wrapper {
+    max-height: calc(100vh - 450px);
+    border-radius: 4px;
+  }
+
+  .vp-table {
+    font-size: 10px;
+  }
+
+  .vp-table th, .vp-table td {
+    min-width: 18px;
+    max-width: 18px;
+    padding: 1px 2px;
+  }
+
+  .vp-user {
+    min-width: 100px;
+    font-size: 11px;
+  }
+
+  .vp-legend {
+    font-size: 11px;
+  }
+
+  .vp-legend span {
+    padding: 2px 6px !important;
+    font-size: 10px;
+  }
+
+  /* Filter section responsive */
+  .vp-filters {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .vp-filters > div {
+    width: 100%;
+  }
+
+  .vp-filters input,
+  .vp-filters select {
+    width: 100% !important;
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+
+  .vp-filters label {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .vp-filters button {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .vp-table {
+    font-size: 9px;
+  }
+
+  .vp-table th, .vp-table td {
+    min-width: 16px;
+    max-width: 16px;
+    padding: 1px;
+  }
+
+  .vp-user {
+    min-width: 80px;
+    font-size: 10px;
+  }
+
+  .vp-legend {
+    font-size: 10px;
+  }
+}

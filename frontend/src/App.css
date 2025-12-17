@@ -231,3 +231,170 @@
     opacity: 0.5;
   }
 }
+/* ===== RESPONSIVE DESIGN ===== */
+
+/* Mobile First - Tablets and below */
+@media (max-width: 768px) {
+  .container {
+    padding: 10px;
+  }
+
+  .card {
+    padding: 15px;
+    border-radius: 4px;
+  }
+
+  /* Navbar */
+  .navbar {
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .navbar h1 {
+    font-size: 18px;
+  }
+
+  .navbar-right {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .navbar-right button,
+  .navbar-right span {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 12px 16px;
+    font-size: 16px;
+    min-height: 44px; /* Touch-friendly */
+  }
+
+  .btn-small {
+    padding: 8px 12px;
+    font-size: 14px;
+    min-height: 36px;
+  }
+
+  /* Tables - Responsive Scroll */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    min-width: 600px;
+  }
+
+  .table th,
+  .table td {
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  /* Stats Grid */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Modal */
+  .modal {
+    padding: 20px;
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .modal h2 {
+    font-size: 20px;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+
+  /* Form Groups */
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 12px;
+  }
+
+  /* Tab Navigation */
+  .tab-navigation {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 15px;
+  }
+
+  .tab-navigation button {
+    white-space: nowrap;
+    padding: 12px 16px;
+    font-size: 14px;
+    min-width: auto;
+  }
+}
+
+/* Small Mobile - Phones */
+@media (max-width: 480px) {
+  .navbar h1 {
+    font-size: 16px;
+  }
+
+  .btn {
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+
+  .table th,
+  .table td {
+    padding: 6px;
+    font-size: 12px;
+  }
+
+  .stat-card .value {
+    font-size: 24px;
+  }
+
+  .modal {
+    padding: 15px;
+  }
+}
+
+/* Data Tables - Responsive */
+.data-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -15px;
+  padding: 0 15px;
+}
+
+@media (max-width: 768px) {
+  .data-table-wrapper {
+    margin: 0 -10px;
+    padding: 0 10px;
+  }
+}
+
+/* Touch-friendly interaction */
+@media (hover: none) {
+  .btn:active {
+    transform: scale(0.98);
+  }
+
+  .table tr:active {
+    background-color: #e9ecef;
+  }
+}
