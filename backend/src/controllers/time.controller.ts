@@ -1,6 +1,13 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
+import { 
+  checkRestTimeViolation, 
+  checkWeeklyHoursViolation,
+  checkDailyHoursViolation,
+  checkMissingPauseViolation,
+  updateOvertimeBalance
+} from '../services/compliance.service';
 
 const prisma = new PrismaClient();
 
@@ -21,12 +28,18 @@ export const clockIn = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Already clocked in' });
     }
 
+    const clockInTime = new Date();
+
+    // Compliance Check: Ruhezeit
+    console.log(`[COMPLIANCE] Checking rest time for user ${userId} at clock-in`);
+    await checkRestTimeViolation(userId, clockInTime);
+
     const timeEntry = await prisma.timeEntry.create({
       data: {
         userId,
         projectId,
         locationId,
-        clockIn: new Date(),
+        clockIn: clockInTime,
         description,
         status: 'CLOCKED_IN'
       },
@@ -58,10 +71,12 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Not clocked in' });
     }
 
+    const clockOutTime = new Date();
+
     const updatedEntry = await prisma.timeEntry.update({
       where: { id: timeEntry.id },
       data: {
-        clockOut: new Date(),
+        clockOut: clockOutTime,
         status: 'CLOCKED_OUT'
       },
       include: {
@@ -69,6 +84,14 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
         location: true
       }
     });
+
+    // Compliance Checks nach Clock-Out
+    console.log(`[COMPLIANCE] Running compliance checks for user ${userId} after clock-out`);
+    await checkDailyHoursViolation(userId, timeEntry.clockIn, clockOutTime);
+    await checkMissingPauseViolation(userId, timeEntry.clockIn, clockOutTime);
+    await checkWeeklyHoursViolation(userId, clockOutTime);
+    await updateOvertimeBalance(userId, clockOutTime);
+    console.log(`[COMPLIANCE] Compliance checks completed`);
 
     res.json(updatedEntry);
   } catch (error) {
@@ -261,6 +284,22 @@ export const updateTimeEntry = async (req: AuthRequest, res: Response) => {
         }
       }
     });
+
+    // Compliance Checks ausführen wenn clockOut gesetzt ist
+    if (clockOut && clockIn) {
+      const userId = timeEntry.userId;
+      const clockInDate = new Date(clockIn);
+      const clockOutDate = new Date(clockOut);
+      
+      console.log(`[COMPLIANCE] Running compliance checks for user ${userId} after manual time entry update`);
+      
+      await checkDailyHoursViolation(userId, clockInDate, clockOutDate);
+      await checkMissingPauseViolation(userId, clockInDate, clockOutDate);
+      await checkWeeklyHoursViolation(userId, clockOutDate);
+      await updateOvertimeBalance(userId, clockOutDate);
+      
+      console.log(`[COMPLIANCE] Compliance checks completed for manual update`);
+    }
 
     res.json(timeEntry);
   } catch (error) {

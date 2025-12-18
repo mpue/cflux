@@ -38,6 +38,12 @@ export interface User {
   ahvNumber?: string;
   isCrossBorderCommuter?: boolean;
   
+  // Swiss Compliance
+  weeklyHours?: number;
+  canton?: string;
+  exemptFromTracking?: boolean;
+  contractHours?: number;
+  
   createdAt: string;
 }
 
@@ -109,4 +115,68 @@ export interface Report {
   byProject?: { name: string; hours: number }[];
   entries: number;
   user?: User;
+}
+
+export interface Holiday {
+  id: string;
+  date: string;
+  name: string;
+  canton: string;
+  percentage: number;
+  createdAt: string;
+}
+
+export interface ComplianceViolation {
+  id: string;
+  userId: string;
+  type: 'REST_TIME' | 'MAX_WEEKLY_HOURS' | 'MAX_DAILY_HOURS' | 'MISSING_PAUSE' | 'OVERTIME_LIMIT' | 'NIGHT_WORK' | 'SUNDAY_WORK';
+  severity: 'WARNING' | 'CRITICAL';
+  date: string;
+  description: string;
+  actualValue?: string;
+  requiredValue?: string;
+  resolved: boolean;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  notes?: string;
+  createdAt: string;
+  user?: User;
+}
+
+export interface OvertimeBalance {
+  id: string;
+  userId: string;
+  year: number;
+  regularOvertime: number;
+  extraTime: number;
+  nightHours: number;
+  sundayHours: number;
+  createdAt: string;
+  updatedAt: string;
+  user?: User;
+}
+
+export interface ComplianceSettings {
+  id: string;
+  defaultWeeklyHours: number;
+  defaultCanton: string;
+  overtimeLimit170: boolean;
+  enableAutoWarnings: boolean;
+  enableEmailAlerts: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ComplianceStats {
+  unresolvedViolations: number;
+  criticalViolations: number;
+  recentViolations: number;
+  violationsByType: Array<{ type: string; count: number }>;
+  topUsersWithViolations: Array<{ 
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    violationCount: number;
+  }>;
 }

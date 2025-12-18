@@ -8,7 +8,7 @@ interface UserDetailModalProps {
 }
 
 export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose, onSave }) => {
-  const [activeSection, setActiveSection] = useState<'basic' | 'personal' | 'contact' | 'employment' | 'banking'>('basic');
+  const [activeSection, setActiveSection] = useState<'basic' | 'personal' | 'contact' | 'employment' | 'banking' | 'compliance'>('basic');
   const [formData, setFormData] = useState({
     // Basis
     firstName: user.firstName || '',
@@ -48,7 +48,13 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
     
     // Sozialversicherung
     ahvNumber: user.ahvNumber || '',
-    isCrossBorderCommuter: user.isCrossBorderCommuter ?? false,
+    isCrossBorderCommuter: user.isCrossBorderCommuter || false,
+    
+    // Swiss Compliance
+    weeklyHours: user.weeklyHours || 45,
+    canton: user.canton || 'ZH',
+    exemptFromTracking: user.exemptFromTracking || false,
+    contractHours: user.contractHours || 0
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -318,16 +324,100 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
           type="text"
           value={formData.iban}
           onChange={(e) => setFormData({ ...formData, iban: e.target.value })}
-          placeholder="CH93 0000 0000 0000 0000 0"
+          placeholder="CH93 0076 2011 6238 5295 7"
         />
       </div>
       <div className="form-group">
-        <label>Bank / Institut</label>
+        <label>Bankname</label>
         <input
           type="text"
           value={formData.bankName}
           onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
         />
+      </div>
+    </>
+  );
+
+  const renderComplianceInfo = () => (
+    <>
+      <div className="form-group">
+        <label>Wöchentliche Höchstarbeitszeit</label>
+        <select
+          value={formData.weeklyHours}
+          onChange={(e) => setFormData({ ...formData, weeklyHours: parseInt(e.target.value) })}
+        >
+          <option value="45">45 Stunden (Standard)</option>
+          <option value="50">50 Stunden</option>
+        </select>
+        <small style={{ color: '#666', display: 'block', marginTop: '4px' }}>
+          Gesetzliche Höchstarbeitszeit pro Woche (Art. 9 ArG)
+        </small>
+      </div>
+      
+      <div className="form-group">
+        <label>Vertragliche Wochenstunden</label>
+        <input
+          type="number"
+          step="0.5"
+          value={formData.contractHours || ''}
+          onChange={(e) => setFormData({ ...formData, contractHours: parseFloat(e.target.value) || 0 })}
+          placeholder="z.B. 42 oder 40"
+        />
+        <small style={{ color: '#666', display: 'block', marginTop: '4px' }}>
+          Für Überstunden-Berechnung (Differenz zur gesetzlichen Höchstarbeitszeit)
+        </small>
+      </div>
+
+      <div className="form-group">
+        <label>Kanton</label>
+        <select
+          value={formData.canton}
+          onChange={(e) => setFormData({ ...formData, canton: e.target.value })}
+        >
+          <option value="ZH">Zürich</option>
+          <option value="BE">Bern</option>
+          <option value="LU">Luzern</option>
+          <option value="UR">Uri</option>
+          <option value="SZ">Schwyz</option>
+          <option value="OW">Obwalden</option>
+          <option value="NW">Nidwalden</option>
+          <option value="GL">Glarus</option>
+          <option value="ZG">Zug</option>
+          <option value="FR">Freiburg</option>
+          <option value="SO">Solothurn</option>
+          <option value="BS">Basel-Stadt</option>
+          <option value="BL">Basel-Landschaft</option>
+          <option value="SH">Schaffhausen</option>
+          <option value="AR">Appenzell Ausserrhoden</option>
+          <option value="AI">Appenzell Innerrhoden</option>
+          <option value="SG">St. Gallen</option>
+          <option value="GR">Graubünden</option>
+          <option value="AG">Aargau</option>
+          <option value="TG">Thurgau</option>
+          <option value="TI">Tessin</option>
+          <option value="VD">Waadt</option>
+          <option value="VS">Wallis</option>
+          <option value="NE">Neuenburg</option>
+          <option value="GE">Genf</option>
+          <option value="JU">Jura</option>
+        </select>
+        <small style={{ color: '#666', display: 'block', marginTop: '4px' }}>
+          Relevant für kantonale Feiertage
+        </small>
+      </div>
+
+      <div className="form-group">
+        <label>
+          <input
+            type="checkbox"
+            checked={formData.exemptFromTracking}
+            onChange={(e) => setFormData({ ...formData, exemptFromTracking: e.target.checked })}
+          />
+          {' '}Von Zeiterfassung befreit
+        </label>
+        <small style={{ color: '#666', display: 'block', marginTop: '4px' }}>
+          Für leitende Angestellte oder bei Jahresgehalt &gt; 120'000 CHF (Art. 73a ArGV 1)
+        </small>
       </div>
     </>
   );
@@ -418,6 +508,22 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
           >
             Bankverbindung
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('compliance')}
+            style={{
+              padding: '8px 16px',
+              border: 'none',
+              background: 'none',
+              borderBottom: activeSection === 'compliance' ? '3px solid #007bff' : 'none',
+              color: activeSection === 'compliance' ? '#007bff' : '#666',
+              fontWeight: activeSection === 'compliance' ? 'bold' : 'normal',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            🇨🇭 Compliance
+          </button>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -426,6 +532,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
           {activeSection === 'contact' && renderContactInfo()}
           {activeSection === 'employment' && renderEmploymentInfo()}
           {activeSection === 'banking' && renderBankingInfo()}
+          {activeSection === 'compliance' && renderComplianceInfo()}
 
           <div className="modal-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>

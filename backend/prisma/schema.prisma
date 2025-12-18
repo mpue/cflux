@@ -31,6 +31,21 @@ enum RequestStatus {
   REJECTED
 }
 
+enum ViolationType {
+  REST_TIME
+  MAX_WEEKLY_HOURS
+  MAX_DAILY_HOURS
+  MISSING_PAUSE
+  OVERTIME_LIMIT
+  NIGHT_WORK
+  SUNDAY_WORK
+}
+
+enum ViolationSeverity {
+  WARNING
+  CRITICAL
+}
+
 model User {
   id            String          @id @default(uuid())
   email         String          @unique
@@ -72,12 +87,20 @@ model User {
   ahvNumber     String?         @unique  // AHV-Nummer (Schweizer SV-Nummer)
   isCrossBorderCommuter Boolean @default(false)  // Grenzgänger
   
+  // Swiss Compliance
+  weeklyHours        Int      @default(45)  // 45 oder 50 Stunden/Woche
+  canton             String?  @default("ZH") // ZH, BE, AG, BS, SG, etc.
+  exemptFromTracking Boolean  @default(false) // Zeiterfassung nicht nötig (leitende Angestellte)
+  contractHours      Float?   // Vertragliche Wochenstunden (für Überstunden-Berechnung)
+  
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
   timeEntries   TimeEntry[]
   absenceRequests AbsenceRequest[]
   projectAssignments ProjectAssignment[]
+  overtimeBalances OvertimeBalance[]
+  complianceViolations ComplianceViolation[]
   
   @@map("users")
 }
@@ -161,4 +184,68 @@ model AbsenceRequest {
 
   @@index([userId, status])
   @@map("absence_requests")
+}
+
+model Holiday {
+  id          String   @id @default(uuid())
+  date        DateTime @unique
+  name        String
+  canton      String   // "CH" for national, "ZH" for canton-specific
+  percentage  Float    @default(100) // 100% = full day off
+  createdAt   DateTime @default(now())
+  
+  @@index([date, canton])
+  @@map("holidays")
+}
+
+model OvertimeBalance {
+  id              String   @id @default(uuid())
+  userId          String
+  year            Int
+  regularOvertime Float    @default(0)  // Überstunden (über Vertrag, unter Höchstarbeitszeit)
+  extraTime       Float    @default(0)  // Überzeit (über gesetzliche Höchstarbeitszeit)
+  nightHours      Float    @default(0)  // Nachtarbeitsstunden
+  sundayHours     Float    @default(0)  // Sonntagsarbeitsstunden
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, year])
+  @@map("overtime_balances")
+}
+
+model ComplianceViolation {
+  id              String             @id @default(uuid())
+  userId          String
+  type            ViolationType
+  severity        ViolationSeverity  @default(WARNING)
+  date            DateTime
+  description     String
+  actualValue     String?            // z.B. "12 Stunden" oder "8 Stunden Ruhezeit"
+  requiredValue   String?            // z.B. "11 Stunden Ruhezeit"
+  resolved        Boolean            @default(false)
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  notes           String?
+  createdAt       DateTime           @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, date])
+  @@index([resolved, severity])
+  @@map("compliance_violations")
+}
+
+model ComplianceSettings {
+  id                  String   @id @default(uuid())
+  defaultWeeklyHours  Int      @default(45)
+  defaultCanton       String   @default("ZH")
+  overtimeLimit170    Boolean  @default(true)  // true=45h-Woche (170h limit), false=50h-Woche (140h)
+  enableAutoWarnings  Boolean  @default(true)
+  enableEmailAlerts   Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@map("compliance_settings")
 }

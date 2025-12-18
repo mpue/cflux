@@ -9,6 +9,7 @@ import absenceRoutes from './routes/absence.routes';
 import reportRoutes from './routes/report.routes';
 import backupRoutes from './routes/backup.routes';
 import locationRoutes from './routes/location.routes';
+import complianceRoutes from './routes/compliance.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -32,6 +33,7 @@ app.use('/api/absences', absenceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/locations', locationRoutes);
+app.use('/api/compliance', complianceRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

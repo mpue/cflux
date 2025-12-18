@@ -36,6 +36,10 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
         religion: true,
         ahvNumber: true,
         isCrossBorderCommuter: true,
+        weeklyHours: true,
+        canton: true,
+        exemptFromTracking: true,
+        contractHours: true,
         createdAt: true
       }
     });
@@ -81,6 +85,10 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
         religion: true,
         ahvNumber: true,
         isCrossBorderCommuter: true,
+        weeklyHours: true,
+        canton: true,
+        exemptFromTracking: true,
+        contractHours: true,
         createdAt: true
       },
       orderBy: { createdAt: 'desc' }
@@ -107,6 +115,10 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
         role: true,
         isActive: true,
         vacationDays: true,
+        weeklyHours: true,
+        canton: true,
+        exemptFromTracking: true,
+        contractHours: true,
         createdAt: true
       }
     });
@@ -173,6 +185,10 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
         religion: true,
         ahvNumber: true,
         isCrossBorderCommuter: true,
+        weeklyHours: true,
+        canton: true,
+        exemptFromTracking: true,
+        contractHours: true,
         createdAt: true
       }
     });
