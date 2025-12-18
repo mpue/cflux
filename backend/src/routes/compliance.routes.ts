@@ -3,6 +3,9 @@ import { authenticate, requireAdmin } from '../middleware/auth';
 import {
   getHolidays,
   syncHolidays,
+  createHoliday,
+  deleteHoliday,
+  getCantons,
   getViolations,
   resolveViolation,
   getOvertimeBalance,
@@ -16,6 +19,11 @@ const router = Router();
 // Feiertage
 router.get('/holidays', authenticate, getHolidays);
 router.post('/holidays/sync', authenticate, requireAdmin, syncHolidays);
+router.post('/holidays', authenticate, requireAdmin, createHoliday);
+router.delete('/holidays/:id', authenticate, requireAdmin, deleteHoliday);
+
+// Kantone
+router.get('/cantons', authenticate, getCantons);
 
 // Violations
 router.get('/violations', authenticate, getViolations);

@@ -21,8 +21,14 @@ const Dashboard: React.FC = () => {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [report, setReport] = useState<Report | null>(null);
   const [showAbsenceModal, setShowAbsenceModal] = useState(false);
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [showPauseReminderModal, setShowPauseReminderModal] = useState(false);
+  const [pauseReminderMessage, setPauseReminderMessage] = useState<string>('');
+  const [pauseMinutes, setPauseMinutes] = useState<number>(0);
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
+  const [workDuration, setWorkDuration] = useState<string>('0h 0m');
+  const [pauseCheckDone, setPauseCheckDone] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadData();
@@ -31,9 +37,67 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString('de-DE'));
+      updateWorkDuration();
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [currentEntry]);
+
+  const updateWorkDuration = () => {
+    if (!currentEntry || currentEntry.status === 'CLOCKED_OUT') {
+      setWorkDuration('0h 0m');
+      return;
+    }
+
+    const start = new Date(currentEntry.clockIn);
+    const now = new Date();
+    let totalMinutes = Math.floor((now.getTime() - start.getTime()) / (1000 * 60));
+    
+    // Abzug bereits abgeschlossene Pausen
+    if (currentEntry.pauseMinutes) {
+      totalMinutes -= currentEntry.pauseMinutes;
+    }
+    
+    // Abzug aktuelle Pause
+    if (currentEntry.status === 'ON_PAUSE' && currentEntry.pauseStartedAt) {
+      const pauseStart = new Date(currentEntry.pauseStartedAt);
+      const currentPauseMinutes = Math.floor((now.getTime() - pauseStart.getTime()) / (1000 * 60));
+      totalMinutes -= currentPauseMinutes;
+    }
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    setWorkDuration(`${hours}h ${minutes}m`);
+
+    // Auto-Reminder für Pausen
+    checkPauseReminder(totalMinutes);
+  };
+
+  const checkPauseReminder = (workMinutes: number) => {
+    if (!currentEntry || currentEntry.status !== 'CLOCKED_IN') return;
+    
+    const workHours = workMinutes / 60;
+    const entryId = currentEntry.id;
+    const totalPause = currentEntry.pauseMinutes || 0;
+
+    // 5.5 Stunden = 15 Min Pause
+    if (workHours >= 5.5 && totalPause < 15 && !pauseCheckDone.has(`${entryId}-5.5`)) {
+      setPauseReminderMessage('Du hast jetzt 5,5 Stunden gearbeitet. Bitte mache eine 15-minütige Pause! 🕒');
+      setShowPauseReminderModal(true);
+      setPauseCheckDone(prev => new Set(prev).add(`${entryId}-5.5`));
+    }
+    // 7 Stunden = 30 Min Pause
+    else if (workHours >= 7 && totalPause < 30 && !pauseCheckDone.has(`${entryId}-7`)) {
+      setPauseReminderMessage('Du hast jetzt 7 Stunden gearbeitet. Bitte mache eine 30-minütige Pause! ⚠️');
+      setShowPauseReminderModal(true);
+      setPauseCheckDone(prev => new Set(prev).add(`${entryId}-7`));
+    }
+    // 9 Stunden = 60 Min Pause
+    else if (workHours >= 9 && totalPause < 60 && !pauseCheckDone.has(`${entryId}-9`)) {
+      setPauseReminderMessage('Du hast jetzt 9 Stunden gearbeitet. Du musst jetzt eine Stunde Pause machen! 🚨');
+      setShowPauseReminderModal(true);
+      setPauseCheckDone(prev => new Set(prev).add(`${entryId}-9`));
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -69,12 +133,37 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleClockOut = async () => {
+  const handleClockOut = () => {
+    setShowPauseModal(true);
+  };
+
+  const confirmClockOut = async () => {
     try {
-      await timeService.clockOut();
+      await timeService.clockOut(pauseMinutes);
+      setShowPauseModal(false);
+      setPauseMinutes(0);
+      setPauseCheckDone(new Set()); // Reset pause checks
       await loadData();
     } catch (error: any) {
       alert(error.response?.data?.error || 'Ausstempeln fehlgeschlagen');
+    }
+  };
+
+  const handleStartPause = async () => {
+    try {
+      await timeService.startPause();
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Pause starten fehlgeschlagen');
+    }
+  };
+
+  const handleEndPause = async () => {
+    try {
+      await timeService.endPause();
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Pause beenden fehlgeschlagen');
     }
   };
 
@@ -111,7 +200,7 @@ const Dashboard: React.FC = () => {
 
       <div className="container">
         <div className="stats-grid">
-          <div className="stat-card">
+          <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
             <h3>Gesamtstunden (Monat)</h3>
             <div className="value">{report?.totalHours.toFixed(1) || 0}h</div>
           </div>
@@ -130,17 +219,44 @@ const Dashboard: React.FC = () => {
           
           {currentEntry ? (
             <div>
-              <div className="clock-status clocked-in">
+              <div className={`clock-status ${currentEntry.status === 'ON_PAUSE' ? 'on-pause' : 'clocked-in'}`}>
                 <span className="status-indicator"></span>
                 <span>
-                  Eingestempelt seit {new Date(currentEntry.clockIn).toLocaleString('de-DE')}
-                  {currentEntry.project && ` - ${currentEntry.project.name}`}
-                  {currentEntry.location && ` (${currentEntry.location.name})`}
+                  {currentEntry.status === 'ON_PAUSE' ? (
+                    <>
+                      ⏸️ Pause läuft seit {currentEntry.pauseStartedAt ? new Date(currentEntry.pauseStartedAt).toLocaleTimeString('de-DE') : ''}
+                      <br />
+                      <small style={{ color: '#666' }}>Arbeitszeit: {workDuration}</small>
+                    </>
+                  ) : (
+                    <>
+                      Eingestempelt seit {new Date(currentEntry.clockIn).toLocaleString('de-DE')}
+                      {currentEntry.project && ` - ${currentEntry.project.name}`}
+                      {currentEntry.location && ` (${currentEntry.location.name})`}
+                      <br />
+                      <small style={{ color: '#666' }}>Arbeitszeit: {workDuration} | Pausen: {currentEntry.pauseMinutes || 0} Min</small>
+                    </>
+                  )}
                 </span>
               </div>
-              <button className="btn btn-danger" onClick={handleClockOut}>
-                Ausstempeln
-              </button>
+              
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                {currentEntry.status === 'CLOCKED_IN' && (
+                  <>
+                    <button className="btn" style={{ background: '#ff9800', color: 'white' }} onClick={handleStartPause}>
+                      ⏸️ Pause starten
+                    </button>
+                    <button className="btn btn-danger" onClick={handleClockOut}>
+                      Ausstempeln
+                    </button>
+                  </>
+                )}
+                {currentEntry.status === 'ON_PAUSE' && (
+                  <button className="btn btn-primary" onClick={handleEndPause}>
+                    ▶️ Pause beenden
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div>
@@ -391,6 +507,177 @@ const Dashboard: React.FC = () => {
           }}
         />
       )}
+
+      {showPauseModal && (
+        <PauseModal
+          onClose={() => {
+            setShowPauseModal(false);
+            setPauseMinutes(0);
+          }}
+          onConfirm={confirmClockOut}
+          pauseMinutes={pauseMinutes}
+          setPauseMinutes={setPauseMinutes}
+        />
+      )}
+
+      {showPauseReminderModal && (
+        <PauseReminderModal
+          message={pauseReminderMessage}
+          onClose={() => setShowPauseReminderModal(false)}
+          onStartPause={handleStartPause}
+        />
+      )}
+    </div>
+  );
+};
+
+const PauseReminderModal: React.FC<{
+  message: string;
+  onClose: () => void;
+  onStartPause: () => void;
+}> = ({ message, onClose, onStartPause }) => {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+        <h2>⏰ Pausenzeit!</h2>
+        
+        <div style={{ padding: '20px 0' }}>
+          <p style={{ fontSize: '16px', lineHeight: '1.6', marginBottom: '20px' }}>
+            {message}
+          </p>
+
+          <div style={{ 
+            background: '#fff3cd', 
+            border: '1px solid #ffc107',
+            padding: '15px', 
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px'
+          }}>
+            <strong>📋 Gesetzliche Pausenpflicht (Art. 15 ArGV 1):</strong>
+            <ul style={{ marginTop: '10px', marginBottom: '0', paddingLeft: '20px' }}>
+              <li>Ab 5,5 Stunden: mindestens 15 Minuten</li>
+              <li>Ab 7 Stunden: mindestens 30 Minuten</li>
+              <li>Ab 9 Stunden: mindestens 60 Minuten</li>
+            </ul>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              type="button" 
+              className="btn btn-primary" 
+              onClick={() => {
+                onStartPause();
+                onClose();
+              }}
+              style={{ flex: '1' }}
+            >
+              ⏸️ Jetzt Pause machen
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              onClick={onClose}
+              style={{ flex: '1' }}
+            >
+              Später
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PauseModal: React.FC<{
+  onClose: () => void;
+  onConfirm: () => void;
+  pauseMinutes: number;
+  setPauseMinutes: (value: number) => void;
+}> = ({ onClose, onConfirm, pauseMinutes, setPauseMinutes }) => {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>Pausenzeit erfassen</h2>
+        
+        <div style={{ padding: '0 0 20px 0' }}>
+          <p style={{ marginBottom: '20px', color: '#666' }}>
+            Wie viele Minuten Pause hattest du während deiner Arbeitszeit?
+          </p>
+
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={`btn ${pauseMinutes === 0 ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setPauseMinutes(0)}
+              style={{ flex: '1', minWidth: '100px' }}
+            >
+              Keine Pause
+            </button>
+            <button
+              type="button"
+              className={`btn ${pauseMinutes === 15 ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setPauseMinutes(15)}
+              style={{ flex: '1', minWidth: '100px' }}
+            >
+              15 Min
+            </button>
+            <button
+              type="button"
+              className={`btn ${pauseMinutes === 30 ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setPauseMinutes(30)}
+              style={{ flex: '1', minWidth: '100px' }}
+            >
+              30 Min
+            </button>
+            <button
+              type="button"
+              className={`btn ${pauseMinutes === 60 ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setPauseMinutes(60)}
+              style={{ flex: '1', minWidth: '100px' }}
+            >
+              60 Min
+            </button>
+          </div>
+
+          <div className="form-group">
+            <label>Oder eigene Zeit eingeben (Minuten)</label>
+            <input
+              type="number"
+              min="0"
+              max="999"
+              value={pauseMinutes}
+              onChange={(e) => setPauseMinutes(parseInt(e.target.value) || 0)}
+              placeholder="z.B. 45"
+            />
+          </div>
+
+          <div style={{ 
+            background: '#f0f7ff', 
+            padding: '15px', 
+            borderRadius: '8px', 
+            marginTop: '20px',
+            fontSize: '14px',
+            color: '#333'
+          }}>
+            <strong>📋 Gesetzliche Pausenzeiten (Art. 15 ArGV 1):</strong>
+            <ul style={{ marginTop: '10px', marginBottom: '0', paddingLeft: '20px' }}>
+              <li>Ab 5,5 Stunden: mindestens 15 Minuten</li>
+              <li>Ab 7 Stunden: mindestens 30 Minuten</li>
+              <li>Ab 9 Stunden: mindestens 60 Minuten</li>
+            </ul>
+          </div>
+
+          <div className="modal-actions" style={{ marginTop: '20px' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Abbrechen
+            </button>
+            <button type="button" className="btn btn-primary" onClick={onConfirm}>
+              Ausstempeln ({pauseMinutes} Min Pause)
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

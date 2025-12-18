@@ -215,6 +215,11 @@
   color: #155724;
 }
 
+.clock-status.on-pause {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
 .status-indicator {
   width: 12px;
   height: 12px;

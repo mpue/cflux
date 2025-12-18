@@ -59,6 +59,7 @@ export const clockIn = async (req: AuthRequest, res: Response) => {
 export const clockOut = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
+    const { pauseMinutes } = req.body; // Pausen in Minuten
 
     const timeEntry = await prisma.timeEntry.findFirst({
       where: {
@@ -77,7 +78,8 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
       where: { id: timeEntry.id },
       data: {
         clockOut: clockOutTime,
-        status: 'CLOCKED_OUT'
+        status: 'CLOCKED_OUT',
+        pauseMinutes: pauseMinutes || 0
       },
       include: {
         project: true,
@@ -86,7 +88,7 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
     });
 
     // Compliance Checks nach Clock-Out
-    console.log(`[COMPLIANCE] Running compliance checks for user ${userId} after clock-out`);
+    console.log(`[COMPLIANCE] Running compliance checks for user ${userId} after clock-out (pause: ${pauseMinutes || 0} min)`);
     await checkDailyHoursViolation(userId, timeEntry.clockIn, clockOutTime);
     await checkMissingPauseViolation(userId, timeEntry.clockIn, clockOutTime);
     await checkWeeklyHoursViolation(userId, clockOutTime);
@@ -107,7 +109,7 @@ export const getCurrentTimeEntry = async (req: AuthRequest, res: Response) => {
     const timeEntry = await prisma.timeEntry.findFirst({
       where: {
         userId,
-        status: 'CLOCKED_IN'
+        status: { in: ['CLOCKED_IN', 'ON_PAUSE'] }
       },
       include: {
         project: true,
@@ -318,5 +320,79 @@ export const deleteTimeEntry = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Delete time entry error:', error);
     res.status(500).json({ error: 'Failed to delete time entry' });
+  }
+};
+
+export const startPause = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    const timeEntry = await prisma.timeEntry.findFirst({
+      where: {
+        userId,
+        status: 'CLOCKED_IN'
+      }
+    });
+
+    if (!timeEntry) {
+      return res.status(400).json({ error: 'Not currently clocked in' });
+    }
+
+    const updatedEntry = await prisma.timeEntry.update({
+      where: { id: timeEntry.id },
+      data: {
+        status: 'ON_PAUSE',
+        pauseStartedAt: new Date()
+      },
+      include: {
+        project: true,
+        location: true
+      }
+    });
+
+    res.json(updatedEntry);
+  } catch (error) {
+    console.error('Start pause error:', error);
+    res.status(500).json({ error: 'Failed to start pause' });
+  }
+};
+
+export const endPause = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    const timeEntry = await prisma.timeEntry.findFirst({
+      where: {
+        userId,
+        status: 'ON_PAUSE'
+      }
+    });
+
+    if (!timeEntry || !timeEntry.pauseStartedAt) {
+      return res.status(400).json({ error: 'Not currently on pause' });
+    }
+
+    const pauseEndTime = new Date();
+    const pauseDurationMinutes = Math.floor(
+      (pauseEndTime.getTime() - timeEntry.pauseStartedAt.getTime()) / (1000 * 60)
+    );
+
+    const updatedEntry = await prisma.timeEntry.update({
+      where: { id: timeEntry.id },
+      data: {
+        status: 'CLOCKED_IN',
+        pauseStartedAt: null,
+        pauseMinutes: (timeEntry.pauseMinutes || 0) + pauseDurationMinutes
+      },
+      include: {
+        project: true,
+        location: true
+      }
+    });
+
+    res.json(updatedEntry);
+  } catch (error) {
+    console.error('End pause error:', error);
+    res.status(500).json({ error: 'Failed to end pause' });
   }
 };

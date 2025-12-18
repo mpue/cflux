@@ -139,39 +139,68 @@ export async function checkDailyHoursViolation(userId: string, clockIn: Date, cl
   }
 }
 
-// Prüfe fehlende Pausen
+// Prüfe fehlende Pausen (Art. 15 ArGV 1)
 export async function checkMissingPauseViolation(userId: string, clockIn: Date, clockOut: Date) {
   try {
-    const duration = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+    // Gesamtarbeitszeit in Stunden berechnen
+    const totalDuration = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
 
-    let requiredPause = 0;
+    // Tatsächliche Pausen aus TimeEntry holen
+    const timeEntry = await prisma.timeEntry.findFirst({
+      where: {
+        userId,
+        clockIn,
+        clockOut
+      },
+      select: {
+        pauseMinutes: true
+      }
+    });
+
+    const actualPauseMinutes = timeEntry?.pauseMinutes || 0;
+    const actualPauseHours = actualPauseMinutes / 60;
+
+    // Nettoarbeitszeit (nach Abzug der Pausen)
+    const netWorkDuration = totalDuration - actualPauseHours;
+
+    let requiredPauseMinutes = 0;
     let description = '';
+    let severity: 'WARNING' | 'CRITICAL' = 'WARNING';
 
-    if (duration >= 9) {
-      requiredPause = 1; // 60 Min
-      description = 'Bei 9+ Stunden Arbeit ist 1 Stunde Pause vorgeschrieben';
-    } else if (duration >= 7) {
-      requiredPause = 0.5; // 30 Min
-      description = 'Bei 7+ Stunden Arbeit sind 30 Minuten Pause vorgeschrieben';
-    } else if (duration >= 5.5) {
-      requiredPause = 0.25; // 15 Min
-      description = 'Bei 5,5+ Stunden Arbeit sind 15 Minuten Pause vorgeschrieben';
+    // Art. 15 ArGV 1: Pausenvorschriften
+    if (netWorkDuration >= 9) {
+      requiredPauseMinutes = 60; // 1 Stunde
+      description = 'Bei 9+ Stunden Arbeit ist 1 Stunde Pause vorgeschrieben (Art. 15 Abs. 2 ArGV 1)';
+      severity = 'CRITICAL';
+    } else if (netWorkDuration >= 7) {
+      requiredPauseMinutes = 30; // 30 Minuten
+      description = 'Bei 7+ Stunden Arbeit sind 30 Minuten Pause vorgeschrieben (Art. 15 Abs. 1 ArGV 1)';
+    } else if (netWorkDuration >= 5.5) {
+      requiredPauseMinutes = 15; // 15 Minuten
+      description = 'Bei 5,5+ Stunden Arbeit sind 15 Minuten Pause vorgeschrieben (Art. 15 Abs. 1 ArGV 1)';
     }
 
-    if (requiredPause > 0) {
-      // TODO: Tatsächliche Pausen aus separatem Pausen-Tracking prüfen
-      // Für jetzt: Warnung wenn Arbeit lang genug ist
-      await prisma.complianceViolation.create({
+    // Nur Violation erstellen wenn Pause fehlt oder zu kurz
+    if (requiredPauseMinutes > 0 && actualPauseMinutes < requiredPauseMinutes) {
+      const missingMinutes = requiredPauseMinutes - actualPauseMinutes;
+      
+      console.log(`[COMPLIANCE] Creating MISSING_PAUSE violation for user ${userId}: ${netWorkDuration.toFixed(1)}h work, ${actualPauseMinutes}min pause (required: ${requiredPauseMinutes}min)`);
+      
+      const violation = await prisma.complianceViolation.create({
         data: {
           userId,
           type: 'MISSING_PAUSE',
-          severity: 'WARNING',
+          severity,
           date: clockIn,
-          description: `${description} (${duration.toFixed(1)}h Arbeitszeit)`,
-          actualValue: '0 Minuten (nicht erfasst)',
-          requiredValue: `${requiredPause * 60} Minuten`
+          description: `${description}. Gearbeitet: ${netWorkDuration.toFixed(1)}h, Pause gemacht: ${actualPauseMinutes} Min`,
+          actualValue: `${actualPauseMinutes} Minuten`,
+          requiredValue: `${requiredPauseMinutes} Minuten (fehlen: ${missingMinutes} Min)`
         }
       });
+      
+      console.log(`[COMPLIANCE] MISSING_PAUSE violation created with ID: ${violation.id}`);
+    } else if (requiredPauseMinutes > 0) {
+      console.log(`[COMPLIANCE] No MISSING_PAUSE violation for user ${userId}: ${actualPauseMinutes}min pause sufficient for ${netWorkDuration.toFixed(1)}h work`);
     }
   } catch (error) {
     console.error('Error checking missing pause violation:', error);

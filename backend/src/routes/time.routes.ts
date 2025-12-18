@@ -9,6 +9,8 @@ router.use(authenticate);
 // User time entries
 router.post('/clock-in', timeController.clockIn);
 router.post('/clock-out', timeController.clockOut);
+router.post('/start-pause', timeController.startPause);
+router.post('/end-pause', timeController.endPause);
 router.get('/my-entries', timeController.getMyTimeEntries);
 router.get('/current', timeController.getCurrentTimeEntry);
 router.put('/my-entries/:id', timeController.updateMyTimeEntry);

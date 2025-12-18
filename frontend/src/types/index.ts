@@ -83,8 +83,10 @@ export interface TimeEntry {
   locationId?: string;
   clockIn: string;
   clockOut?: string;
-  status: 'CLOCKED_IN' | 'CLOCKED_OUT';
+  status: 'CLOCKED_IN' | 'ON_PAUSE' | 'CLOCKED_OUT';
   description?: string;
+  pauseMinutes?: number;
+  pauseStartedAt?: string;
   createdAt: string;
   updatedAt: string;
   project?: Project;

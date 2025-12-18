@@ -7,8 +7,18 @@ export const timeService = {
     return response.data;
   },
 
-  clockOut: async (): Promise<TimeEntry> => {
-    const response = await api.post('/time/clock-out');
+  clockOut: async (pauseMinutes?: number): Promise<TimeEntry> => {
+    const response = await api.post('/time/clock-out', { pauseMinutes });
+    return response.data;
+  },
+
+  startPause: async (): Promise<TimeEntry> => {
+    const response = await api.post('/time/start-pause');
+    return response.data;
+  },
+
+  endPause: async (): Promise<TimeEntry> => {
+    const response = await api.post('/time/end-pause');
     return response.data;
   },
 
