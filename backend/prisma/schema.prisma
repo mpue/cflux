@@ -127,6 +127,25 @@ model Customer {
   @@map("customers")
 }
 
+model Supplier {
+  id          String       @id @default(uuid())
+  name        String
+  contactPerson String?
+  email       String?
+  phone       String?
+  address     String?
+  zipCode     String?
+  city        String?
+  country     String?      @default("Schweiz")
+  taxId       String?      // Steuernummer/UID
+  notes       String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("suppliers")
+}
+
 model Project {
   id          String       @id @default(uuid())
   name        String

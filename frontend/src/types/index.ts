@@ -77,6 +77,23 @@ export interface Customer {
   projects?: Project[];
 }
 
+export interface Supplier {
+  id: string;
+  name: string;
+  contactPerson?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  zipCode?: string;
+  city?: string;
+  country?: string;
+  taxId?: string;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Location {
   id: string;
   name: string;

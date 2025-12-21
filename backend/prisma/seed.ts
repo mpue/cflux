@@ -486,6 +486,253 @@ async function main() {
   }
   console.log('✅ Projects linked to customers');
 
+  // 3.7 Lieferanten erstellen
+  const supplierData = [
+    { 
+      name: 'Tech Hardware Supplies AG', 
+      contactPerson: 'Andreas Keller', 
+      email: 'keller@techhardware.ch', 
+      phone: '+41 44 200 10 20',
+      address: 'Industriestrasse 15',
+      zipCode: '8050',
+      city: 'Zürich',
+      country: 'Schweiz',
+      taxId: 'CHE-111.222.333',
+      notes: 'Hardware und IT-Equipment'
+    },
+    { 
+      name: 'Büromaterial Express', 
+      contactPerson: 'Claudia Meier', 
+      email: 'meier@bueroexpress.ch', 
+      phone: '+41 31 300 20 30',
+      address: 'Bubenbergplatz 10',
+      zipCode: '3011',
+      city: 'Bern',
+      country: 'Schweiz',
+      taxId: 'CHE-222.333.444'
+    },
+    { 
+      name: 'Global Software Licensing', 
+      contactPerson: 'Martin Schweizer', 
+      email: 'schweizer@globalsoft.ch', 
+      phone: '+41 44 400 30 40',
+      address: 'Technoparkstrasse 2',
+      zipCode: '8005',
+      city: 'Zürich',
+      country: 'Schweiz',
+      taxId: 'CHE-333.444.555',
+      notes: 'Software-Lizenzen und Support'
+    },
+    { 
+      name: 'Möbel & Einrichtung Schweiz', 
+      contactPerson: 'Sandra Brunner', 
+      email: 'brunner@moebel-ch.ch', 
+      phone: '+41 61 500 40 50',
+      address: 'Spalenring 55',
+      zipCode: '4055',
+      city: 'Basel',
+      country: 'Schweiz',
+      taxId: 'CHE-444.555.666'
+    },
+    { 
+      name: 'Druckerei & Papier Service', 
+      contactPerson: 'Thomas Graf', 
+      email: 'graf@druckpapier.ch', 
+      phone: '+41 71 600 50 60',
+      address: 'Obere Gasse 88',
+      zipCode: '9000',
+      city: 'St. Gallen',
+      country: 'Schweiz',
+      taxId: 'CHE-555.666.777'
+    },
+    { 
+      name: 'Catering & Verpflegung Plus', 
+      contactPerson: 'Maria Colombo', 
+      email: 'colombo@catering-plus.ch', 
+      phone: '+41 91 700 60 70',
+      address: 'Piazza Riforma 5',
+      zipCode: '6900',
+      city: 'Lugano',
+      country: 'Schweiz',
+      taxId: 'CHE-666.777.888',
+      notes: 'Event-Catering und Firmenverpflegung'
+    },
+    { 
+      name: 'Energie & Facility Management', 
+      contactPerson: 'Peter Zimmermann', 
+      email: 'zimmermann@energie-fm.ch', 
+      phone: '+41 41 800 70 80',
+      address: 'Löwenplatz 12',
+      zipCode: '6004',
+      city: 'Luzern',
+      country: 'Schweiz',
+      taxId: 'CHE-777.888.999'
+    },
+    { 
+      name: 'Reinigung & Hygiene Profis', 
+      contactPerson: 'Monika Steiner', 
+      email: 'steiner@reinigung-profis.ch', 
+      phone: '+41 52 900 80 90',
+      address: 'Rychenbergstrasse 40',
+      zipCode: '8400',
+      city: 'Winterthur',
+      country: 'Schweiz',
+      taxId: 'CHE-888.999.000'
+    },
+    { 
+      name: 'Sicherheitstechnik Schweiz', 
+      contactPerson: 'Daniel Frei', 
+      email: 'frei@sicherheit-tech.ch', 
+      phone: '+41 44 100 90 00',
+      address: 'Hardturmstrasse 200',
+      zipCode: '8005',
+      city: 'Zürich',
+      country: 'Schweiz',
+      taxId: 'CHE-999.000.111',
+      notes: 'Alarmanlagen und Zutrittssysteme'
+    },
+    { 
+      name: 'Werbeagentur Kreativ GmbH', 
+      contactPerson: 'Julia Wenger', 
+      email: 'wenger@kreativ-werbung.ch', 
+      phone: '+41 31 200 00 11',
+      address: 'Monbijoustrasse 30',
+      zipCode: '3011',
+      city: 'Bern',
+      country: 'Schweiz',
+      taxId: 'CHE-000.111.222'
+    },
+    { 
+      name: 'Transport & Logistik Express', 
+      contactPerson: 'Ralf Müller', 
+      email: 'mueller@transport-express.ch', 
+      phone: '+41 61 300 11 22',
+      address: 'Güterstrasse 77',
+      zipCode: '4053',
+      city: 'Basel',
+      country: 'Schweiz',
+      taxId: 'CHE-111.222.334'
+    },
+    { 
+      name: 'IT Consulting & Services', 
+      contactPerson: 'Stefan Weber', 
+      email: 'weber@it-consulting.ch', 
+      phone: '+41 44 400 22 33',
+      address: 'Sihlquai 131',
+      zipCode: '8005',
+      city: 'Zürich',
+      country: 'Schweiz',
+      taxId: 'CHE-222.333.445',
+      notes: 'IT-Beratung und Managed Services'
+    },
+    { 
+      name: 'Elektrotechnik Baumann AG', 
+      contactPerson: 'Hans Baumann', 
+      email: 'baumann@elektro-ag.ch', 
+      phone: '+41 62 500 33 44',
+      address: 'Industriering 99',
+      zipCode: '5000',
+      city: 'Aarau',
+      country: 'Schweiz',
+      taxId: 'CHE-333.444.556'
+    },
+    { 
+      name: 'Versicherungen & Finanzen Schweiz', 
+      contactPerson: 'Christine Müller', 
+      email: 'mueller@versicherung-fin.ch', 
+      phone: '+41 58 600 44 55',
+      address: 'General-Guisan-Quai 40',
+      zipCode: '8002',
+      city: 'Zürich',
+      country: 'Schweiz',
+      taxId: 'CHE-444.555.667'
+    },
+    { 
+      name: 'Personalvermittlung JobMatch', 
+      contactPerson: 'Sabrina König', 
+      email: 'koenig@jobmatch.ch', 
+      phone: '+41 44 700 55 66',
+      address: 'Bahnhofplatz 15',
+      zipCode: '8001',
+      city: 'Zürich',
+      country: 'Schweiz',
+      taxId: 'CHE-555.666.778',
+      notes: 'Personalvermittlung IT und Technik'
+    },
+    { 
+      name: 'Gartenbau & Pflegeservice', 
+      contactPerson: 'Markus Grün', 
+      email: 'gruen@gartenbau-service.ch', 
+      phone: '+41 52 800 66 77',
+      address: 'Grüzestrasse 50',
+      zipCode: '8404',
+      city: 'Winterthur',
+      country: 'Schweiz',
+      taxId: 'CHE-666.777.889'
+    },
+    { 
+      name: 'Verpackung & Logistik Pro', 
+      contactPerson: 'Andrea Steffen', 
+      email: 'steffen@verpack-logistik.ch', 
+      phone: '+41 71 900 77 88',
+      address: 'Herisauerstrasse 120',
+      zipCode: '9015',
+      city: 'St. Gallen',
+      country: 'Schweiz',
+      taxId: 'CHE-777.888.990'
+    },
+    { 
+      name: 'Telekommunikation Sunrise Business', 
+      contactPerson: 'Patrick Roth', 
+      email: 'roth@sunrise-business.ch', 
+      phone: '+41 44 000 88 99',
+      address: 'Thurgauerstrasse 40',
+      zipCode: '8050',
+      city: 'Zürich',
+      country: 'Schweiz',
+      taxId: 'CHE-888.999.001'
+    },
+    { 
+      name: 'Steuerberatung & Treuhand', 
+      contactPerson: 'Dr. Anna Fischer', 
+      email: 'fischer@steuer-treuhand.ch', 
+      phone: '+41 31 100 99 00',
+      address: 'Bundesgasse 32',
+      zipCode: '3011',
+      city: 'Bern',
+      country: 'Schweiz',
+      taxId: 'CHE-999.000.112',
+      notes: 'Steuerberatung für KMU'
+    },
+    { 
+      name: 'Gebäudetechnik Meier & Co', 
+      contactPerson: 'Urs Meier', 
+      email: 'meier@gebaeudetech.ch', 
+      phone: '+41 61 200 00 12',
+      address: 'Steinenvorstadt 50',
+      zipCode: '4051',
+      city: 'Basel',
+      country: 'Schweiz',
+      taxId: 'CHE-000.111.223'
+    }
+  ];
+
+  const suppliers = [];
+  for (const suppData of supplierData) {
+    const supplier = await prisma.supplier.upsert({
+      where: { 
+        id: `seed-${suppData.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
+      },
+      update: {},
+      create: {
+        ...suppData,
+        isActive: Math.random() > 0.1 // 90% aktiv
+      },
+    });
+    suppliers.push(supplier);
+  }
+  console.log(`✅ ${suppliers.length} suppliers created`);
+
   // 4. Projektzuweisungen (jeder User zu 2-4 Projekten)
   let assignmentCount = 0;
   for (const user of users) {
