@@ -51,10 +51,30 @@ export interface Project {
   id: string;
   name: string;
   description?: string;
+  customerId?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  customer?: Customer;
   assignments?: ProjectAssignment[];
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  contactPerson?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  zipCode?: string;
+  city?: string;
+  country?: string;
+  taxId?: string;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  projects?: Project[];
 }
 
 export interface Location {

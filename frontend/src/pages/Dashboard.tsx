@@ -7,6 +7,7 @@ import { absenceService } from '../services/absence.service';
 import { reportService } from '../services/report.service';
 import { locationService } from '../services/location.service';
 import { TimeEntry, Project, AbsenceRequest, Report, Location } from '../types';
+import PDFReportModal from '../components/PDFReportModal';
 import '../App.css';
 
 const Dashboard: React.FC = () => {
@@ -29,6 +30,7 @@ const Dashboard: React.FC = () => {
   const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
   const [workDuration, setWorkDuration] = useState<string>('0h 0m');
   const [pauseCheckDone, setPauseCheckDone] = useState<Set<string>>(new Set());
+  const [showPDFReportModal, setShowPDFReportModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -181,18 +183,22 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div>
-      <nav className="navbar">
-        <h1>Zeiterfassung</h1>
-        <div className="navbar-right">
-          <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{currentTime}</span>
-          <span>{user?.firstName} {user?.lastName}</span>
-          {user?.role === 'ADMIN' && (
-            <button className="btn btn-secondary" onClick={() => navigate('/admin')}>
-              Admin Panel
+    <>
+      <div>
+        <nav className="navbar">
+          <h1>Zeiterfassung</h1>
+          <div className="navbar-right">
+            <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{currentTime}</span>
+            <span>{user?.firstName} {user?.lastName}</span>
+            <button className="btn btn-success" onClick={() => setShowPDFReportModal(true)}>
+              PDF-Bericht
             </button>
-          )}
-          <button className="btn btn-secondary" onClick={handleLogout}>
+            {user?.role === 'ADMIN' && (
+              <button className="btn btn-secondary" onClick={() => navigate('/admin')}>
+                Admin Panel
+              </button>
+            )}
+            <button className="btn btn-secondary" onClick={handleLogout}>
             Abmelden
           </button>
         </div>
@@ -496,6 +502,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+    </div>
 
       {showAbsenceModal && (
         <AbsenceModal
@@ -527,7 +534,16 @@ const Dashboard: React.FC = () => {
           onStartPause={handleStartPause}
         />
       )}
-    </div>
+
+      {user && showPDFReportModal && (
+        <PDFReportModal
+          user={user}
+          isOpen={showPDFReportModal}
+          onClose={() => setShowPDFReportModal(false)}
+          isAdmin={false}
+        />
+      )}
+    </>
   );
 };
 

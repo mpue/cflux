@@ -8,9 +8,11 @@ router.use(authenticate);
 
 // User reports
 router.get('/my-summary', reportController.getMySummary);
+router.get('/my-pdf', reportController.generateMyPDFReport);
 
 // Admin reports
 router.get('/user-summary/:userId', authorize('ADMIN'), reportController.getUserSummary);
+router.get('/user-pdf/:userId', authorize('ADMIN'), reportController.generateUserPDFReport);
 router.get('/all-users-summary', authorize('ADMIN'), reportController.getAllUsersSummary);
 router.get('/project-summary/:projectId', authorize('ADMIN'), reportController.getProjectSummary);
 

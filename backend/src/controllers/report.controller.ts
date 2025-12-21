@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
+import { generateUserReport } from '../services/pdf.service';
 
 const prisma = new PrismaClient();
 
@@ -509,3 +510,73 @@ export const getProjectTimeByUser = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to get project time by user' });
   }
 };
+
+// PDF Report Generation
+export const generateMyPDFReport = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { startDate, endDate, detailed } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: 'Start date and end date are required' });
+    }
+
+    const start = new Date(startDate as string);
+    const end = new Date(endDate as string);
+    const includeDetailed = detailed === 'true';
+
+    const pdfBuffer = await generateUserReport(userId, start, end, includeDetailed);
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true }
+    });
+
+    const filename = `Arbeitszeitbericht_${user?.firstName}_${user?.lastName}_${startDate}_${endDate}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Generate my PDF report error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF report' });
+  }
+};
+
+export const generateUserPDFReport = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { startDate, endDate, detailed } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: 'Start date and end date are required' });
+    }
+
+    const start = new Date(startDate as string);
+    const end = new Date(endDate as string);
+    const includeDetailed = detailed === 'true';
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const pdfBuffer = await generateUserReport(userId, start, end, includeDetailed);
+
+    const filename = `Arbeitszeitbericht_${user.firstName}_${user.lastName}_${startDate}_${endDate}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Generate user PDF report error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF report' });
+  }
+};
+

@@ -106,14 +106,37 @@ model User {
   @@map("users")
 }
 
-model Project {
+model Customer {
   id          String       @id @default(uuid())
   name        String
-  description String?
+  contactPerson String?
+  email       String?
+  phone       String?
+  address     String?
+  zipCode     String?
+  city        String?
+  country     String?      @default("Schweiz")
+  taxId       String?      // Steuernummer/UID
+  notes       String?
   isActive    Boolean      @default(true)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
+  projects    Project[]
+
+  @@map("customers")
+}
+
+model Project {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  customerId  String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
   timeEntries TimeEntry[]
   assignments ProjectAssignment[]
 
