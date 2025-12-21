@@ -94,6 +94,32 @@ export interface Supplier {
   updatedAt: string;
 }
 
+export interface ArticleGroup {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  articles?: Article[];
+}
+
+export interface Article {
+  id: string;
+  articleNumber: string;
+  name: string;
+  description?: string;
+  articleGroupId?: string;
+  price: number;
+  unit: string;
+  vatRate: number;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  articleGroup?: ArticleGroup;
+}
+
 export interface Location {
   id: string;
   name: string;

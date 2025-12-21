@@ -851,6 +851,320 @@ async function main() {
   console.log('Admin: admin@example.com / admin123');
   console.log('Users: [firstname].[lastname]@example.com / password123');
   console.log('Example: anna.schmidt@example.com / password123');
+
+  // Artikelgruppen erstellen
+  console.log('\n🏷️ Creating article groups...');
+  
+  const articleGroups = await Promise.all([
+    prisma.articleGroup.create({
+      data: {
+        name: 'Dienstleistungen',
+        description: 'Beratung, Entwicklung, Support',
+        isActive: true,
+      }
+    }),
+    prisma.articleGroup.create({
+      data: {
+        name: 'Hardware',
+        description: 'Computer, Peripheriegeräte, Zubehör',
+        isActive: true,
+      }
+    }),
+    prisma.articleGroup.create({
+      data: {
+        name: 'Software',
+        description: 'Lizenzen, Abonnements, Tools',
+        isActive: true,
+      }
+    }),
+    prisma.articleGroup.create({
+      data: {
+        name: 'Verbrauchsmaterial',
+        description: 'Bürobedarf, Druckerpatronen, Papier',
+        isActive: true,
+      }
+    }),
+    prisma.articleGroup.create({
+      data: {
+        name: 'Schulungen',
+        description: 'Workshops, Kurse, Training',
+        isActive: true,
+      }
+    }),
+  ]);
+  
+  console.log(`✅ Created ${articleGroups.length} article groups`);
+
+  // Artikel erstellen
+  console.log('\n📦 Creating articles...');
+  
+  const articles = [
+    // Dienstleistungen
+    {
+      articleNumber: 'DL-001',
+      name: 'Software-Entwicklung',
+      description: 'Individuelle Softwarelösungen nach Kundenwunsch',
+      articleGroupId: articleGroups[0].id,
+      price: 150.00,
+      unit: 'Stunde',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'DL-002',
+      name: 'Projektmanagement',
+      description: 'Professionelle Projektleitung und Koordination',
+      articleGroupId: articleGroups[0].id,
+      price: 180.00,
+      unit: 'Stunde',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'DL-003',
+      name: 'IT-Consulting',
+      description: 'Beratung zu IT-Strategie und -Infrastruktur',
+      articleGroupId: articleGroups[0].id,
+      price: 200.00,
+      unit: 'Stunde',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'DL-004',
+      name: 'Support & Wartung',
+      description: 'Technischer Support und Systemwartung',
+      articleGroupId: articleGroups[0].id,
+      price: 120.00,
+      unit: 'Stunde',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'DL-005',
+      name: 'Code Review',
+      description: 'Qualitätssicherung und Codeüberprüfung',
+      articleGroupId: articleGroups[0].id,
+      price: 140.00,
+      unit: 'Stunde',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    
+    // Hardware
+    {
+      articleNumber: 'HW-001',
+      name: 'Business Laptop',
+      description: 'Dell Latitude 5540, i7, 16GB RAM, 512GB SSD',
+      articleGroupId: articleGroups[1].id,
+      price: 1899.00,
+      unit: 'Stück',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'HW-002',
+      name: 'Bildschirm 27"',
+      description: 'Dell UltraSharp 27", 4K, IPS',
+      articleGroupId: articleGroups[1].id,
+      price: 549.00,
+      unit: 'Stück',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'HW-003',
+      name: 'Dockingstation',
+      description: 'Dell USB-C Dock, 3x Display, USB 3.0',
+      articleGroupId: articleGroups[1].id,
+      price: 289.00,
+      unit: 'Stück',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'HW-004',
+      name: 'Wireless Maus',
+      description: 'Logitech MX Master 3S',
+      articleGroupId: articleGroups[1].id,
+      price: 119.00,
+      unit: 'Stück',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'HW-005',
+      name: 'Tastatur',
+      description: 'Logitech MX Keys, kabellos, beleuchtet',
+      articleGroupId: articleGroups[1].id,
+      price: 139.00,
+      unit: 'Stück',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    
+    // Software
+    {
+      articleNumber: 'SW-001',
+      name: 'Microsoft 365 Business Premium',
+      description: 'Office-Suite, Exchange, Teams, SharePoint',
+      articleGroupId: articleGroups[2].id,
+      price: 19.90,
+      unit: 'Monat/User',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'SW-002',
+      name: 'JetBrains IntelliJ IDEA',
+      description: 'IDE für Java und Kotlin Entwicklung',
+      articleGroupId: articleGroups[2].id,
+      price: 599.00,
+      unit: 'Jahr/User',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'SW-003',
+      name: 'Adobe Creative Cloud',
+      description: 'Photoshop, Illustrator, InDesign, etc.',
+      articleGroupId: articleGroups[2].id,
+      price: 59.90,
+      unit: 'Monat/User',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'SW-004',
+      name: 'Atlassian Jira',
+      description: 'Projektmanagement und Issue Tracking',
+      articleGroupId: articleGroups[2].id,
+      price: 7.50,
+      unit: 'Monat/User',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'SW-005',
+      name: 'Slack Business+',
+      description: 'Team-Kommunikation und Collaboration',
+      articleGroupId: articleGroups[2].id,
+      price: 12.50,
+      unit: 'Monat/User',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    
+    // Verbrauchsmaterial
+    {
+      articleNumber: 'VM-001',
+      name: 'Druckerpapier A4',
+      description: 'Kopierpapier 80g/m², 500 Blatt',
+      articleGroupId: articleGroups[3].id,
+      price: 5.90,
+      unit: 'Packung',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'VM-002',
+      name: 'Tonerkassette',
+      description: 'HP 207A schwarz, ca. 1.350 Seiten',
+      articleGroupId: articleGroups[3].id,
+      price: 89.00,
+      unit: 'Stück',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'VM-003',
+      name: 'Notizbuch',
+      description: 'Moleskine Classic A5, liniert',
+      articleGroupId: articleGroups[3].id,
+      price: 18.50,
+      unit: 'Stück',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'VM-004',
+      name: 'Kugelschreiber Set',
+      description: 'Pilot G-2, blau, 10 Stück',
+      articleGroupId: articleGroups[3].id,
+      price: 12.90,
+      unit: 'Set',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'VM-005',
+      name: 'USB-Stick 64GB',
+      description: 'SanDisk Ultra Flair, USB 3.0',
+      articleGroupId: articleGroups[3].id,
+      price: 14.90,
+      unit: 'Stück',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    
+    // Schulungen
+    {
+      articleNumber: 'SCH-001',
+      name: 'TypeScript Grundlagen',
+      description: 'Einführung in TypeScript für JavaScript-Entwickler',
+      articleGroupId: articleGroups[4].id,
+      price: 1200.00,
+      unit: 'Tag',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'SCH-002',
+      name: 'React Workshop',
+      description: 'Moderne Web-Entwicklung mit React und Hooks',
+      articleGroupId: articleGroups[4].id,
+      price: 1500.00,
+      unit: 'Tag',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'SCH-003',
+      name: 'Docker & Kubernetes',
+      description: 'Container-Orchestrierung für Entwickler',
+      articleGroupId: articleGroups[4].id,
+      price: 1800.00,
+      unit: 'Tag',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'SCH-004',
+      name: 'Agile Methoden',
+      description: 'Scrum, Kanban und agiles Projektmanagement',
+      articleGroupId: articleGroups[4].id,
+      price: 1100.00,
+      unit: 'Tag',
+      vatRate: 7.7,
+      isActive: true,
+    },
+    {
+      articleNumber: 'SCH-005',
+      name: 'Git für Teams',
+      description: 'Versionskontrolle und Zusammenarbeit mit Git',
+      articleGroupId: articleGroups[4].id,
+      price: 900.00,
+      unit: 'Tag',
+      vatRate: 7.7,
+      isActive: true,
+    },
+  ];
+
+  for (const article of articles) {
+    await prisma.article.create({ data: article });
+  }
+  
+  console.log(`✅ Created ${articles.length} articles`);
 }
 
 main()

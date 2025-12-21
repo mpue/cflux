@@ -146,6 +146,38 @@ model Supplier {
   @@map("suppliers")
 }
 
+model ArticleGroup {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  articles    Article[]
+
+  @@map("article_groups")
+}
+
+model Article {
+  id              String       @id @default(uuid())
+  articleNumber   String       @unique
+  name            String
+  description     String?
+  articleGroupId  String?
+  price           Float        @default(0)
+  unit            String       @default("Stück") // Stück, Stunden, kg, m, l, etc.
+  vatRate         Float        @default(7.7) // MwSt-Satz in %
+  notes           String?
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  articleGroup    ArticleGroup? @relation(fields: [articleGroupId], references: [id], onDelete: SetNull)
+
+  @@map("articles")
+}
+
 model Project {
   id          String       @id @default(uuid())
   name        String
