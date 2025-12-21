@@ -9,6 +9,7 @@ import {
   deleteInvoice,
   getNextInvoiceNumber,
 } from '../controllers/invoice.controller';
+import { generateInvoicePdf } from '../controllers/invoicePdf.controller';
 
 const router = Router();
 
@@ -20,6 +21,9 @@ router.get('/', getAllInvoices);
 
 // Get next invoice number (accessible by all authenticated users)
 router.get('/next-number', getNextInvoiceNumber);
+
+// Get invoice PDF (accessible by all authenticated users)
+router.get('/:id/pdf', generateInvoicePdf);
 
 // Get invoice by ID (accessible by all authenticated users)
 router.get('/:id', getInvoiceById);

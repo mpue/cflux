@@ -1,14 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UserRole } from '@prisma/client';
+import { AuthRequest } from '../types/auth';
 
-export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    role: UserRole;
-  };
-}
+export { AuthRequest };
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
   try {

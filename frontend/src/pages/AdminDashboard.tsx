@@ -34,7 +34,7 @@ import {
 } from 'recharts';
 import '../App.css';
 
-type TabType = 'users' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'absences' | 'timeEntries' | 'reports' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance';
+type TabType = 'users' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'absences' | 'timeEntries' | 'reports' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -251,6 +251,11 @@ const AdminDashboard: React.FC = () => {
               active={activeTab === 'invoices'}
               onClick={() => setActiveTab('invoices')}
               label="Rechnungen"
+            />
+            <TabButton
+              active={activeTab === 'invoiceTemplates'}
+              onClick={() => navigate('/invoice-templates')}
+              label="Rechnungsvorlagen"
             />
             <TabButton
               active={activeTab === 'absences'}
@@ -3819,6 +3824,43 @@ const InvoicesTab: React.FC<{ invoices: Invoice[]; customers: Customer[]; articl
                     </span>
                   </td>
                   <td>
+                    <button
+                      className="btn"
+                      style={{ 
+                        marginRight: '5px', 
+                        padding: '5px 10px', 
+                        fontSize: '12px',
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none'
+                      }}
+                      onClick={() => {
+                        const API_URL = process.env.REACT_APP_API_URL || '';
+                        const token = localStorage.getItem('token');
+                        const url = `${API_URL}/api/invoices/${invoice.id}/pdf`;
+                        
+                        fetch(url, {
+                          headers: { Authorization: `Bearer ${token}` }
+                        })
+                        .then(response => response.blob())
+                        .then(blob => {
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `Rechnung_${invoice.invoiceNumber}.pdf`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          window.URL.revokeObjectURL(url);
+                        })
+                        .catch(error => {
+                          console.error('Error downloading PDF:', error);
+                          alert('Fehler beim Download der PDF');
+                        });
+                      }}
+                    >
+                      📄 PDF
+                    </button>
                     <button
                       className="btn btn-primary"
                       style={{ marginRight: '5px', padding: '5px 10px', fontSize: '12px' }}

@@ -1,22 +1,24 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import { UserRole } from '@prisma/client';
 
 // Extend Express Request type
 declare global {
   namespace Express {
     interface Request {
       user?: {
-        userId: string;
-        role: 'USER' | 'ADMIN';
+        id: string;
+        email: string;
+        role: UserRole;
       };
     }
   }
 }
 
 // Generate a test JWT token
-export const generateTestToken = (userId: string, role: 'USER' | 'ADMIN' = 'USER'): string => {
+export const generateTestToken = (userId: string, email: string = 'test@example.com', role: UserRole = 'USER'): string => {
   return jwt.sign(
-    { userId, role },
+    { id: userId, email, role },
     process.env.JWT_SECRET || 'test-secret',
     { expiresIn: '1h' }
   );
@@ -34,15 +36,16 @@ export const mockAuthMiddleware = (req: Request, res: Response, next: NextFuncti
   
   try {
     // Decode without verification for tests
-    const decoded = jwt.decode(token) as { userId: string; role: string };
+    const decoded = jwt.decode(token) as { id: string; email: string; role: UserRole };
     
     if (!decoded) {
       return res.status(401).json({ error: 'Invalid token' });
     }
 
     req.user = {
-      userId: decoded.userId,
-      role: decoded.role as 'USER' | 'ADMIN',
+      id: decoded.id,
+      email: decoded.email,
+      role: decoded.role,
     };
     
     next();

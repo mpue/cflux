@@ -337,6 +337,47 @@ enum InvoiceStatus {
   CANCELLED
 }
 
+model InvoiceTemplate {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  isDefault     Boolean  @default(false)
+  
+  // Company Info
+  companyName   String   @default("Ihre Firma")
+  companyStreet String   @default("")
+  companyZip    String   @default("")
+  companyCity   String   @default("")
+  companyCountry String  @default("Schweiz")
+  companyPhone  String   @default("")
+  companyEmail  String   @default("")
+  companyWebsite String  @default("")
+  companyTaxId  String   @default("")
+  companyIban   String   @default("")
+  companyBank   String   @default("")
+  
+  // Header/Footer
+  headerText    String?  @db.Text
+  footerText    String?  @db.Text
+  
+  // Styling
+  primaryColor  String   @default("#2563eb")
+  logoUrl       String?
+  
+  // Text Templates
+  introText     String?  @db.Text
+  paymentTermsText String? @db.Text
+  
+  // Settings
+  showLogo      Boolean  @default(true)
+  showTaxId     Boolean  @default(true)
+  showPaymentInfo Boolean @default(true)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("invoice_templates")
+}
+
 model Invoice {
   id            String        @id @default(uuid())
   invoiceNumber String        @unique

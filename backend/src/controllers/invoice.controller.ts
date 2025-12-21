@@ -1,15 +1,8 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { PrismaClient, InvoiceStatus } from '@prisma/client';
+import { AuthRequest } from '../types/auth';
 
 const prisma = new PrismaClient();
-
-export interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    email: string;
-    role: string;
-  };
-}
 
 // Get all invoices
 export const getAllInvoices = async (req: AuthRequest, res: Response) => {
