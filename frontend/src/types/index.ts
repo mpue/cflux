@@ -120,6 +120,42 @@ export interface Article {
   articleGroup?: ArticleGroup;
 }
 
+export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string;
+  customerId: string;
+  status: InvoiceStatus;
+  subtotal: number;
+  vatAmount: number;
+  totalAmount: number;
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  customer?: Customer;
+  items?: InvoiceItem[];
+}
+
+export interface InvoiceItem {
+  id: string;
+  invoiceId: string;
+  articleId?: string;
+  position: number;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  unit: string;
+  vatRate: number;
+  totalPrice: number;
+  createdAt: string;
+  updatedAt: string;
+  article?: Article;
+}
+
 export interface Location {
   id: string;
   name: string;

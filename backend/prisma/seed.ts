@@ -856,36 +856,46 @@ async function main() {
   console.log('\n🏷️ Creating article groups...');
   
   const articleGroups = await Promise.all([
-    prisma.articleGroup.create({
-      data: {
+    prisma.articleGroup.upsert({
+      where: { name: 'Dienstleistungen' },
+      update: {},
+      create: {
         name: 'Dienstleistungen',
         description: 'Beratung, Entwicklung, Support',
         isActive: true,
       }
     }),
-    prisma.articleGroup.create({
-      data: {
+    prisma.articleGroup.upsert({
+      where: { name: 'Hardware' },
+      update: {},
+      create: {
         name: 'Hardware',
         description: 'Computer, Peripheriegeräte, Zubehör',
         isActive: true,
       }
     }),
-    prisma.articleGroup.create({
-      data: {
+    prisma.articleGroup.upsert({
+      where: { name: 'Software' },
+      update: {},
+      create: {
         name: 'Software',
         description: 'Lizenzen, Abonnements, Tools',
         isActive: true,
       }
     }),
-    prisma.articleGroup.create({
-      data: {
+    prisma.articleGroup.upsert({
+      where: { name: 'Verbrauchsmaterial' },
+      update: {},
+      create: {
         name: 'Verbrauchsmaterial',
         description: 'Bürobedarf, Druckerpatronen, Papier',
         isActive: true,
       }
     }),
-    prisma.articleGroup.create({
-      data: {
+    prisma.articleGroup.upsert({
+      where: { name: 'Schulungen' },
+      update: {},
+      create: {
         name: 'Schulungen',
         description: 'Workshops, Kurse, Training',
         isActive: true,
@@ -1161,10 +1171,91 @@ async function main() {
   ];
 
   for (const article of articles) {
-    await prisma.article.create({ data: article });
+    await prisma.article.upsert({
+      where: { articleNumber: article.articleNumber },
+      update: {},
+      create: article,
+    });
   }
   
   console.log(`✅ Created ${articles.length} articles`);
+
+  // Rechnungen erstellen
+  console.log('\n💰 Creating invoices...');
+  
+  const currentDate = new Date();
+  
+  // Create 15 invoices
+  for (let i = 1; i <= 15; i++) {
+    const customer = randomChoice(customers);
+    const invoiceDate = randomDate(
+      new Date(currentDate.getFullYear(), 0, 1),
+      currentDate
+    );
+    const dueDate = new Date(invoiceDate);
+    dueDate.setDate(dueDate.getDate() + 30); // 30 days payment term
+    
+    // Determine status based on dates
+    let status: 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+    if (i <= 3) {
+      status = 'DRAFT';
+    } else if (i <= 8) {
+      status = 'SENT';
+    } else if (i <= 13) {
+      status = 'PAID';
+    } else if (i <= 14) {
+      status = 'OVERDUE';
+    } else {
+      status = 'CANCELLED';
+    }
+    
+    // Create 2-5 invoice items
+    const itemCount = randomInt(2, 5);
+    const items = [];
+    
+    for (let j = 0; j < itemCount; j++) {
+      const articlesArray = await prisma.article.findMany();
+      const article = randomChoice(articlesArray);
+      const quantity = randomInt(1, 10);
+      const unitPrice = article.price;
+      const totalPrice = quantity * unitPrice;
+      
+      items.push({
+        articleId: Math.random() > 0.5 ? article.id : undefined, // 50% chance to link article
+        position: j + 1,
+        description: article.name,
+        quantity,
+        unitPrice,
+        unit: article.unit,
+        vatRate: article.vatRate,
+        totalPrice,
+      });
+    }
+    
+    // Calculate totals
+    const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+    const vatAmount = items.reduce((sum, item) => sum + (item.totalPrice * item.vatRate / 100), 0);
+    const totalAmount = subtotal + vatAmount;
+    
+    await prisma.invoice.create({
+      data: {
+        invoiceNumber: `RE-${currentDate.getFullYear()}-${i.toString().padStart(4, '0')}`,
+        invoiceDate,
+        dueDate,
+        customerId: customer.id,
+        status,
+        subtotal,
+        vatAmount,
+        totalAmount,
+        notes: i % 3 === 0 ? 'Zahlbar innert 30 Tagen netto.' : undefined,
+        items: {
+          create: items,
+        },
+      },
+    });
+  }
+  
+  console.log(`✅ Created 15 invoices`);
 }
 
 main()
