@@ -362,6 +362,8 @@ model InvoiceTemplate {
   // Styling
   primaryColor  String   @default("#2563eb")
   logoUrl       String?
+  logoPosition  String?  // JSON: {x, y, width, height}
+  logoAlignment String   @default("left") // left, center, right
   
   // Text Templates
   introText     String?  @db.Text

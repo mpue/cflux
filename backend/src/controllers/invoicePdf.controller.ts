@@ -2,6 +2,7 @@ import { Response } from 'express';
 import PDFDocument from 'pdfkit';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../types/auth';
+import axios from 'axios';
 
 const prisma = new PrismaClient();
 
@@ -56,18 +57,63 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
     const companyZipCity = template ? `${template.companyZip} ${template.companyCity}` : '8000 Zürich';
     const companyPhone = template?.companyPhone || 'Tel: +41 44 123 45 67';
     const companyEmail = template?.companyEmail || 'Email: info@firma.ch';
+    const primaryColor = template?.primaryColor || '#2563eb';
+    
+    // Add header text if available
+    let headerStartY = 50;
+    if (template?.headerText) {
+      doc.fontSize(10)
+         .fillColor(primaryColor)
+         .text(template.headerText, 50, headerStartY, { width: 495 });
+      headerStartY += 30;
+      doc.fillColor('#000000'); // Reset to black
+    }
     
     // Add logo if available and enabled
-    let headerStartY = 50;
     if (template?.showLogo && template?.logoUrl) {
       try {
-        // Logo should be a data URL (base64) or file path
-        doc.image(template.logoUrl, 50, 50, { 
-          width: 100,
-          height: 60,
-          fit: [100, 60]
-        });
-        headerStartY = 120; // Move company info down if logo is present
+        // Parse logo position from template
+        let logoX = 50;
+        let logoY = headerStartY;
+        let logoWidth = 150;
+        let logoHeight = 60;
+        
+        if (template.logoPosition) {
+          try {
+            const position = JSON.parse(template.logoPosition);
+            // Scale position from preview coordinates (600px width) to PDF coordinates (A4 ~ 545px)
+            logoX = 50 + (position.x * 0.9);
+            logoY = headerStartY + (position.y * 0.5);
+            logoWidth = position.width * 0.9;
+            logoHeight = position.height * 0.9;
+          } catch (e) {
+            console.warn('Failed to parse logo position, using defaults');
+          }
+        }
+        
+        // Try to download and embed logo
+        if (template.logoUrl.startsWith('http')) {
+          const response = await axios.get(template.logoUrl, { 
+            responseType: 'arraybuffer',
+            timeout: 5000 
+          });
+          const buffer = Buffer.from(response.data);
+          doc.image(buffer, logoX, logoY, { 
+            width: logoWidth,
+            height: logoHeight,
+            fit: [logoWidth, logoHeight]
+          });
+        } else {
+          // Local file path
+          doc.image(template.logoUrl, logoX, logoY, { 
+            width: logoWidth,
+            height: logoHeight,
+            fit: [logoWidth, logoHeight]
+          });
+        }
+        
+        // Adjust header start based on logo position
+        headerStartY = Math.max(headerStartY, logoY + logoHeight + 20);
       } catch (error) {
         console.error('Failed to load logo:', error);
         // Continue without logo
@@ -75,6 +121,7 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
     }
     
     doc.fontSize(10)
+       .fillColor('#000000')
        .text(companyName, 50, headerStartY)
        .text(companyStreet, 50, headerStartY + 15)
        .text(companyZipCity, 50, headerStartY + 30)
@@ -113,11 +160,13 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
     // Invoice details (right side)
     const detailsX = 350;
     doc.fontSize(10)
+       .fillColor(primaryColor)
        .text('Rechnung Nr.:', detailsX, customerY, { continued: true })
        .font('Helvetica-Bold')
        .text(` ${invoice.invoiceNumber}`, { align: 'right' });
     
     doc.font('Helvetica')
+       .fillColor('#000000')
        .text('Rechnungsdatum:', detailsX, customerY + 15, { continued: true })
        .text(` ${new Date(invoice.invoiceDate).toLocaleDateString('de-CH')}`, { align: 'right' });
     
@@ -133,10 +182,19 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
     const titleY = addressY + 30;
     doc.fontSize(16)
        .font('Helvetica-Bold')
+       .fillColor(primaryColor)
        .text('RECHNUNG', 50, titleY);
+    
+    // Intro text from template
+    if (template?.introText) {
+      doc.fontSize(10)
+         .font('Helvetica')
+         .fillColor('#000000')
+         .text(template.introText, 50, titleY + 25, { width: 495 });
+    }
 
     // Table header
-    const tableTop = titleY + 40;
+    const tableTop = titleY + (template?.introText ? 60 : 40);
     const posX = 50;
     const descX = 80;
     const qtyX = 350;
@@ -146,6 +204,7 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
 
     doc.fontSize(9)
        .font('Helvetica-Bold')
+       .fillColor(primaryColor)
        .text('Pos', posX, tableTop)
        .text('Beschreibung', descX, tableTop)
        .text('Menge', qtyX, tableTop)
@@ -154,14 +213,17 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
        .text('Betrag', totalX, tableTop);
 
     // Draw line under header
-    doc.moveTo(50, tableTop + 15)
+    doc.strokeColor(primaryColor)
+       .moveTo(50, tableTop + 15)
        .lineTo(545, tableTop + 15)
-       .stroke();
+       .stroke()
+       .strokeColor('#000000');
 
     // Table rows
     let currentY = tableTop + 25;
     doc.font('Helvetica')
-       .fontSize(9);
+       .fontSize(9)
+       .fillColor('#000000');
 
     invoice.items.forEach((item, index) => {
       // Check if we need a new page
@@ -203,8 +265,11 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
     currentY += 20;
     doc.fontSize(12)
        .font('Helvetica-Bold')
+       .fillColor(primaryColor)
        .text('Gesamtbetrag:', 350, currentY)
        .text(`CHF ${invoice.totalAmount.toFixed(2)}`, totalX, currentY, { width: 55, align: 'right' });
+    
+    doc.fillColor('#000000'); // Reset color
 
     // Payment information
     currentY += 40;
@@ -230,11 +295,6 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
       currentY += 45;
     }
 
-    // Intro text from template
-    if (template?.introText && currentY < 120) {
-      currentY = 120;
-    }
-
     // QR code placeholder (Swiss QR-Bill)
     currentY += 35;
     if (currentY < 650) {
@@ -251,10 +311,12 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
       }
       doc.fontSize(10)
          .font('Helvetica-Bold')
+         .fillColor(primaryColor)
          .text('Bemerkungen:', 50, currentY);
       
       currentY += 18;
       doc.font('Helvetica')
+         .fillColor('#000000')
          .fontSize(9)
          .text(invoice.notes, 50, currentY, { width: 495 });
     }
@@ -264,8 +326,14 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
     const footerText = template?.footerText || 'Vielen Dank für Ihr Vertrauen!';
     
     doc.fontSize(8)
+       .fillColor('#666666')
        .text(footerText, 50, footerY, { align: 'center', width: 495 })
        .text(`Seite 1`, 50, footerY + 15, { align: 'center', width: 495 });
+    
+    // Show tax ID in footer if enabled
+    if (template?.showTaxId && template?.companyTaxId) {
+      doc.text(`UID: ${template.companyTaxId}`, 50, footerY + 30, { align: 'center', width: 495 });
+    }
 
     // Finalize PDF
     doc.end();

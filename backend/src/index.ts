@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import timeRoutes from './routes/time.routes';
@@ -16,6 +17,7 @@ import reportRoutes from './routes/report.routes';
 import backupRoutes from './routes/backup.routes';
 import locationRoutes from './routes/location.routes';
 import complianceRoutes from './routes/compliance.routes';
+import uploadRoutes from './routes/upload.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -29,6 +31,9 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -46,6 +51,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/compliance', complianceRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
