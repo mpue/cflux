@@ -128,6 +128,7 @@ export interface Invoice {
   invoiceDate: string;
   dueDate: string;
   customerId: string;
+  templateId?: string;
   status: InvoiceStatus;
   subtotal: number;
   vatAmount: number;

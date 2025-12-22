@@ -70,18 +70,16 @@ const InvoiceTemplatesPage: React.FC = () => {
     setEditingTemplateId(undefined);
   };
 
-  if (showEditor) {
-    return (
-      <InvoiceTemplateEditor
-        templateId={editingTemplateId}
-        onSave={handleSave}
-        onCancel={handleCancel}
-      />
-    );
-  }
-
   return (
     <div className="invoice-templates-page">
+      {showEditor && (
+        <InvoiceTemplateEditor
+          templateId={editingTemplateId}
+          onSave={handleSave}
+          onCancel={handleCancel}
+        />
+      )}
+
       <div className="page-header">
         <h1>Rechnungsvorlagen</h1>
         <button className="btn btn-primary" onClick={handleCreateNew}>

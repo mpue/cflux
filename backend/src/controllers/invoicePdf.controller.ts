@@ -57,15 +57,32 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
     const companyPhone = template?.companyPhone || 'Tel: +41 44 123 45 67';
     const companyEmail = template?.companyEmail || 'Email: info@firma.ch';
     
+    // Add logo if available and enabled
+    let headerStartY = 50;
+    if (template?.showLogo && template?.logoUrl) {
+      try {
+        // Logo should be a data URL (base64) or file path
+        doc.image(template.logoUrl, 50, 50, { 
+          width: 100,
+          height: 60,
+          fit: [100, 60]
+        });
+        headerStartY = 120; // Move company info down if logo is present
+      } catch (error) {
+        console.error('Failed to load logo:', error);
+        // Continue without logo
+      }
+    }
+    
     doc.fontSize(10)
-       .text(companyName, 50, 50)
-       .text(companyStreet, 50, 65)
-       .text(companyZipCity, 50, 80)
-       .text(companyPhone, 50, 95)
-       .text(companyEmail, 50, 110);
+       .text(companyName, 50, headerStartY)
+       .text(companyStreet, 50, headerStartY + 15)
+       .text(companyZipCity, 50, headerStartY + 30)
+       .text(companyPhone, 50, headerStartY + 45)
+       .text(companyEmail, 50, headerStartY + 60);
 
-    // Customer address
-    const customerY = 180;
+    // Customer address - adjust based on header height
+    const customerY = headerStartY + 130;
     doc.fontSize(11)
        .font('Helvetica-Bold')
        .text(invoice.customer.name, 50, customerY);

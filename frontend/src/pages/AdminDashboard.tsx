@@ -17,6 +17,7 @@ import { User, Project, AbsenceRequest, TimeEntry, Report, Location, Customer, S
 import VacationPlanner from './VacationPlanner';
 import { UserDetailModal } from '../components/UserDetailModal';
 import PDFReportModal from '../components/PDFReportModal';
+import InvoiceTemplateEditor from '../components/InvoiceTemplateEditor';
 import {
   BarChart,
   Bar,
@@ -106,6 +107,11 @@ const AdminDashboard: React.FC = () => {
         case 'invoices':
           const invoicesData = await invoiceService.getAllInvoices();
           setInvoices(invoicesData);
+          // Load articles and customers needed for invoice creation
+          const invoiceArticles = await articleService.getAllArticles();
+          setArticles(invoiceArticles);
+          const invoiceCustomers = await customerService.getAllCustomers();
+          setCustomers(invoiceCustomers);
           break;
         case 'absences':
           const absencesData = await absenceService.getAllAbsenceRequests();
@@ -254,7 +260,7 @@ const AdminDashboard: React.FC = () => {
             />
             <TabButton
               active={activeTab === 'invoiceTemplates'}
-              onClick={() => navigate('/invoice-templates')}
+              onClick={() => setActiveTab('invoiceTemplates')}
               label="Rechnungsvorlagen"
             />
             <TabButton
@@ -303,6 +309,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'articleGroups' && <ArticleGroupsTab articleGroups={articleGroups} onUpdate={loadData} />}
             {activeTab === 'articles' && <ArticlesTab articles={articles} articleGroups={articleGroups} onUpdate={loadData} />}
             {activeTab === 'invoices' && <InvoicesTab invoices={invoices} customers={customers} articles={articles} onUpdate={loadData} />}
+            {activeTab === 'invoiceTemplates' && <InvoiceTemplatesTab />}
             {activeTab === 'absences' && <AbsencesTab absences={absences} onUpdate={loadData} />}
             {activeTab === 'timeEntries' && <TimeEntriesTab />}
             {activeTab === 'reports' && <ReportsTab reports={reports} />}
@@ -3690,6 +3697,191 @@ const ArticleModal: React.FC<{
   );
 };
 
+const InvoiceTemplatesTab: React.FC = () => {
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showEditor, setShowEditor] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | undefined>();
+
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/invoice-templates`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setTemplates(data);
+    } catch (err: any) {
+      setError(err?.message || 'Fehler beim Laden der Vorlagen');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateNew = () => {
+    setEditingTemplateId(undefined);
+    setShowEditor(true);
+  };
+
+  const handleEdit = (id: string) => {
+    setEditingTemplateId(id);
+    setShowEditor(true);
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Möchten Sie die Vorlage "${name}" wirklich löschen?`)) {
+      return;
+    }
+
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      const token = localStorage.getItem('token');
+      await fetch(`${API_URL}/api/invoice-templates/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      loadTemplates();
+    } catch (err: any) {
+      alert(err?.message || 'Fehler beim Löschen der Vorlage');
+    }
+  };
+
+  const handleSetDefault = async (id: string) => {
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      const token = localStorage.getItem('token');
+      await fetch(`${API_URL}/api/invoice-templates/${id}/default`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      loadTemplates();
+    } catch (err: any) {
+      alert(err?.message || 'Fehler beim Setzen der Standardvorlage');
+    }
+  };
+
+  const handleSave = () => {
+    setShowEditor(false);
+    loadTemplates();
+  };
+
+  const handleCancel = () => {
+    setShowEditor(false);
+    setEditingTemplateId(undefined);
+  };
+
+  return (
+    <div>
+      {showEditor && (
+        <InvoiceTemplateEditor
+          templateId={editingTemplateId}
+          onSave={handleSave}
+          onCancel={handleCancel}
+        />
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2>Rechnungsvorlagen</h2>
+        <button className="btn btn-primary" onClick={handleCreateNew}>
+          + Neue Vorlage
+        </button>
+      </div>
+
+      {error && <div className="alert alert-error">{error}</div>}
+
+      {loading ? (
+        <div className="loading">Lade Vorlagen...</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '20px' }}>
+          {templates.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem', gridColumn: '1 / -1' }}>
+              <p>Noch keine Vorlagen vorhanden.</p>
+              <button className="btn btn-primary" onClick={handleCreateNew}>
+                Erste Vorlage erstellen
+              </button>
+            </div>
+          ) : (
+            templates.map((template) => (
+              <div key={template.id} style={{
+                background: 'white',
+                borderRadius: '8px',
+                padding: '20px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                border: '1px solid #e5e7eb'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 style={{ margin: 0, fontSize: '18px' }}>{template.name}</h3>
+                  {template.isDefault && (
+                    <span style={{
+                      background: '#dbeafe',
+                      color: '#1e40af',
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontWeight: 600
+                    }}>Standard</span>
+                  )}
+                </div>
+                <div style={{ marginBottom: '16px', fontSize: '14px', color: '#6b7280' }}>
+                  <div style={{ marginBottom: '8px' }}>
+                    <strong>Firma:</strong> {template.companyName}
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <strong>E-Mail:</strong> {template.companyEmail || '-'}
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <strong>Telefon:</strong> {template.companyPhone || '-'}
+                  </div>
+                  {template.companyTaxId && (
+                    <div style={{ marginBottom: '8px' }}>
+                      <strong>UID:</strong> {template.companyTaxId}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    className="btn btn-primary"
+                    style={{ padding: '6px 12px', fontSize: '13px' }}
+                    onClick={() => handleEdit(template.id)}
+                  >
+                    Bearbeiten
+                  </button>
+                  {!template.isDefault && (
+                    <>
+                      <button
+                        className="btn"
+                        style={{ padding: '6px 12px', fontSize: '13px', background: '#f3f4f6', color: '#374151' }}
+                        onClick={() => handleSetDefault(template.id)}
+                      >
+                        Als Standard
+                      </button>
+                      <button
+                        className="btn btn-danger"
+                        style={{ padding: '6px 12px', fontSize: '13px' }}
+                        onClick={() => handleDelete(template.id, template.name)}
+                      >
+                        Löschen
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const InvoicesTab: React.FC<{ invoices: Invoice[]; customers: Customer[]; articles: Article[]; onUpdate: () => void }> = ({ invoices, customers, articles, onUpdate }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
@@ -3935,13 +4127,38 @@ const InvoiceModal: React.FC<{
     status: invoice?.status || 'DRAFT',
     notes: invoice?.notes || '',
     items: invoice?.items || [],
+    templateId: invoice?.templateId || '',
   });
 
   const [loading, setLoading] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
 
   useEffect(() => {
+    // Load templates
+    const loadTemplates = async () => {
+      try {
+        const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/invoice-templates`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await response.json();
+        setTemplates(data);
+        
+        // Set default template if creating new invoice
+        if (!invoice && data.length > 0) {
+          const defaultTemplate = data.find((t: any) => t.isDefault) || data[0];
+          setFormData(prev => ({ ...prev, templateId: defaultTemplate.id }));
+        }
+      } catch (error) {
+        console.error('Error loading templates:', error);
+      }
+    };
+    
+    loadTemplates();
+    
+    // Generate invoice number for new invoices
     if (!invoice) {
-      // Generate invoice number for new invoices
       invoiceService.getNextInvoiceNumber().then(num => {
         setFormData(prev => ({ ...prev, invoiceNumber: num }));
       });
@@ -3963,7 +4180,7 @@ const InvoiceModal: React.FC<{
         totalPrice: 0,
         createdAt: '',
         updatedAt: '',
-      }],
+      } as any],
     }));
   };
 
@@ -4019,7 +4236,22 @@ const InvoiceModal: React.FC<{
 
     setLoading(true);
     try {
-      await onSave(formData);
+      // Clean items data - remove metadata fields that shouldn't be sent
+      const cleanedData = {
+        ...formData,
+        items: formData.items.map(item => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          unit: item.unit,
+          vatRate: item.vatRate,
+          totalPrice: item.totalPrice,
+          position: item.position,
+          articleId: item.articleId || undefined
+        }))
+      };
+      
+      await onSave(cleanedData);
     } catch (error) {
       console.error('Error saving invoice:', error);
       alert('Fehler beim Speichern der Rechnung');
@@ -4050,16 +4282,29 @@ const InvoiceModal: React.FC<{
 
             <div className="form-group">
               <label>Kunde *</label>
-              <select
-                value={formData.customerId}
-                onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
-                required
-              >
-                <option value="">Bitte wählen...</option>
-                {customers.filter(c => c.isActive).map(customer => (
-                  <option key={customer.id} value={customer.id}>{customer.name}</option>
-                ))}
-              </select>
+              {invoice ? (
+                <input
+                  type="text"
+                  value={invoice.customer?.name || 'Unbekannt'}
+                  disabled
+                  style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
+                />
+              ) : (
+                <select
+                  value={formData.customerId}
+                  onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
+                  required
+                >
+                  <option value="">Bitte wählen...</option>
+                  {customers && customers.length > 0 ? (
+                    customers.filter(c => c.isActive).map(customer => (
+                      <option key={customer.id} value={customer.id}>{customer.name}</option>
+                    ))
+                  ) : (
+                    <option value="" disabled>Keine aktiven Kunden verfügbar</option>
+                  )}
+                </select>
+              )}
             </div>
 
             <div className="form-group">
@@ -4093,6 +4338,21 @@ const InvoiceModal: React.FC<{
                 <option value="PAID">Bezahlt</option>
                 <option value="OVERDUE">Überfällig</option>
                 <option value="CANCELLED">Storniert</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Rechnungsvorlage</label>
+              <select
+                value={formData.templateId}
+                onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
+              >
+                <option value="">Standard</option>
+                {templates.map(template => (
+                  <option key={template.id} value={template.id}>
+                    {template.name} {template.isDefault ? '(Standard)' : ''}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -4150,9 +4410,13 @@ const InvoiceModal: React.FC<{
                         style={{ width: '100%', padding: '5px', fontSize: '12px' }}
                       >
                         <option value="">Manuell</option>
-                        {articles.filter(a => a.isActive).map(article => (
-                          <option key={article.id} value={article.id}>{article.articleNumber}</option>
-                        ))}
+                        {articles && articles.length > 0 ? (
+                          articles.filter(a => a.isActive).map(article => (
+                            <option key={article.id} value={article.id}>{article.articleNumber}</option>
+                          ))
+                        ) : (
+                          <option value="" disabled>Keine Artikel verfügbar</option>
+                        )}
                       </select>
                     </td>
                     <td>

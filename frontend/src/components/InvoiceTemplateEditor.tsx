@@ -125,19 +125,26 @@ const InvoiceTemplateEditor: React.FC<InvoiceTemplateEditorProps> = ({
   };
 
   if (loading && templateId) {
-    return <div className="loading">Lade Vorlage...</div>;
+    return (
+      <div className="invoice-template-editor">
+        <div className="editor-content">
+          <div className="loading">Lade Vorlage...</div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="invoice-template-editor">
-      <div className="editor-header">
-        <h2>{templateId ? 'Vorlage bearbeiten' : 'Neue Vorlage erstellen'}</h2>
-        {onCancel && (
-          <button type="button" onClick={onCancel} className="btn-close">
-            ✕
-          </button>
-        )}
-      </div>
+    <div className="invoice-template-editor" onClick={onCancel}>
+      <div className="editor-content" onClick={(e) => e.stopPropagation()}>
+        <div className="editor-header">
+          <h2>{templateId ? 'Vorlage bearbeiten' : 'Neue Vorlage erstellen'}</h2>
+          {onCancel && (
+            <button type="button" onClick={onCancel} className="btn-close">
+              ✕
+            </button>
+          )}
+        </div>
 
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
@@ -467,6 +474,7 @@ const InvoiceTemplateEditor: React.FC<InvoiceTemplateEditorProps> = ({
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 };
