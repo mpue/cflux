@@ -41,6 +41,7 @@ export const getAllInvoices = async (req: AuthRequest, res: Response) => {
             email: true,
           },
         },
+        template: true,
         items: {
           orderBy: {
             position: 'asc',
@@ -76,6 +77,7 @@ export const getInvoiceById = async (req: AuthRequest, res: Response) => {
     const invoice = await prisma.invoice.findUnique({
       where: { id },
       include: {
+        template: true,
         customer: true,
         items: {
           orderBy: {
@@ -107,6 +109,7 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
       invoiceDate,
       dueDate,
       customerId,
+      templateId,
       status = InvoiceStatus.DRAFT,
       notes,
       items = [],
@@ -164,6 +167,7 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
         invoiceDate: new Date(invoiceDate),
         dueDate: new Date(dueDate),
         customerId,
+        templateId: templateId || null,
         status,
         subtotal,
         vatAmount,
@@ -175,6 +179,7 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
       },
       include: {
         customer: true,
+        template: true,
         items: {
           orderBy: {
             position: 'asc',
@@ -202,6 +207,7 @@ export const updateInvoice = async (req: AuthRequest, res: Response) => {
       invoiceDate,
       dueDate,
       customerId,
+      templateId,
       status,
       notes,
       isActive,
@@ -245,6 +251,7 @@ export const updateInvoice = async (req: AuthRequest, res: Response) => {
     if (invoiceNumber !== undefined) updateData.invoiceNumber = invoiceNumber;
     if (invoiceDate !== undefined) updateData.invoiceDate = new Date(invoiceDate);
     if (dueDate !== undefined) updateData.dueDate = new Date(dueDate);
+    if (templateId !== undefined) updateData.templateId = templateId || null;
     if (customerId !== undefined) updateData.customerId = customerId;
     if (status !== undefined) updateData.status = status;
     if (notes !== undefined) updateData.notes = notes;

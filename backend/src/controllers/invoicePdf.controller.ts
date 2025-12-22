@@ -13,6 +13,7 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
       where: { id },
       include: {
         customer: true,
+        template: true,
         items: {
           orderBy: {
             position: 'asc',
@@ -28,6 +29,14 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Invoice not found' });
     }
 
+    // Get default template if no template is set
+    let template = invoice.template;
+    if (!template) {
+      template = await prisma.invoiceTemplate.findFirst({
+        where: { isDefault: true },
+      });
+    }
+
     // Create PDF document
     const doc = new PDFDocument({ 
       size: 'A4',
@@ -41,13 +50,19 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
     // Pipe PDF to response
     doc.pipe(res);
 
-    // Company header (sender)
+    // Company header (sender) - use template if available
+    const companyName = template?.companyName || 'Ihr Firmenname';
+    const companyStreet = template?.companyStreet || 'Musterstrasse 123';
+    const companyZipCity = template ? `${template.companyZip} ${template.companyCity}` : '8000 Zürich';
+    const companyPhone = template?.companyPhone || 'Tel: +41 44 123 45 67';
+    const companyEmail = template?.companyEmail || 'Email: info@firma.ch';
+    
     doc.fontSize(10)
-       .text('Ihr Firmenname', 50, 50)
-       .text('Musterstrasse 123', 50, 65)
-       .text('8000 Zürich', 50, 80)
-       .text('Tel: +41 44 123 45 67', 50, 95)
-       .text('Email: info@firma.ch', 50, 110);
+       .text(companyName, 50, 50)
+       .text(companyStreet, 50, 65)
+       .text(companyZipCity, 50, 80)
+       .text(companyPhone, 50, 95)
+       .text(companyEmail, 50, 110);
 
     // Customer address
     const customerY = 180;
@@ -176,19 +191,35 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
 
     // Payment information
     currentY += 40;
-    doc.fontSize(10)
-       .font('Helvetica-Bold')
-       .text('Zahlungsinformationen:', 50, currentY);
+    
+    if (template?.showPaymentInfo !== false) {
+      doc.fontSize(10)
+         .font('Helvetica-Bold')
+         .text('Zahlungsinformationen:', 50, currentY);
 
-    currentY += 20;
-    doc.font('Helvetica')
-       .text('Zahlbar innert 30 Tagen netto.', 50, currentY)
-       .text('Bank: Musterbank AG', 50, currentY + 15)
-       .text('IBAN: CH00 0000 0000 0000 0000 0', 50, currentY + 30)
-       .text('Kontoinhaber: Ihr Firmenname', 50, currentY + 45);
+      currentY += 20;
+      const paymentTerms = template?.paymentTermsText || 'Zahlbar innert 30 Tagen netto.';
+      const bank = template?.companyBank || 'Musterbank AG';
+      const iban = template?.companyIban || 'CH00 0000 0000 0000 0000 0';
+      
+      doc.font('Helvetica')
+         .text(paymentTerms, 50, currentY);
+      
+      currentY += 15;
+      doc.text(`Bank: ${bank}`, 50, currentY)
+         .text(`IBAN: ${iban}`, 50, currentY + 15)
+         .text(`Kontoinhaber: ${companyName}`, 50, currentY + 30);
+      
+      currentY += 45;
+    }
+
+    // Intro text from template
+    if (template?.introText && currentY < 120) {
+      currentY = 120;
+    }
 
     // QR code placeholder (Swiss QR-Bill)
-    currentY += 80;
+    currentY += 35;
     if (currentY < 650) {
       doc.fontSize(8)
          .text('QR-Rechnung folgt separat', 50, currentY, { align: 'center' });
@@ -213,8 +244,10 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
 
     // Footer
     const footerY = 750;
+    const footerText = template?.footerText || 'Vielen Dank für Ihr Vertrauen!';
+    
     doc.fontSize(8)
-       .text('Vielen Dank für Ihr Vertrauen!', 50, footerY, { align: 'center', width: 495 })
+       .text(footerText, 50, footerY, { align: 'center', width: 495 })
        .text(`Seite 1`, 50, footerY + 15, { align: 'center', width: 495 });
 
     // Finalize PDF
