@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">52.45% </span>
+                <span class="strong">31.14% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>32/61</span>
+                <span class='fraction'>19/61</span>
             </div>
         
             
@@ -37,16 +37,16 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">12.5% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>4/8</span>
+                <span class='fraction'>1/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">47.16% </span>
+                <span class="strong">22.64% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>25/53</span>
+                <span class='fraction'>12/53</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -271,17 +271,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -289,20 +289,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -310,12 +310,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -423,30 +423,30 @@ export const getMyProjects = <span class="fstat-no" title="function not covered"
   }
 };
 &nbsp;
-export const createProject = async (req: AuthRequest, res: Response) =&gt; {
-  try {
-    const { name, description } = req.body;
+export const createProject = <span class="fstat-no" title="function not covered" >async </span>(req: AuthRequest, res: Response) =&gt; {
+<span class="cstat-no" title="statement not covered" >  try {</span>
+    const { name, description } = <span class="cstat-no" title="statement not covered" >req.body;</span>
 &nbsp;
-    const project = await prisma.project.create({
+    const project = <span class="cstat-no" title="statement not covered" >await prisma.project.create({</span>
       data: {
         name,
         description
       }
     });
 &nbsp;
-    res.status(201).json(project);
+<span class="cstat-no" title="statement not covered" >    res.status(201).json(project);</span>
   } catch (error) {
 <span class="cstat-no" title="statement not covered" >    console.error('Create project error:', error);</span>
 <span class="cstat-no" title="statement not covered" >    res.status(500).json({ error: 'Failed to create project' });</span>
   }
 };
 &nbsp;
-export const updateProject = async (req: AuthRequest, res: Response) =&gt; {
-  try {
-    const { id } = req.params;
-    const { name, description, isActive } = req.body;
+export const updateProject = <span class="fstat-no" title="function not covered" >async </span>(req: AuthRequest, res: Response) =&gt; {
+<span class="cstat-no" title="statement not covered" >  try {</span>
+    const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
+    const { name, description, isActive } = <span class="cstat-no" title="statement not covered" >req.body;</span>
 &nbsp;
-    const project = await prisma.project.update({
+    const project = <span class="cstat-no" title="statement not covered" >await prisma.project.update({</span>
       where: { id },
       data: {
         name,
@@ -455,20 +455,20 @@ export const updateProject = async (req: AuthRequest, res: Response) =&gt; {
       }
     });
 &nbsp;
-    res.json(project);
+<span class="cstat-no" title="statement not covered" >    res.json(project);</span>
   } catch (error) {
 <span class="cstat-no" title="statement not covered" >    console.error('Update project error:', error);</span>
 <span class="cstat-no" title="statement not covered" >    res.status(500).json({ error: 'Failed to update project' });</span>
   }
 };
 &nbsp;
-export const deleteProject = async (req: AuthRequest, res: Response) =&gt; {
-  try {
-    const { id } = req.params;
+export const deleteProject = <span class="fstat-no" title="function not covered" >async </span>(req: AuthRequest, res: Response) =&gt; {
+<span class="cstat-no" title="statement not covered" >  try {</span>
+    const { id } = <span class="cstat-no" title="statement not covered" >req.params;</span>
 &nbsp;
-    await prisma.project.delete({ where: { id } });
+<span class="cstat-no" title="statement not covered" >    await prisma.project.delete({ where: { id } });</span>
 &nbsp;
-    res.json({ message: 'Project deleted successfully' });
+<span class="cstat-no" title="statement not covered" >    res.json({ message: 'Project deleted successfully' });</span>
   } catch (error) {
 <span class="cstat-no" title="statement not covered" >    console.error('Delete project error:', error);</span>
 <span class="cstat-no" title="statement not covered" >    res.status(500).json({ error: 'Failed to delete project' });</span>
@@ -529,7 +529,7 @@ export const unassignUserFromProject = <span class="fstat-no" title="function no
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-12-17T16:12:22.109Z
+                at 2025-12-22T15:49:13.218Z
             </div>
         <script src="../prettify.js"></script>
         <script>
