@@ -1,0 +1,311 @@
+.invoice-preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.invoice-preview-modal .modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 900px;
+  width: 100%;
+  max-height: 95vh;
+  overflow-y: auto;
+  margin: auto;
+}
+
+.invoice-preview-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 30px;
+  border-bottom: 2px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 12px 12px 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.invoice-preview-modal .modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #111827;
+}
+
+.invoice-preview-modal .header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.invoice-preview-modal .btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.invoice-preview-modal .btn-primary {
+  background-color: #2563eb;
+  color: white;
+}
+
+.invoice-preview-modal .btn-primary:hover {
+  background-color: #1d4ed8;
+}
+
+.invoice-preview-modal .btn-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.invoice-preview-modal .btn-close:hover {
+  color: #111827;
+}
+
+.preview-container {
+  padding: 30px;
+  background: #f3f4f6;
+}
+
+.preview-page {
+  background: white;
+  padding: 40px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  min-height: 800px;
+  position: relative;
+  margin: 0 auto;
+  max-width: 700px;
+}
+
+.logo-static {
+  pointer-events: none;
+}
+
+.logo-static img {
+  pointer-events: none;
+}
+
+.preview-header-text {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.02);
+  border-left: 3px solid;
+}
+
+.preview-company {
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.preview-customer {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f9fafb;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.preview-details {
+  margin-bottom: 20px;
+}
+
+.preview-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 20px 0;
+}
+
+.preview-intro {
+  line-height: 1.6;
+  color: #374151;
+  margin-bottom: 15px;
+}
+
+.preview-items {
+  border-collapse: collapse;
+  font-size: 10px;
+  margin-top: 15px;
+}
+
+.preview-items th,
+.preview-items td {
+  border: 1px solid #e5e7eb;
+}
+
+.preview-items thead tr {
+  font-weight: 600;
+}
+
+.preview-items tbody tr:hover {
+  background: #f9fafb;
+}
+
+.preview-payment {
+  padding: 12px;
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+  border-radius: 4px;
+  line-height: 1.6;
+}
+
+.preview-payment-info {
+  padding: 12px;
+  background: #f0f9ff;
+  border-left: 3px solid #0ea5e9;
+  border-radius: 4px;
+  line-height: 1.6;
+}
+
+.preview-notes {
+  padding: 12px;
+  background: #fef3c7;
+  border-left: 3px solid #f59e0b;
+  border-radius: 4px;
+  line-height: 1.6;
+}
+
+.preview-footer {
+  text-align: center;
+}
+
+.preview-tax-id {
+  text-align: center;
+  font-style: italic;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+  font-size: 16px;
+}
+
+/* Print Styles */
+@media print {
+  /* Verstecke komplette Applikation */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Zeige nur den Modal-Inhalt */
+  .invoice-preview-modal,
+  .invoice-preview-modal * {
+    visibility: visible !important;
+  }
+
+  /* Verstecke Modal-Header, Buttons und Overlay */
+  .no-print,
+  .modal-header,
+  .header-actions,
+  .btn,
+  .btn-close {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Modal Positionierung für Druck */
+  .invoice-preview-modal {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  .invoice-preview-modal .modal-content {
+    max-width: 100% !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+  }
+
+  .preview-container {
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  .preview-page {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 20mm !important;
+    min-height: auto !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .print-page {
+    page-break-after: always;
+  }
+
+  .preview-items tbody tr:hover {
+    background: transparent !important;
+  }
+
+  /* Stelle sicher dass alles sichtbare auch gedruckt wird */
+  .preview-page,
+  .preview-page * {
+    visibility: visible !important;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .invoice-preview-modal .modal-content {
+    border-radius: 8px;
+  }
+
+  .invoice-preview-modal .modal-header {
+    padding: 16px;
+  }
+
+  .invoice-preview-modal .modal-header h2 {
+    font-size: 18px;
+  }
+
+  .preview-container {
+    padding: 15px;
+  }
+
+  .preview-page {
+    padding: 20px;
+    font-size: 11px;
+  }
+
+  .preview-items {
+    font-size: 9px;
+  }
+
+  .preview-title {
+    font-size: 20px;
+  }
+}

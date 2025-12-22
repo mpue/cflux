@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Invoice, Customer, Article } from '../../types';
 import * as invoiceService from '../../services/invoiceService';
+import InvoicePreviewModal from '../InvoicePreviewModal';
 
 interface InvoicesTabProps {
   invoices: Invoice[];
@@ -12,6 +13,8 @@ interface InvoicesTabProps {
 const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles, onUpdate }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [filterCustomerId, setFilterCustomerId] = useState<string>('');
@@ -149,6 +152,23 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
                         marginRight: '5px', 
                         padding: '5px 10px', 
                         fontSize: '12px',
+                        backgroundColor: '#6366f1',
+                        color: 'white',
+                        border: 'none'
+                      }}
+                      onClick={() => {
+                        setPreviewInvoice(invoice);
+                        setShowPreview(true);
+                      }}
+                    >
+                      👁️ Vorschau
+                    </button>
+                    <button
+                      className="btn"
+                      style={{ 
+                        marginRight: '5px', 
+                        padding: '5px 10px', 
+                        fontSize: '12px',
                         backgroundColor: '#28a745',
                         color: 'white',
                         border: 'none'
@@ -213,6 +233,16 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
           )}
         </tbody>
       </table>
+
+      {showPreview && previewInvoice && (
+        <InvoicePreviewModal
+          invoice={previewInvoice}
+          onClose={() => {
+            setShowPreview(false);
+            setPreviewInvoice(null);
+          }}
+        />
+      )}
 
       {showModal && (
         <InvoiceModal

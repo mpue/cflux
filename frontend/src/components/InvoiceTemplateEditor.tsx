@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { invoiceTemplateService } from '../services/invoiceTemplateService';
 import { InvoiceTemplate, InvoiceTemplateFormData } from '../types/invoiceTemplate';
+import InvoicePreview from './InvoicePreview';
+import LogoUpload from './LogoUpload';
 import '../styles/InvoiceTemplateEditor.css';
 
 interface InvoiceTemplateEditorProps {
@@ -37,6 +39,8 @@ const InvoiceTemplateEditor: React.FC<InvoiceTemplateEditorProps> = ({
     footerText: '',
     primaryColor: '#2563eb',
     logoUrl: '',
+    logoPosition: '',
+    logoAlignment: 'left',
     introText: 'Vielen Dank für Ihr Vertrauen. Wir erlauben uns, Ihnen folgende Leistungen in Rechnung zu stellen:',
     paymentTermsText: 'Zahlbar innerhalb von 30 Tagen netto.',
     showLogo: true,
@@ -73,6 +77,8 @@ const InvoiceTemplateEditor: React.FC<InvoiceTemplateEditorProps> = ({
         footerText: template.footerText || '',
         primaryColor: template.primaryColor,
         logoUrl: template.logoUrl || '',
+        logoPosition: template.logoPosition || '',
+        logoAlignment: template.logoAlignment || 'left',
         introText: template.introText || '',
         paymentTermsText: template.paymentTermsText || '',
         showLogo: template.showLogo,
@@ -95,6 +101,28 @@ const InvoiceTemplateEditor: React.FC<InvoiceTemplateEditorProps> = ({
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleLogoChange = (logoUrl: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      logoUrl,
+    }));
+  };
+
+  const handleLogoRemove = () => {
+    setFormData((prev) => ({
+      ...prev,
+      logoUrl: '',
+      logoPosition: '',
+    }));
+  };
+
+  const handleLogoPositionChange = (position: { x: number; y: number; width: number; height: number }) => {
+    setFormData((prev) => ({
+      ...prev,
+      logoPosition: JSON.stringify(position),
     }));
   };
 
@@ -136,7 +164,7 @@ const InvoiceTemplateEditor: React.FC<InvoiceTemplateEditorProps> = ({
 
   return (
     <div className="invoice-template-editor" onClick={onCancel}>
-      <div className="editor-content" onClick={(e) => e.stopPropagation()}>
+      <div className="editor-content-split" onClick={(e) => e.stopPropagation()}>
         <div className="editor-header">
           <h2>{templateId ? 'Vorlage bearbeiten' : 'Neue Vorlage erstellen'}</h2>
           {onCancel && (
@@ -146,36 +174,40 @@ const InvoiceTemplateEditor: React.FC<InvoiceTemplateEditorProps> = ({
           )}
         </div>
 
-      {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
+        {error && <div className="alert alert-error">{error}</div>}
+        {success && <div className="alert alert-success">{success}</div>}
 
-      <form onSubmit={handleSubmit}>
-        {/* Template Name and Default Toggle */}
-        <div className="template-basics">
-          <div className="form-group">
-            <label htmlFor="name">Vorlagenname *</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              placeholder="z.B. Standard, Projektrechnung"
-            />
-          </div>
-          <div className="form-group checkbox-group">
-            <label>
-              <input
-                type="checkbox"
-                name="isDefault"
-                checked={formData.isDefault}
-                onChange={handleChange}
-              />
-              Als Standardvorlage festlegen
-            </label>
-          </div>
-        </div>
+        {/* Split Layout: Editor Left, Preview Right */}
+        <div className="split-container">
+          {/* Left Side: Editor */}
+          <div className="editor-panel">
+            <form onSubmit={handleSubmit}>
+              {/* Template Name and Default Toggle */}
+              <div className="template-basics">
+                <div className="form-group">
+                  <label htmlFor="name">Vorlagenname *</label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    placeholder="z.B. Standard, Projektrechnung"
+                  />
+                </div>
+                <div className="form-group checkbox-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      name="isDefault"
+                      checked={formData.isDefault}
+                      onChange={handleChange}
+                    />
+                    Als Standardvorlage festlegen
+                  </label>
+                </div>
+              </div>
 
         {/* Tabs */}
         <div className="tabs">
@@ -387,16 +419,15 @@ const InvoiceTemplateEditor: React.FC<InvoiceTemplateEditorProps> = ({
             <div className="tab-pane">
               <h3>Design</h3>
               <div className="form-group">
-                <label htmlFor="logoUrl">Logo URL</label>
-                <input
-                  type="text"
-                  id="logoUrl"
-                  name="logoUrl"
-                  value={formData.logoUrl}
-                  onChange={handleChange}
-                  placeholder="https://example.com/logo.png"
+                <label>Logo</label>
+                <LogoUpload
+                  currentLogo={formData.logoUrl}
+                  onLogoChange={handleLogoChange}
+                  onLogoRemove={handleLogoRemove}
                 />
-                <small>URL zu Ihrem Firmenlogo (PNG, JPG oder SVG)</small>
+                <small>
+                  Laden Sie Ihr Logo hoch und positionieren Sie es in der Vorschau durch Ziehen mit der Maus
+                </small>
               </div>
               <div className="form-group">
                 <label htmlFor="primaryColor">Primärfarbe</label>
@@ -474,6 +505,16 @@ const InvoiceTemplateEditor: React.FC<InvoiceTemplateEditorProps> = ({
           </button>
         </div>
       </form>
+          </div>
+
+          {/* Right Side: Live Preview */}
+          <div className="preview-panel">
+            <InvoicePreview 
+              template={formData} 
+              onLogoPositionChange={handleLogoPositionChange}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

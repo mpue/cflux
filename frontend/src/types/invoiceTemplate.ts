@@ -23,6 +23,8 @@ export interface InvoiceTemplate {
   // Styling
   primaryColor: string;
   logoUrl?: string;
+  logoPosition?: string; // JSON: {x, y, width, height}
+  logoAlignment: string;
   
   // Text Templates
   introText?: string;
@@ -61,6 +63,8 @@ export interface InvoiceTemplateFormData {
   // Styling
   primaryColor: string;
   logoUrl?: string;
+  logoPosition?: string; // JSON: {x, y, width, height}
+  logoAlignment?: string;
   
   // Text Templates
   introText?: string;
