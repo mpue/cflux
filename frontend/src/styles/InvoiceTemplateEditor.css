@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--modal-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,9 +14,9 @@
 }
 
 .editor-content-split {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px var(--shadow-color);
   max-width: 1400px;
   width: 100%;
   max-height: 90vh;
@@ -24,18 +24,21 @@
   margin: auto;
   display: flex;
   flex-direction: column;
+  transition: background-color 0.3s ease;
 }
 
 .editor-content {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 32px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px var(--shadow-color);
   max-width: 900px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
   margin: auto;
+  color: var(--text-primary);
+  transition: background-color 0.3s ease;
 }
 
 .editor-header {
@@ -43,14 +46,15 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px 32px;
-  border-bottom: 2px solid #e5e7eb;
-  background: #f9fafb;
+  border-bottom: 2px solid var(--border-color);
+  background: var(--bg-tertiary);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .editor-header h2 {
   margin: 0;
   font-size: 24px;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 /* Split Layout */
@@ -65,20 +69,23 @@
 .editor-panel {
   padding: 32px;
   overflow-y: auto;
-  border-right: 2px solid #e5e7eb;
+  border-right: 2px solid var(--border-color);
+  background: var(--card-bg);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .preview-panel {
   padding: 20px;
-  background: #f3f4f6;
+  background: var(--bg-tertiary);
   overflow-y: auto;
+  transition: background-color 0.3s ease;
 }
 
 .btn-close {
   background: none;
   border: none;
   font-size: 24px;
-  color: #6b7280;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 4px 8px;
   line-height: 1;
@@ -86,7 +93,7 @@
 }
 
 .btn-close:hover {
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .alert {

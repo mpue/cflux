@@ -1,5 +1,8 @@
 .App {
   min-height: 100vh;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .container {
@@ -9,11 +12,12 @@
 }
 
 .card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px var(--shadow-color);
   padding: 20px;
   margin-bottom: 20px;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .btn {
@@ -76,9 +80,12 @@
 .form-group textarea {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   font-size: 14px;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color 0.2s, background-color 0.3s ease;
 }
 
 .form-group input:focus,
@@ -101,12 +108,14 @@
 }
 
 .navbar {
-  background-color: #343a40;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   padding: 15px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: 0 2px 8px var(--shadow-color);
+  transition: box-shadow 0.3s ease;
 }
 
 .navbar h1 {
@@ -128,16 +137,17 @@
 .table td {
   padding: 12px;
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--table-border);
+  transition: background-color 0.2s;
 }
 
 .table th {
-  background-color: #f8f9fa;
+  background-color: var(--bg-tertiary);
   font-weight: 600;
 }
 
 .table tr:hover {
-  background-color: #f8f9fa;
+  background-color: var(--table-hover);
 }
 
 .modal-overlay {
@@ -146,7 +156,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--modal-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -154,13 +164,15 @@
 }
 
 .modal {
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
   padding: 30px;
   max-width: 500px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+  color: var(--text-primary);
+  transition: background-color 0.3s ease;
 }
 
 .modal h2 {
@@ -205,9 +217,10 @@
   align-items: center;
   gap: 10px;
   padding: 15px 20px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-tertiary);
   border-radius: 8px;
   margin-bottom: 20px;
+  transition: background-color 0.3s ease;
 }
 
 .clock-status.clocked-in {
@@ -400,6 +413,6 @@
   }
 
   .table tr:active {
-    background-color: #e9ecef;
+    background-color: var(--table-hover);
   }
 }
