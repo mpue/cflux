@@ -12,6 +12,10 @@ const ComplianceDashboard: React.FC = () => {
   const [filter, setFilter] = useState<'all' | 'unresolved' | 'critical'>('unresolved');
 
   useEffect(() => {
+    document.title = 'CFlux - Compliance';
+  }, []);
+
+  useEffect(() => {
     fetchData();
   }, [filter]);
 

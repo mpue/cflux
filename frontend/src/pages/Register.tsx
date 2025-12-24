@@ -14,6 +14,10 @@ const Register: React.FC = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    document.title = 'CFlux - Registrieren';
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');

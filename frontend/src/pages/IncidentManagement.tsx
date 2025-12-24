@@ -44,6 +44,10 @@ const IncidentManagement: React.FC = () => {
   });
 
   useEffect(() => {
+    document.title = 'CFlux - Incident Management';
+  }, []);
+
+  useEffect(() => {
     loadData();
   }, [filterStatus, filterPriority]);
 

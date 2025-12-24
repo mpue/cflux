@@ -13,6 +13,10 @@ const CustomersPage: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | undefined>();
 
   useEffect(() => {
+    document.title = 'CFlux - Kunden';
+  }, []);
+
+  useEffect(() => {
     loadCustomers();
   }, [showInactive]);
 

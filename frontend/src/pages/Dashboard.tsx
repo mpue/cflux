@@ -33,6 +33,7 @@ const Dashboard: React.FC = () => {
   const [showPDFReportModal, setShowPDFReportModal] = useState(false);
 
   useEffect(() => {
+    document.title = 'CFlux - Dashboard';
     loadData();
   }, []);
 

@@ -60,6 +60,10 @@ const AdminDashboard: React.FC = () => {
   const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
 
   useEffect(() => {
+    document.title = 'CFlux - Administration';
+  }, []);
+
+  useEffect(() => {
     loadData();
   }, [activeTab]);
 

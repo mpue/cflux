@@ -26,6 +26,10 @@ const VacationPlanner: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   useEffect(() => {
+    document.title = 'CFlux - Urlaubsplaner';
+  }, []);
+
+  useEffect(() => {
     loadData();
   }, [year, filterStatus]);
 

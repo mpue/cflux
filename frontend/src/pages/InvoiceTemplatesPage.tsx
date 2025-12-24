@@ -12,6 +12,10 @@ const InvoiceTemplatesPage: React.FC = () => {
   const [editingTemplateId, setEditingTemplateId] = useState<string | undefined>();
 
   useEffect(() => {
+    document.title = 'CFlux - Rechnungsvorlagen';
+  }, []);
+
+  useEffect(() => {
     loadTemplates();
   }, []);
 
