@@ -197,11 +197,9 @@ const Dashboard: React.FC = () => {
             <button className="btn btn-secondary" onClick={() => navigate('/incidents')}>
               Incidents
             </button>
-            {user?.role === 'ADMIN' && (
-              <button className="btn btn-secondary" onClick={() => navigate('/admin')}>
-                Admin Panel
-              </button>
-            )}
+            <button className="btn btn-secondary" onClick={() => navigate('/admin')}>
+              {user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'}
+            </button>
             <button className="btn btn-secondary" onClick={handleLogout}>
             Abmelden
           </button>
