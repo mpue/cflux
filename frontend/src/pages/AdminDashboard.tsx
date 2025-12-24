@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useModules } from '../contexts/ModuleContext';
 import { userService } from '../services/user.service';
 import { projectService } from '../services/project.service';
 import { absenceService } from '../services/absence.service';
@@ -34,12 +35,15 @@ import {
   InvoicesTab,
   RemindersTab
 } from '../components/admin';
+import ModulesPage from './ModulesPage';
+import ModulePermissionsPage from './ModulePermissionsPage';
 import '../App.css';
 
 type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  const { hasModuleAccess } = useModules();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('users');
   const [users, setUsers] = useState<User[]>([]);
@@ -61,8 +65,8 @@ const AdminDashboard: React.FC = () => {
   const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
 
   useEffect(() => {
-    document.title = 'CFlux - Administration';
-  }, []);
+    document.title = user?.role === 'ADMIN' ? 'CFlux - Administration' : 'CFlux - Verwaltung';
+  }, [user]);
 
   useEffect(() => {
     loadData();
@@ -210,7 +214,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <div>
       <nav className="navbar">
-        <h1>Admin Panel</h1>
+        <h1>{user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'}</h1>
         <div className="navbar-right">
           <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{currentTime}</span>
           <span>{user?.firstName} {user?.lastName}</span>
@@ -226,106 +230,146 @@ const AdminDashboard: React.FC = () => {
       <div className="container">
         <div className="card">
           <div className="tab-navigation" style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid #ddd', overflowX: 'auto', WebkitOverflowScrolling: 'touch', flexWrap: 'wrap' }}>
-            <TabButton
-              active={activeTab === 'users'}
-              onClick={() => setActiveTab('users')}
-              label="Benutzer"
-            />
-            <TabButton
-              active={activeTab === 'userGroups'}
-              onClick={() => setActiveTab('userGroups')}
-              label="Benutzergruppen"
-            />
-            <TabButton
-              active={activeTab === 'projects'}
-              onClick={() => setActiveTab('projects')}
-              label="Projekte"
-            />
-            <TabButton
-              active={activeTab === 'locations'}
-              onClick={() => setActiveTab('locations')}
-              label="Standorte"
-            />
-            <TabButton
-              active={activeTab === 'customers'}
-              onClick={() => setActiveTab('customers')}
-              label="Kunden"
-            />
-            <TabButton
-              active={activeTab === 'suppliers'}
-              onClick={() => setActiveTab('suppliers')}
-              label="Lieferanten"
-            />
-            <TabButton
-              active={activeTab === 'articleGroups'}
-              onClick={() => setActiveTab('articleGroups')}
-              label="Artikelgruppen"
-            />
-            <TabButton
-              active={activeTab === 'articles'}
-              onClick={() => setActiveTab('articles')}
-              label="Artikel"
-            />
-            <TabButton
-              active={activeTab === 'invoices'}
-              onClick={() => setActiveTab('invoices')}
-              label="Rechnungen"
-            />
-            <TabButton
-              active={activeTab === 'invoiceTemplates'}
-              onClick={() => setActiveTab('invoiceTemplates')}
-              label="Rechnungsvorlagen"
-            />
-            <TabButton
-              active={activeTab === 'reminders'}
-              onClick={() => setActiveTab('reminders')}
-              label="💰 Mahnwesen"
-            />
-            <TabButton
-              active={activeTab === 'absences'}
-              onClick={() => setActiveTab('absences')}
-              label="Abwesenheiten"
-            />
-            <TabButton
-              active={activeTab === 'timeEntries'}
-              onClick={() => setActiveTab('timeEntries')}
-              label="Zeiteinträge"
-            />
-            <TabButton
-              active={activeTab === 'reports'}
-              onClick={() => setActiveTab('reports')}
-              label="Reports"
-            />
-            <TabButton
-              active={activeTab === 'backup'}
-              onClick={() => setActiveTab('backup')}
-              label="Backup"
-            />
-            <TabButton
-              active={activeTab === 'vacationPlanner'}
-              onClick={() => setActiveTab('vacationPlanner')}
-              label="Urlaubsplaner"
-            />
-            <TabButton
-              active={activeTab === 'holidays'}
-              onClick={() => setActiveTab('holidays')}
-              label="🗓️ Feiertage"
-            />
-            <TabButton
-              active={activeTab === 'compliance'}
-              onClick={() => setActiveTab('compliance')}
-              label="🇨🇭 Compliance"
-            />
-            <TabButton
-              active={activeTab === 'modules'}
-              onClick={() => navigate('/modules')}
-              label="📱 Module"
-            />
-            <TabButton
-              active={activeTab === 'modulePermissions'}
-              onClick={() => navigate('/module-permissions')}
-              label="🔐 Berechtigungen"
-            />
+            {(user?.role === 'ADMIN' || hasModuleAccess('users')) && (
+              <TabButton
+                active={activeTab === 'users'}
+                onClick={() => setActiveTab('users')}
+                label="Benutzer"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('user_groups')) && (
+              <TabButton
+                active={activeTab === 'userGroups'}
+                onClick={() => setActiveTab('userGroups')}
+                label="Benutzergruppen"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('projects')) && (
+              <TabButton
+                active={activeTab === 'projects'}
+                onClick={() => setActiveTab('projects')}
+                label="Projekte"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('locations')) && (
+              <TabButton
+                active={activeTab === 'locations'}
+                onClick={() => setActiveTab('locations')}
+                label="Standorte"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('customers')) && (
+              <TabButton
+                active={activeTab === 'customers'}
+                onClick={() => setActiveTab('customers')}
+                label="Kunden"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('suppliers')) && (
+              <TabButton
+                active={activeTab === 'suppliers'}
+                onClick={() => setActiveTab('suppliers')}
+                label="Lieferanten"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (
+              <TabButton
+                active={activeTab === 'articleGroups'}
+                onClick={() => setActiveTab('articleGroups')}
+                label="Artikelgruppen"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (
+              <TabButton
+                active={activeTab === 'articles'}
+                onClick={() => setActiveTab('articles')}
+                label="Artikel"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('invoices')) && (
+              <TabButton
+                active={activeTab === 'invoices'}
+                onClick={() => setActiveTab('invoices')}
+                label="Rechnungen"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('invoices')) && (
+              <TabButton
+                active={activeTab === 'invoiceTemplates'}
+                onClick={() => setActiveTab('invoiceTemplates')}
+                label="Rechnungsvorlagen"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('reminders')) && (
+              <TabButton
+                active={activeTab === 'reminders'}
+                onClick={() => setActiveTab('reminders')}
+                label="💰 Mahnwesen"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('absences')) && (
+              <TabButton
+                active={activeTab === 'absences'}
+                onClick={() => setActiveTab('absences')}
+                label="Abwesenheiten"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('time_tracking')) && (
+              <TabButton
+                active={activeTab === 'timeEntries'}
+                onClick={() => setActiveTab('timeEntries')}
+                label="Zeiteinträge"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
+              <TabButton
+                active={activeTab === 'reports'}
+                onClick={() => setActiveTab('reports')}
+                label="Reports"
+              />
+            )}
+            {user?.role === 'ADMIN' && (
+              <TabButton
+                active={activeTab === 'backup'}
+                onClick={() => setActiveTab('backup')}
+                label="Backup"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('absences')) && (
+              <TabButton
+                active={activeTab === 'vacationPlanner'}
+                onClick={() => setActiveTab('vacationPlanner')}
+                label="Urlaubsplaner"
+              />
+            )}
+            {user?.role === 'ADMIN' && (
+              <TabButton
+                active={activeTab === 'holidays'}
+                onClick={() => setActiveTab('holidays')}
+                label="🗓️ Feiertage"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('compliance')) && (
+              <TabButton
+                active={activeTab === 'compliance'}
+                onClick={() => setActiveTab('compliance')}
+                label="🇨🇭 Compliance"
+              />
+            )}
+            {user?.role === 'ADMIN' && (
+              <TabButton
+                active={activeTab === 'modules'}
+                onClick={() => setActiveTab('modules')}
+                label="📱 Module"
+              />
+            )}
+            {user?.role === 'ADMIN' && (
+              <TabButton
+                active={activeTab === 'modulePermissions'}
+                onClick={() => setActiveTab('modulePermissions')}
+                label="🔐 Berechtigungen"
+              />
+            )}
           </div>
 
           <>
@@ -358,6 +402,8 @@ const AdminDashboard: React.FC = () => {
                 onResolve={resolveViolation}
               />
             )}
+            {activeTab === 'modules' && <ModulesPage embedded />}
+            {activeTab === 'modulePermissions' && <ModulePermissionsPage embedded />}
           </>
         </div>
       </div>

@@ -30,7 +30,7 @@ import {
 } from '@mui/icons-material';
 import moduleService, { Module, CreateModuleData, UpdateModuleData } from '../services/module.service';
 
-const ModulesPage: React.FC = () => {
+const ModulesPage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -142,14 +142,14 @@ const ModulesPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Box sx={{ p: 3 }}>
         <Typography>Lade Module...</Typography>
-      </Container>
+      </Box>
     );
   }
 
-  return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+  const content = (
+    <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <AppsIcon sx={{ fontSize: 40, color: 'primary.main' }} />
@@ -296,8 +296,10 @@ const ModulesPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </>
   );
+
+  return embedded ? content : <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>{content}</Container>;
 };
 
 export default ModulesPage;

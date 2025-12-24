@@ -26,7 +26,7 @@ import {
 import moduleService, { Module, ModuleAccess } from '../services/module.service';
 import { userGroupService, UserGroup } from '../services/userGroup.service';
 
-const ModulePermissionsPage: React.FC = () => {
+const ModulePermissionsPage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const [modules, setModules] = useState<Module[]>([]);
   const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
@@ -155,14 +155,14 @@ const ModulePermissionsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Box sx={{ p: 3 }}>
         <Typography>Lade Daten...</Typography>
-      </Container>
+      </Box>
     );
   }
 
-  return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+  const content = (
+    <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <SecurityIcon sx={{ fontSize: 40, color: 'primary.main' }} />
@@ -286,8 +286,10 @@ const ModulePermissionsPage: React.FC = () => {
           </TableContainer>
         </>
       )}
-    </Container>
+    </>
   );
+
+  return embedded ? content : <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>{content}</Container>;
 };
 
 export default ModulePermissionsPage;
