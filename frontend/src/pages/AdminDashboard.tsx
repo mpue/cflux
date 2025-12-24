@@ -215,7 +215,10 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="admin-dashboard">
       <nav className="navbar">
-        <h1>{user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'}</h1>
+        <div className="navbar-left">
+          <img src="/images/logo.png" alt="CFlux" className="navbar-logo" />
+          <h1>{user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'}</h1>
+        </div>
         <div className="navbar-right">
           <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{currentTime}</span>
           <span>{user?.firstName} {user?.lastName}</span>

@@ -12,6 +12,24 @@
   width: 100%;
 }
 
+.admin-dashboard .navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-dashboard .navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.admin-dashboard .navbar-logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
 .admin-dashboard .admin-container {
   flex: 1;
   width: 100%;
@@ -237,6 +255,14 @@
     padding: 12px;
   }
 
+  .admin-dashboard .navbar-left {
+    gap: 12px;
+  }
+
+  .admin-dashboard .navbar-logo {
+    height: 32px;
+  }
+
   .admin-dashboard .navbar h1 {
     font-size: 18px;
   }
@@ -280,6 +306,10 @@
 
   .admin-dashboard .tab-content {
     padding: 12px;
+  }
+
+  .admin-dashboard .navbar-logo {
+    height: 28px;
   }
 
   .admin-dashboard .navbar h1 {
