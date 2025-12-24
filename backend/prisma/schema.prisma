@@ -56,6 +56,7 @@ model User {
   role          UserRole        @default(USER)
   isActive      Boolean         @default(true)
   vacationDays  Float           @default(30)
+  userGroupId   String?
   
   // Personalien
   dateOfBirth   DateTime?
@@ -104,8 +105,62 @@ model User {
   complianceViolations ComplianceViolation[]
   reportedIncidents Incident[] @relation("IncidentsReported")
   assignedIncidents Incident[] @relation("IncidentsAssigned")
+  userGroup     UserGroup? @relation(fields: [userGroupId], references: [id], onDelete: SetNull)
   
+  @@index([userGroupId])
   @@map("users")
+}
+
+model UserGroup {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  color       String?  // Hex color for UI display
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  users       User[]
+  moduleAccess ModuleAccess[]
+  
+  @@map("user_groups")
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  key         String   @unique  // z.B. "time_tracking", "invoices", "projects"
+  description String?
+  icon        String?  // Icon name for UI
+  route       String?  // Frontend route
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  groupAccess ModuleAccess[]
+  
+  @@map("modules")
+}
+
+model ModuleAccess {
+  id          String   @id @default(uuid())
+  moduleId    String
+  userGroupId String
+  canView     Boolean  @default(true)
+  canCreate   Boolean  @default(false)
+  canEdit     Boolean  @default(false)
+  canDelete   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  module      Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  userGroup   UserGroup @relation(fields: [userGroupId], references: [id], onDelete: Cascade)
+  
+  @@unique([moduleId, userGroupId])
+  @@index([userGroupId])
+  @@index([moduleId])
+  @@map("module_access")
 }
 
 model Customer {

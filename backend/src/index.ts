@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
+import userGroupRoutes from './routes/userGroup.routes';
+import moduleRoutes from './routes/module.routes';
 import timeRoutes from './routes/time.routes';
 import projectRoutes from './routes/project.routes';
 import customerRoutes from './routes/customer.routes';
@@ -40,6 +42,8 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/user-groups', userGroupRoutes);
+app.use('/api/modules', moduleRoutes);
 app.use('/api/time', timeRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/customers', customerRoutes);

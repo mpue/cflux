@@ -1,5 +1,6 @@
 // Admin Tab Components
 export { UsersTab } from './UsersTab';
+export { UserGroupsTab } from './UserGroupsTab';
 export { LocationsTab } from './LocationsTab';
 export { CustomersTab } from './CustomersTab';
 export { SuppliersTab } from './SuppliersTab';

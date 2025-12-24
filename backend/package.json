@@ -13,7 +13,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "seed": "node dist/prisma/seed.js",
-    "seed:dev": "ts-node prisma/seed.ts"
+    "seed:dev": "ts-node prisma/seed.ts",
+    "seed:modules": "ts-node prisma/seedModules.ts"
   },
   "keywords": [
     "timetracking",

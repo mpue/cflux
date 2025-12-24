@@ -6,6 +6,7 @@ export interface User {
   role: 'ADMIN' | 'USER';
   isActive: boolean;
   vacationDays: number;
+  userGroupId?: string;
   
   // Personalien
   dateOfBirth?: string;

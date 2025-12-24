@@ -17,6 +17,7 @@ import { Reminder, OverdueInvoice, ReminderStats } from '../types/reminder.types
 import VacationPlanner from './VacationPlanner';
 import {
   UsersTab,
+  UserGroupsTab,
   LocationsTab,
   CustomersTab,
   SuppliersTab,
@@ -35,7 +36,7 @@ import {
 } from '../components/admin';
 import '../App.css';
 
-type TabType = 'users' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -231,6 +232,11 @@ const AdminDashboard: React.FC = () => {
               label="Benutzer"
             />
             <TabButton
+              active={activeTab === 'userGroups'}
+              onClick={() => setActiveTab('userGroups')}
+              label="Benutzergruppen"
+            />
+            <TabButton
               active={activeTab === 'projects'}
               onClick={() => setActiveTab('projects')}
               label="Projekte"
@@ -310,10 +316,21 @@ const AdminDashboard: React.FC = () => {
               onClick={() => setActiveTab('compliance')}
               label="🇨🇭 Compliance"
             />
+            <TabButton
+              active={activeTab === 'modules'}
+              onClick={() => navigate('/modules')}
+              label="📱 Module"
+            />
+            <TabButton
+              active={activeTab === 'modulePermissions'}
+              onClick={() => navigate('/module-permissions')}
+              label="🔐 Berechtigungen"
+            />
           </div>
 
           <>
             {activeTab === 'users' && <UsersTab users={users} onUpdate={loadData} />}
+            {activeTab === 'userGroups' && <UserGroupsTab onLoad={loadData} />}
             {activeTab === 'projects' && <ProjectsTab projects={projects} onUpdate={loadData} />}
             {activeTab === 'locations' && <LocationsTab locations={locations} onUpdate={loadData} />}
             {activeTab === 'customers' && <CustomersTab customers={customers} onUpdate={loadData} />}

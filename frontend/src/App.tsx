@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ModuleProvider } from './contexts/ModuleContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ThemeToggle from './components/ThemeToggle';
 import Login from './pages/Login';
@@ -12,6 +13,8 @@ import ComplianceDashboard from './pages/ComplianceDashboard';
 import CustomersPage from './pages/CustomersPage';
 import InvoiceTemplatesPage from './pages/InvoiceTemplatesPage';
 import IncidentManagement from './pages/IncidentManagement';
+import ModulesPage from './pages/ModulesPage';
+import ModulePermissionsPage from './pages/ModulePermissionsPage';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({ 
@@ -39,11 +42,12 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Router>
-          <ThemeToggle />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+        <ModuleProvider>
+          <Router>
+            <ThemeToggle />
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
             <Route
               path="/dashboard"
               element={
@@ -100,11 +104,28 @@ function App() {
                 </PrivateRoute>
               }
             />
+            <Route
+              path="/modules"
+              element={
+                <PrivateRoute adminOnly>
+                  <ModulesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/module-permissions"
+              element={
+                <PrivateRoute adminOnly>
+                  <ModulePermissionsPage />
+                </PrivateRoute>
+              }
+            />
             <Route path="/" element={<Navigate to="/dashboard" />} />
           </Routes>
         </Router>
-      </AuthProvider>
-    </ThemeProvider>
+      </ModuleProvider>
+    </AuthProvider>
+  </ThemeProvider>
   );
 }
 
