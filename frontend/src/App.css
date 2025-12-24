@@ -75,6 +75,15 @@
   font-weight: 500;
 }
 
+/* Allgemeine Styles für alle Input-Felder */
+input,
+select,
+textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  border: 1px solid var(--input-border);
+}
+
 .form-group input,
 .form-group select,
 .form-group textarea {
@@ -83,9 +92,40 @@
   border: 1px solid var(--input-border);
   border-radius: 4px;
   font-size: 14px;
+  background-color: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  transition: border-color 0.2s, background-color 0.3s ease, color 0.3s ease;
+}
+
+select option {
   background-color: var(--input-bg);
-  color: var(--text-primary);
-  transition: border-color 0.2s, background-color 0.3s ease;
+  color: var(--input-text);
+}
+
+.form-group select option {
+  background-color: var(--input-bg);
+  color: var(--input-text);
+}
+
+/* Fix für Autocomplete im Dark Mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--input-text) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+  box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.form-group input:-webkit-autofill,
+.form-group input:-webkit-autofill:hover,
+.form-group input:-webkit-autofill:focus,
+.form-group input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--input-text) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+  box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .form-group input:focus,

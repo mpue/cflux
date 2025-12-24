@@ -372,21 +372,35 @@
   resize: vertical;
 }
 
+/* Light Mode (Default) */
+[data-theme="light"] .incident-management,
+.incident-management {
+  --text-primary: #1a1a1a;
+  --text-secondary: #666;
+  --card-background: white;
+  --modal-background: white;
+  --input-background: white;
+  --border-color: #ddd;
+  --table-header-background: #f8f9fa;
+  --table-hover-background: #f8f9fa;
+  --button-background: #e5e7eb;
+  --button-hover-background: #d1d5db;
+  --comment-background: #f8f9fa;
+}
+
 /* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .incident-management {
-    --text-primary: #e5e7eb;
-    --text-secondary: #9ca3af;
-    --card-background: #1f2937;
-    --modal-background: #1f2937;
-    --input-background: #374151;
-    --border-color: #374151;
-    --table-header-background: #111827;
-    --table-hover-background: #374151;
-    --button-background: #374151;
-    --button-hover-background: #4b5563;
-    --comment-background: #374151;
-  }
+[data-theme="dark"] .incident-management {
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --card-background: #1f2937;
+  --modal-background: #1f2937;
+  --input-background: #374151;
+  --border-color: #374151;
+  --table-header-background: #111827;
+  --table-hover-background: #374151;
+  --button-background: #374151;
+  --button-hover-background: #4b5563;
+  --comment-background: #374151;
 }
 
 /* Responsive */

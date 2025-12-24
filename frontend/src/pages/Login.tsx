@@ -28,9 +28,17 @@ const Login: React.FC = () => {
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center',
-      backgroundColor: '#f5f5f5'
+      backgroundColor: 'var(--bg-secondary)'
     }}>
       <div className="card" style={{ width: '400px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+          <h1 style={{ fontWeight: 'bold', fontSize: '32px', marginBottom: '20px' }}>CFlux</h1>
+          <img 
+            src="/images/logo.png" 
+            alt="Logo" 
+            style={{ maxWidth: '200px', height: 'auto' }}
+          />
+        </div>
         <h2 style={{ marginBottom: '20px', textAlign: 'center' }}>Anmelden</h2>
         
         {error && <div className="error" style={{ marginBottom: '15px' }}>{error}</div>}

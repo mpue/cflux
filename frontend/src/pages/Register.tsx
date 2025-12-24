@@ -36,7 +36,7 @@ const Register: React.FC = () => {
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center',
-      backgroundColor: '#f5f5f5'
+      backgroundColor: 'var(--bg-secondary)'
     }}>
       <div className="card" style={{ width: '400px' }}>
         <h2 style={{ marginBottom: '20px', textAlign: 'center' }}>Registrieren</h2>

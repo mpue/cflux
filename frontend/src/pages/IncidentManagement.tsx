@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { incidentService, Incident, IncidentStatistics, CreateIncidentDto, UpdateIncidentDto } from '../services/incident.service';
 import { userService } from '../services/user.service';
@@ -13,6 +14,7 @@ interface User {
 
 const IncidentManagement: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [statistics, setStatistics] = useState<IncidentStatistics | null>(null);
   const [users, setUsers] = useState<User[]>([]);
@@ -172,7 +174,12 @@ const IncidentManagement: React.FC = () => {
   return (
     <div className="incident-management">
       <div className="incident-header">
-        <h1>Incident Management</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <button onClick={() => navigate('/')} className="btn-secondary" title="Zurück zur Hauptseite">
+            ← Zurück
+          </button>
+          <h1>Incident Management</h1>
+        </div>
         <button onClick={() => setShowCreateModal(true)} className="btn-primary">
           Neuer Vorfall
         </button>
@@ -498,6 +505,15 @@ const IncidentManagement: React.FC = () => {
               </div>
             </div>
             <div className="modal-actions">
+              {selectedIncident.status !== 'RESOLVED' && selectedIncident.status !== 'CLOSED' && (
+                <button
+                  onClick={() => handleUpdateIncident(selectedIncident.id, { status: 'RESOLVED' })}
+                  className="btn-primary"
+                  style={{ marginRight: 'auto' }}
+                >
+                  ✓ Als gelöst markieren
+                </button>
+              )}
               <button
                 onClick={() => handleDeleteIncident(selectedIncident.id)}
                 className="btn-danger"

@@ -9,6 +9,7 @@
   --shadow-hover: rgba(0, 0, 0, 0.15);
   --card-bg: #ffffff;
   --input-bg: #ffffff;
+  --input-text: #212529;
   --input-border: #ced4da;
   --table-border: #dee2e6;
   --table-hover: #f8f9fa;
@@ -26,6 +27,7 @@
   --shadow-hover: rgba(0, 0, 0, 0.4);
   --card-bg: #2d2d2d;
   --input-bg: #3a3a3a;
+  --input-text: #e9ecef;
   --input-border: #495057;
   --table-border: #495057;
   --table-hover: #3a3a3a;
