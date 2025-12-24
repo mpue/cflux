@@ -193,22 +193,29 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   padding: 20px;
+  backdrop-filter: blur(4px);
 }
 
 .modal {
-  background: var(--modal-background, white);
+  background: var(--card-bg);
   border-radius: 12px;
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  box-shadow: 0 20px 60px var(--shadow-color);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .modal {
+  border: 1px solid #3a3a3a;
+  background: #1e1e1e;
 }
 
 .modal-large {
@@ -220,13 +227,21 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid var(--border-color, #eee);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  border-radius: 12px 12px 0 0;
+}
+
+[data-theme='dark'] .modal-header {
+  border-bottom-color: #3a3a3a;
+  background: #252525;
 }
 
 .modal-header h2 {
   margin: 0;
   font-size: 20px;
-  color: var(--text-primary, #1a1a1a);
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .modal-header button {
@@ -390,17 +405,17 @@
 
 /* Dark Mode Support */
 [data-theme="dark"] .incident-management {
-  --text-primary: #e5e7eb;
-  --text-secondary: #9ca3af;
-  --card-background: #1f2937;
-  --modal-background: #1f2937;
-  --input-background: #374151;
-  --border-color: #374151;
-  --table-header-background: #111827;
-  --table-hover-background: #374151;
-  --button-background: #374151;
-  --button-hover-background: #4b5563;
-  --comment-background: #374151;
+  --text-primary: var(--text-primary, #f5f5f5);
+  --text-secondary: var(--text-secondary, #b0b0b0);
+  --card-background: var(--card-bg, #1e1e1e);
+  --modal-background: var(--card-bg, #1e1e1e);
+  --input-background: var(--input-bg, #2d2d2d);
+  --border-color: var(--border-color, #3a3a3a);
+  --table-header-background: #252525;
+  --table-hover-background: var(--table-hover, #2d2d2d);
+  --button-background: #2d2d2d;
+  --button-hover-background: #3a3a3a;
+  --comment-background: #252525;
 }
 
 /* Responsive */

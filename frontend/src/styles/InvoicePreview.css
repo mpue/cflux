@@ -1,10 +1,15 @@
 .invoice-preview {
   flex: 1;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 20px;
   overflow-y: auto;
   max-height: calc(90vh - 100px);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .invoice-preview {
+  background: #121212;
 }
 
 .preview-header {
@@ -13,22 +18,31 @@
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid var(--border-color);
+}
+
+[data-theme='dark'] .preview-header {
+  border-bottom-color: #3a3a3a;
 }
 
 .preview-header h3 {
   margin: 0;
   font-size: 18px;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .preview-label {
   font-size: 12px;
-  color: #6b7280;
-  background: #fff;
+  color: var(--text-secondary);
+  background: var(--card-bg);
   padding: 4px 12px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
+}
+
+[data-theme='dark'] .preview-label {
+  background: #252525;
+  border-color: #3a3a3a;
 }
 
 .preview-page {

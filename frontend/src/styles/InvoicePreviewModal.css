@@ -4,24 +4,31 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
   padding: 20px;
   overflow-y: auto;
+  backdrop-filter: blur(4px);
 }
 
 .invoice-preview-modal .modal-content {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px var(--shadow-color);
   max-width: 900px;
   width: 100%;
   max-height: 95vh;
   overflow-y: auto;
   margin: auto;
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .invoice-preview-modal .modal-content {
+  border: 1px solid #3a3a3a;
+  background: #1e1e1e;
 }
 
 .invoice-preview-modal .modal-header {
@@ -29,18 +36,24 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 30px;
-  border-bottom: 2px solid #e5e7eb;
-  background: #f9fafb;
+  border-bottom: 2px solid var(--border-color);
+  background: var(--bg-secondary);
   border-radius: 12px 12px 0 0;
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
+[data-theme='dark'] .invoice-preview-modal .modal-header {
+  border-bottom-color: #3a3a3a;
+  background: #252525;
+}
+
 .invoice-preview-modal .modal-header h2 {
   margin: 0;
   font-size: 20px;
-  color: #111827;
+  color: var(--text-primary);
+  font-weight: 600;
 }
 
 .invoice-preview-modal .header-actions {
@@ -79,12 +92,17 @@
 }
 
 .invoice-preview-modal .btn-close:hover {
-  color: #111827;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
 }
 
 .preview-container {
   padding: 30px;
-  background: #f3f4f6;
+  background: var(--bg-secondary);
+}
+
+[data-theme='dark'] .preview-container {
+  background: #121212;
 }
 
 .preview-page {

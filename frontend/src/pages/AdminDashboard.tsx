@@ -38,6 +38,7 @@ import {
 import ModulesPage from './ModulesPage';
 import ModulePermissionsPage from './ModulePermissionsPage';
 import '../App.css';
+import './AdminDashboard.css';
 
 type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions';
 
@@ -212,7 +213,7 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className="admin-dashboard">
       <nav className="navbar">
         <h1>{user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'}</h1>
         <div className="navbar-right">
@@ -227,9 +228,9 @@ const AdminDashboard: React.FC = () => {
         </div>
       </nav>
 
-      <div className="container">
-        <div className="card">
-          <div className="tab-navigation" style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid #ddd', overflowX: 'auto', WebkitOverflowScrolling: 'touch', flexWrap: 'wrap' }}>
+      <div className="admin-container">
+        <div className="admin-card">
+          <div className="tab-navigation">
             {(user?.role === 'ADMIN' || hasModuleAccess('users')) && (
               <TabButton
                 active={activeTab === 'users'}
@@ -372,7 +373,7 @@ const AdminDashboard: React.FC = () => {
             )}
           </div>
 
-          <>
+          <div className="tab-content">
             {activeTab === 'users' && <UsersTab users={users} onUpdate={loadData} />}
             {activeTab === 'userGroups' && <UserGroupsTab onLoad={loadData} />}
             {activeTab === 'projects' && <ProjectsTab projects={projects} onUpdate={loadData} />}
@@ -404,7 +405,7 @@ const AdminDashboard: React.FC = () => {
             )}
             {activeTab === 'modules' && <ModulesPage embedded />}
             {activeTab === 'modulePermissions' && <ModulePermissionsPage embedded />}
-          </>
+          </div>
         </div>
       </div>
     </div>
@@ -418,15 +419,7 @@ const TabButton: React.FC<{ active: boolean; onClick: () => void; label: string 
 }) => (
   <button
     onClick={onClick}
-    style={{
-      padding: '10px 20px',
-      border: 'none',
-      background: 'none',
-      borderBottom: active ? '3px solid #007bff' : 'none',
-      color: active ? '#007bff' : '#666',
-      fontWeight: active ? 'bold' : 'normal',
-      cursor: 'pointer',
-    }}
+    className={`tab-button ${active ? 'active' : ''}`}
   >
     {label}
   </button>

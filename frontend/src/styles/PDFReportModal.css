@@ -4,21 +4,29 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.75);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(4px);
 }
 
 .modal-content {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px var(--shadow-color);
   max-width: 600px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+  color: var(--text-primary);
+  transition: background-color 0.3s ease;
+}
+
+[data-theme='dark'] .modal-content {
+  border: 1px solid #3a3a3a;
+  background: #1e1e1e;
 }
 
 .pdf-report-modal {
@@ -30,13 +38,21 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  border-radius: 12px 12px 0 0;
+}
+
+[data-theme='dark'] .modal-header {
+  border-bottom-color: #3a3a3a;
+  background: #252525;
 }
 
 .modal-header h2 {
   margin: 0;
-  color: #333;
+  color: var(--text-primary);
   font-size: 1.5rem;
+  font-weight: 600;
 }
 
 .close-button {
