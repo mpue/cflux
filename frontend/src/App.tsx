@@ -11,6 +11,7 @@ import VacationPlanner from './pages/VacationPlanner';
 import ComplianceDashboard from './pages/ComplianceDashboard';
 import CustomersPage from './pages/CustomersPage';
 import InvoiceTemplatesPage from './pages/InvoiceTemplatesPage';
+import IncidentManagement from './pages/IncidentManagement';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({ 
@@ -88,6 +89,14 @@ function App() {
               element={
                 <PrivateRoute adminOnly>
                   <InvoiceTemplatesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/incidents"
+              element={
+                <PrivateRoute>
+                  <IncidentManagement />
                 </PrivateRoute>
               }
             />

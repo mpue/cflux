@@ -102,6 +102,8 @@ model User {
   projectAssignments ProjectAssignment[]
   overtimeBalances OvertimeBalance[]
   complianceViolations ComplianceViolation[]
+  reportedIncidents Incident[] @relation("IncidentsReported")
+  assignedIncidents Incident[] @relation("IncidentsAssigned")
   
   @@map("users")
 }
@@ -337,6 +339,20 @@ enum InvoiceStatus {
   CANCELLED
 }
 
+enum ReminderLevel {
+  FIRST_REMINDER    // 1. Mahnung
+  SECOND_REMINDER   // 2. Mahnung
+  FINAL_REMINDER    // 3. Mahnung / Letzte Mahnung
+}
+
+enum ReminderStatus {
+  PENDING           // Vorbereitet, noch nicht versendet
+  SENT              // Versendet
+  PAID              // Bezahlt nach Mahnung
+  ESCALATED         // An Inkasso übergeben
+  CANCELLED         // Storniert
+}
+
 model InvoiceTemplate {
   id            String   @id @default(uuid())
   name          String   @unique
@@ -401,6 +417,7 @@ model Invoice {
   customer      Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
   template      InvoiceTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
   items         InvoiceItem[]
+  reminders     Reminder[]
   
   @@index([customerId])
   @@index([templateId])
@@ -428,4 +445,154 @@ model InvoiceItem {
   
   @@index([invoiceId])
   @@map("invoice_items")
+}
+
+model Reminder {
+  id              String         @id @default(uuid())
+  invoiceId       String
+  reminderNumber  String         @unique // z.B. "M-2024-001"
+  level           ReminderLevel
+  status          ReminderStatus @default(PENDING)
+  reminderDate    DateTime       @default(now())
+  dueDate         DateTime       // Neue Zahlungsfrist
+  
+  // Beträge
+  originalAmount  Float          // Ursprünglicher Rechnungsbetrag
+  reminderFee     Float          @default(0) // Mahngebühr
+  interestAmount  Float          @default(0) // Verzugszinsen
+  totalAmount     Float          // Gesamtbetrag inkl. Gebühren
+  
+  // Zinssatz
+  interestRate    Float          @default(5.0) // Verzugszinssatz in %
+  
+  // Texte
+  subject         String?        // Betreff der Mahnung
+  message         String?        @db.Text // Mahntext
+  notes           String?        @db.Text // Interne Notizen
+  
+  // Versand
+  sentDate        DateTime?      // Wann wurde die Mahnung versendet
+  sentBy          String?        // Wer hat die Mahnung versendet
+  paidDate        DateTime?      // Wann wurde bezahlt
+  
+  // Schweizer Spezifika
+  paymentSlipRef  String?        // QR-Rechnung Referenz
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  invoice         Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  @@index([invoiceId])
+  @@index([status])
+  @@index([level])
+  @@index([reminderDate])
+  @@map("reminders")
+}
+
+model ReminderSettings {
+  id                      String   @id @default(uuid())
+  
+  // Mahnfristen (in Tagen nach Fälligkeit)
+  firstReminderDays       Int      @default(7)   // 1. Mahnung nach 7 Tagen
+  secondReminderDays      Int      @default(14)  // 2. Mahnung nach 14 Tagen
+  finalReminderDays       Int      @default(21)  // 3. Mahnung nach 21 Tagen
+  
+  // Mahngebühren (CHF)
+  firstReminderFee        Float    @default(10.00)
+  secondReminderFee       Float    @default(20.00)
+  finalReminderFee        Float    @default(30.00)
+  
+  // Verzugszins
+  defaultInterestRate     Float    @default(5.0)  // 5% pro Jahr
+  
+  // Zahlungsfristen ab Mahndatum
+  firstReminderPaymentDays  Int    @default(10)  // 10 Tage Zahlungsfrist
+  secondReminderPaymentDays Int    @default(7)   // 7 Tage Zahlungsfrist
+  finalReminderPaymentDays  Int    @default(5)   // 5 Tage Zahlungsfrist
+  
+  // Automatisierung
+  autoSendReminders       Boolean  @default(false)
+  autoEscalate            Boolean  @default(false)
+  
+  // Texte
+  firstReminderTemplate   String?  @db.Text
+  secondReminderTemplate  String?  @db.Text
+  finalReminderTemplate   String?  @db.Text
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  
+  @@map("reminder_settings")
+}
+
+enum IncidentPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model Incident {
+  id              String           @id @default(uuid())
+  title           String
+  description     String           @db.Text
+  priority        IncidentPriority @default(MEDIUM)
+  status          IncidentStatus   @default(OPEN)
+  
+  // Beziehungen
+  reportedById    String           // Wer hat den Vorfall gemeldet
+  assignedToId    String?          // Wem ist der Vorfall zugewiesen
+  
+  // Kategorisierung
+  category        String?          // z.B. "IT", "HR", "Facility", "Security"
+  affectedSystem  String?          // Betroffenes System oder Bereich
+  
+  // Zeitstempel
+  reportedAt      DateTime         @default(now())
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  dueDate         DateTime?        // Deadline für Lösung
+  
+  // Details
+  solution        String?          @db.Text
+  notes           String?          @db.Text
+  tags            String?          // JSON array of tags
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  // Relations
+  reportedBy      User             @relation("IncidentsReported", fields: [reportedById], references: [id], onDelete: Restrict)
+  assignedTo      User?            @relation("IncidentsAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  comments        IncidentComment[]
+  
+  @@index([reportedById])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([priority])
+  @@index([reportedAt])
+  @@map("incidents")
+}
+
+model IncidentComment {
+  id          String   @id @default(uuid())
+  incidentId  String
+  userId      String
+  comment     String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  
+  @@index([incidentId])
+  @@index([createdAt])
+  @@map("incident_comments")
 }

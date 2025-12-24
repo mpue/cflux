@@ -193,6 +193,9 @@ const Dashboard: React.FC = () => {
             <button className="btn btn-success" onClick={() => setShowPDFReportModal(true)}>
               PDF-Bericht
             </button>
+            <button className="btn btn-secondary" onClick={() => navigate('/incidents')}>
+              Incidents
+            </button>
             {user?.role === 'ADMIN' && (
               <button className="btn btn-secondary" onClick={() => navigate('/admin')}>
                 Admin Panel

@@ -11,7 +11,9 @@ import * as supplierService from '../services/supplierService';
 import * as articleGroupService from '../services/articleGroupService';
 import * as articleService from '../services/articleService';
 import * as invoiceService from '../services/invoiceService';
+import { reminderService } from '../services/reminder.service';
 import { User, Project, AbsenceRequest, Report, Location, Customer, Supplier, ArticleGroup, Article, Invoice, ComplianceViolation, ComplianceStats } from '../types';
+import { Reminder, OverdueInvoice, ReminderStats } from '../types/reminder.types';
 import VacationPlanner from './VacationPlanner';
 import {
   UsersTab,
@@ -28,11 +30,12 @@ import {
   ArticleGroupsTab,
   ArticlesTab,
   InvoiceTemplatesTab,
-  InvoicesTab
+  InvoicesTab,
+  RemindersTab
 } from '../components/admin';
 import '../App.css';
 
-type TabType = 'users' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'absences' | 'timeEntries' | 'reports' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance';
+type TabType = 'users' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -46,6 +49,9 @@ const AdminDashboard: React.FC = () => {
   const [articleGroups, setArticleGroups] = useState<ArticleGroup[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [overdueInvoices, setOverdueInvoices] = useState<OverdueInvoice[]>([]);
+  const [reminderStats, setReminderStats] = useState<ReminderStats | null>(null);
   const [absences, setAbsences] = useState<AbsenceRequest[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [complianceStats, setComplianceStats] = useState<ComplianceStats | null>(null);
@@ -109,6 +115,14 @@ const AdminDashboard: React.FC = () => {
           setArticles(invoiceArticles);
           const invoiceCustomers = await customerService.getAllCustomers();
           setCustomers(invoiceCustomers);
+          break;
+        case 'reminders':
+          const remindersData = await reminderService.getAllReminders();
+          setReminders(remindersData);
+          const overdueData = await reminderService.getOverdueInvoices();
+          setOverdueInvoices(overdueData);
+          const statsData = await reminderService.getReminderStats();
+          setReminderStats(statsData);
           break;
         case 'absences':
           const absencesData = await absenceService.getAllAbsenceRequests();
@@ -253,6 +267,11 @@ const AdminDashboard: React.FC = () => {
               label="Rechnungsvorlagen"
             />
             <TabButton
+              active={activeTab === 'reminders'}
+              onClick={() => setActiveTab('reminders')}
+              label="💰 Mahnwesen"
+            />
+            <TabButton
               active={activeTab === 'absences'}
               onClick={() => setActiveTab('absences')}
               label="Abwesenheiten"
@@ -299,6 +318,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'articles' && <ArticlesTab articles={articles} articleGroups={articleGroups} onUpdate={loadData} />}
             {activeTab === 'invoices' && <InvoicesTab invoices={invoices} customers={customers} articles={articles} onUpdate={loadData} />}
             {activeTab === 'invoiceTemplates' && <InvoiceTemplatesTab />}
+            {activeTab === 'reminders' && <RemindersTab reminders={reminders} overdueInvoices={overdueInvoices} stats={reminderStats} onUpdate={loadData} />}
             {activeTab === 'absences' && <AbsencesTab absences={absences} onUpdate={loadData} />}
             {activeTab === 'timeEntries' && <TimeEntriesTab />}
             {activeTab === 'reports' && <ReportsTab reports={reports} />}

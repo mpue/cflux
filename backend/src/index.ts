@@ -12,12 +12,14 @@ import articleGroupRoutes from './routes/articleGroup.routes';
 import articleRoutes from './routes/article.routes';
 import invoiceRoutes from './routes/invoice.routes';
 import invoiceTemplateRoutes from './routes/invoiceTemplate.routes';
+import reminderRoutes from './routes/reminder.routes';
 import absenceRoutes from './routes/absence.routes';
 import reportRoutes from './routes/report.routes';
 import backupRoutes from './routes/backup.routes';
 import locationRoutes from './routes/location.routes';
 import complianceRoutes from './routes/compliance.routes';
 import uploadRoutes from './routes/upload.routes';
+import incidentRoutes from './routes/incident.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -46,12 +48,14 @@ app.use('/api/article-groups', articleGroupRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/invoice-templates', invoiceTemplateRoutes);
+app.use('/api/reminders', reminderRoutes);
 app.use('/api/absences', absenceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/compliance', complianceRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/incidents', incidentRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
