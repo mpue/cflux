@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { incidentService, Incident, IncidentStatistics, CreateIncidentDto, UpdateIncidentDto } from '../services/incident.service';
 import { userService } from '../services/user.service';
+import { projectService } from '../services/project.service';
 import '../styles/IncidentManagement.css';
 
 interface User {
@@ -12,12 +13,18 @@ interface User {
   email: string;
 }
 
+interface Project {
+  id: string;
+  name: string;
+}
+
 const IncidentManagement: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [statistics, setStatistics] = useState<IncidentStatistics | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
@@ -43,17 +50,22 @@ const IncidentManagement: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [incidentsData, statsData, usersData] = await Promise.all([
+      const [incidentsData, statsData, usersData, projectsData] = await Promise.all([
         incidentService.getAll(filterStatus, filterPriority),
         incidentService.getStatistics(),
         userService.getAllUsers(),
+        projectService.getAllProjects(),
       ]);
       setIncidents(incidentsData);
       setStatistics(statsData);
       setUsers(usersData);
+      setProjects(projectsData);
+      console.log('Users loaded:', usersData.length);
+      console.log('Projects loaded:', projectsData.length);
       setError(null);
     } catch (err: any) {
-      setError(err.message || 'Failed to load data');
+      console.error('Error loading data:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -254,6 +266,7 @@ const IncidentManagement: React.FC = () => {
               <th>Priorität</th>
               <th>Status</th>
               <th>Kategorie</th>
+              <th>Projekt</th>
               <th>Zugewiesen an</th>
               <th>Gemeldet am</th>
               <th>Aktionen</th>
@@ -284,6 +297,7 @@ const IncidentManagement: React.FC = () => {
                   </span>
                 </td>
                 <td>{incident.category || '-'}</td>
+                <td>{incident.project?.name || '-'}</td>
                 <td>
                   {incident.assignedTo
                     ? `${incident.assignedTo.firstName} ${incident.assignedTo.lastName}`
@@ -362,19 +376,35 @@ const IncidentManagement: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, affectedSystem: e.target.value })}
                 />
               </div>
-              <div className="form-group">
-                <label>Zuweisen an</label>
-                <select
-                  value={formData.assignedToId}
-                  onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
-                >
-                  <option value="">-- Nicht zugewiesen --</option>
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.firstName} {u.lastName}
-                    </option>
-                  ))}
-                </select>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Zuweisen an</label>
+                  <select
+                    value={formData.assignedToId}
+                    onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
+                  >
+                    <option value="">-- Nicht zugewiesen --</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.firstName} {u.lastName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Projekt</label>
+                  <select
+                    value={formData.projectId || ''}
+                    onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+                  >
+                    <option value="">-- Kein Projekt --</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <div className="modal-actions">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="btn-secondary">
@@ -457,6 +487,23 @@ const IncidentManagement: React.FC = () => {
                         {users.map((u) => (
                           <option key={u.id} value={u.id}>
                             {u.firstName} {u.lastName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <strong>Projekt:</strong>
+                      <select
+                        value={selectedIncident.projectId || ''}
+                        onChange={(e) =>
+                          handleUpdateIncident(selectedIncident.id, { projectId: e.target.value })
+                        }
+                        className="inline-select"
+                      >
+                        <option value="">-- Kein Projekt --</option>
+                        {projects.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
                           </option>
                         ))}
                       </select>

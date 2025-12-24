@@ -8,6 +8,7 @@ export interface CreateIncidentDto {
   priority?: IncidentPriority;
   reportedById: string;
   assignedToId?: string;
+  projectId?: string;
   category?: string;
   affectedSystem?: string;
   dueDate?: Date;
@@ -20,6 +21,7 @@ export interface UpdateIncidentDto {
   priority?: IncidentPriority;
   status?: IncidentStatus;
   assignedToId?: string;
+  projectId?: string;
   category?: string;
   affectedSystem?: string;
   dueDate?: Date;
@@ -42,6 +44,7 @@ export const incidentService = {
         priority: data.priority || 'MEDIUM',
         reportedById: data.reportedById,
         assignedToId: data.assignedToId,
+        projectId: data.projectId,
         category: data.category,
         affectedSystem: data.affectedSystem,
         dueDate: data.dueDate,
@@ -62,6 +65,12 @@ export const incidentService = {
             firstName: true,
             lastName: true,
             email: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
@@ -108,6 +117,12 @@ export const incidentService = {
             email: true,
           },
         },
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         comments: {
           orderBy: {
             createdAt: 'desc',
@@ -142,6 +157,12 @@ export const incidentService = {
             firstName: true,
             lastName: true,
             email: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
           },
         },
         comments: {
@@ -188,6 +209,12 @@ export const incidentService = {
             firstName: true,
             lastName: true,
             email: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },

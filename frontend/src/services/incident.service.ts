@@ -10,6 +10,7 @@ export interface Incident {
   status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
   reportedById: string;
   assignedToId?: string;
+  projectId?: string;
   category?: string;
   affectedSystem?: string;
   reportedAt: string;
@@ -33,6 +34,10 @@ export interface Incident {
     lastName: string;
     email: string;
   };
+  project?: {
+    id: string;
+    name: string;
+  };
   comments?: IncidentComment[];
 }
 
@@ -50,6 +55,7 @@ export interface CreateIncidentDto {
   description: string;
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   assignedToId?: string;
+  projectId?: string;
   category?: string;
   affectedSystem?: string;
   dueDate?: string;
@@ -62,6 +68,7 @@ export interface UpdateIncidentDto {
   priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   status?: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
   assignedToId?: string;
+  projectId?: string;
   category?: string;
   affectedSystem?: string;
   dueDate?: string;
