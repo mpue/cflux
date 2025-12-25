@@ -22,6 +22,7 @@ import locationRoutes from './routes/location.routes';
 import complianceRoutes from './routes/compliance.routes';
 import uploadRoutes from './routes/upload.routes';
 import incidentRoutes from './routes/incident.routes';
+import workflowRoutes from './routes/workflow.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -60,6 +61,7 @@ app.use('/api/locations', locationRoutes);
 app.use('/api/compliance', complianceRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/incidents', incidentRoutes);
+app.use('/api/workflows', workflowRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

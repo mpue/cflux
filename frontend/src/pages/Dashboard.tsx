@@ -6,6 +6,7 @@ import { projectService } from '../services/project.service';
 import { absenceService } from '../services/absence.service';
 import { reportService } from '../services/report.service';
 import { locationService } from '../services/location.service';
+import { workflowService } from '../services/workflow.service';
 import { TimeEntry, Project, AbsenceRequest, Report, Location } from '../types';
 import PDFReportModal from '../components/PDFReportModal';
 import '../App.css';
@@ -31,6 +32,7 @@ const Dashboard: React.FC = () => {
   const [workDuration, setWorkDuration] = useState<string>('0h 0m');
   const [pauseCheckDone, setPauseCheckDone] = useState<Set<string>>(new Set());
   const [showPDFReportModal, setShowPDFReportModal] = useState(false);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
 
   useEffect(() => {
     document.title = 'CFlux - Dashboard';
@@ -104,18 +106,23 @@ const Dashboard: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [current, projectsData, locationsData, absences, entries, reportData] = await Promise.all([
+      const [current, projectsData, locationsData, absences, entries, reportData, approvals] = await Promise.all([
         timeService.getCurrentTimeEntry(),
         projectService.getAllProjects(),
         locationService.getActiveLocations(),
         absenceService.getMyAbsenceRequests(),
         timeService.getMyTimeEntries(),
         reportService.getMySummary(),
+        workflowService.getMyPendingApprovals(),
       ]);
 
       setCurrentEntry(current);
       setProjects(projectsData);
       setLocations(locationsData);
+      setAbsenceRequests(absences);
+      setTimeEntries(entries);
+      setReport(reportData);
+      setPendingApprovalsCount(approvals.length);
       setAbsenceRequests(absences);
       setTimeEntries(entries);
       setReport(reportData);
@@ -194,6 +201,9 @@ const Dashboard: React.FC = () => {
             <button className="btn btn-success" onClick={() => setShowPDFReportModal(true)}>
               PDF-Bericht
             </button>
+            <button className="btn btn-primary" onClick={() => navigate('/my-approvals')}>
+              🔔 Genehmigungen
+            </button>
             <button className="btn btn-secondary" onClick={() => navigate('/incidents')}>
               Incidents
             </button>
@@ -219,6 +229,23 @@ const Dashboard: React.FC = () => {
           <div className="stat-card" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
             <h3>Urlaubstage übrig</h3>
             <div className="value">{user?.vacationDays || 0}</div>
+          </div>
+          <div 
+            className="stat-card" 
+            style={{ 
+              background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+              cursor: 'pointer'
+            }}
+            onClick={() => navigate('/my-approvals')}
+          >
+            <h3>🔔 Genehmigungen</h3>
+            <div className="value">
+              {pendingApprovalsCount > 0 ? (
+                <span style={{ color: '#ff4444' }}>{pendingApprovalsCount}</span>
+              ) : (
+                '0'
+              )}
+            </div>
           </div>
         </div>
 

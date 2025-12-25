@@ -105,6 +105,7 @@ model User {
   complianceViolations ComplianceViolation[]
   reportedIncidents Incident[] @relation("IncidentsReported")
   assignedIncidents Incident[] @relation("IncidentsAssigned")
+  workflowApprovals WorkflowInstanceStep[]
   userGroup     UserGroup? @relation(fields: [userGroupId], references: [id], onDelete: SetNull)
   
   @@index([userGroupId])
@@ -450,6 +451,7 @@ model InvoiceTemplate {
   updatedAt     DateTime @updatedAt
   
   invoices      Invoice[]
+  workflows     InvoiceTemplateWorkflow[]
   
   @@map("invoice_templates")
 }
@@ -474,6 +476,7 @@ model Invoice {
   template      InvoiceTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
   items         InvoiceItem[]
   reminders     Reminder[]
+  workflowInstances WorkflowInstance[]
   
   @@index([customerId])
   @@index([templateId])
@@ -654,4 +657,145 @@ model IncidentComment {
   @@index([incidentId])
   @@index([createdAt])
   @@map("incident_comments")
+}
+
+// ========== WORKFLOW SYSTEM ==========
+
+enum WorkflowStepType {
+  APPROVAL       // Genehmigung durch Benutzer/Gruppe
+  NOTIFICATION   // Benachrichtigung
+  CONDITION      // Bedingung prüfen
+  DELAY          // Zeitverzögerung
+}
+
+enum WorkflowStepStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SKIPPED
+  COMPLETED
+}
+
+enum WorkflowInstanceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+model Workflow {
+  id              String                @id @default(uuid())
+  name            String
+  description     String?               @db.Text
+  isActive        Boolean               @default(true)
+  
+  // Workflow Definition (JSON)
+  definition      String                @db.Text // JSON mit Nodes und Connections
+  
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  
+  // Beziehungen
+  steps           WorkflowStep[]
+  templateLinks   InvoiceTemplateWorkflow[]
+  instances       WorkflowInstance[]
+  
+  @@map("workflows")
+}
+
+model WorkflowStep {
+  id              String            @id @default(uuid())
+  workflowId      String
+  
+  // Step Configuration
+  name            String
+  type            WorkflowStepType
+  order           Int               // Reihenfolge im Workflow
+  
+  // Approval Configuration
+  approverUserIds String?           @db.Text // JSON Array von User IDs
+  approverGroupIds String?          @db.Text // JSON Array von UserGroup IDs
+  requireAllApprovers Boolean       @default(false) // true = alle müssen genehmigen
+  
+  // Condition/Notification Configuration
+  config          String?           @db.Text // JSON mit zusätzlicher Config
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  workflow        Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  instanceSteps   WorkflowInstanceStep[]
+  
+  @@index([workflowId])
+  @@index([order])
+  @@map("workflow_steps")
+}
+
+model InvoiceTemplateWorkflow {
+  id                String          @id @default(uuid())
+  invoiceTemplateId String
+  workflowId        String
+  order             Int             // Reihenfolge der Workflow-Ausführung
+  isActive          Boolean         @default(true)
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  template          InvoiceTemplate @relation(fields: [invoiceTemplateId], references: [id], onDelete: Cascade)
+  workflow          Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  @@unique([invoiceTemplateId, workflowId])
+  @@index([invoiceTemplateId])
+  @@index([workflowId])
+  @@map("invoice_template_workflows")
+}
+
+model WorkflowInstance {
+  id              String                    @id @default(uuid())
+  workflowId      String
+  invoiceId       String
+  
+  status          WorkflowInstanceStatus    @default(PENDING)
+  currentStepId   String?                   // Aktueller Workflow-Schritt
+  
+  startedAt       DateTime                  @default(now())
+  completedAt     DateTime?
+  
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  
+  workflow        Workflow                  @relation(fields: [workflowId], references: [id], onDelete: Restrict)
+  invoice         Invoice                   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  steps           WorkflowInstanceStep[]
+  
+  @@index([workflowId])
+  @@index([invoiceId])
+  @@index([status])
+  @@map("workflow_instances")
+}
+
+model WorkflowInstanceStep {
+  id              String              @id @default(uuid())
+  instanceId      String
+  stepId          String
+  
+  status          WorkflowStepStatus  @default(PENDING)
+  
+  // Approval Information
+  approvedById    String?
+  approvedAt      DateTime?
+  comment         String?             @db.Text
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  instance        WorkflowInstance    @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  step            WorkflowStep        @relation(fields: [stepId], references: [id], onDelete: Restrict)
+  approvedBy      User?               @relation(fields: [approvedById], references: [id], onDelete: SetNull)
+  
+  @@index([instanceId])
+  @@index([stepId])
+  @@index([status])
+  @@map("workflow_instance_steps")
 }

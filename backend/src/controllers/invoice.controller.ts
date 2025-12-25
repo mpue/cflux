@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { PrismaClient, InvoiceStatus } from '@prisma/client';
 import { AuthRequest } from '../types/auth';
+import { workflowService } from '../services/workflow.service';
 
 const prisma = new PrismaClient();
 
@@ -191,6 +192,23 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // Auto-start workflows if template has workflows and invoice is SENT
+    if (templateId && status === InvoiceStatus.SENT) {
+      try {
+        const templateWorkflows = await workflowService.getTemplateWorkflows(templateId);
+        
+        // Create workflow instances for all assigned workflows in order
+        for (const link of templateWorkflows.sort((a, b) => a.order - b.order)) {
+          if (link.isActive) {
+            await workflowService.createWorkflowInstance(link.workflowId, invoice.id);
+          }
+        }
+      } catch (workflowError) {
+        console.error('Error starting workflows:', workflowError);
+        // Don't fail invoice creation if workflows fail
+      }
+    }
+
     res.status(201).json(invoice);
   } catch (error) {
     console.error('Error creating invoice:', error);
@@ -297,6 +315,7 @@ export const updateInvoice = async (req: AuthRequest, res: Response) => {
       data: updateData,
       include: {
         customer: true,
+        template: true,
         items: {
           orderBy: {
             position: 'asc',
@@ -307,6 +326,33 @@ export const updateInvoice = async (req: AuthRequest, res: Response) => {
         },
       },
     });
+
+    // Auto-start workflows if status changes to SENT and template has workflows
+    if (status === InvoiceStatus.SENT && status !== existingInvoice.status) {
+      const templateId = invoice.templateId || existingInvoice.templateId;
+      
+      if (templateId) {
+        try {
+          // Check if workflows already exist for this invoice
+          const existingInstances = await workflowService.getInvoiceWorkflowInstances(id);
+          
+          // Only create workflows if none exist yet
+          if (existingInstances.length === 0) {
+            const templateWorkflows = await workflowService.getTemplateWorkflows(templateId);
+            
+            // Create workflow instances for all assigned workflows in order
+            for (const link of templateWorkflows.sort((a, b) => a.order - b.order)) {
+              if (link.isActive) {
+                await workflowService.createWorkflowInstance(link.workflowId, id);
+              }
+            }
+          }
+        } catch (workflowError) {
+          console.error('Error starting workflows:', workflowError);
+          // Don't fail invoice update if workflows fail
+        }
+      }
+    }
 
     res.json(invoice);
   } catch (error) {

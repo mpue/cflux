@@ -15,6 +15,7 @@ import InvoiceTemplatesPage from './pages/InvoiceTemplatesPage';
 import IncidentManagement from './pages/IncidentManagement';
 import ModulesPage from './pages/ModulesPage';
 import ModulePermissionsPage from './pages/ModulePermissionsPage';
+import MyApprovals from './pages/MyApprovals';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({ 
@@ -117,6 +118,14 @@ function App() {
               element={
                 <PrivateRoute adminOnly>
                   <ModulePermissionsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/my-approvals"
+              element={
+                <PrivateRoute>
+                  <MyApprovals />
                 </PrivateRoute>
               }
             />

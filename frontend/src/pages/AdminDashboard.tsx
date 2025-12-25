@@ -35,12 +35,13 @@ import {
   InvoicesTab,
   RemindersTab
 } from '../components/admin';
+import WorkflowsTab from '../components/admin/WorkflowsTab';
 import ModulesPage from './ModulesPage';
 import ModulePermissionsPage from './ModulePermissionsPage';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -377,6 +378,13 @@ const AdminDashboard: React.FC = () => {
                 label="🔐 Berechtigungen"
               />
             )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('workflows')) && (
+              <TabButton
+                active={activeTab === 'workflows'}
+                onClick={() => setActiveTab('workflows')}
+                label="🔄 Workflows"
+              />
+            )}
           </div>
 
           <div className="tab-content">
@@ -411,6 +419,7 @@ const AdminDashboard: React.FC = () => {
             )}
             {activeTab === 'modules' && <ModulesPage embedded />}
             {activeTab === 'modulePermissions' && <ModulePermissionsPage embedded />}
+            {activeTab === 'workflows' && <WorkflowsTab />}
           </div>
         </div>
       </div>

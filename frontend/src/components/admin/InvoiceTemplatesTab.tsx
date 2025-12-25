@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import InvoiceTemplateEditor from '../InvoiceTemplateEditor';
+import TemplateWorkflowManager from './TemplateWorkflowManager';
 
 const InvoiceTemplatesTab: React.FC = () => {
   const [templates, setTemplates] = useState<any[]>([]);
@@ -7,6 +8,7 @@ const InvoiceTemplatesTab: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | undefined>();
+  const [workflowTemplateId, setWorkflowTemplateId] = useState<string | null>(null);
 
   useEffect(() => {
     loadTemplates();
@@ -84,6 +86,13 @@ const InvoiceTemplatesTab: React.FC = () => {
 
   return (
     <div>
+      {workflowTemplateId && (
+        <TemplateWorkflowManager
+          templateId={workflowTemplateId}
+          onClose={() => setWorkflowTemplateId(null)}
+        />
+      )}
+
       {showEditor && (
         <InvoiceTemplateEditor
           templateId={editingTemplateId}
@@ -157,6 +166,13 @@ const InvoiceTemplatesTab: React.FC = () => {
                     onClick={() => handleEdit(template.id)}
                   >
                     Bearbeiten
+                  </button>
+                  <button
+                    className="btn"
+                    style={{ padding: '6px 12px', fontSize: '13px', background: '#f59e0b', color: 'white' }}
+                    onClick={() => setWorkflowTemplateId(template.id)}
+                  >
+                    🔄 Workflows
                   </button>
                   {!template.isDefault && (
                     <>

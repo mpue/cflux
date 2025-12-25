@@ -1,0 +1,357 @@
+.my-approvals-page {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.my-approvals-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.my-approvals-header h1 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 28px;
+}
+
+.approval-count {
+  position: relative;
+}
+
+.badge {
+  background: var(--primary-color);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.no-approvals {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.no-approvals .icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  color: var(--success-color);
+}
+
+.no-approvals h2 {
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.no-approvals p {
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.approvals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.approval-card {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border-left: 4px solid var(--primary-color);
+}
+
+.approval-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.approval-card-header {
+  padding: 16px;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.workflow-badge {
+  background: var(--primary-color);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.approval-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.approval-card-body {
+  padding: 20px;
+}
+
+.approval-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.step-icon {
+  font-size: 20px;
+}
+
+.step-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+.invoice-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.invoice-number {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.customer-name {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.invoice-amount {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-top: 4px;
+}
+
+.approval-card-actions {
+  padding: 16px;
+  background: var(--background-secondary);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-approve {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-approve:hover:not(:disabled) {
+  background: var(--primary-color-dark);
+  transform: translateY(-1px);
+}
+
+.btn-approve:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Modal */
+.approval-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+}
+
+.approval-modal {
+  background: var(--card-background);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.approval-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.approval-modal-header h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 20px;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.btn-close:hover {
+  background: var(--hover-background);
+  color: var(--text-primary);
+}
+
+.approval-modal-body {
+  padding: 24px;
+}
+
+.approval-details {
+  background: var(--background-secondary);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-row .label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.detail-row .value {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.form-group {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--input-background);
+  color: var(--text-primary);
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(74, 95, 213, 0.1);
+}
+
+.approval-modal-actions {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn-reject {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-reject:hover:not(:disabled) {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+.btn-reject:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .my-approvals-page {
+    padding: 12px;
+  }
+
+  .my-approvals-header h1 {
+    font-size: 22px;
+  }
+
+  .approvals-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .approval-modal {
+    width: 95%;
+  }
+
+  .approval-modal-header,
+  .approval-modal-body,
+  .approval-modal-actions {
+    padding: 16px;
+  }
+}
