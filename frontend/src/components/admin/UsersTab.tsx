@@ -131,10 +131,27 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [pdfReportUser, setPdfReportUser] = useState<User | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = !searchTerm || 
+      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.employeeNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.mobile?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.phone?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesActive = showInactive || user.isActive;
+    
+    return matchesSearch && matchesActive;
+  });
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2>Benutzerverwaltung</h2>
         <button
           className="btn btn-primary"
@@ -142,6 +159,25 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
         >
           Neuer Benutzer
         </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>
+        <input
+          type="text"
+          placeholder="Suche nach Name, E-Mail, Personalnr., Ort oder Telefon..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+        />
+        <label style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+          <input
+            type="checkbox"
+            checked={showInactive}
+            onChange={(e) => setShowInactive(e.target.checked)}
+            style={{ width: 'auto', marginRight: '5px' }}
+          />
+          Inaktive anzeigen
+        </label>
       </div>
 
       <div className="data-table-wrapper">
@@ -160,7 +196,14 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
+            {filteredUsers.length === 0 ? (
+              <tr>
+                <td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+                  Keine Benutzer gefunden
+                </td>
+              </tr>
+            ) : null}
+            {filteredUsers.map((user) => (
               <tr key={user.id}>
                 <td>{user.employeeNumber || '-'}</td>
                 <td>{user.firstName} {user.lastName}</td>

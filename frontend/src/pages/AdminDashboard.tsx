@@ -116,6 +116,9 @@ const AdminDashboard: React.FC = () => {
         case 'articles':
           const articlesData = await articleService.getAllArticles();
           setArticles(articlesData);
+          // Load article groups for article management
+          const articleGroupsForArticles = await articleGroupService.getAllArticleGroups();
+          setArticleGroups(articleGroupsForArticles);
           break;
         case 'invoices':
           const invoicesData = await invoiceService.getAllInvoices();

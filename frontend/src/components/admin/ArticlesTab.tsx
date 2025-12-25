@@ -188,7 +188,7 @@ const ArticleModal: React.FC<{
     articleNumber: article?.articleNumber || '',
     name: article?.name || '',
     description: article?.description || '',
-    articleGroupId: article?.articleGroupId || '',
+    articleGroupId: article?.articleGroupId || article?.articleGroup?.id || '',
     price: article?.price || 0,
     unit: article?.unit || 'Stück',
     vatRate: article?.vatRate || 7.7,
