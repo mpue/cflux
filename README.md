@@ -110,37 +110,49 @@ Das System überwacht automatisch die Einhaltung des Schweizer Arbeitsgesetzes:
 
 ### Option 1: Mit Docker (Empfohlen) 🐳
 
-Die einfachste Methode, um das System zu starten:
+Die einfachste Methode, um das System zu starten - **komplett über den Browser!**
 
 #### Voraussetzungen
 - Docker Desktop (Windows/Mac) oder Docker Engine (Linux)
 - Docker Compose
 
-#### Schnellstart
+#### 🚀 Schnellstart (3 einfache Schritte!)
 
-1. Klone oder navigiere zum Projektverzeichnis:
+**1. Repository klonen und starten:**
 ```bash
+git clone <repository-url>
 cd cflux
+docker-compose up --build -d
 ```
 
-2. Starte alle Services mit Docker Compose:
+**2. Warten bis alles läuft (ca. 30-60 Sekunden)**
 ```bash
-docker-compose up -d
+docker-compose logs -f backend
+```
+Warten Sie auf die Meldung: "Server running on port 3001"
+
+**3. Browser öffnen und fertig! 🎉**
+```
+http://localhost:3002
 ```
 
-Das wars! Das System startet automatisch:
-- PostgreSQL Datenbank auf Port 5432
-- Backend API auf http://localhost:3001
-- Frontend auf **http://localhost:3002** (über Nginx)
+#### 🔐 Erster Login
 
-**Wichtig:** Greife über Port 3002 auf das Frontend zu, da dort der Nginx-Proxy läuft der `/api` Requests an das Backend weiterleitet.
+**Standard Admin-Zugangsdaten:**
+- **Email:** `admin@timetracking.local`
+- **Passwort:** `admin123`
 
-3. Erstelle den ersten Admin-Benutzer:
-```bash
-# Registriere einen Benutzer über die Web-Oberfläche
-# Dann verbinde dich mit der Datenbank:
-docker exec -it timetracking-db psql -U timetracking -d timetracking -c "UPDATE users SET role = 'ADMIN' WHERE email = 'deine@email.com';"
-```
+**⚠️ Wichtig:** Beim ersten Login werden Sie automatisch aufgefordert, Ihr Passwort zu ändern. Dies geschieht komplett im Browser - keine Kommandozeilen-Befehle nötig!
+
+#### Das war's! ✨
+
+Keine komplizierten Setup-Schritte, keine Datenbank-Befehle, keine Credential-Dateien.  
+Einfach klonen, starten, Browser öffnen und loslegen!
+
+#### System-URLs
+- **Frontend:** http://localhost:3002
+- **Backend API:** http://localhost:3001
+- **API Health:** http://localhost:3001/health
 
 #### Nützliche Docker Befehle
 
@@ -148,18 +160,19 @@ docker exec -it timetracking-db psql -U timetracking -d timetracking -c "UPDATE 
 # Services starten
 docker-compose up -d
 
+# Services mit Neuaufbau starten
+docker-compose up --build -d
+
 # Logs anzeigen
-docker-compose logs -f
+docker-compose logs -f backend
 
 # Services stoppen
 docker-compose down
 
-# Services neu bauen
-docker-compose up -d --build
-
 # Datenbank zurücksetzen (ACHTUNG: Löscht alle Daten!)
 docker-compose down -v
 docker-compose up -d
+# Beim nächsten Start: Admin-Login ist wieder admin123
 ```
 
 ### Option 2: Manuelle Installation

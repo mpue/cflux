@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 import '../App.css';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+  const { login, user, refreshUser } = useAuth();
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -20,10 +22,30 @@ const Login: React.FC = () => {
 
     try {
       await login(email, password);
-      navigate('/dashboard');
+      // Login successful, now check if we're in the auth context
+      // We need to wait a bit for the user state to update
+      setTimeout(() => {
+        // Check will happen in useEffect
+      }, 100);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login fehlgeschlagen');
     }
+  };
+
+  // Check if password change is required after login
+  React.useEffect(() => {
+    if (user && user.requiresPasswordChange) {
+      setShowPasswordChangeModal(true);
+    } else if (user && !user.requiresPasswordChange) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  const handlePasswordChanged = async () => {
+    // Refresh user data to clear the requiresPasswordChange flag
+    await refreshUser();
+    setShowPasswordChangeModal(false);
+    navigate('/dashboard');
   };
 
   return (
@@ -79,6 +101,13 @@ const Login: React.FC = () => {
           Noch kein Konto? <Link to="/register">Registrieren</Link>
         </p>
       </div>
+
+      {showPasswordChangeModal && user && (
+        <ChangePasswordModal
+          isFirstLogin={true}
+          onPasswordChanged={handlePasswordChanged}
+        />
+      )}
     </div>
   );
 };

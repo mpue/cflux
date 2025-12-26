@@ -2,52 +2,115 @@
 
 ## Voraussetzungen
 1. Docker Desktop installieren und starten
-2. PowerShell öffnen
+2. Repository klonen
 
-## System starten
+## 🚀 System starten (3 Schritte!)
 
+### 1. Docker Container bauen und starten
 ```powershell
-# Zum Projekt navigieren
 cd d:\devel\cflux
-
-# Docker Container starten
-docker-compose up -d
-
-# Warten bis alles läuft (ca. 30-60 Sekunden)
-docker-compose logs -f
+docker-compose up --build -d
 ```
 
-## Zugriff
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001
-- **API Health**: http://localhost:3001/health
-
-## Ersten Admin erstellen
-
-1. Im Browser zu http://localhost:3000 gehen
-2. Neuen Benutzer registrieren
-3. In PowerShell ausführen:
-
+### 2. Warten bis alles läuft
 ```powershell
-docker exec -it timetracking-db psql -U timetracking -d timetracking -c "UPDATE users SET role = 'ADMIN' WHERE email = 'ihre@email.com';"
+# Logs beobachten
+docker-compose logs -f backend
+```
+Warten Sie auf: "Server running on port 3001"
+
+### 3. Browser öffnen
+```
+http://localhost:3002
 ```
 
-4. Mit Admin-Rechten einloggen!
+## 🔐 Erster Login
 
-## System stoppen
+### Standard Admin-Zugangsdaten
+- **Email:** `admin@timetracking.local`  
+- **Passwort:** `admin123`
 
+### Nach dem Login
+Sie werden **automatisch** aufgefordert, Ihr Passwort zu ändern.  
+Dies geschieht komplett im Browser - keine Kommandozeile nötig! ✨
+
+## ⚙️ System-URLs
+
+- **Frontend:** http://localhost:3002
+- **Backend API:** http://localhost:3001
+- **API Health:** http://localhost:3001/health
+
+## 🛠️ Nützliche Befehle
+
+### System stoppen
 ```powershell
 docker-compose down
 ```
 
-## System zurücksetzen
+### System neu starten
+```powershell
+docker-compose restart
+```
 
+### Logs anzeigen
+```powershell
+# Alle Logs
+docker-compose logs -f
+
+# Nur Backend
+docker-compose logs -f backend
+
+# Nur Frontend
+docker-compose logs -f frontend
+```
+
+### System zurücksetzen
 ```powershell
 # ACHTUNG: Löscht alle Daten!
 docker-compose down -v
-docker-compose up -d
+docker-compose up --build -d
+
+# Admin-Login ist wieder: admin123
 ```
+
+## 📖 Was passiert automatisch?
+
+Beim ersten Start:
+1. ✅ PostgreSQL Datenbank wird erstellt
+2. ✅ Datenbank-Migrationen laufen durch
+3. ✅ Alle System-Module werden installiert
+4. ✅ Admin-Benutzer wird angelegt
+5. ✅ Server startet
+
+**Alles komplett automatisch - Sie müssen nichts manuell machen!**
+
+## 🎯 Erste Schritte nach dem Login
+
+1. Passwort ändern (wird automatisch angezeigt)
+2. Weitere Benutzer anlegen
+3. Projekte erstellen
+4. Zeiterfassung starten
+
+## ❓ Probleme?
+
+### Container startet nicht
+```powershell
+# Logs prüfen
+docker-compose logs backend
+
+# Container neu bauen
+docker-compose up --build -d
+```
+
+### Kann mich nicht anmelden
+- Email: `admin@timetracking.local`
+- Passwort: `admin123`
+- Falls geändert: System zurücksetzen (siehe oben)
+
+### Port bereits belegt
+Ports ändern in `docker-compose.yml`:
+- Frontend: `3002:80` → `8080:80`
+- Backend: `3001:3001` → `8001:3001`
 
 ## Logs ansehen
 

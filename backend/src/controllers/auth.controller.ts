@@ -116,7 +116,8 @@ export const login = async (req: AuthRequest, res: Response) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role
+        role: user.role,
+        requiresPasswordChange: user.requiresPasswordChange || false
       },
       token
     });

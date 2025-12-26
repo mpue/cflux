@@ -7,6 +7,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/me', userController.getCurrentUser);
+router.post('/change-password', userController.changePassword);
 router.get('/', authorize('ADMIN'), userController.getAllUsers);
 router.get('/:id', authorize('ADMIN'), userController.getUserById);
 router.put('/:id', authorize('ADMIN'), userController.updateUser);

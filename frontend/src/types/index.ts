@@ -5,6 +5,7 @@ export interface User {
   lastName: string;
   role: 'ADMIN' | 'USER';
   isActive: boolean;
+  requiresPasswordChange?: boolean;
   vacationDays: number;
   userGroupId?: string;
   

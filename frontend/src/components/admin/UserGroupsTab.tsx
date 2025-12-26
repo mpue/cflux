@@ -13,6 +13,7 @@ export const UserGroupsTab: React.FC<UserGroupsTabProps> = ({ onLoad }) => {
   const [selectedGroup, setSelectedGroup] = useState<UserGroup | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [formData, setFormData] = useState<CreateUserGroupDto>({
     name: '',
     description: '',
@@ -117,11 +118,68 @@ export const UserGroupsTab: React.FC<UserGroupsTabProps> = ({ onLoad }) => {
     return users.filter(u => !u.userGroupId);
   };
 
+  const getGroupById = (groupId: string | undefined) => {
+    if (!groupId) return null;
+    return groups.find(g => g.id === groupId);
+  };
+
+  const handleChangeUserGroup = async (userId: string, newGroupId: string) => {
+    try {
+      const user = users.find(u => u.id === userId);
+      if (!user) return;
+
+      // Entferne aus alter Gruppe falls vorhanden
+      if (user.userGroupId) {
+        await userGroupService.removeUser(user.userGroupId, userId);
+      }
+
+      // Füge zu neuer Gruppe hinzu falls ausgewählt
+      if (newGroupId) {
+        await userGroupService.addUser(newGroupId, userId);
+      }
+
+      loadData();
+    } catch (error) {
+      console.error('Error changing user group:', error);
+      alert('Fehler beim Ändern der Benutzergruppe');
+    }
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ margin: 0 }}>Benutzergruppen</h2>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '5px', backgroundColor: 'var(--bg-secondary)', padding: '4px', borderRadius: '8px' }}>
+            <button
+              onClick={() => setViewMode('cards')}
+              style={{
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                backgroundColor: viewMode === 'cards' ? 'var(--primary-color)' : 'transparent',
+                color: viewMode === 'cards' ? 'white' : 'var(--text-primary)',
+                fontWeight: viewMode === 'cards' ? 'bold' : 'normal',
+              }}
+            >
+              Gruppen
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              style={{
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                backgroundColor: viewMode === 'table' ? 'var(--primary-color)' : 'transparent',
+                color: viewMode === 'table' ? 'white' : 'var(--text-primary)',
+                fontWeight: viewMode === 'table' ? 'bold' : 'normal',
+              }}
+            >
+              Alle Benutzer
+            </button>
+          </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <input
               type="checkbox"
@@ -135,6 +193,9 @@ export const UserGroupsTab: React.FC<UserGroupsTabProps> = ({ onLoad }) => {
           </button>
         </div>
       </div>
+
+      {viewMode === 'cards' ? (
+        <>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
         {groups.map(group => (
@@ -225,6 +286,90 @@ export const UserGroupsTab: React.FC<UserGroupsTabProps> = ({ onLoad }) => {
       {groups.length === 0 && (
         <div style={{ textAlign: 'center', padding: '50px', color: 'var(--text-secondary)' }}>
           <p>Keine Benutzergruppen gefunden</p>
+        </div>
+      )}
+      </>
+      ) : (
+        // Tabellenansicht - Alle Benutzer mit ihren Gruppen
+        <div className="card">
+          <h3 style={{ marginTop: 0, marginBottom: '20px' }}>Alle Benutzer - Gruppenzuordnung</h3>
+          
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
+                <th style={{ padding: '12px' }}>Name</th>
+                <th style={{ padding: '12px' }}>E-Mail</th>
+                <th style={{ padding: '12px' }}>Rolle</th>
+                <th style={{ padding: '12px' }}>Benutzergruppe</th>
+                <th style={{ padding: '12px' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(user => {
+                const userGroup = getGroupById(user.userGroupId);
+                return (
+                  <tr key={user.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '12px' }}>
+                      <strong>{user.firstName} {user.lastName}</strong>
+                    </td>
+                    <td style={{ padding: '12px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      {user.email}
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        backgroundColor: user.role === 'ADMIN' ? '#e3f2fd' : '#f3e5f5',
+                        color: user.role === 'ADMIN' ? '#1565c0' : '#6a1b9a',
+                      }}>
+                        {user.role === 'ADMIN' ? 'Admin' : 'Benutzer'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      <select
+                        value={user.userGroupId || ''}
+                        onChange={(e) => handleChangeUserGroup(user.id, e.target.value)}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '4px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: userGroup ? userGroup.color : 'transparent',
+                          color: userGroup ? 'white' : 'var(--text-primary)',
+                          fontWeight: userGroup ? 'bold' : 'normal',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value="">Keine Gruppe</option>
+                        {groups.filter(g => g.isActive).map(group => (
+                          <option key={group.id} value={group.id} style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+                            {group.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={{ padding: '12px' }}>
+                      <span style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        backgroundColor: user.isActive ? '#d4edda' : '#f8d7da',
+                        color: user.isActive ? '#155724' : '#721c24',
+                      }}>
+                        {user.isActive ? 'Aktiv' : 'Inaktiv'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {users.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-secondary)' }}>
+              <p>Keine Benutzer gefunden</p>
+            </div>
+          )}
         </div>
       )}
 
