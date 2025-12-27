@@ -1,0 +1,258 @@
+.custom-node {
+  min-width: 200px;
+  background: white;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.custom-node:hover {
+  border-color: #2196F3;
+}
+
+.custom-node.selected {
+  border-color: #2196F3;
+  box-shadow: 0 4px 16px rgba(33, 150, 243, 0.3);
+}
+
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.node-icon {
+  font-size: 18px;
+}
+
+.node-title {
+  flex: 1;
+}
+
+.node-content {
+  padding: 12px;
+}
+
+.node-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.node-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.info-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #e3f2fd;
+  color: #1976D2;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.node-detail {
+  margin-top: 8px;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+  word-break: break-word;
+}
+
+/* Approval Node */
+.approval-node .node-header {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+}
+
+/* Email Node */
+.email-node .node-header {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+}
+
+/* Condition Nodes */
+.condition-node .node-header {
+  background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+}
+
+.date-condition-node .node-header {
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+}
+
+.value-condition-node .node-header {
+  background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+}
+
+.condition-expression {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.condition-field {
+  font-weight: 600;
+  color: #1976D2;
+}
+
+.condition-operator {
+  font-weight: 600;
+  color: #666;
+  font-size: 16px;
+}
+
+.condition-value {
+  color: #4CAF50;
+  font-weight: 600;
+}
+
+/* Delay Node */
+.delay-node .node-header {
+  background: linear-gradient(135deg, #607D8B 0%, #455A64 100%);
+}
+
+/* Notification Node */
+.notification-node .node-header {
+  background: linear-gradient(135deg, #FFC107 0%, #FFA000 100%);
+}
+
+/* Logic Node */
+.logic-node .node-header {
+  background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);
+}
+
+.logic-node .node-content {
+  text-align: center;
+}
+
+/* Start Node */
+.start-node {
+  border: 3px solid #4CAF50;
+  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
+}
+
+.start-node .node-header {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  font-weight: 700;
+}
+
+.start-node .node-content {
+  text-align: center;
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+}
+
+/* End Node */
+.end-node {
+  border: 3px solid #f44336;
+  box-shadow: 0 4px 16px rgba(244, 67, 54, 0.3);
+}
+
+.end-node .node-header {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  font-weight: 700;
+}
+
+.end-node .node-content {
+  text-align: center;
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+}
+
+.logic-type {
+  margin: 10px 0;
+}
+
+.logic-badge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 16px;
+  color: white;
+}
+
+.logic-badge.logic-and {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+}
+
+.logic-badge.logic-or {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+}
+
+/* Custom Handles */
+.custom-handle {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border: 2px solid #2196F3;
+  transition: all 0.2s;
+}
+
+.custom-handle:hover {
+  width: 16px;
+  height: 16px;
+  background: #2196F3;
+}
+
+.handle-true {
+  background: #4CAF50;
+  border-color: #4CAF50;
+  left: 30%;
+}
+
+.handle-false {
+  background: #f44336;
+  border-color: #f44336;
+  left: 70%;
+}
+
+.handle-true:hover {
+  background: #45a049;
+  border-color: #45a049;
+}
+
+.handle-false:hover {
+  background: #d32f2f;
+  border-color: #d32f2f;
+}
+
+/* Connection line styling */
+.react-flow__edge-path {
+  stroke: #b1b1b7;
+  stroke-width: 2;
+}
+
+.react-flow__edge.animated path {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 10;
+  }
+}
+
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus .react-flow__edge-path,
+.react-flow__edge:focus-visible .react-flow__edge-path {
+  stroke: #2196F3;
+  stroke-width: 3;
+}

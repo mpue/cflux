@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { workflowService, Workflow } from '../../services/workflow.service';
-import WorkflowEditor from './WorkflowEditor';
+import NodeBasedWorkflowEditor from './NodeBasedWorkflowEditor';
 import './WorkflowsTab.css';
 
 const WorkflowsTab: React.FC = () => {
@@ -75,7 +75,7 @@ const WorkflowsTab: React.FC = () => {
 
   if (isEditing) {
     return (
-      <WorkflowEditor
+      <NodeBasedWorkflowEditor
         workflow={selectedWorkflow}
         onSave={handleSave}
         onCancel={handleCancel}
