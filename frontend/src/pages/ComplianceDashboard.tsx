@@ -3,7 +3,7 @@ import axios from 'axios';
 import { ComplianceViolation, ComplianceStats } from '../types';
 import '../styles/ComplianceDashboard.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_URL = process.env.REACT_APP_API_URL || '';
 
 const ComplianceDashboard: React.FC = () => {
   const [stats, setStats] = useState<ComplianceStats | null>(null);
