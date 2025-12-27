@@ -294,7 +294,7 @@ const InvoiceModal: React.FC<{
     // Load templates
     const loadTemplates = async () => {
       try {
-        const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+        const API_URL = process.env.REACT_APP_API_URL || '';
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/api/invoice-templates`, {
           headers: { Authorization: `Bearer ${token}` }

@@ -34,7 +34,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({ currentLogo, onLogoChange, onLo
       const formData = new FormData();
       formData.append('logo', file);
 
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      const API_URL = process.env.REACT_APP_API_URL || '';
       const token = localStorage.getItem('token');
 
       const response = await fetch(`${API_URL}/api/uploads/logo`, {

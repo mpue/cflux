@@ -18,7 +18,7 @@ const InvoiceTemplatesTab: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      const API_URL = process.env.REACT_APP_API_URL || '';
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/invoice-templates`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -48,7 +48,7 @@ const InvoiceTemplatesTab: React.FC = () => {
     }
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      const API_URL = process.env.REACT_APP_API_URL || '';
       const token = localStorage.getItem('token');
       await fetch(`${API_URL}/api/invoice-templates/${id}`, {
         method: 'DELETE',
@@ -62,7 +62,7 @@ const InvoiceTemplatesTab: React.FC = () => {
 
   const handleSetDefault = async (id: string) => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+      const API_URL = process.env.REACT_APP_API_URL || '';
       const token = localStorage.getItem('token');
       await fetch(`${API_URL}/api/invoice-templates/${id}/default`, {
         method: 'POST',

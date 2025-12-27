@@ -10,7 +10,7 @@ import {
   ReminderLevel
 } from '../types/reminder.types';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_URL = process.env.REACT_APP_API_URL || '';
 
 const getAuthHeader = () => {
   const token = localStorage.getItem('token');
