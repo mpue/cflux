@@ -106,7 +106,7 @@ const Dashboard: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [current, projectsData, locationsData, absences, entries, reportData, approvals] = await Promise.all([
+      const results = await Promise.allSettled([
         timeService.getCurrentTimeEntry(),
         projectService.getAllProjects(),
         locationService.getActiveLocations(),
@@ -116,6 +116,15 @@ const Dashboard: React.FC = () => {
         workflowService.getMyPendingApprovals(),
       ]);
 
+      // Extrahiere erfolgreiche Ergebnisse
+      const current = results[0].status === 'fulfilled' ? results[0].value : null;
+      const projectsData = results[1].status === 'fulfilled' ? results[1].value : [];
+      const locationsData = results[2].status === 'fulfilled' ? results[2].value : [];
+      const absences = results[3].status === 'fulfilled' ? results[3].value : [];
+      const entries = results[4].status === 'fulfilled' ? results[4].value : [];
+      const reportData = results[5].status === 'fulfilled' ? results[5].value : null;
+      const approvals = results[6].status === 'fulfilled' ? results[6].value : [];
+
       setCurrentEntry(current);
       setProjects(projectsData);
       setLocations(locationsData);
@@ -123,9 +132,13 @@ const Dashboard: React.FC = () => {
       setTimeEntries(entries);
       setReport(reportData);
       setPendingApprovalsCount(approvals.length);
-      setAbsenceRequests(absences);
-      setTimeEntries(entries);
-      setReport(reportData);
+
+      // Log fehlgeschlagene Requests
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.warn(`Request ${index} failed:`, result.reason);
+        }
+      });
     } catch (error) {
       console.error('Error loading data:', error);
     }
