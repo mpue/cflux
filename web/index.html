@@ -52,10 +52,18 @@
         }
 
         .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
             font-size: 1.75rem;
             font-weight: 700;
             color: var(--primary);
             text-decoration: none;
+        }
+
+        .logo img {
+            height: 40px;
+            width: auto;
         }
 
         .nav-links {
@@ -546,7 +554,10 @@
 <body>
     <header>
         <nav>
-            <a href="#" class="logo">cflux</a>
+            <a href="#" class="logo">
+                <img src="logo.png" alt="cflux Logo">
+                <span>cflux</span>
+            </a>
             <div class="nav-links">
                 <a href="#features">Features</a>
                 <a href="#screenshots">Screenshots</a>
@@ -559,7 +570,7 @@
     <main>
         <section class="hero">
             <h1>ERP und Zeiterfassung.<br>Einfach gemacht.</h1>
-            <p>Moderne, übersichtliches Micro ERP mit Zeiterfassung für Teams jeder Größe. Projektbuchung, Urlaubsverwaltung und Reports – alles an einem Ort.</p>
+            <p>Moderne, übersichtliches Micro ERP mit Zeiterfassung für Teams jeder Größe. Projektbuchung, Urlaubsverwaltung, automatisierte Workflows und Reports – alles an einem Ort.</p>
             <div class="hero-cta">
                 <a href="mailto:info@cflux.org?subject=cflux%20Demo%20Anfrage" class="btn btn-primary">Jetzt starten</a>
                 <a href="#features" class="btn btn-secondary">Mehr erfahren</a>
@@ -573,7 +584,7 @@
                     <p>Unbegrenzte Benutzer</p>
                 </div>
                 <div class="stat-item">
-                    <h3>49€</h3>
+                    <h3>149€</h3>
                     <p>Ein Preis für alles</p>
                 </div>
                 <div class="stat-item">
@@ -589,7 +600,7 @@
 
         <section class="features" id="features">
             <h2>Alles, was du brauchst</h2>
-            <p class="features-subtitle">Professionelle Zeiterfassung ohne Kompromisse</p>
+            <p class="features-subtitle">Professionelles Micro ERP und Zeiterfassung ohne Kompromisse</p>
             
             <div class="features-grid">
                 <div class="feature-card">
@@ -635,6 +646,12 @@
                 </div>
 
                 <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3>Workflow-Automation</h3>
+                    <p>Node-basierter Editor mit Drag & Drop. Erstelle Genehmigungsprozesse mit E-Mail-Benachrichtigungen, Datums- und Wertbedingungen. Start/Ende-Nodes für klare Struktur.</p>
+                </div>
+
+                <div class="feature-card">
                     <div class="feature-icon">🏢</div>
                     <h3>Kundenverwaltung</h3>
                     <p>Verwalte alle Kundendaten zentral. Schneller Zugriff für die Rechnungserstellung.</p>
@@ -644,6 +661,12 @@
                     <div class="feature-icon">📦</div>
                     <h3>Artikelverwaltung</h3>
                     <p>Speichere Artikel und Dienstleistungen. Organisiere in Gruppen für effiziente Rechnungserstellung.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🚨</div>
+                    <h3>Incident Management</h3>
+                    <p>Erfasse und verwalte Vorfälle strukturiert. Priorisiere nach Schweregrad, weise Verantwortliche zu und tracke den Status bis zur Lösung.</p>
                 </div>
 
                 <div class="feature-card">
@@ -668,7 +691,7 @@
 
         <section class="screenshots" id="screenshots">
             <h2>Einblick in cflux</h2>
-            <p class="screenshots-subtitle">Entdecke die intuitive Benutzeroberfläche unserer Zeiterfassungslösung</p>
+            <p class="screenshots-subtitle">Entdecke die intuitive Benutzeroberfläche unserer ERP-Zeiterfassungslösung</p>
             
             <div class="screenshot-item">
                 <div class="screenshot-content">
@@ -877,11 +900,47 @@
             <div class="screenshot-item">
                 <div class="screenshot-content">
                     <div class="screenshot-info">
+                        <h3>🔄 Node-basierter Workflow-Editor</h3>
+                        <p>Erstelle komplexe Genehmigungsworkflows mit unserem intuitiven Drag & Drop Editor. Ziehe Nodes wie Genehmigungen, E-Mail-Benachrichtigungen, Datums- und Wertbedingungen in den Canvas und verbinde sie visuell. Mit dem Start-Node als klarem Einstiegspunkt und erweiterten Bedingungen (Datumsvergleiche, Betragslogik, UND/ODER-Verknüpfungen) können komplexe Geschäftsprozesse abgebildet werden.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="workflow_editor.png" alt="Node-basierter Workflow-Editor" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
                         <h3>🔄 Backup & Restore</h3>
                         <p>Sichere deine Daten regelmäßig mit der integrierten Backup-Funktion. Erstelle vollständige Datenbank-Backups und stelle sie bei Bedarf mit einem Klick wieder her.</p>
                     </div>
                     <div class="screenshot-image">
                         <img src="backup_restore.png" alt="Backup und Wiederherstellung" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>🚨 Incident Management</h3>
+                        <p>Verwalte Vorfälle und Incidents strukturiert. Erfasse Probleme, weise Verantwortliche zu, setze Prioritäten und tracke den Bearbeitungsstatus. Mit Kategorisierung nach Typ und Schweregrad behältst du den Überblick über alle laufenden Incidents.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="incident_management.png" alt="Incident Management Übersicht" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>📝 Neuer Incident</h3>
+                        <p>Erstelle neue Incidents mit detaillierten Informationen. Erfasse Titel, Beschreibung, Typ, Priorität und Schweregrad. Weise direkt einen Verantwortlichen zu und definiere einen Fälligkeitstermin für eine effiziente Bearbeitung.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="new_incident.png" alt="Incident erstellen" loading="lazy">
                     </div>
                 </div>
             </div>
@@ -918,7 +977,7 @@
             <div class="pricing-grid">
                 <div class="pricing-card">
                     <div class="pricing-badge">Cloud-Hosted</div>
-                    <div class="pricing-amount">49€</div>
+                    <div class="pricing-amount">149€</div>
                     <div class="pricing-period">pro Monat</div>
                     
                     <div class="pricing-features">
@@ -943,7 +1002,7 @@
 
                 <div class="pricing-card">
                     <div class="pricing-badge">Self-Hosted</div>
-                    <div class="pricing-amount">29€</div>
+                    <div class="pricing-amount">129€</div>
                     <div class="pricing-period">pro Monat</div>
                     
                     <div class="pricing-features">

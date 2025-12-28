@@ -10,6 +10,10 @@ router.use(authenticate);
 // Workflows
 router.post('/', workflowController.createWorkflow);
 router.get('/', workflowController.getAllWorkflows);
+
+// My Approvals (must be before /:id to avoid conflict)
+router.get('/my-approvals', workflowController.getMyPendingApprovals);
+
 router.get('/:id', workflowController.getWorkflowById);
 router.put('/:id', workflowController.updateWorkflow);
 router.delete('/:id', workflowController.deleteWorkflow);
@@ -29,8 +33,5 @@ router.get('/invoices/:invoiceId/instances', workflowController.getInvoiceWorkfl
 router.post('/instances/steps/:instanceStepId/approve', workflowController.approveWorkflowStep);
 router.post('/instances/steps/:instanceStepId/reject', workflowController.rejectWorkflowStep);
 router.get('/invoices/:invoiceId/check-approval', workflowController.checkInvoiceApproval);
-
-// My Approvals
-router.get('/my-approvals', workflowController.getMyPendingApprovals);
 
 export default router;

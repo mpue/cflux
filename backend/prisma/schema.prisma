@@ -667,6 +667,12 @@ enum WorkflowStepType {
   NOTIFICATION   // Benachrichtigung
   CONDITION      // Bedingung prüfen
   DELAY          // Zeitverzögerung
+  EMAIL          // E-Mail senden
+  DATE_CONDITION // Datumsvergleich
+  VALUE_CONDITION // Wertvergleich (Beträge, Zahlen)
+  TEXT_CONDITION  // Textvergleich
+  LOGIC_AND       // UND-Verknüpfung
+  LOGIC_OR        // ODER-Verknüpfung
 }
 
 enum WorkflowStepStatus {
@@ -799,4 +805,59 @@ model WorkflowInstanceStep {
   @@index([stepId])
   @@index([status])
   @@map("workflow_instance_steps")
+}
+
+model SystemSettings {
+  id                    String    @id @default(uuid())
+  
+  // Company Information
+  companyName           String?
+  companyLogo           String?   @db.Text // Base64 oder URL
+  companyAddress        String?   @db.Text
+  companyPhone          String?
+  companyEmail          String?
+  companyWebsite        String?
+  companyTaxId          String?   // Steuernummer/UID
+  
+  // System Settings
+  currency              String    @default("CHF")
+  dateFormat            String    @default("DD.MM.YYYY")
+  timeFormat            String    @default("HH:mm")
+  language              String    @default("de")
+  timezone              String    @default("Europe/Zurich")
+  
+  // Backup Settings
+  autoBackupEnabled     Boolean   @default(false)
+  backupInterval        String    @default("daily") // daily, weekly, monthly
+  backupTime            String    @default("02:00") // HH:mm
+  backupRetention       Int       @default(30)      // Tage
+  lastBackupAt          DateTime?
+  
+  // Email Settings (SMTP)
+  smtpEnabled           Boolean   @default(false)
+  smtpHost              String?
+  smtpPort              Int       @default(587)
+  smtpSecure            Boolean   @default(true)    // TLS/SSL
+  smtpUser              String?
+  smtpPassword          String?   // Sollte verschlüsselt gespeichert werden
+  smtpFromEmail         String?
+  smtpFromName          String?
+  
+  // Invoice Settings
+  invoicePrefix         String    @default("RE-")
+  invoiceNumberStart    Int       @default(1000)
+  invoiceNumberPadding  Int       @default(4)       // Anzahl Stellen: 0001
+  invoiceTermsDays      Int       @default(30)      // Zahlungsziel
+  invoiceFooter         String?   @db.Text
+  
+  // Feature Flags
+  enableWorkflows       Boolean   @default(true)
+  enableIncidents       Boolean   @default(true)
+  enableCompliance      Boolean   @default(true)
+  enableTimeTracking    Boolean   @default(true)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@map("system_settings")
 }

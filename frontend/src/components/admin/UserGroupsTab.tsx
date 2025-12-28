@@ -126,22 +126,35 @@ export const UserGroupsTab: React.FC<UserGroupsTabProps> = ({ onLoad }) => {
   const handleChangeUserGroup = async (userId: string, newGroupId: string) => {
     try {
       const user = users.find(u => u.id === userId);
-      if (!user) return;
+      if (!user) {
+        console.error('User not found:', userId);
+        return;
+      }
+
+      console.log('Changing user group:', { userId, from: user.userGroupId, to: newGroupId });
+
+      // Wenn der Benutzer bereits in der Zielgruppe ist, nichts tun
+      if (user.userGroupId === newGroupId) {
+        return;
+      }
 
       // Entferne aus alter Gruppe falls vorhanden
       if (user.userGroupId) {
+        console.log('Removing user from group:', user.userGroupId);
         await userGroupService.removeUser(user.userGroupId, userId);
       }
 
-      // Füge zu neuer Gruppe hinzu falls ausgewählt
-      if (newGroupId) {
+      // Füge zu neuer Gruppe hinzu falls ausgewählt (nicht leer)
+      if (newGroupId && newGroupId !== '') {
+        console.log('Adding user to group:', newGroupId);
         await userGroupService.addUser(newGroupId, userId);
       }
 
-      loadData();
-    } catch (error) {
+      // Daten neu laden
+      await loadData();
+    } catch (error: any) {
       console.error('Error changing user group:', error);
-      alert('Fehler beim Ändern der Benutzergruppe');
+      alert('Fehler beim Ändern der Benutzergruppe: ' + (error.message || 'Unbekannter Fehler'));
     }
   };
 

@@ -1,4 +1,5 @@
 import { PrismaClient, WorkflowStepType } from '@prisma/client';
+import { systemSettingsService } from './systemSettings.service';
 
 const prisma = new PrismaClient();
 
@@ -222,28 +223,315 @@ export const workflowService = {
       throw new Error('Workflow nicht gefunden');
     }
 
-    // Create instance
+    // Parse workflow definition to get nodes and edges
+    const definition = JSON.parse(workflow.definition || '{}');
+    const { nodes = [], edges = [] } = definition;
+
+    // Load invoice data for condition evaluation
+    const invoice = await prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      include: {
+        items: true,
+        customer: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    if (!invoice) {
+      throw new Error('Rechnung nicht gefunden');
+    }
+
+    // Create instance (will update currentStepId later)
     const instance = await prisma.workflowInstance.create({
       data: {
         workflowId,
         invoiceId,
         status: 'IN_PROGRESS',
-        currentStepId: workflow.steps[0]?.id,
+        currentStepId: workflow.steps[0]?.id || null,
       },
     });
 
-    // Create instance steps
+    // Create a map of node IDs to steps
+    const nodeToStepMap = new Map<string, any>();
     for (const step of workflow.steps as any[]) {
+      // Find the corresponding node in the definition
+      const node = nodes.find((n: any) => n.data?.config?.name === step.name || n.id === step.id);
+      if (node) {
+        nodeToStepMap.set(node.id, step);
+      }
+    }
+
+    // Evaluate conditions and determine which steps to activate
+    const evaluatedConditions = new Map<string, boolean>();
+    
+    for (const step of workflow.steps as any[]) {
+      if (step.type === 'VALUE_CONDITION') {
+        const conditionMet = this.evaluateValueCondition(step, invoice);
+        console.log(`[Workflow] Evaluating VALUE_CONDITION "${step.name}": ${conditionMet}`);
+        // Find the node for this step
+        const node = nodes.find((n: any) => n.data?.config?.name === step.name);
+        if (node) {
+          evaluatedConditions.set(node.id, conditionMet);
+          console.log(`[Workflow] Mapped condition node ${node.id} to result: ${conditionMet}`);
+        }
+      }
+    }
+
+    // Determine which steps should be active based on edges
+    const activeSteps = new Set<string>();
+    let firstActiveStepId: string | null = null;
+    
+    // Start node is always the entry point
+    const startNode = nodes.find((n: any) => n.type === 'start');
+    if (startNode) {
+      // Find all edges from start node
+      const startEdges = edges.filter((e: any) => e.source === startNode.id);
+      
+      for (const edge of startEdges) {
+        const targetNode = nodes.find((n: any) => n.id === edge.target);
+        if (targetNode) {
+          const targetStep = nodeToStepMap.get(targetNode.id);
+          if (targetStep) {
+            activeSteps.add(targetStep.id);
+            if (!firstActiveStepId && targetStep.type === 'APPROVAL') {
+              firstActiveStepId = targetStep.id;
+            }
+          }
+        }
+      }
+    }
+
+    // Process VALUE_CONDITION nodes and activate connected steps
+    for (const [nodeId, conditionMet] of evaluatedConditions) {
+      const expectedHandle = conditionMet ? 'true' : 'false';
+      const conditionEdges = edges.filter((e: any) => 
+        e.source === nodeId && e.sourceHandle === expectedHandle
+      );
+      
+      console.log(`[Workflow] Condition node ${nodeId} is ${conditionMet}, following ${conditionEdges.length} edges with sourceHandle="${expectedHandle}"`);
+      
+      for (const edge of conditionEdges) {
+        const targetNode = nodes.find((n: any) => n.id === edge.target);
+        if (targetNode) {
+          const targetStep = nodeToStepMap.get(targetNode.id);
+          if (targetStep) {
+            console.log(`[Workflow] Activating step "${targetStep.name}" (type: ${targetStep.type}) from condition edge`);
+            activeSteps.add(targetStep.id);
+            if (!firstActiveStepId && targetStep.type === 'APPROVAL') {
+              firstActiveStepId = targetStep.id;
+            }
+          }
+        }
+      }
+    }
+    
+    // Create instance steps with correct status
+    for (const step of workflow.steps as any[]) {
+      let stepStatus: 'PENDING' | 'SKIPPED' | 'COMPLETED' = 'SKIPPED';
+
+      if (step.type === 'VALUE_CONDITION') {
+        // VALUE_CONDITION is always evaluated, mark as SKIPPED (automatic)
+        stepStatus = 'SKIPPED';
+      } else if (activeSteps.has(step.id)) {
+        // Step is in the active path
+        stepStatus = 'PENDING';
+      }
+
       await prisma.workflowInstanceStep.create({
         data: {
           instanceId: instance.id,
           stepId: step.id,
-          status: step.order === 1 ? 'PENDING' : 'PENDING',
+          status: stepStatus,
+        },
+      });
+    }
+
+    // Execute EMAIL steps immediately if they are active
+    for (const step of workflow.steps as any[]) {
+      if (step.type === 'EMAIL' && activeSteps.has(step.id)) {
+        console.log(`[Workflow] Executing EMAIL step "${step.name}" immediately`);
+        const emailSent = await this.sendWorkflowEmail(step, invoice);
+        
+        // Update step status
+        await prisma.workflowInstanceStep.updateMany({
+          where: {
+            instanceId: instance.id,
+            stepId: step.id,
+          },
+          data: {
+            status: emailSent ? 'COMPLETED' : 'SKIPPED',
+          },
+        });
+      }
+    }
+
+    // Update instance with correct current step
+    if (firstActiveStepId) {
+      await prisma.workflowInstance.update({
+        where: { id: instance.id },
+        data: {
+          currentStepId: firstActiveStepId,
         },
       });
     }
 
     return instance;
+  },
+
+  // Evaluate VALUE_CONDITION
+  evaluateValueCondition(step: any, invoice: any): boolean {
+    try {
+      const config = JSON.parse(step.config || '{}');
+      const { field, operator, value } = config;
+
+      let fieldValue: number;
+      
+      // Get field value from invoice
+      if (field === 'totalAmount' || field === 'total') {
+        fieldValue = parseFloat(invoice.totalAmount || '0');
+      } else if (field === 'subtotalAmount' || field === 'subtotal') {
+        fieldValue = parseFloat(invoice.subtotalAmount || '0');
+      } else {
+        console.warn(`Unknown field: ${field}`);
+        return false;
+      }
+
+      const compareValue = parseFloat(value);
+
+      // Evaluate condition
+      switch (operator) {
+        case '>':
+        case 'greater':
+        case 'greater_than':
+          return fieldValue > compareValue;
+        case '>=':
+        case 'greater_equal':
+          return fieldValue >= compareValue;
+        case '<':
+        case 'less':
+        case 'less_than':
+          return fieldValue < compareValue;
+        case '<=':
+        case 'less_equal':
+          return fieldValue <= compareValue;
+        case '==':
+        case '=':
+        case 'equal':
+        case 'equals':
+          return fieldValue === compareValue;
+        case '!=':
+        case 'not_equal':
+          return fieldValue !== compareValue;
+        default:
+          console.warn(`Unknown operator: ${operator}`);
+          return false;
+      }
+    } catch (error) {
+      console.error('Error evaluating VALUE_CONDITION:', error);
+      return false;
+    }
+  },
+
+  // Send email for EMAIL workflow step
+  async sendWorkflowEmail(step: any, invoice: any): Promise<boolean> {
+    try {
+      const config = JSON.parse(step.config || '{}');
+      const { recipients, subject, body } = config;
+
+      if (!recipients || recipients.length === 0) {
+        console.warn('No recipients configured for EMAIL step');
+        return false;
+      }
+
+      // Get SMTP settings
+      const settings = await systemSettingsService.getSettings();
+      
+      if (!settings.smtpHost) {
+        console.warn('SMTP not configured in system settings');
+        return false;
+      }
+
+      const nodemailer = require('nodemailer');
+      
+      // Create transporter config
+      const transportConfig: any = {
+        host: settings.smtpHost,
+        port: settings.smtpPort || 587,
+        secure: settings.smtpSecure || false,
+      };
+
+      // Only add auth if username is provided
+      if (settings.smtpUser) {
+        transportConfig.auth = {
+          user: settings.smtpUser,
+          pass: settings.smtpPassword,
+        };
+      }
+
+      const transporter = nodemailer.createTransport(transportConfig);
+
+      // Replace placeholders in subject and body
+      const replacePlaceholders = (text: string) => {
+        return text
+          .replace(/\{invoiceNumber\}/g, invoice.invoiceNumber || '')
+          .replace(/\{totalAmount\}/g, invoice.totalAmount || '0')
+          .replace(/\{customerName\}/g, invoice.customer?.name || '')
+          .replace(/\{invoiceDate\}/g, invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString('de-CH') : '')
+          .replace(/\{dueDate\}/g, invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('de-CH') : '');
+      };
+
+      const emailSubject = replacePlaceholders(subject || 'Workflow Benachrichtigung');
+      const emailBody = replacePlaceholders(body || 'Eine Workflow-Aktion wurde ausgelöst.');
+
+      // Get recipient email addresses
+      const recipientEmails: string[] = [];
+      for (const recipient of recipients) {
+        // Check if it's an email address or a user ID
+        if (recipient.includes('@')) {
+          // It's already an email address
+          recipientEmails.push(recipient);
+        } else {
+          // It's a user ID, look up the user
+          const user = await prisma.user.findUnique({
+            where: { id: recipient },
+            select: { email: true },
+          });
+          if (user) {
+            recipientEmails.push(user.email);
+          }
+        }
+      }
+
+      if (recipientEmails.length === 0) {
+        console.warn('No valid recipient email addresses found');
+        return false;
+      }
+
+      console.log(`[Workflow] Sending email to: ${recipientEmails.join(', ')}`);
+
+      // Send email
+      await transporter.sendMail({
+        from: `"${settings.smtpFromName || settings.companyName}" <${settings.smtpFromEmail}>`,
+        to: recipientEmails.join(', '),
+        subject: emailSubject,
+        html: `<div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>${emailSubject}</h2>
+          <p>${emailBody.replace(/\n/g, '<br>')}</p>
+          <hr style="margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">Diese E-Mail wurde automatisch von ${settings.companyName || 'cflux'} generiert.</p>
+        </div>`,
+      });
+
+      console.log(`Email sent successfully to ${recipientEmails.length} recipients`);
+      return true;
+    } catch (error) {
+      console.error('Error sending workflow email:', error);
+      return false;
+    }
   },
 
   async getInvoiceWorkflowInstances(invoiceId: string) {
@@ -278,6 +566,7 @@ export const workflowService = {
         comment,
       },
       include: {
+        step: true,
         instance: {
           include: {
             steps: {
@@ -297,7 +586,7 @@ export const workflowService = {
 
     // Check if all steps are approved
     const allApproved = instanceStep.instance.steps.every(
-      (step: any) => step.status === 'APPROVED' || step.status === 'SKIPPED'
+      (step: any) => step.status === 'APPROVED' || step.status === 'SKIPPED' || step.status === 'COMPLETED'
     );
 
     if (allApproved) {
@@ -309,19 +598,102 @@ export const workflowService = {
         },
       });
     } else {
-      // Move to next step
-      const currentIndex = instanceStep.instance.steps.findIndex(
-        (s) => s.id === instanceStepId
-      );
-      const nextStep = instanceStep.instance.steps[currentIndex + 1];
-      
-      if (nextStep) {
-        await prisma.workflowInstance.update({
-          where: { id: instanceStep.instanceId },
-          data: {
-            currentStepId: nextStep.stepId,
-          },
-        });
+      // Load workflow definition to find next steps based on edges
+      const workflow = await prisma.workflow.findUnique({
+        where: { id: instanceStep.instance.workflowId },
+        select: { definition: true, steps: true },
+      });
+
+      if (workflow) {
+        const definition = JSON.parse(workflow.definition || '{}');
+        const { nodes = [], edges = [] } = definition;
+
+        // Find current step's node
+        const currentStepNode = nodes.find((n: any) => 
+          n.data?.config?.name === instanceStep.step.name
+        );
+
+        if (currentStepNode) {
+          // Find all edges from current node
+          const outgoingEdges = edges.filter((e: any) => e.source === currentStepNode.id);
+
+          for (const edge of outgoingEdges) {
+            const targetNode = nodes.find((n: any) => n.id === edge.target);
+            if (!targetNode) continue;
+
+            // Find the step that corresponds to target node
+            const targetStep = workflow.steps.find((s: any) => 
+              s.name === targetNode.data?.config?.name
+            );
+            if (!targetStep) continue;
+
+            // Find the instance step
+            const targetInstanceStep = instanceStep.instance.steps.find(
+              (is: any) => is.stepId === targetStep.id
+            );
+            if (!targetInstanceStep) continue;
+
+            // If target is EMAIL, send email immediately
+            if (targetStep.type === 'EMAIL') {
+              const invoice = await prisma.invoice.findUnique({
+                where: { id: instanceStep.instance.invoiceId },
+                include: {
+                  customer: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              });
+
+              if (invoice) {
+                const emailSent = await this.sendWorkflowEmail(targetStep, invoice);
+                
+                await prisma.workflowInstanceStep.update({
+                  where: { id: targetInstanceStep.id },
+                  data: {
+                    status: emailSent ? 'COMPLETED' : 'SKIPPED',
+                  },
+                });
+
+                // Continue to next nodes after EMAIL
+                const emailOutgoingEdges = edges.filter((e: any) => e.source === targetNode.id);
+                for (const nextEdge of emailOutgoingEdges) {
+                  const nextNode = nodes.find((n: any) => n.id === nextEdge.target);
+                  if (nextNode) {
+                    const nextStep = workflow.steps.find((s: any) => 
+                      s.name === nextNode.data?.config?.name
+                    );
+                    if (nextStep) {
+                      const nextInstanceStep = instanceStep.instance.steps.find(
+                        (is: any) => is.stepId === nextStep.id
+                      );
+                      if (nextInstanceStep && nextInstanceStep.status === 'PENDING') {
+                        await prisma.workflowInstance.update({
+                          where: { id: instanceStep.instanceId },
+                          data: {
+                            currentStepId: nextStep.id,
+                          },
+                        });
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+            } else if (targetInstanceStep.status === 'PENDING') {
+              // Move to next PENDING step
+              await prisma.workflowInstance.update({
+                where: { id: instanceStep.instanceId },
+                data: {
+                  currentStepId: targetStep.id,
+                },
+              });
+              break;
+            }
+          }
+        }
       }
     }
 
