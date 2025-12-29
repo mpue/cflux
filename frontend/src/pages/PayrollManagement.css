@@ -1,0 +1,16 @@
+.payroll-management {
+  padding: 20px 0;
+}
+
+.payroll-management .MuiTableCell-head {
+  font-weight: 600;
+  background-color: #f5f5f5;
+}
+
+.payroll-management .MuiTableRow-root:hover {
+  background-color: #fafafa;
+}
+
+.payroll-management .MuiChip-root {
+  min-width: 80px;
+}

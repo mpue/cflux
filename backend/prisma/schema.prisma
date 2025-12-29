@@ -109,6 +109,8 @@ model User {
   workflowApprovals WorkflowInstanceStep[]
   userGroup     UserGroup? @relation("UserGroupDeprecated", fields: [userGroupId], references: [id], onDelete: SetNull)
   userGroupMemberships UserGroupMembership[]
+  payrollEntries PayrollEntry[]
+  salaryConfiguration SalaryConfiguration?
   
   @@index([userGroupId])
   @@map("users")
@@ -877,4 +879,130 @@ model SystemSettings {
   updatedAt             DateTime  @updatedAt
   
   @@map("system_settings")
+}
+
+enum PayrollStatus {
+  DRAFT
+  CALCULATED
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum PayrollType {
+  MONTHLY
+  BONUS
+  CORRECTION
+}
+
+model PayrollPeriod {
+  id          String          @id @default(uuid())
+  name        String          // z.B. "Januar 2025"
+  year        Int
+  month       Int
+  startDate   DateTime
+  endDate     DateTime
+  status      PayrollStatus   @default(DRAFT)
+  type        PayrollType     @default(MONTHLY)
+  notes       String?         @db.Text
+  approvedAt  DateTime?
+  approvedBy  String?
+  paidAt      DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  
+  payrollEntries PayrollEntry[]
+  
+  @@unique([year, month, type])
+  @@index([year, month])
+  @@index([status])
+  @@map("payroll_periods")
+}
+
+model PayrollEntry {
+  id                String        @id @default(uuid())
+  payrollPeriodId   String
+  userId            String
+  
+  // Arbeitsstunden
+  regularHours      Float         @default(0)
+  overtimeHours     Float         @default(0)
+  nightHours        Float         @default(0)
+  sundayHours       Float         @default(0)
+  holidayHours      Float         @default(0)
+  
+  // Bruttogehalt & Zuschläge
+  baseSalary        Float         @default(0)
+  overtimePay       Float         @default(0)
+  nightBonus        Float         @default(0)
+  sundayBonus       Float         @default(0)
+  holidayBonus      Float         @default(0)
+  bonus             Float         @default(0)
+  commission        Float         @default(0)
+  
+  // Abzüge
+  ahvDeduction      Float         @default(0)   // AHV/IV/EO (Schweiz)
+  alvDeduction      Float         @default(0)   // Arbeitslosenversicherung
+  nbuvDeduction     Float         @default(0)   // Nichtberufsunfall
+  pensionDeduction  Float         @default(0)   // Pensionskasse (BVG)
+  taxDeduction      Float         @default(0)   // Quellensteuer
+  otherDeductions   Float         @default(0)
+  
+  // Berechnet
+  grossSalary       Float         @default(0)
+  totalDeductions   Float         @default(0)
+  netSalary         Float         @default(0)
+  
+  // Zusatzinformationen
+  absenceDays       Float         @default(0)
+  vacationDaysTaken Float         @default(0)
+  sickDays          Float         @default(0)
+  
+  notes             String?       @db.Text
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  payrollPeriod     PayrollPeriod @relation(fields: [payrollPeriodId], references: [id], onDelete: Cascade)
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([payrollPeriodId, userId])
+  @@index([userId])
+  @@index([payrollPeriodId])
+  @@map("payroll_entries")
+}
+
+model SalaryConfiguration {
+  id                    String    @id @default(uuid())
+  userId                String    @unique
+  
+  // Grundgehalt
+  monthlySalary         Float     @default(0)
+  hourlySalary          Float?
+  
+  // Zuschlagsätze (in Prozent)
+  overtimeRate          Float     @default(125)   // 125% = +25% Zuschlag
+  nightRate             Float     @default(125)
+  sundayRate            Float     @default(150)
+  holidayRate           Float     @default(200)
+  
+  // Abzugsätze (in Prozent)
+  ahvRate               Float     @default(5.3)   // AHV/IV/EO Arbeitnehmeranteil
+  alvRate               Float     @default(1.1)   // ALV
+  nbuvRate              Float     @default(0.8)   // NBU
+  pensionRate           Float     @default(7.0)   // BVG
+  taxRate               Float     @default(0)     // Quellensteuer (individuell)
+  
+  // Aktiv
+  validFrom             DateTime
+  validUntil            DateTime?
+  isActive              Boolean   @default(true)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([isActive])
+  @@map("salary_configurations")
 }

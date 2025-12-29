@@ -3,6 +3,7 @@ import { User } from '../../types';
 import { userService } from '../../services/user.service';
 import { UserDetailModal } from '../UserDetailModal';
 import PDFReportModal from '../PDFReportModal';
+import SalaryConfigDialog from './SalaryConfigDialog';
 
 const UserCreateModal: React.FC<{
   onClose: () => void;
@@ -141,6 +142,7 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [pdfReportUser, setPdfReportUser] = useState<User | null>(null);
+  const [salaryConfigUser, setSalaryConfigUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showInactive, setShowInactive] = useState(false);
 
@@ -242,6 +244,13 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
                   PDF-Bericht
                 </button>
                 <button
+                  className="btn btn-warning"
+                  style={{ marginRight: '5px', padding: '5px 10px', fontSize: '12px' }}
+                  onClick={() => setSalaryConfigUser(user)}
+                >
+                  💰 Gehalt
+                </button>
+                <button
                   className="btn btn-danger"
                   style={{ padding: '5px 10px', fontSize: '12px' }}
                   onClick={async () => {
@@ -293,6 +302,18 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
           isOpen={true}
           onClose={() => setPdfReportUser(null)}
           isAdmin={true}
+        />
+      )}
+
+      {salaryConfigUser && (
+        <SalaryConfigDialog
+          open={true}
+          user={salaryConfigUser}
+          onClose={() => setSalaryConfigUser(null)}
+          onSuccess={() => {
+            setSalaryConfigUser(null);
+            onUpdate();
+          }}
         />
       )}
     </div>

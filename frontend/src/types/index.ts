@@ -292,3 +292,104 @@ export interface ComplianceStats {
     violationCount: number;
   }>;
 }
+
+// Payroll Types
+export type PayrollStatus = 'DRAFT' | 'CALCULATED' | 'APPROVED' | 'PAID' | 'CANCELLED';
+export type PayrollType = 'MONTHLY' | 'BONUS' | 'CORRECTION';
+
+export interface PayrollPeriod {
+  id: string;
+  name: string;
+  year: number;
+  month: number;
+  startDate: string;
+  endDate: string;
+  status: PayrollStatus;
+  type: PayrollType;
+  notes?: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  paidAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  payrollEntries?: PayrollEntry[];
+}
+
+export interface PayrollEntry {
+  id: string;
+  payrollPeriodId: string;
+  userId: string;
+  
+  // Arbeitsstunden
+  regularHours: number;
+  overtimeHours: number;
+  nightHours: number;
+  sundayHours: number;
+  holidayHours: number;
+  
+  // Bruttogehalt & Zuschläge
+  baseSalary: number;
+  overtimePay: number;
+  nightBonus: number;
+  sundayBonus: number;
+  holidayBonus: number;
+  bonus: number;
+  commission: number;
+  
+  // Abzüge
+  ahvDeduction: number;
+  alvDeduction: number;
+  nbuvDeduction: number;
+  pensionDeduction: number;
+  taxDeduction: number;
+  otherDeductions: number;
+  
+  // Berechnet
+  grossSalary: number;
+  totalDeductions: number;
+  netSalary: number;
+  
+  // Zusatzinformationen
+  absenceDays: number;
+  vacationDaysTaken: number;
+  sickDays: number;
+  
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  
+  payrollPeriod?: PayrollPeriod;
+  user?: User;
+}
+
+export interface SalaryConfiguration {
+  id: string;
+  userId: string;
+  
+  // Grundgehalt
+  monthlySalary: number;
+  hourlySalary?: number;
+  
+  // Zuschlagsätze (in Prozent)
+  overtimeRate: number;
+  nightRate: number;
+  sundayRate: number;
+  holidayRate: number;
+  
+  // Abzugsätze (in Prozent)
+  ahvRate: number;
+  alvRate: number;
+  nbuvRate: number;
+  pensionRate: number;
+  taxRate: number;
+  
+  // Aktiv
+  validFrom: string;
+  validUntil?: string;
+  isActive: boolean;
+  
+  createdAt: string;
+  updatedAt: string;
+  
+  user?: User;
+}

@@ -16,6 +16,7 @@ import IncidentManagement from './pages/IncidentManagement';
 import ModulesPage from './pages/ModulesPage';
 import ModulePermissionsPage from './pages/ModulePermissionsPage';
 import MyApprovals from './pages/MyApprovals';
+import PayrollManagement from './pages/PayrollManagement';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({ 
@@ -126,6 +127,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <MyApprovals />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/payroll"
+              element={
+                <PrivateRoute adminOnly>
+                  <PayrollManagement />
                 </PrivateRoute>
               }
             />

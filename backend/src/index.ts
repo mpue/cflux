@@ -24,6 +24,7 @@ import uploadRoutes from './routes/upload.routes';
 import incidentRoutes from './routes/incident.routes';
 import workflowRoutes from './routes/workflow.routes';
 import systemSettingsRoutes from './routes/systemSettings.routes';
+import payrollRoutes from './routes/payroll.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -64,6 +65,7 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/incidents', incidentRoutes);
 app.use('/api/workflows', workflowRoutes);
 app.use('/api/system-settings', systemSettingsRoutes);
+app.use('/api/payroll', payrollRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
