@@ -7,7 +7,15 @@ export interface User {
   isActive: boolean;
   requiresPasswordChange?: boolean;
   vacationDays: number;
-  userGroupId?: string;
+  userGroupId?: string; // Deprecated: kept for backwards compatibility
+  userGroupMemberships?: Array<{
+    userGroup: {
+      id: string;
+      name: string;
+      color?: string;
+      isActive: boolean;
+    };
+  }>;
   
   // Personalien
   dateOfBirth?: string;

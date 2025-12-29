@@ -90,7 +90,20 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
         canton: true,
         exemptFromTracking: true,
         contractHours: true,
-        createdAt: true
+        createdAt: true,
+        userGroupId: true,
+        userGroupMemberships: {
+          include: {
+            userGroup: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+                isActive: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' }
     });

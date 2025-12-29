@@ -68,7 +68,7 @@ export const addUserToGroup = async (req: Request, res: Response) => {
 
 export const removeUserFromGroup = async (req: Request, res: Response) => {
   try {
-    await userGroupService.removeUserFromGroup(req.params.userId);
+    await userGroupService.removeUserFromGroup(req.params.userId, req.params.id);
     res.status(200).json({ message: 'User removed from group' });
   } catch (error: any) {
     console.error('Error removing user from group:', error);
@@ -83,5 +83,26 @@ export const getUsersByGroup = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error fetching users by group:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch users' });
+  }
+};
+
+export const getUserGroups = async (req: Request, res: Response) => {
+  try {
+    const groups = await userGroupService.getUserGroups(req.params.userId);
+    res.json(groups);
+  } catch (error: any) {
+    console.error('Error fetching user groups:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch user groups' });
+  }
+};
+
+export const setUserGroups = async (req: Request, res: Response) => {
+  try {
+    const { groupIds } = req.body;
+    await userGroupService.setUserGroups(req.params.userId, groupIds);
+    res.status(200).json({ message: 'User groups updated' });
+  } catch (error: any) {
+    console.error('Error setting user groups:', error);
+    res.status(500).json({ error: error.message || 'Failed to update user groups' });
   }
 };

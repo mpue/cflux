@@ -36,23 +36,29 @@ export const userGroupService = {
     });
   },
 
-  async getAllUserGroups(includeInactive: boolean = false): Promise<UserGroup[]> {
+  async getAllUserGroups(includeInactive: boolean = false): Promise<any[]> {
     const where = includeInactive ? {} : { isActive: true };
     
     return await prisma.userGroup.findMany({
       where,
       include: {
-        users: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            isActive: true,
+        userGroupMemberships: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                isActive: true,
+              },
+            },
           },
         },
         _count: {
-          select: { users: true },
+          select: { 
+            userGroupMemberships: true,
+          },
         },
       },
       orderBy: {
@@ -61,18 +67,22 @@ export const userGroupService = {
     });
   },
 
-  async getUserGroupById(id: string): Promise<UserGroup | null> {
+  async getUserGroupById(id: string): Promise<any | null> {
     return await prisma.userGroup.findUnique({
       where: { id },
       include: {
-        users: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            role: true,
-            isActive: true,
+        userGroupMemberships: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+                isActive: true,
+              },
+            },
           },
         },
       },
@@ -84,12 +94,16 @@ export const userGroupService = {
       where: { id },
       data,
       include: {
-        users: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
+        userGroupMemberships: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
           },
         },
       },
@@ -97,47 +111,92 @@ export const userGroupService = {
   },
 
   async deleteUserGroup(id: string): Promise<void> {
-    // First, remove all users from this group
-    await prisma.user.updateMany({
-      where: { userGroupId: id },
-      data: { userGroupId: null },
-    });
-    
-    // Then delete the group
+    // Memberships will be deleted automatically due to cascade
     await prisma.userGroup.delete({
       where: { id },
     });
   },
 
   async addUserToGroup(userId: string, groupId: string): Promise<void> {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { userGroupId: groupId },
+    // Check if membership already exists
+    const existing = await prisma.userGroupMembership.findUnique({
+      where: {
+        userId_userGroupId: {
+          userId,
+          userGroupId: groupId,
+        },
+      },
     });
+
+    if (!existing) {
+      await prisma.userGroupMembership.create({
+        data: {
+          userId,
+          userGroupId: groupId,
+        },
+      });
+    }
   },
 
-  async removeUserFromGroup(userId: string): Promise<void> {
-    await prisma.user.update({
-      where: { id: userId },
-      data: { userGroupId: null },
+  async removeUserFromGroup(userId: string, groupId: string): Promise<void> {
+    await prisma.userGroupMembership.deleteMany({
+      where: {
+        userId,
+        userGroupId: groupId,
+      },
     });
   },
 
   async getUsersByGroup(groupId: string): Promise<any[]> {
-    return await prisma.user.findMany({
+    const memberships = await prisma.userGroupMembership.findMany({
       where: { userGroupId: groupId },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        role: true,
-        isActive: true,
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+            isActive: true,
+          },
+        },
       },
-      orderBy: [
-        { lastName: 'asc' },
-        { firstName: 'asc' },
-      ],
+      orderBy: {
+        user: {
+          lastName: 'asc',
+        },
+      },
     });
+
+    return memberships.map(m => m.user);
+  },
+
+  async getUserGroups(userId: string): Promise<any[]> {
+    const memberships = await prisma.userGroupMembership.findMany({
+      where: { userId },
+      include: {
+        userGroup: true,
+      },
+    });
+
+    return memberships.map(m => m.userGroup);
+  },
+
+  async setUserGroups(userId: string, groupIds: string[]): Promise<void> {
+    // Remove all existing memberships
+    await prisma.userGroupMembership.deleteMany({
+      where: { userId },
+    });
+
+    // Add new memberships
+    if (groupIds.length > 0) {
+      await prisma.userGroupMembership.createMany({
+        data: groupIds.map(groupId => ({
+          userId,
+          userGroupId: groupId,
+        })),
+      });
+    }
   },
 };

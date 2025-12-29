@@ -1,0 +1,131 @@
+/* Module Permissions Dark Mode Styles */
+
+.module-permissions-container {
+  background-color: var(--bg-primary);
+  min-height: 100vh;
+}
+
+.module-permissions-paper {
+  background-color: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.module-permissions-select {
+  color: var(--text-primary) !important;
+}
+
+.module-permissions-select .MuiOutlinedInput-notchedOutline {
+  border-color: var(--input-border) !important;
+}
+
+.module-permissions-select:hover .MuiOutlinedInput-notchedOutline {
+  border-color: var(--border-color) !important;
+}
+
+.module-permissions-select.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--primary-color) !important;
+}
+
+.module-permissions-select .MuiSvgIcon-root {
+  color: var(--text-secondary) !important;
+}
+
+.module-permissions-label {
+  color: var(--text-secondary) !important;
+}
+
+.module-permissions-menuitem {
+  color: var(--text-primary) !important;
+  background-color: var(--bg-primary) !important;
+}
+
+.module-permissions-menuitem:hover {
+  background-color: var(--table-hover) !important;
+}
+
+.module-permissions-menuitem.Mui-selected {
+  background-color: var(--bg-tertiary) !important;
+}
+
+.module-permissions-menuitem.Mui-selected:hover {
+  background-color: var(--table-hover) !important;
+}
+
+.module-permissions-table-container {
+  background-color: var(--card-bg) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.module-permissions-table-head {
+  background-color: var(--bg-secondary) !important;
+}
+
+.module-permissions-table-cell {
+  color: var(--text-primary) !important;
+  border-color: var(--table-border) !important;
+}
+
+.module-permissions-table-cell-header {
+  color: var(--text-primary) !important;
+  border-color: var(--table-border) !important;
+  font-weight: bold !important;
+}
+
+.module-permissions-table-row:hover {
+  background-color: var(--table-hover) !important;
+}
+
+.module-permissions-checkbox {
+  color: var(--text-secondary) !important;
+}
+
+.module-permissions-checkbox.Mui-checked {
+  color: var(--primary-color) !important;
+}
+
+.module-permissions-checkbox.Mui-disabled {
+  color: var(--border-color) !important;
+}
+
+.module-permissions-chip {
+  border-color: var(--border-color) !important;
+  color: var(--text-secondary) !important;
+}
+
+.module-permissions-chip-primary {
+  border-color: var(--primary-color) !important;
+  color: var(--primary-color) !important;
+}
+
+.module-permissions-icon {
+  color: var(--primary-color) !important;
+}
+
+.module-permissions-title {
+  color: var(--text-primary) !important;
+}
+
+.module-permissions-alert-error {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid #dc2626 !important;
+}
+
+.module-permissions-alert-error .MuiAlert-icon {
+  color: #dc2626 !important;
+}
+
+.module-permissions-alert-success {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid #22c55e !important;
+}
+
+.module-permissions-alert-success .MuiAlert-icon {
+  color: #22c55e !important;
+}
+
+.module-permissions-loading {
+  color: var(--text-primary) !important;
+}

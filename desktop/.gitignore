@@ -1,0 +1,16 @@
+# Electron Desktop Application
+
+# Development
+node_modules/
+dist/
+
+# Production
+*.log
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db

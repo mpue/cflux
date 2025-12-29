@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import moduleService, { Module, ModuleAccess } from '../services/module.service';
 import { userGroupService, UserGroup } from '../services/userGroup.service';
+import '../styles/ModulePermissions.css';
 
 const ModulePermissionsPage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const [modules, setModules] = useState<Module[]>([]);
@@ -156,7 +157,7 @@ const ModulePermissionsPage: React.FC<{ embedded?: boolean }> = ({ embedded = fa
   if (loading) {
     return (
       <Box sx={{ p: 3 }}>
-        <Typography>Lade Daten...</Typography>
+        <Typography className="module-permissions-loading">Lade Daten...</Typography>
       </Box>
     );
   }
@@ -165,35 +166,50 @@ const ModulePermissionsPage: React.FC<{ embedded?: boolean }> = ({ embedded = fa
     <>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <SecurityIcon sx={{ fontSize: 40, color: 'primary.main' }} />
-          <Typography variant="h4" component="h1">
+          <SecurityIcon className="module-permissions-icon" sx={{ fontSize: 40 }} />
+          <Typography variant="h4" component="h1" className="module-permissions-title">
             Modulberechtigungen
           </Typography>
         </Box>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+        <Alert 
+          severity="error" 
+          className="module-permissions-alert-error"
+          sx={{ mb: 3 }} 
+          onClose={() => setError(null)}
+        >
           {error}
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
+        <Alert 
+          severity="success" 
+          className="module-permissions-alert-success"
+          sx={{ mb: 3 }} 
+          onClose={() => setSuccess(null)}
+        >
           {success}
         </Alert>
       )}
 
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper className="module-permissions-paper" sx={{ p: 3, mb: 3 }}>
         <FormControl fullWidth>
-          <InputLabel>Benutzergruppe auswählen</InputLabel>
+          <InputLabel className="module-permissions-label">Benutzergruppe auswählen</InputLabel>
           <Select
             value={selectedGroupId}
             onChange={(e) => setSelectedGroupId(e.target.value)}
             label="Benutzergruppe auswählen"
+            className="module-permissions-select"
           >
             {userGroups.map((group) => (
-              <MenuItem key={group.id} value={group.id}>
+              <MenuItem 
+                key={group.id} 
+                value={group.id}
+                className="module-permissions-menuitem"
+              >
                 {group.name}
               </MenuItem>
             ))}
@@ -214,68 +230,83 @@ const ModulePermissionsPage: React.FC<{ embedded?: boolean }> = ({ embedded = fa
             </Button>
           </Box>
 
-          <TableContainer component={Paper}>
+          <TableContainer component={Paper} className="module-permissions-table-container">
             <Table>
-              <TableHead>
+              <TableHead className="module-permissions-table-head">
                 <TableRow>
-                  <TableCell>Modul</TableCell>
-                  <TableCell align="center">Ansehen</TableCell>
-                  <TableCell align="center">Erstellen</TableCell>
-                  <TableCell align="center">Bearbeiten</TableCell>
-                  <TableCell align="center">Löschen</TableCell>
+                  <TableCell className="module-permissions-table-cell-header">Modul</TableCell>
+                  <TableCell align="center" className="module-permissions-table-cell-header">Ansehen</TableCell>
+                  <TableCell align="center" className="module-permissions-table-cell-header">Erstellen</TableCell>
+                  <TableCell align="center" className="module-permissions-table-cell-header">Bearbeiten</TableCell>
+                  <TableCell align="center" className="module-permissions-table-cell-header">Löschen</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {modules.map((module) => {
                   const access = getAccessForModule(module.id);
                   return (
-                    <TableRow key={module.id}>
-                      <TableCell>
+                    <TableRow key={module.id} className="module-permissions-table-row">
+                      <TableCell className="module-permissions-table-cell">
                         <Box>
-                          <Typography variant="body1" fontWeight="medium">
+                          <Typography variant="body1" fontWeight="medium" className="module-permissions-title">
                             {module.name}
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                            <Chip label={module.key} size="small" variant="outlined" />
+                            <Chip 
+                              label={module.key} 
+                              size="small" 
+                              variant="outlined"
+                              className="module-permissions-chip"
+                            />
                             {module.route && (
-                              <Chip label={module.route} size="small" color="primary" variant="outlined" />
+                              <Chip 
+                                label={module.route} 
+                                size="small" 
+                                color="primary" 
+                                variant="outlined"
+                                className="module-permissions-chip-primary"
+                              />
                             )}
                           </Box>
                         </Box>
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" className="module-permissions-table-cell">
                         <Checkbox
                           checked={access?.canView || false}
                           onChange={(e) =>
                             handlePermissionChange(module.id, 'canView', e.target.checked)
                           }
+                          className="module-permissions-checkbox"
                         />
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" className="module-permissions-table-cell">
                         <Checkbox
                           checked={access?.canCreate || false}
                           onChange={(e) =>
                             handlePermissionChange(module.id, 'canCreate', e.target.checked)
                           }
                           disabled={!access?.canView}
+                          className="module-permissions-checkbox"
                         />
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" className="module-permissions-table-cell">
                         <Checkbox
                           checked={access?.canEdit || false}
                           onChange={(e) =>
                             handlePermissionChange(module.id, 'canEdit', e.target.checked)
                           }
                           disabled={!access?.canView}
+                          className="module-permissions-checkbox"
                         />
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" className="module-permissions-table-cell">
                         <Checkbox
                           checked={access?.canDelete || false}
                           onChange={(e) =>
                             handlePermissionChange(module.id, 'canDelete', e.target.checked)
                           }
                           disabled={!access?.canView}
+                          className="module-permissions-checkbox"
                         />
                       </TableCell>
                     </TableRow>
@@ -289,7 +320,11 @@ const ModulePermissionsPage: React.FC<{ embedded?: boolean }> = ({ embedded = fa
     </>
   );
 
-  return embedded ? content : <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>{content}</Container>;
+  return embedded ? content : (
+    <Container maxWidth="lg" className="module-permissions-container" sx={{ mt: 4, mb: 4 }}>
+      {content}
+    </Container>
+  );
 };
 
 export default ModulePermissionsPage;

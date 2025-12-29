@@ -16,4 +16,8 @@ router.post('/:id/users', userGroupController.addUserToGroup);
 router.delete('/:id/users/:userId', userGroupController.removeUserFromGroup);
 router.get('/:id/users', userGroupController.getUsersByGroup);
 
+// New routes for managing user's groups
+router.get('/users/:userId/groups', userGroupController.getUserGroups);
+router.put('/users/:userId/groups', userGroupController.setUserGroups);
+
 export default router;

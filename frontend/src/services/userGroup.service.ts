@@ -8,16 +8,18 @@ export interface UserGroup {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  users?: Array<{
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    role?: string;
-    isActive?: boolean;
+  userGroupMemberships?: Array<{
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      role?: string;
+      isActive?: boolean;
+    };
   }>;
   _count?: {
-    users: number;
+    userGroupMemberships: number;
   };
 }
 
@@ -70,5 +72,14 @@ export const userGroupService = {
   async getUsers(groupId: string): Promise<any[]> {
     const response = await api.get(`/user-groups/${groupId}/users`);
     return response.data;
+  },
+
+  async getUserGroups(userId: string): Promise<UserGroup[]> {
+    const response = await api.get(`/user-groups/users/${userId}/groups`);
+    return response.data;
+  },
+
+  async setUserGroups(userId: string, groupIds: string[]): Promise<void> {
+    await api.put(`/user-groups/users/${userId}/groups`, { groupIds });
   },
 };
