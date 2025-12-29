@@ -270,6 +270,14 @@
 .btn-small {
   padding: 0.35rem 0.75rem;
   font-size: 0.85rem;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-small:hover {
+  background: var(--bg-secondary);
+  border-color: var(--text-secondary);
 }
 
 .btn-success {
@@ -310,4 +318,26 @@
   .filter-buttons button {
     flex: 1;
   }
+}
+
+/* Dark Mode Styles */
+[data-theme='dark'] .btn-small {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme='dark'] .btn-small:hover {
+  background: var(--bg-secondary);
+  border-color: var(--text-secondary);
+}
+
+[data-theme='dark'] .btn-success {
+  background: #22c55e;
+  color: white;
+  border: none;
+}
+
+[data-theme='dark'] .btn-success:hover {
+  background: #16a34a;
 }

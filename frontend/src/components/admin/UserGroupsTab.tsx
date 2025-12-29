@@ -19,6 +19,16 @@ const UserGroupsDialog: React.FC<UserGroupsDialogProps> = ({ user, groups, onClo
     return user.userGroupMemberships?.map(m => m.userGroup.id) || [];
   });
 
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
   const toggleGroup = (groupId: string) => {
     setSelectedGroupIds(prev => 
       prev.includes(groupId) 

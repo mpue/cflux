@@ -48,6 +48,20 @@ const IncidentManagement: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showDetailModal) {
+          setShowDetailModal(false);
+        } else if (showCreateModal) {
+          setShowCreateModal(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [showDetailModal, showCreateModal]);
+
+  useEffect(() => {
     loadData();
   }, [filterStatus, filterPriority]);
 

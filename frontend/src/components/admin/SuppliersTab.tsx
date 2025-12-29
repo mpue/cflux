@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Supplier } from '../../types';
 import * as supplierService from '../../services/supplierService';
+import { BaseModal } from '../common/BaseModal';
 
 interface SuppliersTabProps {
   suppliers: Supplier[];
@@ -205,9 +206,9 @@ const SupplierModal: React.FC<{
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '90vh', overflow: 'auto' }}>
-        <h2>{supplier ? 'Lieferant bearbeiten' : 'Neuer Lieferant'}</h2>
+    <BaseModal isOpen={true} onClose={onClose} maxWidth="600px">
+      <h2>{supplier ? 'Lieferant bearbeiten' : 'Neuer Lieferant'}</h2>
+      <div style={{ maxHeight: '70vh', overflow: 'auto' }}>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Lieferantenname *</label>
@@ -324,6 +325,6 @@ const SupplierModal: React.FC<{
           </div>
         </form>
       </div>
-    </div>
+    </BaseModal>
   );
 };

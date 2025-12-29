@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import '../styles/PDFReportModal.css';
 
@@ -15,6 +15,18 @@ const PDFReportModal: React.FC<PDFReportModalProps> = ({
   onClose,
   isAdmin = false 
 }) => {
+  useEffect(() => {
+    if (isOpen) {
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      };
+      window.addEventListener('keydown', handleEscape);
+      return () => window.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen, onClose]);
+
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [includeDetailed, setIncludeDetailed] = useState<boolean>(true);

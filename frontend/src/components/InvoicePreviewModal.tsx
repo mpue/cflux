@@ -14,6 +14,16 @@ const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoice, onCl
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  useEffect(() => {
     const loadTemplate = async () => {
       try {
         if (invoice.templateId) {

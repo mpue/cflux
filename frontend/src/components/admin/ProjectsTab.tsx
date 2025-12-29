@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Project, User } from '../../types';
 import { projectService } from '../../services/project.service';
 import { userService } from '../../services/user.service';
+import { BaseModal } from '../common/BaseModal';
 
 interface ProjectsTabProps {
   projects: Project[];
@@ -142,10 +143,9 @@ const ProjectModal: React.FC<{
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{project ? 'Projekt bearbeiten' : 'Neues Projekt'}</h2>
-        <form onSubmit={handleSubmit}>
+    <BaseModal isOpen={true} onClose={onClose}>
+      <h2>{project ? 'Projekt bearbeiten' : 'Neues Projekt'}</h2>
+      <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Name</label>
             <input
@@ -186,8 +186,7 @@ const ProjectModal: React.FC<{
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </BaseModal>
   );
 };
 
@@ -228,10 +227,9 @@ const ProjectAssignModal: React.FC<{
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Benutzer zu "{project.name}" zuweisen</h2>
-        {loading ? (
+    <BaseModal isOpen={true} onClose={onClose} maxWidth="700px">
+      <h2>Benutzer zu "{project.name}" zuweisen</h2>
+      {loading ? (
           <p>Lädt...</p>
         ) : (
           <div>
@@ -268,7 +266,6 @@ const ProjectAssignModal: React.FC<{
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </BaseModal>
   );
 };

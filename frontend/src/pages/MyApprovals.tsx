@@ -47,6 +47,16 @@ const MyApprovals: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedApproval) {
+        setSelectedApproval(null);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [selectedApproval]);
+
   const loadApprovals = async () => {
     try {
       const data = await workflowService.getMyPendingApprovals();

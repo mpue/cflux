@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Location } from '../../types';
 import { locationService } from '../../services/location.service';
+import { BaseModal } from '../common/BaseModal';
 
 interface LocationsTabProps {
   locations: Location[];
@@ -117,19 +118,18 @@ const LocationModal: React.FC<{
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>{location ? 'Standort bearbeiten' : 'Neuer Standort'}</h2>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-            />
-          </div>
+    <BaseModal isOpen={true} onClose={onClose}>
+      <h2>{location ? 'Standort bearbeiten' : 'Neuer Standort'}</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label>Name</label>
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+          />
+        </div>
 
           <div className="form-group">
             <label>Adresse</label>
@@ -170,7 +170,6 @@ const LocationModal: React.FC<{
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </BaseModal>
   );
 };

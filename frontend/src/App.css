@@ -27,6 +27,14 @@
   font-size: 14px;
   font-weight: 500;
   transition: all 0.2s;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--text-secondary);
 }
 
 .btn-primary {
@@ -289,6 +297,60 @@ input:-webkit-autofill:active {
 [data-theme='dark'] .stat-card {
   background: linear-gradient(135deg, #3a4fc5 0%, #4a2768 100%);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Dark Mode Button Styles */
+[data-theme='dark'] .btn {
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme='dark'] .btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+[data-theme='dark'] .btn-primary:hover {
+  background-color: var(--primary-hover);
+  border-color: var(--primary-hover);
+}
+
+[data-theme='dark'] .btn-secondary {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .btn-secondary:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--text-secondary);
+}
+
+[data-theme='dark'] .btn-success {
+  background-color: #22c55e;
+  color: white;
+  border-color: #22c55e;
+}
+
+[data-theme='dark'] .btn-success:hover {
+  background-color: #16a34a;
+  border-color: #16a34a;
+}
+
+[data-theme='dark'] .btn-danger {
+  background-color: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+[data-theme='dark'] .btn-danger:hover {
+  background-color: #dc2626;
+  border-color: #dc2626;
+}
+
+[data-theme='dark'] .btn-small {
+  color: var(--text-primary);
 }
 
 .stat-card h3 {

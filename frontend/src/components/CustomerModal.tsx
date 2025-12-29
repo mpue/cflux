@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Customer } from '../types';
+import { BaseModal } from './common/BaseModal';
 
 interface CustomerModalProps {
   customer?: Customer;
@@ -34,14 +35,13 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({ customer, onClose,
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>{customer ? 'Kunde bearbeiten' : 'Neuer Kunde'}</h2>
-          <button className="close-button" onClick={onClose}>&times;</button>
-        </div>
-        
-        <form onSubmit={handleSubmit}>
+    <BaseModal isOpen={true} onClose={onClose} maxWidth="700px">
+      <div className="modal-header">
+        <h2>{customer ? 'Kunde bearbeiten' : 'Neuer Kunde'}</h2>
+        <button className="close-button" onClick={onClose}>&times;</button>
+      </div>
+      
+      <form onSubmit={handleSubmit}>
           <div className="modal-body">
             <div className="form-section">
               <h3>Grunddaten</h3>
@@ -175,7 +175,6 @@ export const CustomerModal: React.FC<CustomerModalProps> = ({ customer, onClose,
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </BaseModal>
   );
 };

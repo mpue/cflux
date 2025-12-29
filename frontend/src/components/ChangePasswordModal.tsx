@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import '../styles/ChangePasswordModal.css';
 
 interface ChangePasswordModalProps {
@@ -12,6 +12,16 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   onPasswordChanged,
   onCancel
 }) => {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && onCancel && !isFirstLogin) {
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onCancel, isFirstLogin]);
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
