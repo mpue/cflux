@@ -23,13 +23,24 @@ export const register = async (req: AuthRequest, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Sicherheit: Nur Admins können Benutzer mit Admin-Rolle erstellen
+    let assignedRole = 'USER';
+    if (role && role === 'ADMIN') {
+      // Prüfe ob der anfragende Benutzer Admin ist
+      if (req.user && req.user.role === 'ADMIN') {
+        assignedRole = 'ADMIN';
+      } else {
+        return res.status(403).json({ error: 'Only admins can create admin users' });
+      }
+    }
+
     // Datum-Strings in DateTime konvertieren
     const userData: any = {
       email,
       password: hashedPassword,
       firstName,
       lastName,
-      role: role || 'USER',
+      role: assignedRole,
       vacationDays: vacationDays !== undefined ? vacationDays : 30,
       isActive: isActive !== undefined ? isActive : true,
       ...additionalFields

@@ -465,3 +465,44 @@ export const getMyPayrollEntries = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to get payroll entries' });
   }
 };
+
+// Abrechnungen für einen bestimmten Benutzer abrufen (für Admin)
+export const getUserPayrollEntries = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+
+    const entries = await prisma.payrollEntry.findMany({
+      where: { userId },
+      include: {
+        payrollPeriod: true,
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            employeeNumber: true
+          }
+        }
+      },
+      orderBy: [
+        {
+          payrollPeriod: {
+            year: 'desc'
+          }
+        },
+        {
+          payrollPeriod: {
+            month: 'desc'
+          }
+        }
+      ]
+    });
+
+    res.json(entries);
+  } catch (error) {
+    console.error('Get user payroll entries error:', error);
+    res.status(500).json({ error: 'Failed to get payroll entries' });
+  }
+};
+

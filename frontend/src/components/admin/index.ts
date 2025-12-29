@@ -17,3 +17,4 @@ export { default as ArticlesTab } from './ArticlesTab';
 export { default as InvoiceTemplatesTab } from './InvoiceTemplatesTab';
 export { default as InvoicesTab } from './InvoicesTab';
 export { default as SalaryConfigDialog } from './SalaryConfigDialog';
+export { default as UserPayrollHistory } from './UserPayrollHistory';

@@ -87,15 +87,26 @@ export const moduleService = {
       throw new Error('User not found');
     }
 
-    // Admin has access to all modules
+    // Admin has access to all modules with full permissions
     if (user.role === 'ADMIN') {
-      return await prisma.module.findMany({
+      const allModules = await prisma.module.findMany({
         where: { isActive: true },
         orderBy: [
           { sortOrder: 'asc' },
           { name: 'asc' },
         ],
       });
+      
+      // Add full permissions for admin
+      return allModules.map(module => ({
+        ...module,
+        permissions: {
+          canView: true,
+          canCreate: true,
+          canEdit: true,
+          canDelete: true,
+        },
+      }));
     }
 
     // Return modules accessible by user's group

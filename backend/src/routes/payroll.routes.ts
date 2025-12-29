@@ -22,6 +22,9 @@ router.post('/periods/:id/calculate', authorize('ADMIN'), payrollController.calc
 // Einzelne Abrechnungseinträge
 router.post('/entries', authorize('ADMIN'), payrollController.upsertPayrollEntry);
 
+// Abrechnungen pro Benutzer (Admin)
+router.get('/user/:userId/entries', authorize('ADMIN'), payrollController.getUserPayrollEntries);
+
 // Gehaltskonfiguration
 router.get('/salary-config/:userId', authorize('ADMIN'), payrollController.getSalaryConfiguration);
 router.post('/salary-config', authorize('ADMIN'), payrollController.upsertSalaryConfiguration);

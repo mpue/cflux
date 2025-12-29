@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useModules } from '../contexts/ModuleContext';
 import { timeService } from '../services/time.service';
 import { projectService } from '../services/project.service';
 import { absenceService } from '../services/absence.service';
@@ -9,11 +10,14 @@ import { locationService } from '../services/location.service';
 import { workflowService } from '../services/workflow.service';
 import { TimeEntry, Project, AbsenceRequest, Report, Location } from '../types';
 import PDFReportModal from '../components/PDFReportModal';
+import MyPayrollEntries from '../components/MyPayrollEntries';
 import '../App.css';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  const { modules } = useModules();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'timetracking' | 'payroll'>('timetracking');
   const [currentEntry, setCurrentEntry] = useState<TimeEntry | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -220,9 +224,11 @@ const Dashboard: React.FC = () => {
             <button className="btn btn-secondary" onClick={() => navigate('/incidents')}>
               Incidents
             </button>
-            <button className="btn btn-secondary" onClick={() => navigate('/admin')}>
-              {user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'}
-            </button>
+            {(user?.role === 'ADMIN' || modules.length > 0) && (
+              <button className="btn btn-secondary" onClick={() => navigate('/admin')}>
+                {user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'}
+              </button>
+            )}
             <button className="btn btn-secondary" onClick={handleLogout}>
             Abmelden
           </button>
@@ -262,6 +268,46 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
+        <div style={{ 
+          display: 'flex', 
+          gap: '10px', 
+          marginBottom: '20px',
+          borderBottom: '2px solid #e0e0e0'
+        }}>
+          <button
+            onClick={() => setActiveTab('timetracking')}
+            style={{
+              padding: '10px 20px',
+              background: activeTab === 'timetracking' ? '#007bff' : 'transparent',
+              color: activeTab === 'timetracking' ? 'white' : '#333',
+              border: 'none',
+              borderBottom: activeTab === 'timetracking' ? '3px solid #007bff' : 'none',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: activeTab === 'timetracking' ? 'bold' : 'normal'
+            }}
+          >
+            ⏰ Zeiterfassung
+          </button>
+          <button
+            onClick={() => setActiveTab('payroll')}
+            style={{
+              padding: '10px 20px',
+              background: activeTab === 'payroll' ? '#007bff' : 'transparent',
+              color: activeTab === 'payroll' ? 'white' : '#333',
+              border: 'none',
+              borderBottom: activeTab === 'payroll' ? '3px solid #007bff' : 'none',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: activeTab === 'payroll' ? 'bold' : 'normal'
+            }}
+          >
+            💰 Lohnabrechnungen
+          </button>
+        </div>
+
+        {activeTab === 'timetracking' && (
+        <>
         <div className="card">
           <h2>Zeit erfassen</h2>
           
@@ -543,6 +589,12 @@ const Dashboard: React.FC = () => {
           </table>
           </div>
         </div>
+        </>
+        )}
+
+        {activeTab === 'payroll' && (
+          <MyPayrollEntries />
+        )}
       </div>
     </div>
 

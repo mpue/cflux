@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ModuleProvider } from './contexts/ModuleContext';
+import { ModuleProvider, useModules } from './contexts/ModuleContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ThemeToggle from './components/ThemeToggle';
 import Login from './pages/Login';
@@ -19,11 +19,13 @@ import MyApprovals from './pages/MyApprovals';
 import PayrollManagement from './pages/PayrollManagement';
 import './App.css';
 
-const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }> = ({ 
+const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
   children, 
-  adminOnly = false 
+  adminOnly = false,
+  allowModuleAccess = false
 }) => {
   const { user, loading } = useAuth();
+  const { modules } = useModules();
 
   if (loading) {
     return <div>Loading...</div>;
@@ -33,8 +35,15 @@ const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean }>
     return <Navigate to="/login" />;
   }
 
-  if (adminOnly && user.role !== 'ADMIN') {
-    return <Navigate to="/dashboard" />;
+  if (adminOnly) {
+    // Wenn allowModuleAccess true ist, auch Benutzer mit Modulberechtigungen durchlassen
+    if (allowModuleAccess && modules.length > 0) {
+      return <>{children}</>;
+    }
+    // Sonst nur Admins
+    if (user.role !== 'ADMIN') {
+      return <Navigate to="/dashboard" />;
+    }
   }
 
   return <>{children}</>;
@@ -61,7 +70,7 @@ function App() {
             <Route
               path="/admin"
               element={
-                <PrivateRoute>
+                <PrivateRoute adminOnly allowModuleAccess>
                   <AdminDashboard />
                 </PrivateRoute>
               }

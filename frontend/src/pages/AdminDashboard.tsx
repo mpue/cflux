@@ -68,6 +68,19 @@ const AdminDashboard: React.FC = () => {
   const [violationFilter, setViolationFilter] = useState<'all' | 'unresolved' | 'critical'>('unresolved');
   const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
 
+  // Sicherheitsprüfung: Nur Admins oder Benutzer mit Modulzugriff
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    // Zusätzliche Sicherheitsebene - prüfe ob der User überhaupt Zugriff haben sollte
+    if (user.role !== 'ADMIN' && !hasModuleAccess('users') && !hasModuleAccess('projects')) {
+      alert('Sie haben keine Berechtigung für diesen Bereich.');
+      navigate('/');
+    }
+  }, [user, navigate, hasModuleAccess]);
+
   useEffect(() => {
     document.title = user?.role === 'ADMIN' ? 'CFlux - Administration' : 'CFlux - Verwaltung';
   }, [user]);
