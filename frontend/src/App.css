@@ -207,6 +207,7 @@ input:-webkit-autofill:active {
   display: flex;
   align-items: center;
   gap: 20px;
+  margin-right: 70px; /* Platz für den Theme Toggle Button */
 }
 
 .table {

@@ -15,7 +15,8 @@
     "seed": "node dist/prisma/seed.js",
     "seed:dev": "ts-node prisma/seed.ts",
     "seed:modules": "node prisma/seedModules.js",
-    "seed:modules:dev": "ts-node prisma/seedModules.ts"
+    "seed:modules:dev": "ts-node prisma/seedModules.ts",
+    "backup": "ts-node scripts/create-full-backup.ts"
   },
   "keywords": [
     "timetracking",

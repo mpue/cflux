@@ -21,36 +21,126 @@ export const createBackup = async (req: Request, res: Response) => {
     const filename = `backup_${timestamp}.json`;
     const filepath = path.join(BACKUP_DIR, filename);
 
-    // Export all data using Prisma
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        password: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        isActive: true,
-        vacationDays: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    });
-
-    const projects = await prisma.project.findMany();
-    const timeEntries = await prisma.timeEntry.findMany();
-    const absenceRequests = await prisma.absenceRequest.findMany();
-    const projectAssignments = await prisma.projectAssignment.findMany();
+    // Export all data using Prisma - Alle Tabellen
+    const [
+      users,
+      userGroups,
+      userGroupMemberships,
+      modules,
+      moduleAccess,
+      customers,
+      suppliers,
+      articleGroups,
+      articles,
+      projects,
+      locations,
+      projectAssignments,
+      timeEntries,
+      absenceRequests,
+      holidays,
+      overtimeBalances,
+      complianceViolations,
+      complianceSettings,
+      invoiceTemplates,
+      invoices,
+      invoiceItems,
+      reminders,
+      reminderSettings,
+      incidents,
+      incidentComments,
+      workflows,
+      workflowSteps,
+      invoiceTemplateWorkflows,
+      workflowInstances,
+      workflowInstanceSteps,
+      systemSettings
+    ] = await Promise.all([
+      prisma.user.findMany(),
+      prisma.userGroup.findMany(),
+      prisma.userGroupMembership.findMany(),
+      prisma.module.findMany(),
+      prisma.moduleAccess.findMany(),
+      prisma.customer.findMany(),
+      prisma.supplier.findMany(),
+      prisma.articleGroup.findMany(),
+      prisma.article.findMany(),
+      prisma.project.findMany(),
+      prisma.location.findMany(),
+      prisma.projectAssignment.findMany(),
+      prisma.timeEntry.findMany(),
+      prisma.absenceRequest.findMany(),
+      prisma.holiday.findMany(),
+      prisma.overtimeBalance.findMany(),
+      prisma.complianceViolation.findMany(),
+      prisma.complianceSettings.findMany(),
+      prisma.invoiceTemplate.findMany(),
+      prisma.invoice.findMany(),
+      prisma.invoiceItem.findMany(),
+      prisma.reminder.findMany(),
+      prisma.reminderSettings.findMany(),
+      prisma.incident.findMany(),
+      prisma.incidentComment.findMany(),
+      prisma.workflow.findMany(),
+      prisma.workflowStep.findMany(),
+      prisma.invoiceTemplateWorkflow.findMany(),
+      prisma.workflowInstance.findMany(),
+      prisma.workflowInstanceStep.findMany(),
+      prisma.systemSettings.findMany()
+    ]);
 
     const backup = {
-      version: '1.0',
+      version: '2.0',
       timestamp: new Date().toISOString(),
+      schemaInfo: {
+        tablesCount: 31,
+        description: 'Complete database backup including all modules'
+      },
       data: {
         users,
+        userGroups,
+        userGroupMemberships,
+        modules,
+        moduleAccess,
+        customers,
+        suppliers,
+        articleGroups,
+        articles,
         projects,
+        locations,
+        projectAssignments,
         timeEntries,
         absenceRequests,
-        projectAssignments
+        holidays,
+        overtimeBalances,
+        complianceViolations,
+        complianceSettings,
+        invoiceTemplates,
+        invoices,
+        invoiceItems,
+        reminders,
+        reminderSettings,
+        incidents,
+        incidentComments,
+        workflows,
+        workflowSteps,
+        invoiceTemplateWorkflows,
+        workflowInstances,
+        workflowInstanceSteps,
+        systemSettings
+      },
+      statistics: {
+        usersCount: users.length,
+        userGroupsCount: userGroups.length,
+        customersCount: customers.length,
+        suppliersCount: suppliers.length,
+        articlesCount: articles.length,
+        projectsCount: projects.length,
+        locationsCount: locations.length,
+        timeEntriesCount: timeEntries.length,
+        absenceRequestsCount: absenceRequests.length,
+        invoicesCount: invoices.length,
+        incidentsCount: incidents.length,
+        workflowsCount: workflows.length
       }
     };
 
@@ -61,7 +151,8 @@ export const createBackup = async (req: Request, res: Response) => {
       message: 'Backup created successfully',
       filename,
       timestamp: new Date().toISOString(),
-      size: fs.statSync(filepath).size
+      size: fs.statSync(filepath).size,
+      statistics: backup.statistics
     });
   } catch (error: any) {
     console.error('Backup creation error:', error);
