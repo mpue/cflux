@@ -75,6 +75,19 @@ const AdminDashboard: React.FC = () => {
   const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
   const [devices, setDevices] = useState<Device[]>([]);
   const [travelExpenses, setTravelExpenses] = useState<any[]>([]);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  const toggleGroup = (groupName: string) => {
+    setCollapsedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(groupName)) {
+        newSet.delete(groupName);
+      } else {
+        newSet.add(groupName);
+      }
+      return newSet;
+    });
+  };
 
   // Sicherheitsprüfung: Nur Admins oder Benutzer mit Modulzugriff
   useEffect(() => {
@@ -269,195 +282,302 @@ const AdminDashboard: React.FC = () => {
       <div className="admin-container">
         <div className="admin-card">
           <div className="tab-navigation">
-            {(user?.role === 'ADMIN' || hasModuleAccess('users')) && (
-              <TabButton
-                active={activeTab === 'users'}
-                onClick={() => setActiveTab('users')}
-                label="👥 Benutzer"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('user_groups')) && (
-              <TabButton
-                active={activeTab === 'userGroups'}
-                onClick={() => setActiveTab('userGroups')}
-                label="👨‍👩‍👧‍👦 Benutzergruppen"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('projects')) && (
-              <TabButton
-                active={activeTab === 'projects'}
-                onClick={() => setActiveTab('projects')}
-                label="📁 Projekte"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('locations')) && (
-              <TabButton
-                active={activeTab === 'locations'}
-                onClick={() => setActiveTab('locations')}
-                label="📍 Standorte"
-              />
-            )}
-            {user?.role === 'ADMIN' && (
-              <TabButton
-                active={activeTab === 'devices'}
-                onClick={() => setActiveTab('devices')}
-                label="📱 Geräte"
-              />
-            )}
-            {user?.role === 'ADMIN' && (
-              <TabButton
-                active={activeTab === 'travelExpenses'}
-                onClick={() => setActiveTab('travelExpenses')}
-                label="💰 Reisekosten"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('customers')) && (
-              <TabButton
-                active={activeTab === 'customers'}
-                onClick={() => setActiveTab('customers')}
-                label="🤝 Kunden"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('suppliers')) && (
-              <TabButton
-                active={activeTab === 'suppliers'}
-                onClick={() => setActiveTab('suppliers')}
-                label="🚚 Lieferanten"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (
-              <TabButton
-                active={activeTab === 'articleGroups'}
-                onClick={() => setActiveTab('articleGroups')}
-                label="📦 Artikelgruppen"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (
-              <TabButton
-                active={activeTab === 'articles'}
-                onClick={() => setActiveTab('articles')}
-                label="🏷️ Artikel"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('invoices')) && (
-              <TabButton
-                active={activeTab === 'invoices'}
-                onClick={() => setActiveTab('invoices')}
-                label="📄 Rechnungen"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('invoices')) && (
-              <TabButton
-                active={activeTab === 'invoiceTemplates'}
-                onClick={() => setActiveTab('invoiceTemplates')}
-                label="📋 Rechnungsvorlagen"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('reminders')) && (
-              <TabButton
-                active={activeTab === 'reminders'}
-                onClick={() => setActiveTab('reminders')}
-                label="💰 Mahnwesen"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('absences')) && (
-              <TabButton
-                active={activeTab === 'absences'}
-                onClick={() => setActiveTab('absences')}
-                label="🏖️ Abwesenheiten"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('time_tracking')) && (
-              <TabButton
-                active={activeTab === 'timeEntries'}
-                onClick={() => setActiveTab('timeEntries')}
-                label="⏱️ Zeiteinträge"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
-              <TabButton
-                active={activeTab === 'reports'}
-                onClick={() => setActiveTab('reports')}
-                label="📊 Reports"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
-              <TabButton
-                active={activeTab === 'timeBookings'}
-                onClick={() => setActiveTab('timeBookings')}
-                label="📋 Stundenbuchungen (Alle)"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
-              <TabButton
-                active={activeTab === 'userTimeBookings'}
-                onClick={() => setActiveTab('userTimeBookings')}
-                label="👤 Stundenbuchungen (User)"
-              />
-            )}
-            {user?.role === 'ADMIN' && (
-              <TabButton
-                active={activeTab === 'backup'}
-                onClick={() => setActiveTab('backup')}
-                label="💾 Backup"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('absences')) && (
-              <TabButton
-                active={activeTab === 'vacationPlanner'}
-                onClick={() => setActiveTab('vacationPlanner')}
-                label="🗓️ Urlaubsplaner"
-              />
-            )}
-            {user?.role === 'ADMIN' && (
-              <TabButton
-                active={activeTab === 'holidays'}
-                onClick={() => setActiveTab('holidays')}
-                label="🗓️ Feiertage"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('compliance')) && (
-              <TabButton
-                active={activeTab === 'compliance'}
-                onClick={() => setActiveTab('compliance')}
-                label="🇨🇭 Compliance"
-              />
-            )}
-            {user?.role === 'ADMIN' && (
-              <TabButton
-                active={activeTab === 'modules'}
-                onClick={() => setActiveTab('modules')}
-                label="🧩 Module"
-              />
-            )}
-            {user?.role === 'ADMIN' && (
-              <TabButton
-                active={activeTab === 'modulePermissions'}
-                onClick={() => setActiveTab('modulePermissions')}
-                label="🔐 Berechtigungen"
-              />
-            )}
-            {(user?.role === 'ADMIN' || hasModuleAccess('workflows')) && (
-              <TabButton
-                active={activeTab === 'workflows'}
-                onClick={() => setActiveTab('workflows')}
-                label="🔄 Workflows"
-              />
-            )}
-            {user?.role === 'ADMIN' && (
-              <TabButton
-                active={activeTab === 'settings'}
-                onClick={() => setActiveTab('settings')}
-                label="⚙️ Einstellungen"
-              />
-            )}
-            {user?.role === 'ADMIN' && (
-              <TabButton
-                active={activeTab === 'payroll'}
-                onClick={() => setActiveTab('payroll')}
-                label="💰 Personalabrechnung"
-              />
-            )}
+            {/* Benutzerverwaltung */}
+            <div className="tab-group">
+              <div 
+                className="tab-group-label" 
+                onClick={() => toggleGroup('users')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span style={{ marginRight: '6px' }}>
+                  {collapsedGroups.has('users') ? '▶' : '▼'}
+                </span>
+                Benutzer & Teams
+              </div>
+              {!collapsedGroups.has('users') && (
+                <>
+                  {(user?.role === 'ADMIN' || hasModuleAccess('users')) && (
+                    <TabButton
+                      active={activeTab === 'users'}
+                      onClick={() => setActiveTab('users')}
+                      label="👥 Benutzer"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('user_groups')) && (
+                    <TabButton
+                      active={activeTab === 'userGroups'}
+                      onClick={() => setActiveTab('userGroups')}
+                      label="👨‍👩‍👧‍👦 Gruppen"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('projects')) && (
+                    <TabButton
+                      active={activeTab === 'projects'}
+                      onClick={() => setActiveTab('projects')}
+                      label="📁 Projekte"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('locations')) && (
+                    <TabButton
+                      active={activeTab === 'locations'}
+                      onClick={() => setActiveTab('locations')}
+                      label="📍 Standorte"
+                    />
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Zeiterfassung & Abwesenheit */}
+            <div className="tab-group">
+              <div 
+                className="tab-group-label" 
+                onClick={() => toggleGroup('time')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span style={{ marginRight: '6px' }}>
+                  {collapsedGroups.has('time') ? '▶' : '▼'}
+                </span>
+                Zeit & Abwesenheit
+              </div>
+              {!collapsedGroups.has('time') && (
+                <>
+                  {(user?.role === 'ADMIN' || hasModuleAccess('time_tracking')) && (
+                    <TabButton
+                      active={activeTab === 'timeEntries'}
+                      onClick={() => setActiveTab('timeEntries')}
+                      label="⏱️ Zeiteinträge"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('absences')) && (
+                    <TabButton
+                      active={activeTab === 'absences'}
+                      onClick={() => setActiveTab('absences')}
+                      label="🏖️ Abwesenheiten"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('absences')) && (
+                    <TabButton
+                      active={activeTab === 'vacationPlanner'}
+                      onClick={() => setActiveTab('vacationPlanner')}
+                      label="🗓️ Urlaubsplaner"
+                    />
+                  )}
+                  {user?.role === 'ADMIN' && (
+                    <TabButton
+                      active={activeTab === 'holidays'}
+                      onClick={() => setActiveTab('holidays')}
+                      label="🎄 Feiertage"
+                    />
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Finanzen & Rechnungen */}
+            <div className="tab-group">
+              <div 
+                className="tab-group-label" 
+                onClick={() => toggleGroup('finance')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span style={{ marginRight: '6px' }}>
+                  {collapsedGroups.has('finance') ? '▶' : '▼'}
+                </span>
+                Finanzen
+              </div>
+              {!collapsedGroups.has('finance') && (
+                <>
+                  {(user?.role === 'ADMIN' || hasModuleAccess('invoices')) && (
+                    <TabButton
+                      active={activeTab === 'invoices'}
+                      onClick={() => setActiveTab('invoices')}
+                      label="📄 Rechnungen"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('invoices')) && (
+                    <TabButton
+                      active={activeTab === 'invoiceTemplates'}
+                      onClick={() => setActiveTab('invoiceTemplates')}
+                      label="📋 Vorlagen"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('reminders')) && (
+                    <TabButton
+                      active={activeTab === 'reminders'}
+                      onClick={() => setActiveTab('reminders')}
+                      label="💰 Mahnwesen"
+                    />
+                  )}
+                  {user?.role === 'ADMIN' && (
+                    <TabButton
+                      active={activeTab === 'travelExpenses'}
+                      onClick={() => setActiveTab('travelExpenses')}
+                      label="✈️ Reisekosten"
+                    />
+                  )}
+                  {user?.role === 'ADMIN' && (
+                    <TabButton
+                      active={activeTab === 'payroll'}
+                      onClick={() => setActiveTab('payroll')}
+                      label="💵 Lohnabrechnung"
+                    />
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Stammdaten */}
+            <div className="tab-group">
+              <div 
+                className="tab-group-label" 
+                onClick={() => toggleGroup('master')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span style={{ marginRight: '6px' }}>
+                  {collapsedGroups.has('master') ? '▶' : '▼'}
+                </span>
+                Stammdaten
+              </div>
+              {!collapsedGroups.has('master') && (
+                <>
+                  {(user?.role === 'ADMIN' || hasModuleAccess('customers')) && (
+                    <TabButton
+                      active={activeTab === 'customers'}
+                      onClick={() => setActiveTab('customers')}
+                      label="🤝 Kunden"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('suppliers')) && (
+                    <TabButton
+                      active={activeTab === 'suppliers'}
+                      onClick={() => setActiveTab('suppliers')}
+                      label="🚚 Lieferanten"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (
+                    <TabButton
+                      active={activeTab === 'articleGroups'}
+                      onClick={() => setActiveTab('articleGroups')}
+                      label="📦 Artikelgruppen"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (
+                    <TabButton
+                      active={activeTab === 'articles'}
+                      onClick={() => setActiveTab('articles')}
+                      label="🏷️ Artikel"
+                    />
+                  )}
+                  {user?.role === 'ADMIN' && (
+                    <TabButton
+                      active={activeTab === 'devices'}
+                      onClick={() => setActiveTab('devices')}
+                      label="💻 Geräte"
+                    />
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Reports & Auswertungen */}
+            <div className="tab-group">
+              <div 
+                className="tab-group-label" 
+                onClick={() => toggleGroup('reports')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span style={{ marginRight: '6px' }}>
+                  {collapsedGroups.has('reports') ? '▶' : '▼'}
+                </span>
+                Reports
+              </div>
+              {!collapsedGroups.has('reports') && (
+                <>
+                  {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
+                    <TabButton
+                      active={activeTab === 'reports'}
+                      onClick={() => setActiveTab('reports')}
+                      label="📊 Analytics"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
+                    <TabButton
+                      active={activeTab === 'timeBookings'}
+                      onClick={() => setActiveTab('timeBookings')}
+                      label="📋 Stunden (Alle)"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
+                    <TabButton
+                      active={activeTab === 'userTimeBookings'}
+                      onClick={() => setActiveTab('userTimeBookings')}
+                      label="👤 Stunden (User)"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('compliance')) && (
+                    <TabButton
+                      active={activeTab === 'compliance'}
+                      onClick={() => setActiveTab('compliance')}
+                      label="🇨🇭 Compliance"
+                    />
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* System & Konfiguration */}
+            <div className="tab-group">
+              <div 
+                className="tab-group-label" 
+                onClick={() => toggleGroup('system')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span style={{ marginRight: '6px' }}>
+                  {collapsedGroups.has('system') ? '▶' : '▼'}
+                </span>
+                System
+              </div>
+              {!collapsedGroups.has('system') && (
+                <>
+                  {(user?.role === 'ADMIN' || hasModuleAccess('workflows')) && (
+                    <TabButton
+                      active={activeTab === 'workflows'}
+                      onClick={() => setActiveTab('workflows')}
+                      label="🔄 Workflows"
+                    />
+                  )}
+                  {user?.role === 'ADMIN' && (
+                    <TabButton
+                      active={activeTab === 'modules'}
+                      onClick={() => setActiveTab('modules')}
+                      label="🧩 Module"
+                    />
+                  )}
+                  {user?.role === 'ADMIN' && (
+                    <TabButton
+                      active={activeTab === 'modulePermissions'}
+                      onClick={() => setActiveTab('modulePermissions')}
+                      label="🔐 Berechtigungen"
+                    />
+                  )}
+                  {user?.role === 'ADMIN' && (
+                    <TabButton
+                      active={activeTab === 'settings'}
+                      onClick={() => setActiveTab('settings')}
+                      label="⚙️ Einstellungen"
+                    />
+                  )}
+                  {user?.role === 'ADMIN' && (
+                    <TabButton
+                      active={activeTab === 'backup'}
+                      onClick={() => setActiveTab('backup')}
+                      label="💾 Backup"
+                    />
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           <div className="tab-content">
