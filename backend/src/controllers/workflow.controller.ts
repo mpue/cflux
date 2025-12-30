@@ -128,6 +128,21 @@ export const workflowController = {
     }
   },
 
+  async getEntityWorkflowInstances(req: Request, res: Response) {
+    try {
+      const { entityType, entityId } = req.params;
+      
+      if (entityType !== 'INVOICE' && entityType !== 'TRAVEL_EXPENSE') {
+        return res.status(400).json({ error: 'Invalid entity type' });
+      }
+      
+      const instances = await workflowService.getEntityWorkflowInstances(entityId, entityType);
+      res.json(instances);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
   async approveWorkflowStep(req: Request, res: Response) {
     try {
       const { userId, comment } = req.body;

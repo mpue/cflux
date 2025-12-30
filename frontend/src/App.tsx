@@ -17,6 +17,7 @@ import ModulesPage from './pages/ModulesPage';
 import ModulePermissionsPage from './pages/ModulePermissionsPage';
 import MyApprovals from './pages/MyApprovals';
 import PayrollManagement from './pages/PayrollManagement';
+import { TravelExpensesPageWrapper } from './pages/TravelExpensesPageWrapper';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
@@ -144,6 +145,14 @@ function App() {
               element={
                 <PrivateRoute adminOnly>
                   <PayrollManagement />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/travel-expenses"
+              element={
+                <PrivateRoute>
+                  <TravelExpensesPageWrapper />
                 </PrivateRoute>
               }
             />

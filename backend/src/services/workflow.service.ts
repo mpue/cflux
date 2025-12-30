@@ -209,7 +209,11 @@ export const workflowService = {
   },
 
   // Workflow Instances
-  async createWorkflowInstance(workflowId: string, invoiceId: string) {
+  async createWorkflowInstance(
+    workflowId: string, 
+    entityId: string, 
+    entityType: 'INVOICE' | 'TRAVEL_EXPENSE' = 'INVOICE'
+  ) {
     const workflow = await prisma.workflow.findUnique({
       where: { id: workflowId },
       include: {
@@ -227,29 +231,46 @@ export const workflowService = {
     const definition = JSON.parse(workflow.definition || '{}');
     const { nodes = [], edges = [] } = definition;
 
-    // Load invoice data for condition evaluation
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: invoiceId },
-      include: {
-        items: true,
-        customer: {
-          select: {
-            id: true,
-            name: true,
+    // Load entity data for condition evaluation
+    let entityData: any;
+    if (entityType === 'INVOICE') {
+      entityData = await prisma.invoice.findUnique({
+        where: { id: entityId },
+        include: {
+          items: true,
+          customer: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-      },
-    });
+      });
+    } else if (entityType === 'TRAVEL_EXPENSE') {
+      entityData = await prisma.travelExpense.findUnique({
+        where: { id: entityId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+            },
+          },
+        },
+      });
+    }
 
-    if (!invoice) {
-      throw new Error('Rechnung nicht gefunden');
+    if (!entityData) {
+      throw new Error(`${entityType === 'INVOICE' ? 'Rechnung' : 'Reisekosten'} nicht gefunden`);
     }
 
     // Create instance (will update currentStepId later)
     const instance = await prisma.workflowInstance.create({
       data: {
         workflowId,
-        invoiceId,
+        entityType,
+        entityId,
+        invoiceId: entityType === 'INVOICE' ? entityId : null, // For backwards compatibility
         status: 'IN_PROGRESS',
         currentStepId: workflow.steps[0]?.id || null,
       },
@@ -270,7 +291,7 @@ export const workflowService = {
     
     for (const step of workflow.steps as any[]) {
       if (step.type === 'VALUE_CONDITION') {
-        const conditionMet = this.evaluateValueCondition(step, invoice);
+        const conditionMet = this.evaluateValueCondition(step, entityData);
         console.log(`[Workflow] Evaluating VALUE_CONDITION "${step.name}": ${conditionMet}`);
         // Find the node for this step
         const node = nodes.find((n: any) => n.data?.config?.name === step.name);
@@ -354,7 +375,7 @@ export const workflowService = {
     for (const step of workflow.steps as any[]) {
       if (step.type === 'EMAIL' && activeSteps.has(step.id)) {
         console.log(`[Workflow] Executing EMAIL step "${step.name}" immediately`);
-        const emailSent = await this.sendWorkflowEmail(step, invoice);
+        const emailSent = await this.sendWorkflowEmail(step, entityData);
         
         // Update step status
         await prisma.workflowInstanceStep.updateMany({
@@ -383,18 +404,22 @@ export const workflowService = {
   },
 
   // Evaluate VALUE_CONDITION
-  evaluateValueCondition(step: any, invoice: any): boolean {
+  evaluateValueCondition(step: any, entityData: any): boolean {
     try {
       const config = JSON.parse(step.config || '{}');
       const { field, operator, value } = config;
 
       let fieldValue: number;
       
-      // Get field value from invoice
+      // Get field value from entity (Invoice or TravelExpense)
       if (field === 'totalAmount' || field === 'total') {
-        fieldValue = parseFloat(invoice.totalAmount || '0');
+        fieldValue = parseFloat(entityData.totalAmount || entityData.amount || '0');
       } else if (field === 'subtotalAmount' || field === 'subtotal') {
-        fieldValue = parseFloat(invoice.subtotalAmount || '0');
+        fieldValue = parseFloat(entityData.subtotalAmount || '0');
+      } else if (field === 'amount') {
+        fieldValue = parseFloat(entityData.amount || '0');
+      } else if (field === 'distance') {
+        fieldValue = parseFloat(entityData.distance || '0');
       } else {
         console.warn(`Unknown field: ${field}`);
         return false;
@@ -556,6 +581,34 @@ export const workflowService = {
     });
   },
 
+  async getEntityWorkflowInstances(entityId: string, entityType: 'INVOICE' | 'TRAVEL_EXPENSE') {
+    return await prisma.workflowInstance.findMany({
+      where: { 
+        entityId,
+        entityType 
+      },
+      include: {
+        workflow: true,
+        steps: {
+          include: {
+            step: true,
+            approvedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        startedAt: 'desc'
+      }
+    });
+  },
+
   async approveWorkflowStep(instanceStepId: string, userId: string, comment?: string) {
     const instanceStep = await prisma.workflowInstanceStep.update({
       where: { id: instanceStepId },
@@ -635,20 +688,36 @@ export const workflowService = {
 
             // If target is EMAIL, send email immediately
             if (targetStep.type === 'EMAIL') {
-              const invoice = await prisma.invoice.findUnique({
-                where: { id: instanceStep.instance.invoiceId },
-                include: {
-                  customer: {
-                    select: {
-                      id: true,
-                      name: true,
+              let entityData: any;
+              
+              if (instanceStep.instance.entityType === 'INVOICE' && instanceStep.instance.invoiceId) {
+                entityData = await prisma.invoice.findUnique({
+                  where: { id: instanceStep.instance.invoiceId },
+                  include: {
+                    customer: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
                     },
                   },
-                },
-              });
+                });
+              } else if (instanceStep.instance.entityType === 'TRAVEL_EXPENSE') {
+                entityData = await prisma.travelExpense.findUnique({
+                  where: { id: instanceStep.instance.entityId },
+                  include: {
+                    user: {
+                      select: {
+                        id: true,
+                        email: true,
+                      },
+                    },
+                  },
+                });
+              }
 
-              if (invoice) {
-                const emailSent = await this.sendWorkflowEmail(targetStep, invoice);
+              if (entityData) {
+                const emailSent = await this.sendWorkflowEmail(targetStep, entityData);
                 
                 await prisma.workflowInstanceStep.update({
                   where: { id: targetInstanceStep.id },

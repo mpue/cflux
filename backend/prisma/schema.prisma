@@ -32,6 +32,16 @@ enum RequestStatus {
   REJECTED
 }
 
+enum TravelExpenseType {
+  FLIGHT
+  TRAIN
+  CAR
+  TAXI
+  ACCOMMODATION
+  MEALS
+  OTHER
+}
+
 enum ViolationType {
   REST_TIME
   MAX_WEEKLY_HOURS
@@ -113,6 +123,8 @@ model User {
   salaryConfiguration SalaryConfiguration?
   devices         Device[]
   deviceAssignments DeviceAssignment[]
+  travelExpenses  TravelExpense[]
+  approvedTravelExpenses TravelExpense[] @relation("TravelExpenseApprover")
   
   @@index([userGroupId])
   @@map("users")
@@ -747,6 +759,7 @@ model Workflow {
   steps           WorkflowStep[]
   templateLinks   InvoiceTemplateWorkflow[]
   instances       WorkflowInstance[]
+  travelExpenses  TravelExpense[]       @relation("TravelExpenseDefaultWorkflow")
   
   @@map("workflows")
 }
@@ -801,7 +814,13 @@ model InvoiceTemplateWorkflow {
 model WorkflowInstance {
   id              String                    @id @default(uuid())
   workflowId      String
-  invoiceId       String
+  
+  // Generic entity reference
+  entityType      String                    // 'INVOICE' or 'TRAVEL_EXPENSE'
+  entityId        String                    // Reference to Invoice or TravelExpense
+  
+  // Legacy field for backwards compatibility
+  invoiceId       String?
   
   status          WorkflowInstanceStatus    @default(PENDING)
   currentStepId   String?                   // Aktueller Workflow-Schritt
@@ -813,11 +832,12 @@ model WorkflowInstance {
   updatedAt       DateTime                  @updatedAt
   
   workflow        Workflow                  @relation(fields: [workflowId], references: [id], onDelete: Restrict)
-  invoice         Invoice                   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice         Invoice?                  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   steps           WorkflowInstanceStep[]
   
   @@index([workflowId])
   @@index([invoiceId])
+  @@index([entityType, entityId])
   @@index([status])
   @@map("workflow_instances")
 }
@@ -895,6 +915,9 @@ model SystemSettings {
   enableIncidents       Boolean   @default(true)
   enableCompliance      Boolean   @default(true)
   enableTimeTracking    Boolean   @default(true)
+  
+  // Default Workflows
+  travelExpenseDefaultWorkflowId String?
   
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
@@ -1066,4 +1089,48 @@ model DeviceAssignment {
   @@index([deviceId])
   @@index([userId])
   @@map("device_assignments")
+}
+
+model TravelExpense {
+  id            String              @id @default(uuid())
+  userId        String
+  type          TravelExpenseType
+  date          DateTime
+  description   String
+  destination   String?
+  purpose       String?
+  
+  // Transport Details
+  distance      Float?              // Kilometer (bei Auto)
+  vehicleType   String?             // z.B. "PKW", "Firmenwagen"
+  
+  // Kosten
+  amount        Float
+  currency      String              @default("CHF")
+  receipt       String?             // Pfad zum Beleg/Attachment
+  
+  // Genehmigung
+  status        RequestStatus       @default(PENDING)
+  approverId    String?
+  approvedAt    DateTime?
+  rejectionReason String?
+  
+  // Workflow
+  workflowId    String?
+  
+  notes         String?
+  
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approver      User?               @relation("TravelExpenseApprover", fields: [approverId], references: [id], onDelete: SetNull)
+  workflow      Workflow?           @relation("TravelExpenseDefaultWorkflow", fields: [workflowId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([approverId])
+  @@index([status])
+  @@index([date])
+  @@index([workflowId])
+  @@map("travel_expenses")
 }

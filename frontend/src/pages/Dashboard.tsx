@@ -324,6 +324,9 @@ const Dashboard: React.FC = () => {
             <button className="btn btn-primary" onClick={() => navigate('/my-approvals')}>
               🔔 Genehmigungen
             </button>
+            <button className="btn btn-secondary" onClick={() => navigate('/travel-expenses')}>
+              💰 Reisekosten
+            </button>
             <button className="btn btn-secondary" onClick={() => navigate('/incidents')}>
               Incidents
             </button>

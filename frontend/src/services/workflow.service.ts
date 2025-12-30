@@ -45,7 +45,9 @@ export interface WorkflowStep {
 export interface WorkflowInstance {
   id: string;
   workflowId: string;
-  invoiceId: string;
+  entityType: string;
+  entityId: string;
+  invoiceId?: string | null;
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
   currentStepId?: string;
   startedAt: string;
@@ -129,6 +131,11 @@ export const workflowService = {
   // Workflow Instances
   async getInvoiceWorkflowInstances(invoiceId: string): Promise<WorkflowInstance[]> {
     const response = await api.get(`/workflows/invoices/${invoiceId}/instances`);
+    return response.data;
+  },
+
+  async getWorkflowInstancesByEntity(entityId: string, entityType: 'INVOICE' | 'TRAVEL_EXPENSE'): Promise<WorkflowInstance[]> {
+    const response = await api.get(`/workflows/entities/${entityType}/${entityId}/instances`);
     return response.data;
   },
 

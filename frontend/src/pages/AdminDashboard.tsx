@@ -13,6 +13,8 @@ import * as articleGroupService from '../services/articleGroupService';
 import * as articleService from '../services/articleService';
 import * as invoiceService from '../services/invoiceService';
 import { reminderService } from '../services/reminder.service';
+import { deviceService, Device } from '../services/device.service';
+import { travelExpenseService } from '../services/travelExpense.service';
 import { User, Project, AbsenceRequest, Report, Location, Customer, Supplier, ArticleGroup, Article, Invoice, ComplianceViolation, ComplianceStats } from '../types';
 import { Reminder, OverdueInvoice, ReminderStats } from '../types/reminder.types';
 import VacationPlanner from './VacationPlanner';
@@ -33,7 +35,9 @@ import {
   ArticlesTab,
   InvoiceTemplatesTab,
   InvoicesTab,
-  RemindersTab
+  RemindersTab,
+  DevicesTab,
+  TravelExpensesTab
 } from '../components/admin';
 import { TimeBookingsReport } from '../components/admin/TimeBookingsReport';
 import { UserTimeBookingsReport } from '../components/admin/UserTimeBookingsReport';
@@ -45,7 +49,7 @@ import PayrollManagement from './PayrollManagement';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'settings' | 'payroll';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'settings' | 'payroll' | 'devices' | 'travelExpenses';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -69,6 +73,8 @@ const AdminDashboard: React.FC = () => {
   const [violations, setViolations] = useState<ComplianceViolation[]>([]);
   const [violationFilter, setViolationFilter] = useState<'all' | 'unresolved' | 'critical'>('unresolved');
   const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [travelExpenses, setTravelExpenses] = useState<any[]>([]);
 
   // Sicherheitsprüfung: Nur Admins oder Benutzer mit Modulzugriff
   useEffect(() => {
@@ -168,6 +174,14 @@ const AdminDashboard: React.FC = () => {
           break;
         case 'compliance':
           await loadComplianceData();
+          break;
+        case 'devices':
+          const devicesData = await deviceService.getAllDevices();
+          setDevices(devicesData);
+          break;
+        case 'travelExpenses':
+          const expensesData = await travelExpenseService.getAllTravelExpenses();
+          setTravelExpenses(expensesData);
           break;
       }
     } catch (error) {
@@ -281,6 +295,20 @@ const AdminDashboard: React.FC = () => {
                 active={activeTab === 'locations'}
                 onClick={() => setActiveTab('locations')}
                 label="📍 Standorte"
+              />
+            )}
+            {user?.role === 'ADMIN' && (
+              <TabButton
+                active={activeTab === 'devices'}
+                onClick={() => setActiveTab('devices')}
+                label="📱 Geräte"
+              />
+            )}
+            {user?.role === 'ADMIN' && (
+              <TabButton
+                active={activeTab === 'travelExpenses'}
+                onClick={() => setActiveTab('travelExpenses')}
+                label="💰 Reisekosten"
               />
             )}
             {(user?.role === 'ADMIN' || hasModuleAccess('customers')) && (
@@ -437,6 +465,8 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'userGroups' && <UserGroupsTab onLoad={loadData} />}
             {activeTab === 'projects' && <ProjectsTab projects={projects} onUpdate={loadData} />}
             {activeTab === 'locations' && <LocationsTab locations={locations} onUpdate={loadData} />}
+            {activeTab === 'devices' && <DevicesTab devices={devices} users={users} onUpdate={loadData} />}
+            {activeTab === 'travelExpenses' && <TravelExpensesTab expenses={travelExpenses} users={users} onUpdate={loadData} />}
             {activeTab === 'customers' && <CustomersTab customers={customers} onUpdate={loadData} />}
             {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} onUpdate={loadData} />}
             {activeTab === 'articleGroups' && <ArticleGroupsTab articleGroups={articleGroups} onUpdate={loadData} />}

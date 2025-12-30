@@ -200,7 +200,7 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
         // Create workflow instances for all assigned workflows in order
         for (const link of templateWorkflows.sort((a, b) => a.order - b.order)) {
           if (link.isActive) {
-            await workflowService.createWorkflowInstance(link.workflowId, invoice.id);
+            await workflowService.createWorkflowInstance(link.workflowId, invoice.id, 'INVOICE');
           }
         }
       } catch (workflowError) {
@@ -343,7 +343,7 @@ export const updateInvoice = async (req: AuthRequest, res: Response) => {
             // Create workflow instances for all assigned workflows in order
             for (const link of templateWorkflows.sort((a, b) => a.order - b.order)) {
               if (link.isActive) {
-                await workflowService.createWorkflowInstance(link.workflowId, id);
+                await workflowService.createWorkflowInstance(link.workflowId, id, 'INVOICE');
               }
             }
           }

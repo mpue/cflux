@@ -22,6 +22,7 @@
   overflow-y: auto;
   color: var(--text-primary);
   transition: background-color 0.3s ease;
+  padding: 30px;
 }
 
 [data-theme='dark'] .modal-content {
