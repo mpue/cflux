@@ -26,6 +26,7 @@ import workflowRoutes from './routes/workflow.routes';
 import systemSettingsRoutes from './routes/systemSettings.routes';
 import payrollRoutes from './routes/payroll.routes';
 import projectTimeAllocationRoutes from './routes/projectTimeAllocation.routes';
+import deviceRoutes from './routes/device.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -80,6 +81,7 @@ app.use('/api/workflows', workflowRoutes);
 app.use('/api/system-settings', systemSettingsRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/project-time-allocations', projectTimeAllocationRoutes);
+app.use('/api/devices', deviceRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

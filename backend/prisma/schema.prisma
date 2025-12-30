@@ -111,6 +111,8 @@ model User {
   userGroupMemberships UserGroupMembership[]
   payrollEntries PayrollEntry[]
   salaryConfiguration SalaryConfiguration?
+  devices         Device[]
+  deviceAssignments DeviceAssignment[]
   
   @@index([userGroupId])
   @@map("users")
@@ -1024,4 +1026,44 @@ model SalaryConfiguration {
   @@index([userId])
   @@index([isActive])
   @@map("salary_configurations")
+}
+
+model Device {
+  id            String    @id @default(uuid())
+  name          String
+  serialNumber  String?   @unique
+  manufacturer  String?
+  model         String?
+  category      String?   // z.B. "Laptop", "Handy", "Tablet", "PSA", "Werkzeug"
+  purchaseDate  DateTime?
+  warrantyUntil DateTime?
+  notes         String?
+  isActive      Boolean   @default(true)
+  userId        String?   // Aktueller Besitzer
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  assignments   DeviceAssignment[]
+  
+  @@index([userId])
+  @@index([serialNumber])
+  @@map("devices")
+}
+
+model DeviceAssignment {
+  id            String    @id @default(uuid())
+  deviceId      String
+  userId        String
+  assignedAt    DateTime  @default(now())
+  returnedAt    DateTime?
+  notes         String?
+  
+  device        Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  assignedUser  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([deviceId])
+  @@index([userId])
+  @@map("device_assignments")
 }
