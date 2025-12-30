@@ -35,6 +35,8 @@ import {
   InvoicesTab,
   RemindersTab
 } from '../components/admin';
+import { TimeBookingsReport } from '../components/admin/TimeBookingsReport';
+import { UserTimeBookingsReport } from '../components/admin/UserTimeBookingsReport';
 import WorkflowsTab from '../components/admin/WorkflowsTab';
 import SystemSettingsTab from '../components/admin/SystemSettingsTab';
 import ModulesPage from './ModulesPage';
@@ -43,7 +45,7 @@ import PayrollManagement from './PayrollManagement';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'settings' | 'payroll';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'settings' | 'payroll';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -351,6 +353,20 @@ const AdminDashboard: React.FC = () => {
                 label="📊 Reports"
               />
             )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
+              <TabButton
+                active={activeTab === 'timeBookings'}
+                onClick={() => setActiveTab('timeBookings')}
+                label="📋 Stundenbuchungen (Alle)"
+              />
+            )}
+            {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
+              <TabButton
+                active={activeTab === 'userTimeBookings'}
+                onClick={() => setActiveTab('userTimeBookings')}
+                label="👤 Stundenbuchungen (User)"
+              />
+            )}
             {user?.role === 'ADMIN' && (
               <TabButton
                 active={activeTab === 'backup'}
@@ -431,6 +447,8 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'absences' && <AbsencesTab absences={absences} onUpdate={loadData} />}
             {activeTab === 'timeEntries' && <TimeEntriesTab />}
             {activeTab === 'reports' && <ReportsTab reports={reports} />}
+            {activeTab === 'timeBookings' && <TimeBookingsReport />}
+            {activeTab === 'userTimeBookings' && <UserTimeBookingsReport />}
             {activeTab === 'backup' && <BackupTab />}
             {activeTab === 'vacationPlanner' && <VacationPlanner />}
             {activeTab === 'holidays' && <HolidaysTab />}

@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
-import { generateUserReport } from '../services/pdf.service';
+import { generateUserReport, generateTimeBookingsReport } from '../services/pdf.service';
 
 const prisma = new PrismaClient();
 
@@ -579,4 +579,344 @@ export const generateUserPDFReport = async (req: AuthRequest, res: Response) => 
     res.status(500).json({ error: 'Failed to generate PDF report' });
   }
 };
+
+// Detailed Time Booking Reports
+export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) => {
+  try {
+    const { startDate, endDate, userId, projectId } = req.query;
+
+    const where: any = {
+      status: 'CLOCKED_OUT'
+    };
+
+    if (startDate && endDate) {
+      where.clockIn = {
+        gte: new Date(startDate as string),
+        lte: new Date(endDate as string)
+      };
+    }
+
+    if (userId) {
+      where.userId = userId;
+    }
+
+    if (projectId) {
+      where.projectId = projectId;
+    }
+
+    const entries = await prisma.timeEntry.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
+            description: true
+          }
+        },
+        location: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        projectTimeAllocations: {
+          include: {
+            project: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        clockIn: 'desc'
+      }
+    });
+
+    // Calculate hours for each entry
+    const enrichedEntries = entries.map(entry => {
+      const hours = calculateWorkHours(entry.clockIn, entry.clockOut);
+      const pauseHours = (entry.pauseMinutes || 0) / 60;
+      const netHours = hours - pauseHours;
+
+      return {
+        id: entry.id,
+        userId: entry.userId,
+        user: entry.user,
+        projectId: entry.projectId,
+        project: entry.project,
+        location: entry.location,
+        clockIn: entry.clockIn,
+        clockOut: entry.clockOut,
+        description: entry.description,
+        pauseMinutes: entry.pauseMinutes,
+        hours: Math.round(hours * 100) / 100,
+        pauseHours: Math.round(pauseHours * 100) / 100,
+        netHours: Math.round(netHours * 100) / 100,
+        projectTimeAllocations: entry.projectTimeAllocations,
+        createdAt: entry.createdAt,
+        updatedAt: entry.updatedAt
+      };
+    });
+
+    // Calculate summary statistics
+    const totalHours = enrichedEntries.reduce((sum, entry) => sum + entry.netHours, 0);
+    const totalEntries = enrichedEntries.length;
+
+    // Group by user
+    const byUser: Record<string, any> = {};
+    enrichedEntries.forEach(entry => {
+      if (!byUser[entry.userId]) {
+        byUser[entry.userId] = {
+          user: entry.user,
+          totalHours: 0,
+          entries: []
+        };
+      }
+      byUser[entry.userId].totalHours += entry.netHours;
+      byUser[entry.userId].entries.push(entry);
+    });
+
+    // Group by project
+    const byProject: Record<string, any> = {};
+    enrichedEntries.forEach(entry => {
+      if (entry.project) {
+        if (!byProject[entry.projectId!]) {
+          byProject[entry.projectId!] = {
+            project: entry.project,
+            totalHours: 0,
+            entries: []
+          };
+        }
+        byProject[entry.projectId!].totalHours += entry.netHours;
+        byProject[entry.projectId!].entries.push(entry);
+      }
+    });
+
+    res.json({
+      entries: enrichedEntries,
+      summary: {
+        totalHours: Math.round(totalHours * 100) / 100,
+        totalEntries,
+        totalDays: Math.round((totalHours / 8) * 100) / 100,
+        byUser: Object.values(byUser).map((u: any) => ({
+          user: u.user,
+          totalHours: Math.round(u.totalHours * 100) / 100,
+          entriesCount: u.entries.length
+        })),
+        byProject: Object.values(byProject).map((p: any) => ({
+          project: p.project,
+          totalHours: Math.round(p.totalHours * 100) / 100,
+          entriesCount: p.entries.length
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('Get detailed time bookings error:', error);
+    res.status(500).json({ error: 'Failed to get detailed time bookings' });
+  }
+};
+
+export const getUserTimeBookingsReport = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        employeeNumber: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const where: any = {
+      userId,
+      status: 'CLOCKED_OUT'
+    };
+
+    if (startDate && endDate) {
+      where.clockIn = {
+        gte: new Date(startDate as string),
+        lte: new Date(endDate as string)
+      };
+    }
+
+    const entries = await prisma.timeEntry.findMany({
+      where,
+      include: {
+        project: true,
+        location: true,
+        projectTimeAllocations: {
+          include: {
+            project: true
+          }
+        }
+      },
+      orderBy: {
+        clockIn: 'desc'
+      }
+    });
+
+    // Calculate hours and group by date
+    const dailyBreakdown: Record<string, any> = {};
+    const projectBreakdown: Record<string, any> = {};
+    let totalHours = 0;
+
+    entries.forEach(entry => {
+      const hours = calculateWorkHours(entry.clockIn, entry.clockOut);
+      const pauseHours = (entry.pauseMinutes || 0) / 60;
+      const netHours = hours - pauseHours;
+      totalHours += netHours;
+
+      // Daily breakdown
+      const dateKey = entry.clockIn.toISOString().split('T')[0];
+      if (!dailyBreakdown[dateKey]) {
+        dailyBreakdown[dateKey] = {
+          date: dateKey,
+          hours: 0,
+          entries: []
+        };
+      }
+      dailyBreakdown[dateKey].hours += netHours;
+      dailyBreakdown[dateKey].entries.push({
+        id: entry.id,
+        clockIn: entry.clockIn,
+        clockOut: entry.clockOut,
+        hours: Math.round(netHours * 100) / 100,
+        project: entry.project,
+        location: entry.location,
+        description: entry.description
+      });
+
+      // Project breakdown
+      if (entry.project) {
+        if (!projectBreakdown[entry.projectId!]) {
+          projectBreakdown[entry.projectId!] = {
+            project: entry.project,
+            hours: 0,
+            entries: 0
+          };
+        }
+        projectBreakdown[entry.projectId!].hours += netHours;
+        projectBreakdown[entry.projectId!].entries += 1;
+      }
+    });
+
+    res.json({
+      user,
+      period: {
+        startDate,
+        endDate
+      },
+      summary: {
+        totalHours: Math.round(totalHours * 100) / 100,
+        totalDays: Math.round((totalHours / 8) * 100) / 100,
+        totalEntries: entries.length
+      },
+      dailyBreakdown: Object.values(dailyBreakdown).map((d: any) => ({
+        ...d,
+        hours: Math.round(d.hours * 100) / 100
+      })),
+      projectBreakdown: Object.values(projectBreakdown).map((p: any) => ({
+        ...p,
+        hours: Math.round(p.hours * 100) / 100
+      }))
+    });
+  } catch (error) {
+    console.error('Get user time bookings report error:', error);
+    res.status(500).json({ error: 'Failed to get user time bookings report' });
+  }
+};
+
+// PDF Export for Time Bookings Reports
+export const generateTimeBookingsPDFReport = async (req: AuthRequest, res: Response) => {
+  try {
+    const { startDate, endDate, userIds, projectIds } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: 'Start date and end date are required' });
+    }
+
+    const start = new Date(startDate as string);
+    const end = new Date(endDate as string);
+
+    let userIdArray: string[] | undefined;
+    let projectIdArray: string[] | undefined;
+
+    if (userIds) {
+      userIdArray = typeof userIds === 'string' ? userIds.split(',') : userIds as string[];
+    }
+
+    if (projectIds) {
+      projectIdArray = typeof projectIds === 'string' ? projectIds.split(',') : projectIds as string[];
+    }
+
+    const pdfBuffer = await generateTimeBookingsReport(start, end, userIdArray, projectIdArray);
+
+    const filename = `Stundenbuchungs-Report_${startDate}_${endDate}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Generate time bookings PDF report error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF report' });
+  }
+};
+
+export const generateUserTimeBookingsPDFReport = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ error: 'Start date and end date are required' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const start = new Date(startDate as string);
+    const end = new Date(endDate as string);
+
+    const pdfBuffer = await generateUserReport(userId, start, end, true);
+
+    const filename = `Stundenbuchungs-Report_${user.firstName}_${user.lastName}_${startDate}_${endDate}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Generate user time bookings PDF report error:', error);
+    res.status(500).json({ error: 'Failed to generate PDF report' });
+  }
+};
+
 

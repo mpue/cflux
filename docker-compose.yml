@@ -6,10 +6,12 @@ services:
     image: postgres:16-alpine
     container_name: timetracking-db
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: timetracking
-      POSTGRES_PASSWORD: timetracking123
-      POSTGRES_DB: timetracking
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -31,13 +33,15 @@ services:
     restart: unless-stopped
     ports:
       - "3001:3001"
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: "postgresql://timetracking:timetracking123@db:5432/timetracking?schema=public"
-      JWT_SECRET: "change-this-secret-in-production"
-      JWT_EXPIRES_IN: "7d"
-      PORT: 3001
-      NODE_ENV: "production"
-      CORS_ORIGIN: "*"
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public"
+      JWT_SECRET: "${JWT_SECRET}"
+      JWT_EXPIRES_IN: "${JWT_EXPIRES_IN}"
+      PORT: ${PORT}
+      NODE_ENV: "${NODE_ENV}"
+      CORS_ORIGIN: "${CORS_ORIGIN}"
     depends_on:
       db:
         condition: service_healthy
@@ -55,8 +59,10 @@ services:
     restart: unless-stopped
     ports:
       - "3002:80"
+    env_file:
+      - .env
     environment:
-      REACT_APP_API_URL: ""
+      REACT_APP_API_URL: "${REACT_APP_API_URL}"
     depends_on:
       - backend
     networks:

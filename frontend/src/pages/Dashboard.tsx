@@ -8,6 +8,7 @@ import { absenceService } from '../services/absence.service';
 import { reportService } from '../services/report.service';
 import { locationService } from '../services/location.service';
 import { workflowService } from '../services/workflow.service';
+import projectTimeAllocationService, { AllocationInput, ProjectTimeAllocation } from '../services/projectTimeAllocation.service';
 import { TimeEntry, Project, AbsenceRequest, Report, Location } from '../types';
 import PDFReportModal from '../components/PDFReportModal';
 import MyPayrollEntries from '../components/MyPayrollEntries';
@@ -37,6 +38,10 @@ const Dashboard: React.FC = () => {
   const [pauseCheckDone, setPauseCheckDone] = useState<Set<string>>(new Set());
   const [showPDFReportModal, setShowPDFReportModal] = useState(false);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
+  const [showAllocationModal, setShowAllocationModal] = useState(false);
+  const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | null>(null);
+  const [allocations, setAllocations] = useState<AllocationInput[]>([]);
+  const [existingAllocations, setExistingAllocations] = useState<ProjectTimeAllocation[]>([]);
 
   useEffect(() => {
     document.title = 'CFlux - Dashboard';
@@ -137,6 +142,17 @@ const Dashboard: React.FC = () => {
       setReport(reportData);
       setPendingApprovalsCount(approvals.length);
 
+      // Load existing allocations for all time entries
+      if (entries.length > 0) {
+        const allAllocations = await Promise.all(
+          entries.slice(0, 10).map(entry => 
+            projectTimeAllocationService.getAllocationsForTimeEntry(entry.id)
+              .catch(() => [])
+          )
+        );
+        setExistingAllocations(allAllocations.flat());
+      }
+
       // Log fehlgeschlagene Requests
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
@@ -197,6 +213,93 @@ const Dashboard: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const openAllocationModal = async (entry: TimeEntry) => {
+    if (!entry.clockOut) {
+      alert('Bitte erst ausstempeln, bevor Sie die Zeit auf Projekte aufteilen.');
+      return;
+    }
+
+    setSelectedTimeEntry(entry);
+    setShowAllocationModal(true);
+
+    // Load existing allocations
+    try {
+      const existing = await projectTimeAllocationService.getAllocationsForTimeEntry(entry.id);
+      setExistingAllocations(existing);
+      
+      if (existing.length > 0) {
+        setAllocations(existing.map(a => ({
+          projectId: a.projectId,
+          hours: a.hours,
+          description: a.description
+        })));
+      } else {
+        // Initialize with one empty allocation
+        setAllocations([{ projectId: '', hours: 0, description: '' }]);
+      }
+    } catch (error) {
+      console.error('Error loading allocations:', error);
+      setAllocations([{ projectId: '', hours: 0, description: '' }]);
+    }
+  };
+
+  const calculateTotalWorkedHours = (entry: TimeEntry): number => {
+    if (!entry.clockOut) return 0;
+    const clockInTime = new Date(entry.clockIn).getTime();
+    const clockOutTime = new Date(entry.clockOut).getTime();
+    const totalMinutes = (clockOutTime - clockInTime) / (1000 * 60);
+    const pauseMinutes = entry.pauseMinutes || 0;
+    const workedMinutes = totalMinutes - pauseMinutes;
+    return parseFloat((workedMinutes / 60).toFixed(2));
+  };
+
+  const handleSaveAllocations = async () => {
+    if (!selectedTimeEntry) return;
+
+    const totalWorkedHours = calculateTotalWorkedHours(selectedTimeEntry);
+    const totalAllocatedHours = allocations.reduce((sum, a) => sum + (a.hours || 0), 0);
+
+    // Validate
+    const validAllocations = allocations.filter(a => a.projectId && a.hours > 0);
+    if (validAllocations.length === 0) {
+      alert('Bitte mindestens ein Projekt mit Stunden hinzufügen.');
+      return;
+    }
+
+    if (Math.abs(totalAllocatedHours - totalWorkedHours) > 0.1) {
+      alert(`Die Summe der zugeteilten Stunden (${totalAllocatedHours.toFixed(2)}h) muss der Arbeitszeit (${totalWorkedHours.toFixed(2)}h) entsprechen.`);
+      return;
+    }
+
+    try {
+      await projectTimeAllocationService.setAllocationsForTimeEntry(
+        selectedTimeEntry.id,
+        validAllocations
+      );
+      setShowAllocationModal(false);
+      setSelectedTimeEntry(null);
+      setAllocations([]);
+      await loadData();
+      alert('Projektzeitaufteilung erfolgreich gespeichert!');
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Speichern der Aufteilung');
+    }
+  };
+
+  const addAllocationRow = () => {
+    setAllocations([...allocations, { projectId: '', hours: 0, description: '' }]);
+  };
+
+  const removeAllocationRow = (index: number) => {
+    setAllocations(allocations.filter((_, i) => i !== index));
+  };
+
+  const updateAllocation = (index: number, field: keyof AllocationInput, value: any) => {
+    const updated = [...allocations];
+    updated[index] = { ...updated[index], [field]: value };
+    setAllocations(updated);
   };
 
   const formatDuration = (clockIn: string, clockOut?: string) => {
@@ -435,6 +538,9 @@ const Dashboard: React.FC = () => {
 
         <div className="card">
           <h2>Letzte Zeiteinträge</h2>
+          <p style={{ fontSize: '14px', color: '#666', marginBottom: '10px' }}>
+            💡 Tipp: Nutzen Sie den 📊 Button, um Ihre Arbeitszeit auf verschiedene Projekte aufzuteilen. Mit dem ✏️ Button können Sie Zeiten nachträglich anpassen.
+          </p>
           <div className="data-table-wrapper">
             <table className="table">
             <thead>
@@ -443,7 +549,6 @@ const Dashboard: React.FC = () => {
                 <th>Einstempeln</th>
                 <th>Ausstempeln</th>
                 <th>Dauer</th>
-                <th>Projekt</th>
                 <th>Standort</th>
                 <th>Beschreibung</th>
                 <th>Aktionen</th>
@@ -503,33 +608,6 @@ const Dashboard: React.FC = () => {
                   </td>
                   <td>{entry.clockOut ? formatDuration(entry.clockIn, entry.clockOut) : 'Läuft...'}</td>
                   <td>
-                    {editingEntry === entry.id && entry.clockOut ? (
-                      <select
-                        value={entry.projectId || ''}
-                        onChange={async (e) => {
-                          try {
-                            await timeService.updateMyTimeEntry(entry.id, {
-                              projectId: e.target.value || undefined
-                            });
-                            await loadData();
-                          } catch (error: any) {
-                            alert(error.response?.data?.error || 'Fehler beim Aktualisieren');
-                          }
-                        }}
-                        style={{ padding: '4px', fontSize: '12px' }}
-                      >
-                        <option value="">Kein Projekt</option>
-                        {projects.map((project) => (
-                          <option key={project.id} value={project.id}>
-                            {project.name}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span>{entry.project?.name || '-'}</span>
-                    )}
-                  </td>
-                  <td>
                     <span>{entry.location?.name || '-'}</span>
                   </td>
                   <td>
@@ -557,6 +635,19 @@ const Dashboard: React.FC = () => {
                   <td>
                     {entry.clockOut && (
                       <div style={{ display: 'flex', gap: '5px' }}>
+                        <button
+                          className="btn btn-small"
+                          onClick={() => openAllocationModal(entry)}
+                          style={{ 
+                            fontSize: '12px', 
+                            padding: '4px 8px',
+                            background: existingAllocations.some(a => a.timeEntryId === entry.id) ? '#28a745' : '#007bff',
+                            color: 'white'
+                          }}
+                          title="Zeit auf Projekte aufteilen"
+                        >
+                          📊
+                        </button>
                         <button
                           className="btn btn-small"
                           onClick={() => setEditingEntry(editingEntry === entry.id ? null : entry.id)}
@@ -626,6 +717,25 @@ const Dashboard: React.FC = () => {
           message={pauseReminderMessage}
           onClose={() => setShowPauseReminderModal(false)}
           onStartPause={handleStartPause}
+        />
+      )}
+
+      {showAllocationModal && selectedTimeEntry && (
+        <AllocationModal
+          show={showAllocationModal}
+          onClose={() => {
+            setShowAllocationModal(false);
+            setSelectedTimeEntry(null);
+            setAllocations([]);
+          }}
+          timeEntry={selectedTimeEntry}
+          projects={projects}
+          allocations={allocations}
+          onUpdateAllocation={updateAllocation}
+          onAddRow={addAllocationRow}
+          onRemoveRow={removeAllocationRow}
+          onSave={handleSaveAllocations}
+          totalWorkedHours={calculateTotalWorkedHours(selectedTimeEntry)}
         />
       )}
 
@@ -908,6 +1018,155 @@ const AbsenceModal: React.FC<{
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// Project Time Allocation Modal Component
+const AllocationModal: React.FC<{
+  show: boolean;
+  onClose: () => void;
+  timeEntry: TimeEntry | null;
+  projects: Project[];
+  allocations: AllocationInput[];
+  onUpdateAllocation: (index: number, field: keyof AllocationInput, value: any) => void;
+  onAddRow: () => void;
+  onRemoveRow: (index: number) => void;
+  onSave: () => void;
+  totalWorkedHours: number;
+}> = ({
+  show,
+  onClose,
+  timeEntry,
+  projects,
+  allocations,
+  onUpdateAllocation,
+  onAddRow,
+  onRemoveRow,
+  onSave,
+  totalWorkedHours
+}) => {
+  if (!show || !timeEntry) return null;
+
+  const totalAllocated = allocations.reduce((sum, a) => sum + (a.hours || 0), 0);
+  const remaining = totalWorkedHours - totalAllocated;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div 
+        className="modal-content" 
+        onClick={(e) => e.stopPropagation()} 
+        style={{ 
+          maxWidth: '1000px', 
+          width: '90%',
+          padding: '30px',
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}
+      >
+        <h2 style={{ marginBottom: '20px', fontSize: '24px' }}>Zeit auf Projekte aufteilen</h2>
+        <p style={{ marginBottom: '20px', color: '#666', fontSize: '16px' }}>
+          Datum: {new Date(timeEntry.clockIn).toLocaleDateString('de-DE')} | 
+          Gesamtarbeitszeit: <strong>{totalWorkedHours.toFixed(2)}h</strong>
+        </p>
+        
+        <div style={{ 
+          padding: '15px 20px', 
+          background: remaining === 0 ? '#d4edda' : remaining < 0 ? '#f8d7da' : '#fff3cd',
+          borderRadius: '8px',
+          marginBottom: '25px',
+          fontSize: '16px'
+        }}>
+          <strong>Zugeteilt: {totalAllocated.toFixed(2)}h</strong> | 
+          Verbleibend: {remaining.toFixed(2)}h
+        </div>
+
+        <table className="table" style={{ marginBottom: '20px' }}>
+          <thead>
+            <tr>
+              <th>Projekt</th>
+              <th>Stunden</th>
+              <th>Beschreibung</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {allocations.map((alloc, index) => (
+              <tr key={index}>
+                <td style={{ padding: '12px' }}>
+                  <select
+                    value={alloc.projectId}
+                    onChange={(e) => onUpdateAllocation(index, 'projectId', e.target.value)}
+                    style={{ width: '100%', padding: '8px', fontSize: '14px' }}
+                  >
+                    <option value="">Projekt wählen...</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td style={{ padding: '12px' }}>
+                  <input
+                    type="number"
+                    step="0.25"
+                    min="0"
+                    max={totalWorkedHours}
+                    value={alloc.hours || 0}
+                    onChange={(e) => onUpdateAllocation(index, 'hours', parseFloat(e.target.value) || 0)}
+                    style={{ width: '100px', padding: '8px', fontSize: '14px' }}
+                  />
+                </td>
+                <td style={{ padding: '12px' }}>
+                  <input
+                    type="text"
+                    value={alloc.description || ''}
+                    onChange={(e) => onUpdateAllocation(index, 'description', e.target.value)}
+                    placeholder="Was wurde gemacht..."
+                    style={{ width: '100%', padding: '8px', fontSize: '14px' }}
+                  />
+                </td>
+                <td style={{ padding: '12px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-small btn-danger"
+                    onClick={() => onRemoveRow(index)}
+                    disabled={allocations.length === 1}
+                    style={{ fontSize: '14px', padding: '6px 12px' }}
+                  >
+                    ✕
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onAddRow}
+          style={{ marginBottom: '25px', fontSize: '15px', padding: '10px 20px' }}
+        >
+          + Projekt hinzufügen
+        </button>
+
+        <div className="modal-actions" style={{ gap: '15px' }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose} style={{ fontSize: '15px', padding: '10px 25px' }}>
+            Abbrechen
+          </button>
+          <button 
+            type="button" 
+            className="btn btn-primary" 
+            onClick={onSave}
+            disabled={Math.abs(remaining) > 0.1}
+            style={{ fontSize: '15px', padding: '10px 25px' }}
+          >
+            Speichern
+          </button>
+        </div>
       </div>
     </div>
   );

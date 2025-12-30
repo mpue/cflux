@@ -517,3 +517,240 @@ const generatePDF = (data: ReportData, includeDetailed: boolean): Promise<Buffer
     doc.end();
   });
 };
+
+// Generate detailed time bookings report for all users
+export const generateTimeBookingsReport = async (
+  startDate: Date,
+  endDate: Date,
+  userIds?: string[],
+  projectIds?: string[]
+): Promise<Buffer> => {
+  const where: any = {
+    status: 'CLOCKED_OUT',
+    clockIn: {
+      gte: startDate,
+      lte: endDate
+    }
+  };
+
+  if (userIds && userIds.length > 0) {
+    where.userId = { in: userIds };
+  }
+
+  if (projectIds && projectIds.length > 0) {
+    where.projectId = { in: projectIds };
+  }
+
+  const entries = await prisma.timeEntry.findMany({
+    where,
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          employeeNumber: true
+        }
+      },
+      project: true,
+      location: true
+    },
+    orderBy: [
+      { clockIn: 'desc' }
+    ]
+  });
+
+  // Calculate statistics
+  const totalHours = entries.reduce((sum, entry) => 
+    sum + calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0), 0
+  );
+
+  const byUser: Record<string, { user: any; hours: number; entries: number }> = {};
+  const byProject: Record<string, { project: any; hours: number; entries: number }> = {};
+
+  entries.forEach(entry => {
+    const hours = calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
+    
+    // By user
+    if (!byUser[entry.userId]) {
+      byUser[entry.userId] = { user: entry.user, hours: 0, entries: 0 };
+    }
+    byUser[entry.userId].hours += hours;
+    byUser[entry.userId].entries += 1;
+
+    // By project
+    if (entry.project) {
+      if (!byProject[entry.projectId!]) {
+        byProject[entry.projectId!] = { project: entry.project, hours: 0, entries: 0 };
+      }
+      byProject[entry.projectId!].hours += hours;
+      byProject[entry.projectId!].entries += 1;
+    }
+  });
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ 
+      size: 'A4', 
+      margin: 50,
+      layout: 'landscape',
+      info: {
+        Title: 'Stundenbuchungs-Report',
+        Author: 'CFlux Time Tracking System',
+        Subject: `Bericht ${formatDate(startDate)} - ${formatDate(endDate)}`
+      }
+    });
+
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    // Header
+    doc.fontSize(20).font('Helvetica-Bold').text('Stundenbuchungs-Report', { align: 'center' });
+    doc.moveDown(0.5);
+    doc.fontSize(12).font('Helvetica').text(
+      `Zeitraum: ${formatDate(startDate)} - ${formatDate(endDate)}`,
+      { align: 'center' }
+    );
+    doc.moveDown(1);
+
+    // Summary section
+    doc.fontSize(14).font('Helvetica-Bold').text('Zusammenfassung');
+    doc.moveDown(0.5);
+    doc.fontSize(10).font('Helvetica');
+
+    const summaryInfo = [
+      ['Gesamtstunden:', formatHours(totalHours)],
+      ['Arbeitstage (à 8h):', (totalHours / 8).toFixed(1)],
+      ['Anzahl Buchungen:', entries.length.toString()],
+      ['Anzahl Mitarbeiter:', Object.keys(byUser).length.toString()],
+      ['Anzahl Projekte:', Object.keys(byProject).length.toString()]
+    ];
+
+    summaryInfo.forEach(([label, value]) => {
+      doc.text(label, 50, doc.y, { continued: true, width: 200 });
+      doc.font('Helvetica-Bold').text(value, 250, doc.y);
+      doc.font('Helvetica');
+      doc.moveDown(0.3);
+    });
+
+    doc.moveDown(1);
+
+    // Breakdown by user
+    doc.fontSize(14).font('Helvetica-Bold').text('Stunden nach Mitarbeiter');
+    doc.moveDown(0.5);
+    doc.fontSize(9).font('Helvetica');
+
+    // Table header
+    doc.font('Helvetica-Bold');
+    doc.text('Mitarbeiter', 50, doc.y, { width: 180 });
+    doc.text('E-Mail', 240, doc.y, { width: 180 });
+    doc.text('Stunden', 430, doc.y, { width: 80 });
+    doc.text('Buchungen', 520, doc.y, { width: 80 });
+    doc.moveDown(0.5);
+    doc.moveTo(50, doc.y).lineTo(600, doc.y).stroke();
+    doc.moveDown(0.3);
+    doc.font('Helvetica');
+
+    Object.values(byUser)
+      .sort((a, b) => b.hours - a.hours)
+      .forEach((item) => {
+        const yPos = doc.y;
+        const userName = `${item.user.firstName} ${item.user.lastName}`;
+        doc.text(userName, 50, yPos, { width: 180 });
+        doc.text(item.user.email, 240, yPos, { width: 180 });
+        doc.text(formatHours(item.hours), 430, yPos, { width: 80 });
+        doc.text(item.entries.toString(), 520, yPos, { width: 80 });
+        doc.moveDown(0.4);
+
+        if (doc.y > 500) {
+          doc.addPage();
+          doc.fontSize(9).font('Helvetica');
+        }
+      });
+
+    // Breakdown by project
+    doc.addPage();
+    doc.fontSize(14).font('Helvetica-Bold').text('Stunden nach Projekt');
+    doc.moveDown(0.5);
+    doc.fontSize(9).font('Helvetica');
+
+    // Table header
+    doc.font('Helvetica-Bold');
+    doc.text('Projekt', 50, doc.y, { width: 280 });
+    doc.text('Stunden', 340, doc.y, { width: 100 });
+    doc.text('Buchungen', 450, doc.y, { width: 100 });
+    doc.moveDown(0.5);
+    doc.moveTo(50, doc.y).lineTo(600, doc.y).stroke();
+    doc.moveDown(0.3);
+    doc.font('Helvetica');
+
+    Object.values(byProject)
+      .sort((a, b) => b.hours - a.hours)
+      .forEach((item) => {
+        const yPos = doc.y;
+        doc.text(item.project.name, 50, yPos, { width: 280 });
+        doc.text(formatHours(item.hours), 340, yPos, { width: 100 });
+        doc.text(item.entries.toString(), 450, yPos, { width: 100 });
+        doc.moveDown(0.4);
+
+        if (doc.y > 500) {
+          doc.addPage();
+          doc.fontSize(9).font('Helvetica');
+        }
+      });
+
+    // Detailed entries
+    doc.addPage();
+    doc.fontSize(14).font('Helvetica-Bold').text('Detaillierte Buchungen');
+    doc.moveDown(0.5);
+    doc.fontSize(8).font('Helvetica');
+
+    // Table header
+    doc.font('Helvetica-Bold');
+    doc.text('Datum', 50, doc.y, { width: 55 });
+    doc.text('Mitarbeiter', 110, doc.y, { width: 100 });
+    doc.text('Von', 215, doc.y, { width: 35 });
+    doc.text('Bis', 255, doc.y, { width: 35 });
+    doc.text('Pause', 295, doc.y, { width: 35 });
+    doc.text('Std.', 335, doc.y, { width: 35 });
+    doc.text('Projekt', 375, doc.y, { width: 110 });
+    doc.text('Standort', 490, doc.y, { width: 100 });
+    doc.moveDown(0.5);
+    doc.moveTo(50, doc.y).lineTo(600, doc.y).stroke();
+    doc.moveDown(0.3);
+    doc.font('Helvetica');
+
+    entries.forEach((entry) => {
+      const yPos = doc.y;
+      const hours = calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
+      const userName = `${entry.user.firstName} ${entry.user.lastName}`;
+      
+      doc.text(formatDate(entry.clockIn), 50, yPos, { width: 55 });
+      doc.text(userName, 110, yPos, { width: 100 });
+      doc.text(formatTime(entry.clockIn), 215, yPos, { width: 35 });
+      doc.text(entry.clockOut ? formatTime(entry.clockOut) : '-', 255, yPos, { width: 35 });
+      doc.text(entry.pauseMinutes ? `${entry.pauseMinutes}m` : '-', 295, yPos, { width: 35 });
+      doc.text(formatHours(hours), 335, yPos, { width: 35 });
+      doc.text(entry.project?.name || '-', 375, yPos, { width: 110 });
+      doc.text(entry.location?.name || '-', 490, yPos, { width: 100 });
+      doc.moveDown(0.4);
+
+      if (doc.y > 500) {
+        doc.addPage();
+        doc.fontSize(8).font('Helvetica');
+      }
+    });
+
+    // Footer
+    doc.fontSize(8).text(
+      `Erstellt am ${formatDate(new Date())} um ${formatTime(new Date())}`,
+      50,
+      530,
+      { align: 'center' }
+    );
+
+    doc.end();
+  });
+};

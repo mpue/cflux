@@ -25,6 +25,7 @@ import incidentRoutes from './routes/incident.routes';
 import workflowRoutes from './routes/workflow.routes';
 import systemSettingsRoutes from './routes/systemSettings.routes';
 import payrollRoutes from './routes/payroll.routes';
+import projectTimeAllocationRoutes from './routes/projectTimeAllocation.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -32,12 +33,24 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Parse CORS origins from environment (comma-separated list)
+const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map(origin => origin.trim()) || ['http://localhost:3000'];
+
 // Middleware
 app.use(cors({
-  origin: "*",
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
@@ -66,6 +79,7 @@ app.use('/api/incidents', incidentRoutes);
 app.use('/api/workflows', workflowRoutes);
 app.use('/api/system-settings', systemSettingsRoutes);
 app.use('/api/payroll', payrollRoutes);
+app.use('/api/project-time-allocations', projectTimeAllocationRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

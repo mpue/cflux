@@ -206,11 +206,28 @@ export const updateMyTimeEntry = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Time entry not found or access denied' });
     }
 
-    // Check if the entry is already clocked out
+    // Allow project and description updates for active entries
+    // Only restrict clockIn/clockOut changes for active entries
     if (existingEntry.status === 'CLOCKED_IN') {
-      return res.status(400).json({ error: 'Cannot edit active time entry. Clock out first.' });
+      if (clockIn || clockOut) {
+        return res.status(400).json({ error: 'Cannot edit clock times for active entry. Clock out first.' });
+      }
+      // Allow only projectId and description updates for active entries
+      const timeEntry = await prisma.timeEntry.update({
+        where: { id },
+        data: {
+          projectId: projectId === null ? null : projectId,
+          description
+        },
+        include: {
+          project: true,
+          location: true
+        }
+      });
+      return res.json(timeEntry);
     }
 
+    // For clocked out entries, allow all updates
     const timeEntry = await prisma.timeEntry.update({
       where: { id },
       data: {

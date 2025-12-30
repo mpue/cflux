@@ -22,4 +22,10 @@ router.get('/attendance-by-month', authorize('ADMIN'), reportController.getAtten
 router.get('/overtime-report', authorize('ADMIN'), reportController.getOvertimeReport);
 router.get('/project-time-by-user', authorize('ADMIN'), reportController.getProjectTimeByUser);
 
+// Detailed time bookings reports
+router.get('/time-bookings', authorize('ADMIN'), reportController.getDetailedTimeBookings);
+router.get('/user-time-bookings/:userId', authorize('ADMIN'), reportController.getUserTimeBookingsReport);
+router.get('/time-bookings-pdf', authorize('ADMIN'), reportController.generateTimeBookingsPDFReport);
+router.get('/user-time-bookings-pdf/:userId', authorize('ADMIN'), reportController.generateUserTimeBookingsPDFReport);
+
 export default router;
