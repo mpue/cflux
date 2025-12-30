@@ -71,11 +71,15 @@ export const moduleService = {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userGroup: {
+        userGroupMemberships: {
           include: {
-            moduleAccess: {
+            userGroup: {
               include: {
-                module: true,
+                moduleAccess: {
+                  include: {
+                    module: true,
+                  },
+                },
               },
             },
           },
@@ -109,28 +113,55 @@ export const moduleService = {
       }));
     }
 
-    // Return modules accessible by user's group
-    if (!user.userGroup) {
+    // Return modules accessible by any of user's groups
+    if (!user.userGroupMemberships || user.userGroupMemberships.length === 0) {
       return [];
     }
 
-    const modules = user.userGroup.moduleAccess
-      .filter(access => access.module.isActive && access.canView)
-      .map(access => ({
-        ...access.module,
-        permissions: {
-          canView: access.canView,
-          canCreate: access.canCreate,
-          canEdit: access.canEdit,
-          canDelete: access.canDelete,
-        },
-      }))
-      .sort((a, b) => {
-        if (a.sortOrder !== b.sortOrder) {
-          return a.sortOrder - b.sortOrder;
+    // Collect all module access from all user groups
+    const moduleMap = new Map<string, any>();
+
+    for (const membership of user.userGroupMemberships) {
+      if (!membership.userGroup.isActive) {
+        continue;
+      }
+
+      for (const access of membership.userGroup.moduleAccess) {
+        if (!access.module.isActive || !access.canView) {
+          continue;
         }
-        return a.name.localeCompare(b.name);
-      });
+
+        const moduleId = access.module.id;
+        const existingModule = moduleMap.get(moduleId);
+
+        if (!existingModule) {
+          // Add new module with its permissions
+          moduleMap.set(moduleId, {
+            ...access.module,
+            permissions: {
+              canView: access.canView,
+              canCreate: access.canCreate,
+              canEdit: access.canEdit,
+              canDelete: access.canDelete,
+            },
+          });
+        } else {
+          // Merge permissions (use the most permissive)
+          existingModule.permissions.canView = existingModule.permissions.canView || access.canView;
+          existingModule.permissions.canCreate = existingModule.permissions.canCreate || access.canCreate;
+          existingModule.permissions.canEdit = existingModule.permissions.canEdit || access.canEdit;
+          existingModule.permissions.canDelete = existingModule.permissions.canDelete || access.canDelete;
+        }
+      }
+    }
+
+    // Convert map to array and sort
+    const modules = Array.from(moduleMap.values()).sort((a, b) => {
+      if (a.sortOrder !== b.sortOrder) {
+        return a.sortOrder - b.sortOrder;
+      }
+      return a.name.localeCompare(b.name);
+    });
 
     return modules;
   },
@@ -214,13 +245,17 @@ export const moduleService = {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        userGroup: {
+        userGroupMemberships: {
           include: {
-            moduleAccess: {
-              where: {
-                module: {
-                  key: moduleKey,
-                  isActive: true,
+            userGroup: {
+              include: {
+                moduleAccess: {
+                  where: {
+                    module: {
+                      key: moduleKey,
+                      isActive: true,
+                    },
+                  },
                 },
               },
             },
@@ -238,16 +273,24 @@ export const moduleService = {
       return true;
     }
 
-    // Check if user has group and required permission
-    if (!user.userGroup || !user.userGroup.isActive) {
+    // Check if user has any group with the required permission
+    if (!user.userGroupMemberships || user.userGroupMemberships.length === 0) {
       return false;
     }
 
-    const access = user.userGroup.moduleAccess[0];
-    if (!access) {
-      return false;
+    // Check all user groups for the required permission
+    for (const membership of user.userGroupMemberships) {
+      if (!membership.userGroup.isActive) {
+        continue;
+      }
+
+      for (const access of membership.userGroup.moduleAccess) {
+        if (access[requiredPermission] === true) {
+          return true;
+        }
+      }
     }
 
-    return access[requiredPermission] === true;
+    return false;
   },
 };
