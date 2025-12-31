@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import logo from '../assets/logo.png';
 import '../App.css';
 
 const Login: React.FC = () => {
@@ -60,7 +61,7 @@ const Login: React.FC = () => {
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <h1 style={{ fontWeight: 'bold', fontSize: '32px', marginBottom: '20px' }}>CFlux</h1>
           <img 
-            src="/images/logo.png" 
+            src={logo} 
             alt="Logo" 
             style={{ maxWidth: '200px', height: 'auto' }}
           />

@@ -33,8 +33,14 @@
     "files": [
       "main.js",
       "preload.js",
-      "package.json",
-      "../frontend/build/**/*"
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../frontend/build",
+        "to": "frontend/build",
+        "filter": ["**/*"]
+      }
     ],
     "win": {
       "target": [
@@ -42,8 +48,7 @@
           "target": "nsis",
           "arch": ["x64", "ia32"]
         }
-      ],
-      "icon": "assets/icon.ico"
+      ]
     },
     "mac": {
       "target": [

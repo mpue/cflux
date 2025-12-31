@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || '/api';
+// Check if running in Electron and use injected backend URL
+const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
+const API_URL = electronBackendUrl 
+  ? `${electronBackendUrl}/api`
+  : (process.env.REACT_APP_API_URL || '/api');
 
 export interface Incident {
   id: string;

@@ -40,7 +40,11 @@ import {
 import { PayrollPeriod, PayrollEntry, PayrollStatus } from '../types';
 import './PayrollManagement.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+// Check if running in Electron and use injected backend URL
+const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
+const API_URL = electronBackendUrl 
+  ? `${electronBackendUrl}/api`
+  : (process.env.REACT_APP_API_URL || 'http://localhost:3001/api');
 
 const PayrollManagement: React.FC = () => {
   const [periods, setPeriods] = useState<PayrollPeriod[]>([]);

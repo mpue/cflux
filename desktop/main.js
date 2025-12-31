@@ -5,12 +5,62 @@ const Store = require('electron-store');
 const store = new Store();
 
 // Default backend URL
-const DEFAULT_BACKEND_URL = 'http://localhost:5000';
+const DEFAULT_BACKEND_URL = 'http://localhost:3001';
 
 // Keep a global reference of the window object
 let mainWindow;
 
 const isDev = process.argv.includes('--dev');
+
+// Function to generate modified HTML with current backend URL
+function generateModifiedHTML() {
+  const basePath = app.isPackaged ? process.resourcesPath : path.join(__dirname, '..');
+  const indexPath = path.join(basePath, 'frontend', 'build', 'index.html');
+  
+  // Read and modify index.html to remove CSP meta tag
+  const fs = require('fs');
+  let htmlContent = fs.readFileSync(indexPath, 'utf-8');
+  // Remove the CSP meta tag
+  htmlContent = htmlContent.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/gi, '');
+  
+  // Add base tag for correct asset loading
+  const buildDir = path.dirname(indexPath).replace(/\\/g, '/');
+  const baseTag = `<base href="file:///${buildDir}/">`;
+  htmlContent = htmlContent.replace('<head>', '<head>' + baseTag);
+  
+  // Inject backend URL as a script before other scripts
+  const backendUrl = store.get('backendUrl', DEFAULT_BACKEND_URL);
+  const injectionScript = `<script>window.ELECTRON_BACKEND_URL = '${backendUrl}'; console.log('Backend URL set:', window.ELECTRON_BACKEND_URL);</script>`;
+  htmlContent = htmlContent.replace('<script', injectionScript + '<script');
+  
+  // Add a debug script after body to check if React loaded
+  const debugScript = `<script>
+    setTimeout(() => {
+      const root = document.getElementById('root');
+      console.log('Root element:', root);
+      console.log('Root innerHTML length:', root ? root.innerHTML.length : 0);
+      console.log('Root children:', root ? root.children.length : 0);
+      console.log('Current path:', window.location.pathname);
+      console.log('CSS stylesheets:', document.styleSheets.length);
+      if (root && root.innerHTML.length === 0) {
+        console.error('React did not render! Root element is empty.');
+      }
+      if (root && root.children.length > 0) {
+        console.log('First child:', root.children[0].tagName, root.children[0].className);
+      }
+    }, 2000);
+  </script>`;
+  htmlContent = htmlContent.replace('</body>', debugScript + '</body>');
+  
+  // Create a temporary file with modified content
+  const tmpDir = app.getPath('temp');
+  const tmpPath = path.join(tmpDir, 'cflux-temp-index.html');
+  fs.writeFileSync(tmpPath, htmlContent);
+  
+  console.log('Generated HTML with backend URL:', backendUrl);
+  
+  return tmpPath;
+}
 
 function showSettingsDialog() {
   const currentBackendUrl = store.get('backendUrl', DEFAULT_BACKEND_URL);
@@ -196,10 +246,32 @@ function createWindow() {
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000'); // React dev server
   } else {
-    const indexPath = path.resolve(__dirname, '..', 'frontend', 'build', 'index.html');
-    console.log('Loading from:', indexPath);
-    mainWindow.loadFile(indexPath);
+    // Generate modified HTML with current backend URL
+    const tmpPath = generateModifiedHTML();
+    
+    // Set session CSP
+    mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': ["default-src 'self' file:; script-src 'self' 'unsafe-inline' file:; style-src 'self' 'unsafe-inline' file:; img-src 'self' data: blob: file:; font-src 'self' data: file:; connect-src *; base-uri 'self'; form-action 'self';"]
+        }
+      });
+    });
+    
+    mainWindow.loadFile(tmpPath).then(() => {
+      console.log('App loaded successfully');
+    }).catch(err => {
+      console.error('Failed to load index.html:', err);
+      dialog.showErrorBox('Ladefehler', `Die Anwendung konnte nicht geladen werden:\n\n${err.message}\n\nPfad: ${indexPath}`);
+    });
   }
+
+  // Log console messages from renderer
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    const levels = ['VERBOSE', 'INFO', 'WARNING', 'ERROR'];
+    console.log(`[Renderer ${levels[level] || level}]:`, message, sourceId ? `(${sourceId}:${line})` : '');
+  });
 
   // Open DevTools in development mode
   if (isDev) {
@@ -385,7 +457,13 @@ ipcMain.handle('close-settings', () => {
 
 ipcMain.handle('reload-app', () => {
   if (mainWindow) {
-    mainWindow.reload();
+    // Generate new HTML with updated backend URL
+    if (!isDev) {
+      const tmpPath = generateModifiedHTML();
+      mainWindow.loadFile(tmpPath);
+    } else {
+      mainWindow.reload();
+    }
   }
   return true;
 });

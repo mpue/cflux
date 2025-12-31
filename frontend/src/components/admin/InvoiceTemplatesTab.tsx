@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import InvoiceTemplateEditor from '../InvoiceTemplateEditor';
 import TemplateWorkflowManager from './TemplateWorkflowManager';
+import { invoiceTemplateService } from '../../services/invoiceTemplateService';
 
 const InvoiceTemplatesTab: React.FC = () => {
   const [templates, setTemplates] = useState<any[]>([]);
@@ -18,12 +19,7 @@ const InvoiceTemplatesTab: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const API_URL = process.env.REACT_APP_API_URL || '';
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/api/invoice-templates`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
+      const data = await invoiceTemplateService.getAll();
       setTemplates(data);
     } catch (err: any) {
       setError(err?.message || 'Fehler beim Laden der Vorlagen');
@@ -48,12 +44,7 @@ const InvoiceTemplatesTab: React.FC = () => {
     }
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL || '';
-      const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/api/invoice-templates/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await invoiceTemplateService.delete(id);
       loadTemplates();
     } catch (err: any) {
       alert(err?.message || 'Fehler beim Löschen der Vorlage');
@@ -62,12 +53,7 @@ const InvoiceTemplatesTab: React.FC = () => {
 
   const handleSetDefault = async (id: string) => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || '';
-      const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/api/invoice-templates/${id}/default`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await invoiceTemplateService.setDefault(id);
       loadTemplates();
     } catch (err: any) {
       alert(err?.message || 'Fehler beim Setzen der Standardvorlage');

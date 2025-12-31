@@ -3,7 +3,9 @@ import axios from 'axios';
 import { ComplianceViolation, ComplianceStats } from '../types';
 import '../styles/ComplianceDashboard.css';
 
-const API_URL = process.env.REACT_APP_API_URL || '';
+// Check if running in Electron and use injected backend URL
+const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
+const API_URL = electronBackendUrl || process.env.REACT_APP_API_URL || '';
 
 const ComplianceDashboard: React.FC = () => {
   const [stats, setStats] = useState<ComplianceStats | null>(null);

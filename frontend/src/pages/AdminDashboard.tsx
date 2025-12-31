@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import logo from '../assets/logo.png';
 import { useModules } from '../contexts/ModuleContext';
 import { userService } from '../services/user.service';
 import { projectService } from '../services/project.service';
@@ -204,7 +205,8 @@ const AdminDashboard: React.FC = () => {
 
   const loadComplianceData = async () => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || '';
+      const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
+      const API_URL = electronBackendUrl || process.env.REACT_APP_API_URL || '';
       const token = localStorage.getItem('token');
       
       // Stats abrufen
@@ -235,7 +237,8 @@ const AdminDashboard: React.FC = () => {
 
   const resolveViolation = async (id: string) => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || '';
+      const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
+      const API_URL = electronBackendUrl || process.env.REACT_APP_API_URL || '';
       const token = localStorage.getItem('token');
       const notes = prompt('Notizen zur Auflösung (optional):');
       
@@ -264,7 +267,7 @@ const AdminDashboard: React.FC = () => {
     <div className="admin-dashboard">
       <nav className="navbar">
         <div className="navbar-left">
-          <img src="/images/logo.png" alt="CFlux" className="navbar-logo" />
+          <img src={logo} alt="CFlux" className="navbar-logo" />
           <h1>{user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'}</h1>
         </div>
         <div className="navbar-right">

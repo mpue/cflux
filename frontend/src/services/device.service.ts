@@ -1,4 +1,6 @@
-const API_URL = process.env.REACT_APP_API_URL || '';
+// Check if running in Electron and use injected backend URL
+const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
+const API_URL = electronBackendUrl || process.env.REACT_APP_API_URL || '';
 
 export interface Device {
   id: string;
