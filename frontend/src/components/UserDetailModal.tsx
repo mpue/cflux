@@ -70,6 +70,13 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validiere erforderliche Felder
+    if (!formData.firstName?.trim() || !formData.lastName?.trim() || !formData.email?.trim()) {
+      alert('Bitte füllen Sie alle Pflichtfelder aus');
+      return;
+    }
+    
     const dataToSend: any = { ...formData };
     
     // Leere Felder entfernen

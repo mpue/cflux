@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { PayrollEntry } from '../../types';
 import axios from 'axios';
+import '../../styles/PayrollEntryDetail.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -68,9 +69,13 @@ const PayrollEntryDetail: React.FC<PayrollEntryDetailProps> = ({ open, onClose, 
     return new Date(dateString).toLocaleDateString('de-CH');
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
+      <DialogTitle className="no-print">
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box>
             <Typography variant="h5" fontWeight="bold">Lohnabrechnung</Typography>
@@ -97,6 +102,29 @@ const PayrollEntryDetail: React.FC<PayrollEntryDetailProps> = ({ open, onClose, 
       </DialogTitle>
 
       <DialogContent>
+        {/* Print-only header */}
+        <Box className="print-only" sx={{ mb: 3, display: 'none' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+            <Box>
+              <Typography variant="h4" fontWeight="bold">Lohnabrechnung</Typography>
+              <Typography variant="h6">{entry.payrollPeriod?.name}</Typography>
+            </Box>
+            {settings && (
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography variant="h6" fontWeight="bold">{settings.companyName || 'Firma'}</Typography>
+                {settings.companyAddress && (
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                    {settings.companyAddress}
+                  </Typography>
+                )}
+                {settings.companyTaxId && (
+                  <Typography variant="body2">UID: {settings.companyTaxId}</Typography>
+                )}
+              </Box>
+            )}
+          </Box>
+          <Divider sx={{ mb: 3 }} />
+        </Box>
         <Box sx={{ mb: 3 }}>
           <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
             Personalangaben
@@ -348,10 +376,10 @@ const PayrollEntryDetail: React.FC<PayrollEntryDetailProps> = ({ open, onClose, 
         )}
       </DialogContent>
 
-      <DialogActions>
+      <DialogActions className="no-print">
         <Button onClick={onClose}>Schließen</Button>
-        <Button variant="contained" color="primary">
-          PDF Drucken
+        <Button variant="contained" color="primary" onClick={handlePrint}>
+          📄 PDF Drucken
         </Button>
       </DialogActions>
     </Dialog>

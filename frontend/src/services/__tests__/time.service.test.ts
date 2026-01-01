@@ -52,7 +52,7 @@ describe('Time Service', () => {
 
       const result = await timeService.clockOut();
 
-      expect(mockedApi.post).toHaveBeenCalledWith('/time/clock-out');
+      expect(mockedApi.post).toHaveBeenCalledWith('/time/clock-out', { pauseMinutes: undefined });
       expect(result.status).toBe('CLOCKED_OUT');
     });
   });

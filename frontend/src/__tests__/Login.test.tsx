@@ -3,6 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Login from '../pages/Login';
 import { AuthProvider } from '../contexts/AuthContext';
+import { authService } from '../services/auth.service';
+
+// Mock services
+jest.mock('../services/auth.service');
 
 // Mock useNavigate
 const mockNavigate = jest.fn();
@@ -11,27 +15,18 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-// Mock AuthContext
-const mockLogin = jest.fn();
-jest.mock('../contexts/AuthContext', () => ({
-  ...jest.requireActual('../contexts/AuthContext'),
-  useAuth: () => ({
-    login: mockLogin,
-    user: null,
-    logout: jest.fn(),
-  }),
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
 const MockedLogin = () => (
   <BrowserRouter>
-    <Login />
+    <AuthProvider>
+      <Login />
+    </AuthProvider>
   </BrowserRouter>
 );
 
 describe('Login Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
   });
 
   it('renders login form', () => {
@@ -43,7 +38,23 @@ describe('Login Component', () => {
   });
 
   it('submits form with valid credentials', async () => {
-    mockLogin.mockResolvedValue(undefined);
+    const mockUser = { 
+      id: '1', 
+      email: 'test@example.com', 
+      firstName: 'Test',
+      lastName: 'User',
+      role: 'USER' as const,
+      requiresPasswordChange: false,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      vacationDays: 30
+    };
+    
+    (authService.login as jest.Mock).mockResolvedValue({
+      user: mockUser,
+      token: 'fake-token'
+    });
 
     render(<MockedLogin />);
     
@@ -56,13 +67,13 @@ describe('Login Component', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'password123');
+      expect(authService.login).toHaveBeenCalledWith('test@example.com', 'password123');
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
     });
   });
 
   it('displays error message on failed login', async () => {
-    mockLogin.mockRejectedValue({
+    (authService.login as jest.Mock).mockRejectedValue({
       response: { data: { error: 'Invalid credentials' } },
     });
 

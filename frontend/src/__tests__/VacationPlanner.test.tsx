@@ -35,15 +35,15 @@ const MockedVacationPlanner = () => (
 describe('VacationPlanner Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (userService.getUserById as jest.Mock).mockResolvedValue(mockUser);
-    (absenceService.getMyAbsenceRequests as jest.Mock).mockResolvedValue([]);
+    (userService.getAllUsers as jest.Mock).mockResolvedValue([mockUser]);
+    (absenceService.getAllAbsenceRequests as jest.Mock).mockResolvedValue([]);
   });
 
   it('renders vacation planner', async () => {
     render(<MockedVacationPlanner />);
     
     await waitFor(() => {
-      expect(screen.getByText(/urlaub|vacation/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /urlaubsplaner/i })).toBeInTheDocument();
     });
   });
 
@@ -51,10 +51,7 @@ describe('VacationPlanner Component', () => {
     render(<MockedVacationPlanner />);
     
     await waitFor(() => {
-      const daysText = screen.queryByText(/30/);
-      if (daysText) {
-        expect(daysText).toBeInTheDocument();
-      }
+      expect(screen.getAllByText(/30/).length).toBeGreaterThan(0);
     });
   });
 });

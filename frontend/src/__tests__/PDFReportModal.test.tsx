@@ -1,1 +1,49 @@
-import React from 'react';import { render, screen, fireEvent } from '@testing-library/react';import PDFReportModal from '../components/PDFReportModal';describe('PDFReportModal Component', () => {  const mockUser = {    id: 'user-1',    email: 'user@example.com',    firstName: 'John',    lastName: 'Doe',    role: 'USER' as const,    isActive: true,    vacationDays: 30,    createdAt: new Date(),    updatedAt: new Date(),  };  const mockOnClose = jest.fn();  beforeEach(() => {    jest.clearAllMocks();  });  it('renders PDF report modal', () => {    render(      <PDFReportModal        user={mockUser}        isOpen={true}        onClose={mockOnClose}      />    );        expect(screen.getByText(/bericht|pdf/i)).toBeInTheDocument();  });  it('closes modal on close button click', () => {    render(      <PDFReportModal        user={mockUser}        isOpen={true}        onClose={mockOnClose}      />    );        const closeButton = screen.getByText(/abbrechen|schließen/i);    fireEvent.click(closeButton);    expect(mockOnClose).toHaveBeenCalled();  });});
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import PDFReportModal from '../components/PDFReportModal';
+
+describe('PDFReportModal Component', () => {
+  const mockUser = {
+    id: 'user-1',
+    email: 'user@example.com',
+    firstName: 'John',
+    lastName: 'Doe',
+    role: 'USER' as const,
+    isActive: true,
+    vacationDays: 30,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  
+  const mockOnClose = jest.fn();
+  
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+  
+  it('renders PDF report modal', () => {
+    render(
+      <PDFReportModal
+        user={mockUser}
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+    
+    expect(screen.getByRole('heading', { name: 'PDF-Bericht erstellen', level: 2 })).toBeInTheDocument();
+  });
+  
+  it('closes modal on close button click', () => {
+    render(
+      <PDFReportModal
+        user={mockUser}
+        isOpen={true}
+        onClose={mockOnClose}
+      />
+    );
+    
+    const closeButton = screen.getByRole('button', { name: /abbrechen/i });
+    fireEvent.click(closeButton);
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+});

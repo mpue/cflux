@@ -45,6 +45,6 @@ describe('CustomerModal Component', () => {
       />
     );
     
-    expect(screen.getByRole('heading')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /neuer kunde/i })).toBeInTheDocument();
   });
 });

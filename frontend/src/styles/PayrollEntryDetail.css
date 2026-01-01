@@ -1,0 +1,91 @@
+/* Payroll Entry Detail Print Styles */
+
+@media print {
+  /* Verstecke komplette Applikation */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Zeige nur den Dialog-Inhalt */
+  .MuiDialog-root,
+  .MuiDialog-root * {
+    visibility: visible !important;
+  }
+
+  /* Verstecke Dialog-Header, Buttons und Backdrop */
+  .no-print,
+  .MuiDialogTitle-root,
+  .MuiDialogActions-root,
+  .MuiBackdrop-root {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Zeige print-only Elemente */
+  .print-only {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Dialog Positionierung für Druck */
+  .MuiDialog-root {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  .MuiDialog-container {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .MuiDialog-paper {
+    max-width: 100% !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    width: 100% !important;
+    position: static !important;
+  }
+
+  .MuiDialogContent-root {
+    padding: 20mm !important;
+    overflow: visible !important;
+  }
+
+  /* Stelle sicher dass alles sichtbare auch gedruckt wird */
+  .MuiDialogContent-root,
+  .MuiDialogContent-root * {
+    visibility: visible !important;
+  }
+
+  /* Tabellen nicht mitten durchschneiden */
+  table {
+    page-break-inside: avoid;
+  }
+
+  /* Überschriften nicht von Inhalt trennen */
+  h6, .MuiTypography-h6 {
+    page-break-after: avoid;
+  }
+
+  .MuiDivider-root {
+    page-break-after: avoid;
+  }
+
+  /* Seiten-Einstellungen */
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+}
