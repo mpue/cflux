@@ -193,7 +193,7 @@
 }
 
 .approval-modal {
-  background: var(--card-background);
+  background: #ffffff;
   border-radius: 12px;
   width: 90%;
   max-width: 600px;
@@ -207,12 +207,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
 }
 
 .approval-modal-header h2 {
   margin: 0;
-  color: var(--text-primary);
+  color: #333;
   font-size: 20px;
 }
 
@@ -221,7 +222,7 @@
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: var(--text-secondary);
+  color: #666;
   padding: 0;
   width: 32px;
   height: 32px;
@@ -233,26 +234,28 @@
 }
 
 .btn-close:hover {
-  background: var(--hover-background);
-  color: var(--text-primary);
+  background: #f0f0f0;
+  color: #333;
 }
 
 .approval-modal-body {
   padding: 24px;
+  background: #ffffff;
 }
 
 .approval-details {
-  background: var(--background-secondary);
+  background: #f8f9fa;
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 20px;
+  border: 1px solid #e0e0e0;
 }
 
 .detail-row {
   display: flex;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .detail-row:last-child {
@@ -261,13 +264,14 @@
 
 .detail-row .label {
   font-weight: 600;
-  color: var(--text-secondary);
+  color: #666;
   font-size: 13px;
 }
 
 .detail-row .value {
-  color: var(--text-primary);
+  color: #333;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .form-group {
@@ -278,35 +282,38 @@
   display: block;
   margin-bottom: 8px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #333;
   font-size: 14px;
 }
 
 .form-group textarea {
   width: 100%;
   padding: 12px;
-  border: 1px solid var(--border-color);
+  border: 1px solid #ddd;
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
-  background: var(--input-background);
-  color: var(--text-primary);
+  background: #ffffff;
+  color: #333;
   resize: vertical;
   min-height: 100px;
 }
 
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--primary-color);
+  border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(74, 95, 213, 0.1);
 }
 
 .approval-modal-actions {
   padding: 16px 24px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 .btn-reject {

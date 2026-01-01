@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -16,6 +16,17 @@ import {
   Paper
 } from '@mui/material';
 import { PayrollEntry } from '../../types';
+import axios from 'axios';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+
+interface SystemSettings {
+  companyName?: string;
+  companyAddress?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  companyTaxId?: string;
+}
 
 interface PayrollEntryDetailProps {
   open: boolean;
@@ -24,6 +35,26 @@ interface PayrollEntryDetailProps {
 }
 
 const PayrollEntryDetail: React.FC<PayrollEntryDetailProps> = ({ open, onClose, entry }) => {
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    if (open) {
+      loadSettings();
+    }
+  }, [open]);
+
+  const loadSettings = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/system-settings`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSettings(response.data);
+    } catch (error) {
+      console.error('Error loading system settings:', error);
+    }
+  };
+
   if (!entry) return null;
 
   const formatCurrency = (amount: number) => {
@@ -40,21 +71,40 @@ const PayrollEntryDetail: React.FC<PayrollEntryDetailProps> = ({ open, onClose, 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
-        Lohnabrechnung Details
-        <Typography variant="subtitle2" color="textSecondary">
-          {entry.payrollPeriod?.name} - {entry.user?.firstName} {entry.user?.lastName}
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Box>
+            <Typography variant="h5" fontWeight="bold">Lohnabrechnung</Typography>
+            <Typography variant="subtitle2" color="textSecondary">
+              {entry.payrollPeriod?.name}
+            </Typography>
+          </Box>
+          {settings && (
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="h6" fontWeight="bold">{settings.companyName || 'Firma'}</Typography>
+              {settings.companyAddress && (
+                <Typography variant="body2" color="textSecondary" sx={{ whiteSpace: 'pre-line' }}>
+                  {settings.companyAddress}
+                </Typography>
+              )}
+              {settings.companyTaxId && (
+                <Typography variant="body2" color="textSecondary">
+                  UID: {settings.companyTaxId}
+                </Typography>
+              )}
+            </Box>
+          )}
+        </Box>
       </DialogTitle>
 
       <DialogContent>
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Mitarbeiter
+          <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+            Personalangaben
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={6}>
               <Typography variant="body2" color="textSecondary">Name</Typography>
-              <Typography variant="body1">
+              <Typography variant="body1" fontWeight="medium">
                 {entry.user?.firstName} {entry.user?.lastName}
               </Typography>
             </Grid>
@@ -62,6 +112,77 @@ const PayrollEntryDetail: React.FC<PayrollEntryDetailProps> = ({ open, onClose, 
               <Typography variant="body2" color="textSecondary">Personalnummer</Typography>
               <Typography variant="body1">
                 {entry.user?.employeeNumber || '-'}
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" color="textSecondary">Geburtsdatum</Typography>
+              <Typography variant="body1">
+                {entry.user?.dateOfBirth ? formatDate(entry.user.dateOfBirth) : '-'}
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" color="textSecondary">Nationalität</Typography>
+              <Typography variant="body1">
+                {entry.user?.nationality || '-'}
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" color="textSecondary">AHV-Nummer</Typography>
+              <Typography variant="body1">
+                {entry.user?.ahvNumber || '-'}
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" color="textSecondary">Zivilstand</Typography>
+              <Typography variant="body1">
+                {entry.user?.civilStatus || '-'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="body2" color="textSecondary">Adresse</Typography>
+              <Typography variant="body1">
+                {entry.user?.street && entry.user?.streetNumber 
+                  ? `${entry.user.street} ${entry.user.streetNumber}` 
+                  : '-'}
+              </Typography>
+              <Typography variant="body1">
+                {entry.user?.zipCode && entry.user?.city 
+                  ? `${entry.user.zipCode} ${entry.user.city}` 
+                  : '-'}
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" color="textSecondary">Eintritt</Typography>
+              <Typography variant="body1">
+                {entry.user?.entryDate ? formatDate(entry.user.entryDate) : '-'}
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" color="textSecondary">Kanton</Typography>
+              <Typography variant="body1">
+                {entry.user?.canton || '-'}
+              </Typography>
+            </Grid>
+          </Grid>
+        </Box>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+            Bankverbindung
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Typography variant="body2" color="textSecondary">IBAN</Typography>
+              <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
+                {entry.user?.iban || '-'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="body2" color="textSecondary">Bank</Typography>
+              <Typography variant="body1">
+                {entry.user?.bankName || '-'}
               </Typography>
             </Grid>
           </Grid>

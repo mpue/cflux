@@ -51,7 +51,26 @@ export const getPayrollPeriods = async (req: AuthRequest, res: Response) => {
                 id: true,
                 firstName: true,
                 lastName: true,
-                email: true
+                email: true,
+                employeeNumber: true,
+                dateOfBirth: true,
+                placeOfBirth: true,
+                nationality: true,
+                phone: true,
+                mobile: true,
+                street: true,
+                streetNumber: true,
+                zipCode: true,
+                city: true,
+                country: true,
+                entryDate: true,
+                exitDate: true,
+                iban: true,
+                bankName: true,
+                civilStatus: true,
+                religion: true,
+                ahvNumber: true,
+                canton: true
               }
             }
           }
@@ -82,7 +101,25 @@ export const getPayrollPeriod = async (req: AuthRequest, res: Response) => {
                 firstName: true,
                 lastName: true,
                 email: true,
-                employeeNumber: true
+                employeeNumber: true,
+                dateOfBirth: true,
+                placeOfBirth: true,
+                nationality: true,
+                phone: true,
+                mobile: true,
+                street: true,
+                streetNumber: true,
+                zipCode: true,
+                city: true,
+                country: true,
+                entryDate: true,
+                exitDate: true,
+                iban: true,
+                bankName: true,
+                civilStatus: true,
+                religion: true,
+                ahvNumber: true,
+                canton: true
               }
             }
           },
@@ -450,7 +487,34 @@ export const getMyPayrollEntries = async (req: AuthRequest, res: Response) => {
     const entries = await prisma.payrollEntry.findMany({
       where: { userId },
       include: {
-        payrollPeriod: true
+        payrollPeriod: true,
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            employeeNumber: true,
+            dateOfBirth: true,
+            placeOfBirth: true,
+            nationality: true,
+            phone: true,
+            mobile: true,
+            street: true,
+            streetNumber: true,
+            zipCode: true,
+            city: true,
+            country: true,
+            entryDate: true,
+            exitDate: true,
+            iban: true,
+            bankName: true,
+            civilStatus: true,
+            religion: true,
+            ahvNumber: true,
+            canton: true
+          }
+        }
       },
       orderBy: {
         payrollPeriod: {
@@ -481,7 +545,25 @@ export const getUserPayrollEntries = async (req: AuthRequest, res: Response) => 
             firstName: true,
             lastName: true,
             email: true,
-            employeeNumber: true
+            employeeNumber: true,
+            dateOfBirth: true,
+            placeOfBirth: true,
+            nationality: true,
+            phone: true,
+            mobile: true,
+            street: true,
+            streetNumber: true,
+            zipCode: true,
+            city: true,
+            country: true,
+            entryDate: true,
+            exitDate: true,
+            iban: true,
+            bankName: true,
+            civilStatus: true,
+            religion: true,
+            ahvNumber: true,
+            canton: true
           }
         }
       },
