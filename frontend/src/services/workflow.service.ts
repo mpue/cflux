@@ -146,4 +146,10 @@ export const workflowService = {
     const response = await api.get('/workflows/my-approvals');
     return response.data;
   },
+
+  // Test Workflow
+  async testWorkflow(workflowId: string, invoiceId: string): Promise<any> {
+    const response = await api.post(`/workflows/${workflowId}/test`, { invoiceId });
+    return response.data;
+  },
 };

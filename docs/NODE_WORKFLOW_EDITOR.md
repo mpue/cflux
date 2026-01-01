@@ -52,9 +52,15 @@ Der Workflow-Editor wurde zu einem vollwertigen grafischen, node-basierten Edito
 - Beispiel: "Gesamtbetrag > CHF 10'000" → dann Manager-Genehmigung erforderlich
 
 #### Allgemeine Bedingung (❓)
-- Flexible Bedingungsprüfung
-- Konfiguration: Feld, Operator, Wert
-- Ausgabe: Zwei Pfade (true/false)
+- Flexible Bedingungsprüfung mit Ausdrücken
+- Konfiguration: 
+  - **Ausdruck**: Mathematischer Ausdruck mit `x` als Input-Variable
+  - Beispiele: `x > 1000`, `x <= 500`, `x == 0`, `x != 100`
+  - `x` entspricht dem Gesamtbetrag der Rechnung bzw. dem Betrag der Reisekosten
+- Ausgabe: 
+  - **Ausgang A (true)**: Wenn der Ausdruck `true` ergibt
+  - **Ausgang B (false)**: Wenn der Ausdruck `false` ergibt
+- Beispiel: "x > 10000" → Ausgang A für Beträge über CHF 10'000, sonst Ausgang B
 
 #### Logik-Verknüpfung (🔀)
 - UND/ODER-Verknüpfung mehrerer Bedingungen

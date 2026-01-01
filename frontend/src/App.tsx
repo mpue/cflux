@@ -18,6 +18,9 @@ import ModulePermissionsPage from './pages/ModulePermissionsPage';
 import MyApprovals from './pages/MyApprovals';
 import PayrollManagement from './pages/PayrollManagement';
 import { TravelExpensesPageWrapper } from './pages/TravelExpensesPageWrapper';
+import MessagesPage from './pages/MessagesPage';
+import MessageDetail from './pages/MessageDetail';
+import ComposeMessage from './pages/ComposeMessage';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
@@ -153,6 +156,30 @@ function App() {
               element={
                 <PrivateRoute>
                   <TravelExpensesPageWrapper />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <PrivateRoute>
+                  <MessagesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/messages/compose"
+              element={
+                <PrivateRoute>
+                  <ComposeMessage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/messages/:id"
+              element={
+                <PrivateRoute>
+                  <MessageDetail />
                 </PrivateRoute>
               }
             />

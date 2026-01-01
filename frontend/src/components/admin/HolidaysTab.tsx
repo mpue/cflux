@@ -14,7 +14,8 @@ export const HolidaysTab: React.FC = () => {
     percentage: 100
   });
 
-  const API_URL = process.env.REACT_APP_API_URL || '';
+  const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
+  const API_URL = electronBackendUrl || process.env.REACT_APP_API_URL || '';
   const token = localStorage.getItem('token');
 
   useEffect(() => {

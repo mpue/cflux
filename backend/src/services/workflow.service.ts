@@ -1,5 +1,6 @@
 import { PrismaClient, WorkflowStepType } from '@prisma/client';
 import { systemSettingsService } from './systemSettings.service';
+import { sendSystemMessage } from '../controllers/message.controller';
 
 const prisma = new PrismaClient();
 
@@ -97,7 +98,43 @@ export const workflowService = {
 
     // Update workflow steps if provided
     if (stepsData && stepsData.length > 0) {
-      // Delete old steps
+      // Check if there are any workflow instance steps referencing old steps
+      const existingSteps = await prisma.workflowStep.findMany({
+        where: { workflowId: id },
+        select: { id: true },
+      });
+
+      const stepIds = existingSteps.map(s => s.id);
+      
+      if (stepIds.length > 0) {
+        const referencedSteps = await prisma.workflowInstanceStep.count({
+          where: {
+            stepId: {
+              in: stepIds
+            }
+          }
+        });
+
+        // If there are referenced steps, we can only update the workflow definition
+        // but not the steps themselves to avoid breaking references
+        if (referencedSteps > 0) {
+          console.log(`[Workflow Update] Skipping step deletion because ${referencedSteps} instance step(s) reference them`);
+          console.log('[Workflow Update] Only workflow metadata (name, description, definition) will be updated');
+          
+          // Return workflow with existing steps
+          return await prisma.workflow.findUnique({
+            where: { id },
+            include: {
+              steps: {
+                orderBy: { order: 'asc' },
+              },
+            },
+          });
+        }
+      }
+
+      // Safe to delete old steps and create new ones
+      console.log('[Workflow Update] No instance steps reference old steps, safe to update');
       await prisma.workflowStep.deleteMany({
         where: { workflowId: id },
       });
@@ -277,14 +314,23 @@ export const workflowService = {
     });
 
     // Create a map of node IDs to steps
+    console.log(`[Workflow] Creating node-to-step mapping for ${workflow.steps.length} steps and ${nodes.length} nodes`);
     const nodeToStepMap = new Map<string, any>();
-    for (const step of workflow.steps as any[]) {
-      // Find the corresponding node in the definition
-      const node = nodes.find((n: any) => n.data?.config?.name === step.name || n.id === step.id);
-      if (node) {
-        nodeToStepMap.set(node.id, step);
-      }
+    
+    // First, try to map by matching step order to node creation order (excluding start/end nodes)
+    const workflowSteps = workflow.steps as any[];
+    const actionNodes = nodes.filter((n: any) => n.type !== 'start' && n.type !== 'end');
+    
+    console.log(`[Workflow] Found ${actionNodes.length} action nodes (excluding start/end)`);
+    
+    for (let i = 0; i < workflowSteps.length && i < actionNodes.length; i++) {
+      const step = workflowSteps[i];
+      const node = actionNodes[i];
+      nodeToStepMap.set(node.id, step);
+      console.log(`[Workflow] Mapped node ${node.id} (type: ${node.type}, label: ${node.data?.label}) -> step ${step.id} (name: ${step.name}, type: ${step.type})`);
     }
+    
+    console.log(`[Workflow] Node-to-step mapping complete with ${nodeToStepMap.size} mappings`);
 
     // Evaluate conditions and determine which steps to activate
     const evaluatedConditions = new Map<string, boolean>();
@@ -308,23 +354,33 @@ export const workflowService = {
     
     // Start node is always the entry point
     const startNode = nodes.find((n: any) => n.type === 'start');
+    console.log(`[Workflow] Found start node: ${startNode?.id}`);
+    
     if (startNode) {
       // Find all edges from start node
       const startEdges = edges.filter((e: any) => e.source === startNode.id);
+      console.log(`[Workflow] Found ${startEdges.length} edges from start node`);
       
       for (const edge of startEdges) {
         const targetNode = nodes.find((n: any) => n.id === edge.target);
+        console.log(`[Workflow] Edge target node: ${targetNode?.id} (type: ${targetNode?.type})`);
+        
         if (targetNode) {
           const targetStep = nodeToStepMap.get(targetNode.id);
           if (targetStep) {
+            console.log(`[Workflow] Activating step "${targetStep.name}" (id: ${targetStep.id}, type: ${targetStep.type}) from start node`);
             activeSteps.add(targetStep.id);
             if (!firstActiveStepId && targetStep.type === 'APPROVAL') {
               firstActiveStepId = targetStep.id;
             }
+          } else {
+            console.log(`[Workflow] WARNING: No step mapping found for target node ${targetNode.id}`);
           }
         }
       }
     }
+    
+    console.log(`[Workflow] Active steps after start node processing: ${activeSteps.size} steps`);
 
     // Process VALUE_CONDITION nodes and activate connected steps
     for (const [nodeId, conditionMet] of evaluatedConditions) {
@@ -371,7 +427,7 @@ export const workflowService = {
       });
     }
 
-    // Execute EMAIL steps immediately if they are active
+    // Execute EMAIL and NOTIFICATION steps immediately if they are active
     for (const step of workflow.steps as any[]) {
       if (step.type === 'EMAIL' && activeSteps.has(step.id)) {
         console.log(`[Workflow] Executing EMAIL step "${step.name}" immediately`);
@@ -385,6 +441,22 @@ export const workflowService = {
           },
           data: {
             status: emailSent ? 'COMPLETED' : 'SKIPPED',
+          },
+        });
+      }
+      
+      if (step.type === 'NOTIFICATION' && activeSteps.has(step.id)) {
+        console.log(`[Workflow] Executing NOTIFICATION step "${step.name}" immediately`);
+        const notificationsSent = await this.sendWorkflowNotifications(step, instance);
+        
+        // Update step status
+        await prisma.workflowInstanceStep.updateMany({
+          where: {
+            instanceId: instance.id,
+            stepId: step.id,
+          },
+          data: {
+            status: notificationsSent ? 'COMPLETED' : 'SKIPPED',
           },
         });
       }
@@ -863,5 +935,218 @@ export const workflowService = {
       const approverIds = JSON.parse(step.step.approverUserIds || '[]');
       return approverIds.includes(userId);
     });
+  },
+
+  // Test Workflow (executes workflow and cleans up old test instances)
+  async testWorkflow(workflowId: string, invoiceId: string) {
+    try {
+      const workflow = await prisma.workflow.findUnique({
+        where: { id: workflowId },
+        include: {
+          steps: {
+            orderBy: { order: 'asc' },
+          },
+        },
+      });
+
+      if (!workflow) {
+        throw new Error('Workflow nicht gefunden');
+      }
+
+      // Load invoice for testing
+      const invoice = await prisma.invoice.findUnique({
+        where: { id: invoiceId },
+        include: {
+          items: true,
+          customer: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!invoice) {
+        throw new Error('Rechnung nicht gefunden');
+      }
+
+      // Delete old test workflow instances for this workflow and invoice to avoid conflicts
+      console.log(`[WORKFLOW TEST] Cleaning up old workflow instances for workflow ${workflowId} and invoice ${invoiceId}`);
+      const oldInstances = await prisma.workflowInstance.findMany({
+        where: {
+          workflowId: workflowId,
+          entityType: 'INVOICE',
+          entityId: invoiceId,
+        },
+        select: { id: true },
+      });
+
+      for (const oldInstance of oldInstances) {
+        // Delete instance steps first (due to foreign key constraints)
+        await prisma.workflowInstanceStep.deleteMany({
+          where: { instanceId: oldInstance.id },
+        });
+        // Then delete the instance itself
+        await prisma.workflowInstance.delete({
+          where: { id: oldInstance.id },
+        });
+      }
+
+      if (oldInstances.length > 0) {
+        console.log(`[WORKFLOW TEST] Deleted ${oldInstances.length} old workflow instance(s)`);
+      }
+
+      // Execute the workflow for real
+      console.log(`[WORKFLOW TEST] Starting workflow execution for workflow ${workflowId} with invoice ${invoiceId}`);
+      
+      const workflowInstance = await this.createWorkflowInstance(
+        workflowId,
+        invoiceId,
+        'INVOICE'
+      );
+
+      console.log(`[WORKFLOW TEST] Workflow instance created: ${workflowInstance.id}`);
+
+      // Get the workflow instance with its steps
+      const instanceWithSteps = await prisma.workflowInstance.findUnique({
+        where: { id: workflowInstance.id },
+        include: {
+          steps: {
+            include: {
+              step: true,
+            },
+          },
+        },
+      });
+
+      // Format the results for the test response
+      const testResults = (instanceWithSteps?.steps || []).map((step: any) => ({
+        name: step.step.name,
+        type: step.step.type,
+        status: step.status,
+        config: JSON.parse(step.step.config || '{}'),
+        approvedAt: step.approvedAt,
+        comment: step.comment,
+      }));
+
+      return {
+        success: true,
+        message: `Workflow wurde erfolgreich ausgeführt mit Rechnung ${invoice.invoiceNumber} (CHF ${invoice.totalAmount})`,
+        invoice: {
+          invoiceNumber: invoice.invoiceNumber,
+          totalAmount: invoice.totalAmount,
+          customerName: invoice.customer.name,
+        },
+        workflowInstanceId: workflowInstance.id,
+        steps: testResults,
+      };
+    } catch (error: any) {
+      console.error('Error testing workflow:', error);
+      return {
+        success: false,
+        message: 'Test fehlgeschlagen',
+        error: error.message,
+        steps: [],
+      };
+    }
+  },
+
+  // Send workflow notification messages
+  async sendWorkflowNotification(
+    receiverId: string,
+    workflowName: string,
+    action: 'APPROVAL_REQUESTED' | 'APPROVED' | 'REJECTED',
+    entityType: string,
+    entityId: string,
+    comment?: string
+  ) {
+    try {
+      let subject = '';
+      let body = '';
+
+      switch (action) {
+        case 'APPROVAL_REQUESTED':
+          subject = `🔔 Genehmigungsanfrage: ${workflowName}`;
+          body = `<p>Sie haben eine neue Genehmigungsanfrage im Workflow <strong>${workflowName}</strong>.</p>
+                  <p><strong>Entität:</strong> ${entityType}</p>
+                  <p>Bitte überprüfen Sie die Anfrage unter <a href="/my-approvals">Meine Genehmigungen</a>.</p>`;
+          break;
+        case 'APPROVED':
+          subject = `✅ Workflow genehmigt: ${workflowName}`;
+          body = `<p>Ihr Workflow-Schritt wurde genehmigt.</p>
+                  <p><strong>Workflow:</strong> ${workflowName}</p>
+                  <p><strong>Entität:</strong> ${entityType}</p>
+                  ${comment ? `<p><strong>Kommentar:</strong> ${comment}</p>` : ''}`;
+          break;
+        case 'REJECTED':
+          subject = `❌ Workflow abgelehnt: ${workflowName}`;
+          body = `<p>Ihr Workflow-Schritt wurde abgelehnt.</p>
+                  <p><strong>Workflow:</strong> ${workflowName}</p>
+                  <p><strong>Entität:</strong> ${entityType}</p>
+                  ${comment ? `<p><strong>Grund:</strong> ${comment}</p>` : ''}`;
+          break;
+      }
+
+      await sendSystemMessage(
+        receiverId,
+        subject,
+        body,
+        'WORKFLOW',
+        undefined,
+        entityId
+      );
+
+      console.log(`[WORKFLOW] Notification sent to user ${receiverId}: ${action}`);
+    } catch (error) {
+      console.error('Error sending workflow notification:', error);
+    }
+  },
+
+  // Send notifications to multiple recipients (for NOTIFICATION nodes)
+  async sendWorkflowNotifications(step: any, workflowInstance: any): Promise<boolean> {
+    try {
+      const config = JSON.parse(step.config || '{}');
+      const recipients = config.recipients || [];
+      const message = config.message || 'Sie haben eine neue Workflow-Benachrichtigung.';
+      
+      if (recipients.length === 0) {
+        console.log('[WORKFLOW] No recipients configured for notification');
+        return false;
+      }
+
+      // Get workflow name
+      const workflow = await prisma.workflow.findUnique({
+        where: { id: workflowInstance.workflowId },
+        select: { name: true }
+      });
+
+      const workflowName = workflow?.name || 'Workflow';
+      const entityType = workflowInstance.entityType || 'ENTITY';
+      const entityId = workflowInstance.invoiceId || workflowInstance.entityId || '';
+
+      // Send message to each recipient
+      for (const recipientId of recipients) {
+        const subject = `🔔 ${workflowName}: ${config.name || 'Benachrichtigung'}`;
+        const body = `<p>${message}</p>
+                      <p><strong>Workflow:</strong> ${workflowName}</p>
+                      <p><strong>Entität:</strong> ${entityType}</p>`;
+
+        await sendSystemMessage(
+          recipientId,
+          subject,
+          body,
+          'WORKFLOW',
+          workflowInstance.workflowId,
+          entityId
+        );
+      }
+
+      console.log(`[WORKFLOW] Notifications sent to ${recipients.length} recipients`);
+      return true;
+    } catch (error) {
+      console.error('Error sending workflow notifications:', error);
+      return false;
+    }
   },
 };

@@ -1,0 +1,150 @@
+.workflow-test-dialog {
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.workflow-test-dialog .modal-body {
+  padding: 20px;
+}
+
+.test-info {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.test-info p {
+  margin: 5px 0;
+}
+
+.test-description {
+  color: #666;
+  font-size: 0.9em;
+  margin-top: 10px !important;
+}
+
+.test-actions {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.test-actions .btn {
+  padding: 12px 30px;
+  font-size: 1.1em;
+}
+
+.test-result {
+  margin-top: 30px;
+  padding: 20px;
+  border-radius: 8px;
+  border: 2px solid;
+}
+
+.test-result.success {
+  background: #d4edda;
+  border-color: #28a745;
+  color: #155724;
+}
+
+.test-result.error {
+  background: #f8d7da;
+  border-color: #dc3545;
+  color: #721c24;
+}
+
+.test-result h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.2em;
+}
+
+.test-result p {
+  margin: 10px 0;
+}
+
+.error-details {
+  margin-top: 15px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.test-steps {
+  margin-top: 20px;
+}
+
+.test-steps h4 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.step-item {
+  background: white;
+  padding: 12px 15px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.step-icon {
+  font-size: 1.2em;
+}
+
+.step-name {
+  font-weight: bold;
+  flex: 1;
+  color: #333;
+}
+
+.step-type {
+  font-size: 0.85em;
+  color: #666;
+  background: #e9ecef;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.step-status {
+  font-size: 0.9em;
+  color: #666;
+  margin-left: 30px;
+}
+
+.step-result {
+  color: #007bff;
+  font-weight: 500;
+}
+
+.workflow-test-dialog .form-control {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 1em;
+}
+
+.workflow-test-dialog .form-group {
+  margin-bottom: 20px;
+}
+
+.workflow-test-dialog .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}

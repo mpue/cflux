@@ -27,6 +27,7 @@ import ValueConditionNode from './nodes/ValueConditionNode';
 import DelayNode from './nodes/DelayNode';
 import NotificationNode from './nodes/NotificationNode';
 import LogicNode from './nodes/LogicNode';
+import WorkflowTestDialog from './WorkflowTestDialog';
 import { workflowService, Workflow } from '../../services/workflow.service';
 import { userService } from '../../services/user.service';
 
@@ -76,6 +77,7 @@ const NodeBasedWorkflowEditor: React.FC<NodeBasedWorkflowEditorProps> = ({
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [showTestDialog, setShowTestDialog] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
@@ -391,6 +393,16 @@ const NodeBasedWorkflowEditor: React.FC<NodeBasedWorkflowEditorProps> = ({
           </div>
         </div>
         <div className="workflow-editor-actions">
+          {workflow && (
+            <button 
+              className="btn-info" 
+              onClick={() => setShowTestDialog(true)} 
+              disabled={loading}
+              style={{ marginRight: '10px' }}
+            >
+              🧪 Workflow testen
+            </button>
+          )}
           <button className="btn-secondary" onClick={onCancel} disabled={loading}>
             Abbrechen
           </button>
@@ -478,6 +490,14 @@ const NodeBasedWorkflowEditor: React.FC<NodeBasedWorkflowEditorProps> = ({
           </div>
         )}
       </div>
+
+      {showTestDialog && workflow && (
+        <WorkflowTestDialog
+          workflowId={workflow.id}
+          workflowName={workflow.name}
+          onClose={() => setShowTestDialog(false)}
+        />
+      )}
     </div>
   );
 };
@@ -772,6 +792,79 @@ const NodePropertiesEditor: React.FC<NodePropertiesEditorProps> = ({
                 <option value="AND">UND (alle Bedingungen)</option>
                 <option value="OR">ODER (eine Bedingung)</option>
               </select>
+            </div>
+          </>
+        );
+
+      case 'notification':
+        return (
+          <>
+            <div className="form-group">
+              <label>Name</label>
+              <input
+                type="text"
+                value={config.name || ''}
+                onChange={(e) => handleChange('name', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Empfänger</label>
+              <select
+                multiple
+                value={config.recipients || []}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions).map(opt => opt.value);
+                  handleChange('recipients', selected);
+                }}
+                style={{ minHeight: '120px' }}
+              >
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.firstName} {user.lastName} ({user.email})
+                  </option>
+                ))}
+              </select>
+              <small style={{ color: '#666', fontSize: '0.85em', display: 'block', marginTop: '4px' }}>
+                Halten Sie Strg (Windows) oder Cmd (Mac) gedrückt, um mehrere Empfänger auszuwählen
+              </small>
+            </div>
+            <div className="form-group">
+              <label>Nachricht</label>
+              <textarea
+                value={config.message || ''}
+                onChange={(e) => handleChange('message', e.target.value)}
+                placeholder="Benachrichtigungstext eingeben..."
+                rows={4}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              />
+            </div>
+          </>
+        );
+
+      case 'condition':
+        return (
+          <>
+            <div className="form-group">
+              <label>Name</label>
+              <input
+                type="text"
+                value={config.name || ''}
+                onChange={(e) => handleChange('name', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Ausdruck (x = Input-Wert)</label>
+              <input
+                type="text"
+                value={config.expression || ''}
+                onChange={(e) => handleChange('expression', e.target.value)}
+                placeholder="z.B. x > 1000"
+                style={{ fontFamily: 'monospace' }}
+              />
+              <small style={{ color: '#666', fontSize: '0.85em', display: 'block', marginTop: '4px' }}>
+                Beispiele: x {'>'} 1000, x {'<'}= 500, x == 0, x != 100<br/>
+                Ausgänge: A (true) wenn Ausdruck wahr, sonst B (false)
+              </small>
             </div>
           </>
         );

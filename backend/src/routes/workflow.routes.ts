@@ -18,6 +18,9 @@ router.get('/:id', workflowController.getWorkflowById);
 router.put('/:id', workflowController.updateWorkflow);
 router.delete('/:id', workflowController.deleteWorkflow);
 
+// Test Workflow
+router.post('/:id/test', workflowController.testWorkflow);
+
 // Workflow Steps
 router.post('/:workflowId/steps', workflowController.createWorkflowStep);
 router.put('/steps/:id', workflowController.updateWorkflowStep);

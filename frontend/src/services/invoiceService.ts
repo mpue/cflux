@@ -40,3 +40,13 @@ export const getNextInvoiceNumber = async (): Promise<string> => {
   const response = await api.get('/invoices/next-number');
   return response.data.invoiceNumber;
 };
+
+export const invoiceService = {
+  getInvoices: getAllInvoices,
+  getInvoiceById,
+  createInvoice,
+  updateInvoice,
+  deleteInvoice,
+  getNextInvoiceNumber,
+};
+

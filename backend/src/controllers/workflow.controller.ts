@@ -203,4 +203,21 @@ export const workflowController = {
       res.status(500).json({ error: error.message });
     }
   },
+
+  // Test Workflow
+  async testWorkflow(req: Request, res: Response) {
+    try {
+      const { invoiceId } = req.body;
+      const workflowId = req.params.id;
+
+      if (!invoiceId) {
+        return res.status(400).json({ error: 'invoiceId ist erforderlich' });
+      }
+
+      const result = await workflowService.testWorkflow(workflowId, invoiceId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  },
 };

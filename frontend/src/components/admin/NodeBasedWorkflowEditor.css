@@ -52,6 +52,27 @@
   gap: 10px;
 }
 
+.btn-info {
+  padding: 10px 20px;
+  background: #17a2b8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.btn-info:hover:not(:disabled) {
+  background: #138496;
+}
+
+.btn-info:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .workflow-editor-content {
   flex: 1;
   display: flex;

@@ -12,7 +12,7 @@
 | Anlegen kreditorischer Gutschriften, Proforma-Rechnungen |✗ | tbd |
 | OP-Liste (offene Posten) |✓ | Heisst Mahnwesen|
 | mindestens Excel- und API-Schnittstellen |✗ |API gibt es, Excel tbd|
-| Erfassung von Reisekosten |✗ |tbd|   
+| Erfassung von Reisekosten |✓ ||   
 | Stammdaten-, Mitarbeiter-, Kunden-, Kontaktverzeichnis |✓|
 | Visualisierungen wie bereits gezeigt, auf mehreren Ebenen |✓|
 

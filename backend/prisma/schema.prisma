@@ -57,6 +57,18 @@ enum ViolationSeverity {
   CRITICAL
 }
 
+enum MessageType {
+  USER
+  SYSTEM
+  WORKFLOW
+}
+
+enum MessageFolder {
+  INBOX
+  SENT
+  TRASH
+}
+
 model User {
   id            String          @id @default(uuid())
   email         String          @unique
@@ -125,6 +137,8 @@ model User {
   deviceAssignments DeviceAssignment[]
   travelExpenses  TravelExpense[]
   approvedTravelExpenses TravelExpense[] @relation("TravelExpenseApprover")
+  sentMessages    Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
   
   @@index([userGroupId])
   @@map("users")
@@ -1133,4 +1147,51 @@ model TravelExpense {
   @@index([date])
   @@index([workflowId])
   @@map("travel_expenses")
+}
+
+model Message {
+  id            String        @id @default(uuid())
+  subject       String
+  body          String        @db.Text
+  
+  // Sender & Receiver
+  senderId      String?       // null für Systemnachrichten
+  receiverId    String
+  
+  // Message Type
+  type          MessageType   @default(USER)
+  
+  // Folder Management
+  senderFolder  MessageFolder @default(SENT)
+  receiverFolder MessageFolder @default(INBOX)
+  
+  // Status
+  isRead        Boolean       @default(false)
+  readAt        DateTime?
+  
+  // Workflow Integration
+  workflowId    String?
+  workflowInstanceId String?
+  
+  // Metadata
+  priority      String?       @default("normal") // low, normal, high
+  replyToId     String?       // Für Antworten auf Nachrichten
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  sender        User?         @relation("SentMessages", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver      User          @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  replyTo       Message?      @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies       Message[]     @relation("MessageReplies")
+  
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([receiverFolder])
+  @@index([senderFolder])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([workflowId])
+  @@index([workflowInstanceId])
+  @@map("messages")
 }

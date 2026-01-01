@@ -9,6 +9,7 @@ import { reportService } from '../services/report.service';
 import { locationService } from '../services/location.service';
 import { workflowService } from '../services/workflow.service';
 import projectTimeAllocationService, { AllocationInput, ProjectTimeAllocation } from '../services/projectTimeAllocation.service';
+import { getUnreadCount } from '../services/message.service';
 import { TimeEntry, Project, AbsenceRequest, Report, Location } from '../types';
 import PDFReportModal from '../components/PDFReportModal';
 import MyPayrollEntries from '../components/MyPayrollEntries';
@@ -38,6 +39,7 @@ const Dashboard: React.FC = () => {
   const [pauseCheckDone, setPauseCheckDone] = useState<Set<string>>(new Set());
   const [showPDFReportModal, setShowPDFReportModal] = useState(false);
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const [showAllocationModal, setShowAllocationModal] = useState(false);
   const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | null>(null);
   const [allocations, setAllocations] = useState<AllocationInput[]>([]);
@@ -123,6 +125,7 @@ const Dashboard: React.FC = () => {
         timeService.getMyTimeEntries(),
         reportService.getMySummary(),
         workflowService.getMyPendingApprovals(),
+        getUnreadCount(),
       ]);
 
       // Extrahiere erfolgreiche Ergebnisse
@@ -133,6 +136,7 @@ const Dashboard: React.FC = () => {
       const entries = results[4].status === 'fulfilled' ? results[4].value : [];
       const reportData = results[5].status === 'fulfilled' ? results[5].value : null;
       const approvals = results[6].status === 'fulfilled' ? results[6].value : [];
+      const unreadCount = results[7].status === 'fulfilled' ? results[7].value : 0;
 
       setCurrentEntry(current);
       setProjects(projectsData);
@@ -141,6 +145,7 @@ const Dashboard: React.FC = () => {
       setTimeEntries(entries);
       setReport(reportData);
       setPendingApprovalsCount(approvals.length);
+      setUnreadMessagesCount(unreadCount);
 
       // Load existing allocations for all time entries
       if (entries.length > 0) {
@@ -323,6 +328,15 @@ const Dashboard: React.FC = () => {
             </button>
             <button className="btn btn-primary" onClick={() => navigate('/my-approvals')}>
               🔔 Genehmigungen
+            </button>
+            <button className="btn btn-primary" onClick={() => navigate('/messages')}>
+              📨 Nachrichten {unreadMessagesCount > 0 && <span style={{
+                background: '#dc3545',
+                padding: '2px 6px',
+                borderRadius: '10px',
+                fontSize: '12px',
+                marginLeft: '4px'
+              }}>{unreadMessagesCount}</span>}
             </button>
             <button className="btn btn-secondary" onClick={() => navigate('/travel-expenses')}>
               💰 Reisekosten
