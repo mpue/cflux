@@ -21,6 +21,21 @@ interface WorkflowStepData {
   config?: string;
 }
 
+// Helper function to map node types to workflow step types
+function mapNodeTypeToStepType(nodeType: string): WorkflowStepType {
+  const mapping: { [key: string]: WorkflowStepType } = {
+    'approval': 'APPROVAL',
+    'email': 'EMAIL',
+    'notification': 'NOTIFICATION',
+    'condition': 'CONDITION',
+    'dateCondition': 'DATE_CONDITION',
+    'valueCondition': 'VALUE_CONDITION',
+    'delay': 'DELAY',
+    'logic': 'LOGIC_AND', // Default to AND logic
+  };
+  return mapping[nodeType] || 'APPROVAL';
+}
+
 export const workflowService = {
   // Workflows
   async createWorkflow(data: WorkflowData & { steps?: WorkflowStepData[] }) {
@@ -317,17 +332,33 @@ export const workflowService = {
     console.log(`[Workflow] Creating node-to-step mapping for ${workflow.steps.length} steps and ${nodes.length} nodes`);
     const nodeToStepMap = new Map<string, any>();
     
-    // First, try to map by matching step order to node creation order (excluding start/end nodes)
     const workflowSteps = workflow.steps as any[];
-    const actionNodes = nodes.filter((n: any) => n.type !== 'start' && n.type !== 'end');
     
-    console.log(`[Workflow] Found ${actionNodes.length} action nodes (excluding start/end)`);
+    // Try to map by nodeId stored in config first
+    for (const step of workflowSteps) {
+      try {
+        const config = JSON.parse(step.config || '{}');
+        if (config.nodeId) {
+          nodeToStepMap.set(config.nodeId, step);
+          console.log(`[Workflow] Mapped node ${config.nodeId} -> step ${step.id} (name: ${step.name}, type: ${step.type}) via stored nodeId`);
+        }
+      } catch (e) {
+        console.log(`[Workflow] Failed to parse config for step ${step.id}`);
+      }
+    }
     
-    for (let i = 0; i < workflowSteps.length && i < actionNodes.length; i++) {
-      const step = workflowSteps[i];
-      const node = actionNodes[i];
-      nodeToStepMap.set(node.id, step);
-      console.log(`[Workflow] Mapped node ${node.id} (type: ${node.type}, label: ${node.data?.label}) -> step ${step.id} (name: ${step.name}, type: ${step.type})`);
+    // Fallback: map by matching step order to node order (excluding start/end nodes)
+    if (nodeToStepMap.size === 0) {
+      console.log('[Workflow] No nodeId mappings found, falling back to order-based mapping');
+      const actionNodes = nodes.filter((n: any) => n.type !== 'start' && n.type !== 'end');
+      console.log(`[Workflow] Found ${actionNodes.length} action nodes (excluding start/end)`);
+      
+      for (let i = 0; i < workflowSteps.length && i < actionNodes.length; i++) {
+        const step = workflowSteps[i];
+        const node = actionNodes[i];
+        nodeToStepMap.set(node.id, step);
+        console.log(`[Workflow] Mapped node ${node.id} (type: ${node.type}, label: ${node.data?.label}) -> step ${step.id} (name: ${step.name}, type: ${step.type}) via order`);
+      }
     }
     
     console.log(`[Workflow] Node-to-step mapping complete with ${nodeToStepMap.size} mappings`);
@@ -995,6 +1026,65 @@ export const workflowService = {
 
       if (oldInstances.length > 0) {
         console.log(`[WORKFLOW TEST] Deleted ${oldInstances.length} old workflow instance(s)`);
+      }
+
+      // For testing, we need to ensure the workflow steps are up-to-date with the definition
+      // Delete all instance steps that reference old workflow steps
+      if (workflow.steps.length > 0) {
+        const stepIds = workflow.steps.map((s: any) => s.id);
+        const referencedSteps = await prisma.workflowInstanceStep.count({
+          where: {
+            stepId: {
+              in: stepIds
+            }
+          }
+        });
+        
+        if (referencedSteps > 0) {
+          console.log(`[WORKFLOW TEST] Deleting ${referencedSteps} old workflow instance step(s) that reference this workflow's steps`);
+          await prisma.workflowInstanceStep.deleteMany({
+            where: {
+              stepId: {
+                in: stepIds
+              }
+            }
+          });
+        }
+        
+        // Now safe to delete and recreate workflow steps
+        console.log(`[WORKFLOW TEST] Deleting ${workflow.steps.length} old workflow step(s)`);
+        await prisma.workflowStep.deleteMany({
+          where: { workflowId: workflowId }
+        });
+        
+        // Parse definition and recreate steps
+        const definition = JSON.parse(workflow.definition || '{}');
+        const { nodes = [] } = definition;
+        const actionNodes = nodes.filter((n: any) => n.type !== 'start' && n.type !== 'end');
+        
+        console.log(`[WORKFLOW TEST] Creating ${actionNodes.length} new workflow step(s)`);
+        for (let i = 0; i < actionNodes.length; i++) {
+          const node = actionNodes[i];
+          const config = node.data?.config || {};
+          
+          await prisma.workflowStep.create({
+            data: {
+              workflowId: workflowId,
+              name: config.name || node.data?.label || `Step ${i + 1}`,
+              type: mapNodeTypeToStepType(node.type),
+              order: i + 1,
+              approverUserIds: JSON.stringify(config.approverUserIds || []),
+              approverGroupIds: JSON.stringify([]),
+              requireAllApprovers: config.requireAllApprovers || false,
+              config: JSON.stringify({
+                ...config,
+                nodeId: node.id,
+              }),
+            },
+          });
+        }
+        
+        console.log(`[WORKFLOW TEST] Recreated workflow steps`);
       }
 
       // Execute the workflow for real

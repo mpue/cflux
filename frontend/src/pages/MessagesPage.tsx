@@ -7,6 +7,7 @@ import {
   getUnreadCount,
   Message
 } from '../services/message.service';
+import AppNavbar from '../components/AppNavbar';
 import '../styles/Messages.css';
 
 const MessagesPage: React.FC = () => {
@@ -135,7 +136,9 @@ const MessagesPage: React.FC = () => {
   };
 
   return (
-    <div className="messages-page">
+    <>
+      <AppNavbar title="Nachrichten" />
+      <div className="messages-page" style={{ paddingTop: '20px' }}>
       <div className="messages-header">
         <h1>📨 Nachrichten</h1>
         <button className="btn btn-primary" onClick={() => navigate('/messages/compose')}>
@@ -243,7 +246,8 @@ const MessagesPage: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

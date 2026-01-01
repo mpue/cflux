@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { workflowService } from '../services/workflow.service';
 import { useAuth } from '../contexts/AuthContext';
+import AppNavbar from '../components/AppNavbar';
 import './MyApprovals.css';
 
 interface PendingApproval {
@@ -34,6 +36,7 @@ interface PendingApproval {
 
 const MyApprovals: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [approvals, setApprovals] = useState<PendingApproval[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedApproval, setSelectedApproval] = useState<PendingApproval | null>(null);
@@ -123,21 +126,20 @@ const MyApprovals: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="my-approvals-page">
-        <div className="loading">Lade Genehmigungen...</div>
-      </div>
+      <>
+        <AppNavbar title="Meine Genehmigungen" />
+        <div className="my-approvals-page" style={{ paddingTop: '20px' }}>
+          <div className="loading">Lade Genehmigungen...</div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="my-approvals-page">
+    <>
+      <AppNavbar title="Meine Genehmigungen" />
+      <div className="my-approvals-page" style={{ paddingTop: '20px' }}>
       <div className="my-approvals-header">
-        <h1>Meine Genehmigungen</h1>
-        <div className="approval-count">
-          {approvals.length > 0 && (
-            <span className="badge">{approvals.length}</span>
-          )}
-        </div>
       </div>
 
       {approvals.length === 0 ? (
@@ -251,7 +253,8 @@ const MyApprovals: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

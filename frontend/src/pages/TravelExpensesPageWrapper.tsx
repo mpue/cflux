@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { TravelExpense, travelExpenseService } from '../services/travelExpense.service';
 import { TravelExpensesPage } from './TravelExpensesPage';
+import AppNavbar from '../components/AppNavbar';
 
 export const TravelExpensesPageWrapper: React.FC = () => {
   const { user, logout } = useAuth();
@@ -32,34 +33,18 @@ export const TravelExpensesPageWrapper: React.FC = () => {
 
   if (loading) {
     return (
-      <div>
-        <nav className="navbar">
-          <h1 className="navbar-title">Time Tracking System</h1>
-          <div className="navbar-right">
-            <span className="navbar-user">{user?.firstName} {user?.lastName}</span>
-          </div>
-        </nav>
+      <>
+        <AppNavbar title="Reisekosten" onLogout={handleLogout} />
         <div style={{ padding: '20px', textAlign: 'center' }}>
           <p>Lade Reisekosten...</p>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div>
-      <nav className="navbar">
-        <h1 className="navbar-title">Time Tracking System</h1>
-        <div className="navbar-right">
-          <button className="btn btn-secondary" onClick={() => navigate('/dashboard')}>
-            Zurück zum Dashboard
-          </button>
-          <span className="navbar-user">{user?.firstName} {user?.lastName}</span>
-          <button className="btn btn-secondary" onClick={handleLogout}>
-            Abmelden
-          </button>
-        </div>
-      </nav>
+    <>
+      <AppNavbar title="Reisekosten" onLogout={handleLogout} />
       <div style={{ padding: '20px' }}>
         <TravelExpensesPage
           expenses={expenses}
@@ -67,6 +52,6 @@ export const TravelExpensesPageWrapper: React.FC = () => {
           onUpdate={loadExpenses}
         />
       </div>
-    </div>
+    </>
   );
 };

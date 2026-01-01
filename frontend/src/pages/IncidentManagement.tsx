@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { incidentService, Incident, IncidentStatistics, CreateIncidentDto, UpdateIncidentDto } from '../services/incident.service';
 import { userService } from '../services/user.service';
 import { projectService } from '../services/project.service';
+import AppNavbar from '../components/AppNavbar';
 import '../styles/IncidentManagement.css';
 
 interface User {
@@ -202,12 +203,11 @@ const IncidentManagement: React.FC = () => {
   }
 
   return (
-    <div className="incident-management">
+    <>
+      <AppNavbar title="Incident Management" />
+      <div className="incident-management" style={{ paddingTop: '20px' }}>
       <div className="incident-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <button onClick={() => navigate('/')} className="btn-secondary" title="Zurück zur Hauptseite">
-            ← Zurück
-          </button>
           <h1>Incident Management</h1>
         </div>
         <button onClick={() => setShowCreateModal(true)} className="btn-primary">
@@ -592,7 +592,8 @@ const IncidentManagement: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

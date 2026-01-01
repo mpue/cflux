@@ -13,6 +13,7 @@ import { getUnreadCount } from '../services/message.service';
 import { TimeEntry, Project, AbsenceRequest, Report, Location } from '../types';
 import PDFReportModal from '../components/PDFReportModal';
 import MyPayrollEntries from '../components/MyPayrollEntries';
+import AppNavbar from '../components/AppNavbar';
 import '../App.css';
 
 const Dashboard: React.FC = () => {
@@ -317,44 +318,13 @@ const Dashboard: React.FC = () => {
 
   return (
     <>
+      <AppNavbar 
+        title="Zeiterfassung" 
+        currentTime={currentTime} 
+        onLogout={handleLogout}
+        onPdfReport={() => setShowPDFReportModal(true)}
+      />
       <div>
-        <nav className="navbar">
-          <h1>Zeiterfassung</h1>
-          <div className="navbar-right">
-            <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{currentTime}</span>
-            <span>{user?.firstName} {user?.lastName}</span>
-            <button className="btn btn-success" onClick={() => setShowPDFReportModal(true)}>
-              PDF-Bericht
-            </button>
-            <button className="btn btn-primary" onClick={() => navigate('/my-approvals')}>
-              🔔 Genehmigungen
-            </button>
-            <button className="btn btn-primary" onClick={() => navigate('/messages')}>
-              📨 Nachrichten {unreadMessagesCount > 0 && <span style={{
-                background: '#dc3545',
-                padding: '2px 6px',
-                borderRadius: '10px',
-                fontSize: '12px',
-                marginLeft: '4px'
-              }}>{unreadMessagesCount}</span>}
-            </button>
-            <button className="btn btn-secondary" onClick={() => navigate('/travel-expenses')}>
-              💰 Reisekosten
-            </button>
-            <button className="btn btn-secondary" onClick={() => navigate('/incidents')}>
-              Incidents
-            </button>
-            {(user?.role === 'ADMIN' || modules.length > 0) && (
-              <button className="btn btn-secondary" onClick={() => navigate('/admin')}>
-                {user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'}
-              </button>
-            )}
-            <button className="btn btn-secondary" onClick={handleLogout}>
-            Abmelden
-          </button>
-        </div>
-      </nav>
-
       <div className="container">
         <div className="stats-grid">
           <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>

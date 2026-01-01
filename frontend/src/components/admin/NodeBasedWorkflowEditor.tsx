@@ -314,15 +314,21 @@ const NodeBasedWorkflowEditor: React.FC<NodeBasedWorkflowEditorProps> = ({
       });
 
       // Convert nodes to workflow steps for backward compatibility
-      const steps = nodes.map((node, index) => ({
-        name: node.data.config?.name || node.data.label,
-        type: mapNodeTypeToStepType(node.type || 'approval'),
-        order: index + 1,
-        approverUserIds: JSON.stringify(node.data.config?.approverUserIds || []),
-        approverGroupIds: JSON.stringify([]),
-        requireAllApprovers: node.data.config?.requireAllApprovers || false,
-        config: JSON.stringify(node.data.config || {}),
-      }));
+      // Filter out start and end nodes as they are not actual workflow steps
+      const steps = nodes
+        .filter(node => node.type !== 'start' && node.type !== 'end')
+        .map((node, index) => ({
+          name: node.data.config?.name || node.data.label,
+          type: mapNodeTypeToStepType(node.type || 'approval'),
+          order: index + 1,
+          approverUserIds: JSON.stringify(node.data.config?.approverUserIds || []),
+          approverGroupIds: JSON.stringify([]),
+          requireAllApprovers: node.data.config?.requireAllApprovers || false,
+          config: JSON.stringify({
+            ...node.data.config,
+            nodeId: node.id, // Store node ID for reliable mapping
+          }),
+        }));
 
       if (workflow) {
         await workflowService.updateWorkflow(workflow.id, {

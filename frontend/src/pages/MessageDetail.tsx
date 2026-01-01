@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getMessage, moveMessage, deleteMessage, Message } from '../services/message.service';
+import AppNavbar from '../components/AppNavbar';
 import '../styles/Messages.css';
 
 const MessageDetail: React.FC = () => {
@@ -107,7 +108,9 @@ const MessageDetail: React.FC = () => {
   }
 
   return (
-    <div className="message-detail-page">
+    <>
+      <AppNavbar title="Nachrichtendetails" />
+      <div className="message-detail-page" style={{ paddingTop: '20px' }}>
       <div className="message-detail-header">
         <button className="btn btn-secondary" onClick={() => navigate('/messages')}>
           ← Zurück zu Nachrichten
@@ -190,7 +193,8 @@ const MessageDetail: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

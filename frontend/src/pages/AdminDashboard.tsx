@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/logo.png';
 import { useModules } from '../contexts/ModuleContext';
+import AppNavbar from '../components/AppNavbar';
 import { userService } from '../services/user.service';
 import { projectService } from '../services/project.service';
 import { absenceService } from '../services/absence.service';
@@ -265,22 +266,13 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="admin-dashboard">
-      <nav className="navbar">
-        <div className="navbar-left">
-          <img src={logo} alt="CFlux" className="navbar-logo" />
-          <h1>{user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'}</h1>
-        </div>
-        <div className="navbar-right">
-          <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{currentTime}</span>
-          <span>{user?.firstName} {user?.lastName}</span>
-          <button className="btn btn-secondary" onClick={() => navigate('/dashboard')}>
-            Benutzer Ansicht
-          </button>
-          <button className="btn btn-secondary" onClick={handleLogout}>
-            Abmelden
-          </button>
-        </div>
-      </nav>
+      <AppNavbar 
+        title={user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'} 
+        currentTime={currentTime}
+        onLogout={handleLogout}
+        showLogo={true}
+        logoSrc={logo}
+      />
 
       <div className="admin-container">
         <div className="admin-card">

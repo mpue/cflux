@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sendMessage, getMessageRecipients, MessageRecipient } from '../services/message.service';
+import AppNavbar from '../components/AppNavbar';
 import '../styles/Messages.css';
 
 const ComposeMessage: React.FC = () => {
@@ -73,7 +74,9 @@ const ComposeMessage: React.FC = () => {
   };
 
   return (
-    <div className="compose-message-page">
+    <>
+      <AppNavbar title="Neue Nachricht" />
+      <div className="compose-message-page" style={{ paddingTop: '20px' }}>
       <div className="compose-header">
         <h1>✍️ Neue Nachricht</h1>
         <button className="btn btn-secondary" onClick={() => navigate('/messages')}>
@@ -165,7 +168,8 @@ const ComposeMessage: React.FC = () => {
           </button>
         </div>
       </form>
-    </div>
+      </div>
+    </>
   );
 };
 
