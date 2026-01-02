@@ -32,6 +32,7 @@ import {
   History as HistoryIcon,
   FolderOpen as FolderOpenIcon,
   NavigateNext as NavigateNextIcon,
+  Upload as UploadIcon,
 } from '@mui/icons-material';
 import AppNavbar from '../../components/AppNavbar';
 import documentNodeService, { DocumentNode, CreateDocumentNodeData } from '../../services/documentNode.service';
@@ -70,6 +71,11 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
   
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [versionHistoryNode, setVersionHistoryNode] = useState<DocumentNode | null>(null);
+  
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importParentId, setImportParentId] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuNode, setMenuNode] = useState<DocumentNode | null>(null);
@@ -126,11 +132,13 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
 
   // Handle node click
   const handleNodeClick = async (node: DocumentNode) => {
-    if (node.type === 'DOCUMENT') {
-      setCurrentNode(node);
-    } else {
-      // Folder - toggle expansion would be handled in tree view
-      setCurrentNode(node);
+    try {
+      // Always fetch the full node data from the server to ensure we have the latest content
+      const fullNode = await documentNodeService.getById(node.id);
+      setCurrentNode(fullNode);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Fehler beim Laden des Dokuments');
+      console.error('Load node error:', err);
     }
   };
 
@@ -230,6 +238,38 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
     handleCloseMenu();
   };
 
+  // Handle import
+  const handleOpenImportDialog = (parentId: string | null = null) => {
+    setImportParentId(parentId);
+    setSelectedFile(null);
+    setImportDialogOpen(true);
+    handleCloseMenu();
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setSelectedFile(event.target.files[0]);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!selectedFile) return;
+
+    try {
+      setImporting(true);
+      await documentNodeService.importZip(selectedFile, importParentId || undefined);
+      await loadTree();
+      setImportDialogOpen(false);
+      setSelectedFile(null);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Fehler beim Importieren der Zip-Datei');
+      console.error('Import error:', err);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   // Handle menu
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>, node: DocumentNode) => {
     event.stopPropagation();
@@ -321,6 +361,15 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
           <Box>
             <Button
               variant="outlined"
+              startIcon={<UploadIcon />}
+              onClick={() => handleOpenImportDialog(currentNode?.type === 'FOLDER' ? currentNode.id : null)}
+              sx={{ mr: 1 }}
+              disabled={!canEditIntranet}
+            >
+              ZIP Import
+            </Button>
+            <Button
+              variant="outlined"
               startIcon={<FolderIcon />}
               onClick={() => handleOpenCreateDialog('FOLDER', currentNode?.type === 'FOLDER' ? currentNode.id : null)}
               sx={{ mr: 1 }}
@@ -389,6 +438,7 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
               {/* Document Content or Folder View */}
               {currentNode.type === 'DOCUMENT' ? (
                 <DocumentEditor
+                  key={currentNode.id}
                   document={currentNode}
                   onSave={handleDocumentSave}
                   canEdit={canEditIntranet}
@@ -494,6 +544,54 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Import ZIP Dialog */}
+      <Dialog open={importDialogOpen} onClose={() => !importing && setImportDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>ZIP-Datei importieren</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Die ZIP-Datei kann eine komplette Ordnerstruktur mit Markdown-Dokumenten enthalten. 
+              Dateinamen mit Unterstrichen (z.B. BLAH_BLUB.md) werden zu "Blah Blub" formatiert.
+            </Alert>
+            
+            <Button
+              variant="outlined"
+              component="label"
+              fullWidth
+              startIcon={<UploadIcon />}
+              disabled={importing}
+            >
+              {selectedFile ? selectedFile.name : 'ZIP-Datei auswählen'}
+              <input
+                type="file"
+                hidden
+                accept=".zip,application/zip"
+                onChange={handleFileSelect}
+              />
+            </Button>
+            
+            {selectedFile && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                Größe: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+              </Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setImportDialogOpen(false)} disabled={importing}>
+            Abbrechen
+          </Button>
+          <Button 
+            onClick={handleImport} 
+            variant="contained" 
+            disabled={!selectedFile || importing}
+            startIcon={importing ? <CircularProgress size={20} /> : <UploadIcon />}
+          >
+            {importing ? 'Importiere...' : 'Importieren'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Version History Dialog */}
       {versionHistoryNode && (
         <DocumentVersionHistory
@@ -523,6 +621,12 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
           <EditIcon fontSize="small" sx={{ mr: 1 }} />
           Umbenennen
         </MenuItem>
+        {menuNode?.type === 'FOLDER' && canEditIntranet && (
+          <MenuItem onClick={() => menuNode && handleOpenImportDialog(menuNode.id)}>
+            <UploadIcon fontSize="small" sx={{ mr: 1 }} />
+            ZIP importieren
+          </MenuItem>
+        )}
         {menuNode?.type === 'DOCUMENT' && (
           <MenuItem onClick={() => menuNode && handleOpenVersionHistory(menuNode)}>
             <HistoryIcon fontSize="small" sx={{ mr: 1 }} />

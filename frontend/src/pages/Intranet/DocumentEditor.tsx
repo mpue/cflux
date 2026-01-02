@@ -67,7 +67,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
     }
     setHasChanges(false);
     setIsEditMode(false); // Reset edit mode on document change
-  }, [document]);
+  }, [document.id, document.content]);
 
   // Handle mode change
   const handleModeChange = (event: React.MouseEvent<HTMLElement>, newMode: EditorMode) => {

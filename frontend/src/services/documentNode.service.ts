@@ -126,6 +126,22 @@ export const documentNodeService = {
     const response = await api.post(`/intranet/${id}/restore/${versionId}`);
     return response.data;
   },
+
+  // Import zip file
+  importZip: async (file: File, parentId?: string): Promise<{ message: string; rootFolderId: string; rootFolderTitle: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (parentId) {
+      formData.append('parentId', parentId);
+    }
+    
+    const response = await api.post('/intranet/import/zip', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
 };
 
 export default documentNodeService;
