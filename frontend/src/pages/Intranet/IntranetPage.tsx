@@ -51,6 +51,10 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
+  
+  // Splitter state
+  const [leftWidth, setLeftWidth] = useState(300);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Check if user can edit
   const isAdmin = user?.role === 'ADMIN';
@@ -124,6 +128,36 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Splitter drag handlers
+  const handleMouseDown = () => {
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging) {
+        const newWidth = e.clientX - 24; // Account for padding
+        if (newWidth >= 200 && newWidth <= 600) {
+          setLeftWidth(newWidth);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
 
   const handleLogout = () => {
     logout();
@@ -392,9 +426,9 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', gap: 2, height: 'calc(100vh - 200px)' }}>
+      <Box sx={{ display: 'flex', gap: 0, height: 'calc(100vh - 200px)', position: 'relative' }}>
         {/* Tree Navigation */}
-        <Paper sx={{ width: '300px', p: 2, overflow: 'auto' }}>
+        <Paper sx={{ width: `${leftWidth}px`, p: 2, overflow: 'auto', flexShrink: 0 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>
             Navigation
           </Typography>
@@ -408,8 +442,35 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
           )}
         </Paper>
 
+        {/* Resizable Splitter */}
+        <Box
+          onMouseDown={handleMouseDown}
+          sx={{
+            width: '6px',
+            cursor: 'col-resize',
+            bgcolor: isDragging ? 'primary.main' : 'divider',
+            transition: isDragging ? 'none' : 'background-color 0.2s',
+            flexShrink: 0,
+            '&:hover': {
+              bgcolor: 'primary.light',
+            },
+            position: 'relative',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '2px',
+              height: '40px',
+              bgcolor: 'background.paper',
+              borderRadius: '1px',
+            },
+          }}
+        />
+
         {/* Content Area */}
-        <Paper sx={{ flexGrow: 1, p: 2, overflow: 'auto' }}>
+        <Paper sx={{ flexGrow: 1, p: 2, overflow: 'auto', ml: 0 }}>
           {currentNode ? (
             <>
               {/* Breadcrumb */}
