@@ -389,44 +389,72 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
         currentTime={currentTime}
         onLogout={handleLogout}
       />
-      <Box sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4">Intranet</Typography>
-          <Box>
-            <Button
-              variant="outlined"
-              startIcon={<UploadIcon />}
-              onClick={() => handleOpenImportDialog(currentNode?.type === 'FOLDER' ? currentNode.id : null)}
-              sx={{ mr: 1 }}
-              disabled={!canEditIntranet}
-            >
-              ZIP Import
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<FolderIcon />}
-              onClick={() => handleOpenCreateDialog('FOLDER', currentNode?.type === 'FOLDER' ? currentNode.id : null)}
-              sx={{ mr: 1 }}
-            >
-              Neuer Ordner
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<DocumentIcon />}
-              onClick={() => handleOpenCreateDialog('DOCUMENT', currentNode?.type === 'FOLDER' ? currentNode.id : null)}
-            >
-              Neues Dokument
-            </Button>
+      <Box sx={{ p: 2, pb: 0, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+        {/* Modern Toolbar */}
+        <Paper 
+          elevation={0} 
+          sx={{ 
+            mb: 2, 
+            p: 1.5, 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            borderRadius: 2,
+            bgcolor: 'background.default',
+            border: 1,
+            borderColor: 'divider'
+          }}
+        >
+          <Typography variant="h5" sx={{ fontWeight: 500, color: 'text.primary' }}>
+            Intranet
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {canEditIntranet && (
+              <>
+                <Tooltip title="ZIP-Datei importieren">
+                  <IconButton
+                    color="primary"
+                    onClick={() => handleOpenImportDialog(currentNode?.type === 'FOLDER' ? currentNode.id : null)}
+                    size="small"
+                  >
+                    <UploadIcon />
+                  </IconButton>
+                </Tooltip>
+                <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+              </>
+            )}
+            <Tooltip title="Neuer Ordner">
+              <Button
+                variant="outlined"
+                startIcon={<FolderIcon />}
+                onClick={() => handleOpenCreateDialog('FOLDER', currentNode?.type === 'FOLDER' ? currentNode.id : null)}
+                size="small"
+                sx={{ minWidth: 'auto' }}
+              >
+                Ordner
+              </Button>
+            </Tooltip>
+            <Tooltip title="Neues Dokument">
+              <Button
+                variant="contained"
+                startIcon={<DocumentIcon />}
+                onClick={() => handleOpenCreateDialog('DOCUMENT', currentNode?.type === 'FOLDER' ? currentNode.id : null)}
+                size="small"
+                disableElevation
+              >
+                Dokument
+              </Button>
+            </Tooltip>
           </Box>
-        </Box>
+        </Paper>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+        <Alert severity="error" sx={{ mb: 1 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
-      <Box sx={{ display: 'flex', gap: 0, height: 'calc(100vh - 200px)', position: 'relative' }}>
+      <Box sx={{ display: 'flex', gap: 0, flexGrow: 1, position: 'relative', minHeight: 0 }}>
         {/* Tree Navigation */}
         <Paper sx={{ width: `${leftWidth}px`, p: 2, overflow: 'auto', flexShrink: 0 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>

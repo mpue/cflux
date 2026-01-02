@@ -3,6 +3,33 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useModules } from '../contexts/ModuleContext';
 import { getUnreadCount } from '../services/message.service';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  IconButton,
+  Badge,
+  Box,
+  Button,
+  Menu,
+  MenuItem,
+  Avatar,
+  Divider,
+  Tooltip,
+} from '@mui/material';
+import {
+  Notifications as NotificationsIcon,
+  Message as MessageIcon,
+  AttachMoney as MoneyIcon,
+  Warning as IncidentIcon,
+  MenuBook as IntranetIcon,
+  Dashboard as DashboardIcon,
+  AdminPanelSettings as AdminIcon,
+  Logout as LogoutIcon,
+  Person as PersonIcon,
+  MoreVert as MoreIcon,
+  PictureAsPdf as PdfIcon,
+} from '@mui/icons-material';
 
 interface AppNavbarProps {
   title?: string;
@@ -26,6 +53,8 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
   const navigate = useNavigate();
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const [displayTime, setDisplayTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [moreMenuAnchor, setMoreMenuAnchor] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
     loadUnreadCount();
@@ -53,64 +82,138 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
     }
   };
 
+  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleMoreMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setMoreMenuAnchor(event.currentTarget);
+  };
+
+  const handleMoreMenuClose = () => {
+    setMoreMenuAnchor(null);
+  };
+
+  const navigateTo = (path: string) => {
+    navigate(path);
+    handleMenuClose();
+    handleMoreMenuClose();
+  };
+
   return (
-    <nav className="navbar">
-      {showLogo && logoSrc ? (
-        <div className="navbar-left">
-          <img src={logoSrc} alt="CFlux" className="navbar-logo" />
-          <h1>{title}</h1>
-        </div>
-      ) : (
-        <h1>{title}</h1>
-      )}
-      <div className="navbar-right">
-        <span style={{ fontWeight: 'bold', fontSize: '16px' }}>
+    <AppBar position="static" elevation={1}>
+      <Toolbar sx={{ gap: 1 }}>
+        {showLogo && logoSrc && (
+          <Box component="img" src={logoSrc} alt="Logo" sx={{ height: 40, mr: 2 }} />
+        )}
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+          {title}
+        </Typography>
+
+        <Typography variant="body1" sx={{ mr: 2, fontWeight: 500 }}>
           {currentTime || displayTime}
-        </span>
-        <span>{user?.firstName} {user?.lastName}</span>
+        </Typography>
+
+        {/* Main Action Buttons */}
         {onPdfReport && (
-          <button className="btn btn-success" onClick={onPdfReport}>
-            PDF-Bericht
-          </button>
+          <Tooltip title="PDF-Bericht">
+            <IconButton color="inherit" onClick={onPdfReport}>
+              <PdfIcon />
+            </IconButton>
+          </Tooltip>
         )}
-        <button className="btn btn-primary" onClick={() => navigate('/my-approvals')}>
-          🔔 Genehmigungen
-        </button>
-        <button className="btn btn-primary" onClick={() => navigate('/messages')}>
-          📨 Nachrichten {unreadMessagesCount > 0 && (
-            <span style={{
-              background: '#dc3545',
-              padding: '2px 6px',
-              borderRadius: '10px',
-              fontSize: '12px',
-              marginLeft: '4px'
-            }}>
-              {unreadMessagesCount}
-            </span>
+
+        <Tooltip title="Genehmigungen">
+          <IconButton color="inherit" onClick={() => navigateTo('/my-approvals')}>
+            <NotificationsIcon />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Nachrichten">
+          <IconButton color="inherit" onClick={() => navigateTo('/messages')}>
+            <Badge badgeContent={unreadMessagesCount} color="error">
+              <MessageIcon />
+            </Badge>
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Dashboard">
+          <IconButton color="inherit" onClick={() => navigateTo('/dashboard')}>
+            <DashboardIcon />
+          </IconButton>
+        </Tooltip>
+
+        {/* More Menu */}
+        <Tooltip title="Mehr">
+          <IconButton color="inherit" onClick={handleMoreMenuOpen}>
+            <MoreIcon />
+          </IconButton>
+        </Tooltip>
+
+        <Menu
+          anchorEl={moreMenuAnchor}
+          open={Boolean(moreMenuAnchor)}
+          onClose={handleMoreMenuClose}
+        >
+          <MenuItem onClick={() => navigateTo('/travel-expenses')}>
+            <MoneyIcon sx={{ mr: 1 }} />
+            Reisekosten
+          </MenuItem>
+          <MenuItem onClick={() => navigateTo('/incidents')}>
+            <IncidentIcon sx={{ mr: 1 }} />
+            Incidents
+          </MenuItem>
+          <MenuItem onClick={() => navigateTo('/intranet')}>
+            <IntranetIcon sx={{ mr: 1 }} />
+            Intranet
+          </MenuItem>
+          {(user?.role === 'ADMIN' || modules.length > 0) && (
+            <>
+              <Divider />
+              <MenuItem onClick={() => navigateTo('/admin')}>
+                <AdminIcon sx={{ mr: 1 }} />
+                {user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'}
+              </MenuItem>
+            </>
           )}
-        </button>
-        <button className="btn btn-secondary" onClick={() => navigate('/travel-expenses')}>
-          💰 Reisekosten
-        </button>
-        <button className="btn btn-secondary" onClick={() => navigate('/incidents')}>
-          Incidents
-        </button>
-        <button className="btn btn-secondary" onClick={() => navigate('/intranet')}>
-          📚 Intranet
-        </button>
-        <button className="btn btn-secondary" onClick={() => navigate('/dashboard')}>
-          🏠 Dashboard
-        </button>
-        {(user?.role === 'ADMIN' || modules.length > 0) && (
-          <button className="btn btn-secondary" onClick={() => navigate('/admin')}>
-            {user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'}
-          </button>
-        )}
-        <button className="btn btn-secondary" onClick={handleLogout}>
-          Abmelden
-        </button>
-      </div>
-    </nav>
+        </Menu>
+
+        {/* User Profile Menu */}
+        <Tooltip title="Profil">
+          <IconButton onClick={handleProfileMenuOpen} color="inherit">
+            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+              {user?.firstName?.[0]}{user?.lastName?.[0]}
+            </Avatar>
+          </IconButton>
+        </Tooltip>
+
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+        >
+          <MenuItem disabled>
+            <Box>
+              <Typography variant="body2" fontWeight="bold">
+                {user?.firstName} {user?.lastName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {user?.email}
+              </Typography>
+            </Box>
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleLogout}>
+            <LogoutIcon sx={{ mr: 1 }} />
+            Abmelden
+          </MenuItem>
+        </Menu>
+      </Toolbar>
+    </AppBar>
   );
 };
 
