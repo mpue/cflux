@@ -95,6 +95,9 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
         <button className="btn btn-secondary" onClick={() => navigate('/incidents')}>
           Incidents
         </button>
+        <button className="btn btn-secondary" onClick={() => navigate('/intranet')}>
+          📚 Intranet
+        </button>
         <button className="btn btn-secondary" onClick={() => navigate('/dashboard')}>
           🏠 Dashboard
         </button>

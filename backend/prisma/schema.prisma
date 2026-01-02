@@ -69,6 +69,20 @@ enum MessageFolder {
   TRASH
 }
 
+enum DocumentContentType {
+  MARKDOWN
+  HTML
+  LINK
+  CONTAINER
+  PLAIN_TEXT
+}
+
+enum DocumentPermissionLevel {
+  READ
+  WRITE
+  ADMIN
+}
+
 model User {
   id            String          @id @default(uuid())
   email         String          @unique
@@ -139,6 +153,9 @@ model User {
   approvedTravelExpenses TravelExpense[] @relation("TravelExpenseApprover")
   sentMessages    Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
+  createdDocumentNodes DocumentNode[] @relation("DocumentNodeCreator")
+  updatedDocumentNodes DocumentNode[] @relation("DocumentNodeUpdater")
+  documentVersions DocumentVersion[] @relation("DocumentVersionCreator")
   
   @@index([userGroupId])
   @@map("users")
@@ -156,6 +173,7 @@ model UserGroup {
   users       User[]   @relation("UserGroupDeprecated") // Deprecated
   userGroupMemberships UserGroupMembership[]
   moduleAccess ModuleAccess[]
+  documentNodePermissions DocumentNodeGroupPermission[]
   
   @@map("user_groups")
 }
@@ -1194,4 +1212,97 @@ model Message {
   @@index([workflowId])
   @@index([workflowInstanceId])
   @@map("messages")
+}
+
+// Enums for Document System (extend existing)
+enum DocumentNodeType {
+  FOLDER
+  DOCUMENT
+  LINK
+}
+
+// Intranet Document Tree Models
+model DocumentNode {
+  id            String              @id @default(uuid())
+  title         String
+  slug          String?
+  type          DocumentNodeType    @default(DOCUMENT)
+  contentType   String              @default("HTML")  // Changed from enum temporarily
+  content       String              @default("") @db.Text
+  externalUrl   String?
+  parentId      String?
+  nodeTypeKey   String?             // e.g., 'intranet_page', 'wiki_article'
+  order         Int                 @default(0)
+  isActive      Boolean             @default(true)
+  tags          Json?
+  metadata      Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  deletedAt     DateTime?
+  createdById   String
+  updatedById   String
+  
+  parent            DocumentNode?             @relation("DocumentNodeTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children          DocumentNode[]            @relation("DocumentNodeTree")
+  createdBy         User                      @relation("DocumentNodeCreator", fields: [createdById], references: [id])
+  updatedBy         User                      @relation("DocumentNodeUpdater", fields: [updatedById], references: [id])
+  versions          DocumentVersion[]
+  nodeType          DocumentNodeTypeRegistry? @relation(fields: [nodeTypeKey], references: [typeKey])
+  groupPermissions  DocumentNodeGroupPermission[]
+  
+  @@index([parentId])
+  @@index([deletedAt])
+  @@index([order])
+  @@index([nodeTypeKey])
+  @@index([slug])
+  @@map("document_nodes")
+}
+
+model DocumentNodeTypeRegistry {
+  id            String    @id @default(uuid())
+  typeKey       String    @unique  // 'intranet_page', 'wiki_article', etc.
+  displayName   String
+  icon          String?
+  module        String    // 'intranet', 'wiki', etc.
+  schema        Json?     // JSON Schema for metadata validation
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  nodes         DocumentNode[]
+  
+  @@map("document_node_types")
+}
+
+model DocumentNodeGroupPermission {
+  id              String                    @id @default(uuid())
+  documentNodeId  String
+  userGroupId     String
+  permissionLevel DocumentPermissionLevel   @default(READ)
+  inherited       Boolean                   @default(false)
+  createdAt       DateTime                  @default(now())
+  
+  documentNode    DocumentNode  @relation(fields: [documentNodeId], references: [id], onDelete: Cascade)
+  userGroup       UserGroup     @relation(fields: [userGroupId], references: [id], onDelete: Cascade)
+  
+  @@unique([documentNodeId, userGroupId])
+  @@index([documentNodeId])
+  @@index([userGroupId])
+  @@map("document_node_group_permissions")
+}
+
+model DocumentVersion {
+  id              String        @id @default(uuid())
+  documentNodeId  String
+  content         String        @db.Text
+  version         Int
+  createdAt       DateTime      @default(now())
+  createdById     String
+  
+  documentNode    DocumentNode  @relation(fields: [documentNodeId], references: [id], onDelete: Cascade)
+  createdBy       User          @relation("DocumentVersionCreator", fields: [createdById], references: [id])
+  
+  @@index([documentNodeId])
+  @@index([version])
+  @@map("document_versions")
 }

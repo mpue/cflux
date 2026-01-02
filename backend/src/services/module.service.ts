@@ -294,3 +294,62 @@ export const moduleService = {
     return false;
   },
 };
+
+// Export standalone function for easy imports
+export const checkModulePermission = async (
+  userId: string,
+  moduleKey: string,
+  permission: 'READ' | 'WRITE'
+): Promise<boolean> => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      userGroupMemberships: {
+        include: {
+          userGroup: {
+            include: {
+              moduleAccess: {
+                where: {
+                  module: {
+                    key: moduleKey,
+                    isActive: true,
+                  },
+                },
+                include: {
+                  module: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    return false;
+  }
+
+  // Admin has all permissions
+  if (user.role === 'ADMIN') {
+    return true;
+  }
+
+  // Check user groups for permission
+  for (const membership of user.userGroupMemberships) {
+    if (!membership.userGroup.isActive) {
+      continue;
+    }
+
+    for (const access of membership.userGroup.moduleAccess) {
+      if (permission === 'READ' && access.canView) {
+        return true;
+      }
+      if (permission === 'WRITE' && (access.canEdit || access.canCreate)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+};

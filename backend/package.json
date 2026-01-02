@@ -16,6 +16,9 @@
     "seed:dev": "ts-node prisma/seed.ts",
     "seed:modules": "node prisma/seedModules.js",
     "seed:modules:dev": "ts-node prisma/seedModules.ts",
+    "seed:intranet": "ts-node prisma/seedIntranet.ts",
+    "seed:intranet-module": "ts-node prisma/seedIntranetModule.ts",
+    "seed:document-types": "ts-node prisma/seedDocumentTypes.ts",
     "backup": "ts-node scripts/create-full-backup.ts"
   },
   "keywords": [
@@ -26,7 +29,15 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@floating-ui/dom": "^1.7.4",
     "@prisma/client": "^5.8.0",
+    "@tiptap/extension-link": "^3.14.0",
+    "@tiptap/extension-table": "^3.14.0",
+    "@tiptap/extension-table-cell": "^3.14.0",
+    "@tiptap/extension-table-header": "^3.14.0",
+    "@tiptap/extension-table-row": "^3.14.0",
+    "@tiptap/react": "^3.14.0",
+    "@tiptap/starter-kit": "^3.14.0",
     "@types/multer": "^2.0.0",
     "@types/pdfkit": "^0.17.4",
     "axios": "^1.6.5",

@@ -20,8 +20,7 @@ import PayrollManagement from './pages/PayrollManagement';
 import { TravelExpensesPageWrapper } from './pages/TravelExpensesPageWrapper';
 import MessagesPage from './pages/MessagesPage';
 import MessageDetail from './pages/MessageDetail';
-import ComposeMessage from './pages/ComposeMessage';
-import './App.css';
+import ComposeMessage from './pages/ComposeMessage';import IntranetPage from './pages/Intranet/IntranetPage';import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
   children, 
@@ -180,6 +179,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <MessageDetail />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/intranet"
+              element={
+                <PrivateRoute>
+                  <IntranetPage />
                 </PrivateRoute>
               }
             />
