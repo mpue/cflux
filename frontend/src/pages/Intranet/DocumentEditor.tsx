@@ -125,7 +125,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
     switch (mode) {
       case 'wysiwyg':
         return (
-          <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
+          <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
             <TipTapEditor
               content={htmlContent}
               onChange={handleHtmlChange}
@@ -144,10 +144,11 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
             placeholder={isEditable ? "Markdown eingeben..." : "Nur Lesezugriff - Bitte Edit-Mode aktivieren"}
             disabled={!isEditable}
             sx={{
+              height: '100%',
               '& .MuiInputBase-root': {
                 fontFamily: 'monospace',
                 fontSize: '14px',
-                minHeight: '400px',
+                height: '100%',
                 alignItems: 'flex-start',
                 bgcolor: isEditable ? 'background.paper' : 'action.disabledBackground',
               },
@@ -158,9 +159,9 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
 
       case 'hybrid':
         return (
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+          <Box sx={{ display: 'flex', gap: 2, height: '100%', minHeight: 0 }}>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', flexShrink: 0 }}>
                 Markdown
               </Typography>
               <TextField
@@ -171,10 +172,12 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
                 placeholder={isEditable ? "Markdown eingeben..." : "Nur Lesezugriff"}
                 disabled={!isEditable}
                 sx={{
+                  flexGrow: 1,
+                  minHeight: 0,
                   '& .MuiInputBase-root': {
                     fontFamily: 'monospace',
                     fontSize: '13px',
-                    minHeight: '400px',
+                    height: '100%',
                     alignItems: 'flex-start',
                     bgcolor: isEditable ? 'background.paper' : 'action.disabledBackground',
                   },
@@ -183,11 +186,11 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
               />
             </Box>
             <Divider orientation="vertical" flexItem />
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', flexShrink: 0 }}>
                 WYSIWYG
               </Typography>
-              <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
+              <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
                 <TipTapEditor
                   content={htmlContent}
                   onChange={handleHtmlChange}
@@ -204,8 +207,8 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexShrink: 0 }}>
         <Typography variant="h5">{document.title}</Typography>
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           {/* Edit Mode Toggle */}
@@ -260,28 +263,28 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
       </Box>
 
       {!hasEditPermission && (
-        <Alert severity="info" sx={{ mb: 2 }}>
+        <Alert severity="info" sx={{ mb: 2, flexShrink: 0 }}>
           Sie haben keine Berechtigung, dieses Dokument zu bearbeiten.
         </Alert>
       )}
 
       {hasEditPermission && !isEditMode && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
+        <Alert severity="warning" sx={{ mb: 2, flexShrink: 0 }}>
           Nur-Lese-Modus - Klicken Sie auf das Schloss-Symbol, um den Bearbeitungsmodus zu aktivieren.
         </Alert>
       )}
 
       {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
+        <Alert severity="success" sx={{ mb: 2, flexShrink: 0 }}>
           Dokument erfolgreich gespeichert
         </Alert>
       )}
 
-      <Paper elevation={0} sx={{ p: 0 }}>
+      <Paper elevation={0} sx={{ p: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
         {renderEditor()}
       </Paper>
 
-      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <Typography variant="caption" color="text.secondary">
           Zuletzt bearbeitet: {new Date(document.updatedAt).toLocaleString('de-DE')} von{' '}
           {document.updatedBy.firstName} {document.updatedBy.lastName}

@@ -72,10 +72,10 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ content, onChange, editable
   };
 
   return (
-    <Paper sx={{ border: 1, borderColor: 'divider' }}>
+    <Paper sx={{ border: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
       {editable && (
         <>
-          <Box sx={{ p: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5, borderBottom: 1, borderColor: 'divider' }}>
+          <Box sx={{ p: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5, borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
             {/* Text Formatting */}
             <ButtonGroup size="small" variant="outlined">
               <Tooltip title="Fett">
@@ -251,11 +251,12 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ content, onChange, editable
       <Box
         sx={{
           p: 2,
-          minHeight: '400px',
-          maxHeight: '600px',
+          flexGrow: 1,
+          minHeight: 0,
           overflow: 'auto',
           '& .ProseMirror': {
             outline: 'none',
+            minHeight: '100%',
             '& > * + *': {
               marginTop: '0.75em',
             },
