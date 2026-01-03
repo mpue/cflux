@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Link } from '@tiptap/extension-link';
@@ -55,6 +55,13 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ content, onChange, editable
       onChange(editor.getHTML());
     },
   });
+
+  // Update editor editable state when prop changes
+  useEffect(() => {
+    if (editor) {
+      editor.setEditable(editable);
+    }
+  }, [editor, editable]);
 
   if (!editor) {
     return null;
