@@ -80,10 +80,12 @@ export const syncHolidays = async (req: AuthRequest, res: Response) => {
     apiHolidays.forEach((holiday: any) => {
       if (!holiday.global && holiday.counties && holiday.counties.length > 0) {
         holiday.counties.forEach((cantonCode: string) => {
+          // Remove "CH-" prefix from canton codes
+          const normalizedCanton = cantonCode.replace('CH-', '');
           cantonalHolidays.push({
             date: new Date(holiday.date),
             name: holiday.localName || holiday.name,
-            canton: cantonCode,
+            canton: normalizedCanton,
             percentage: 100
           });
         });

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
 
 export const HolidaysTab: React.FC = () => {
   const [holidays, setHolidays] = useState<any[]>([]);
@@ -14,10 +15,6 @@ export const HolidaysTab: React.FC = () => {
     percentage: 100
   });
 
-  const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
-  const API_URL = electronBackendUrl || process.env.REACT_APP_API_URL || '';
-  const token = localStorage.getItem('token');
-
   useEffect(() => {
     loadCantons();
     loadHolidays();
@@ -25,11 +22,8 @@ export const HolidaysTab: React.FC = () => {
 
   const loadCantons = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/compliance/cantons`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
-      setCantons(data);
+      const response = await api.get('/compliance/cantons');
+      setCantons(response.data);
     } catch (error) {
       console.error('Error loading cantons:', error);
     }
@@ -44,11 +38,8 @@ export const HolidaysTab: React.FC = () => {
         params.append('canton', selectedCanton);
       }
 
-      const response = await fetch(`${API_URL}/api/compliance/holidays?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
-      setHolidays(data);
+      const response = await api.get(`/compliance/holidays?${params}`);
+      setHolidays(response.data);
     } catch (error) {
       console.error('Error loading holidays:', error);
     } finally {
@@ -63,16 +54,9 @@ export const HolidaysTab: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/compliance/holidays/sync`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ year: selectedYear })
-      });
+      const response = await api.post('/compliance/holidays/sync', { year: selectedYear });
 
-      const result = await response.json();
+      const result = response.data;
       alert(`Erfolgreich! ${result.count} Feiertage synchronisiert.\n\nNationale: ${result.details?.national}\nKantonale: ${result.details?.cantonal}\nZusätzliche: ${result.details?.additional}`);
       loadHolidays();
     } catch (error) {
@@ -90,14 +74,7 @@ export const HolidaysTab: React.FC = () => {
     }
 
     try {
-      await fetch(`${API_URL}/api/compliance/holidays`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newHoliday)
-      });
+      await api.post('/compliance/holidays', newHoliday);
 
       setShowAddModal(false);
       setNewHoliday({ date: '', name: '', canton: 'CH', percentage: 100 });
@@ -112,10 +89,7 @@ export const HolidaysTab: React.FC = () => {
     if (!window.confirm('Feiertag wirklich löschen?')) return;
 
     try {
-      await fetch(`${API_URL}/api/compliance/holidays/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/compliance/holidays/${id}`);
       loadHolidays();
     } catch (error) {
       console.error('Error deleting holiday:', error);
