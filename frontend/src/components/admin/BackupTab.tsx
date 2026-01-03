@@ -170,7 +170,7 @@ export const BackupTab: React.FC = () => {
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <input
               type="file"
-              accept=".sql"
+              accept=".json"
               onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
               disabled={loading}
             />

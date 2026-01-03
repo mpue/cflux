@@ -1,6 +1,4 @@
-// Check if running in Electron and use injected backend URL
-const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
-const API_URL = electronBackendUrl || process.env.REACT_APP_API_URL || '';
+import api from './api';
 
 export type TravelExpenseType = 'FLIGHT' | 'TRAIN' | 'CAR' | 'TAXI' | 'ACCOMMODATION' | 'MEALS' | 'OTHER';
 export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -54,107 +52,39 @@ export interface CreateTravelExpenseData {
 }
 
 class TravelExpenseService {
-  private getAuthHeaders() {
-    const token = localStorage.getItem('token');
-    return {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    };
-  }
-
   async getAllTravelExpenses(): Promise<TravelExpense[]> {
-    const response = await fetch(`${API_URL}/api/travel-expenses`, {
-      headers: this.getAuthHeaders()
-    });
-
-    if (!response.ok) {
-      throw new Error('Fehler beim Laden der Reisekosten');
-    }
-
-    return response.json();
+    const response = await api.get<TravelExpense[]>('/travel-expenses');
+    return response.data;
   }
 
   async getTravelExpenseById(id: string): Promise<TravelExpense> {
-    const response = await fetch(`${API_URL}/api/travel-expenses/${id}`, {
-      headers: this.getAuthHeaders()
-    });
-
-    if (!response.ok) {
-      throw new Error('Fehler beim Laden der Reisekosten');
-    }
-
-    return response.json();
+    const response = await api.get<TravelExpense>(`/travel-expenses/${id}`);
+    return response.data;
   }
 
   async createTravelExpense(data: CreateTravelExpenseData): Promise<TravelExpense> {
-    const response = await fetch(`${API_URL}/api/travel-expenses`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Fehler beim Erstellen der Reisekosten');
-    }
-
-    return response.json();
+    const response = await api.post<TravelExpense>('/travel-expenses', data);
+    return response.data;
   }
 
   async updateTravelExpense(id: string, data: Partial<CreateTravelExpenseData>): Promise<TravelExpense> {
-    const response = await fetch(`${API_URL}/api/travel-expenses/${id}`, {
-      method: 'PUT',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Fehler beim Aktualisieren der Reisekosten');
-    }
-
-    return response.json();
+    const response = await api.put<TravelExpense>(`/travel-expenses/${id}`, data);
+    return response.data;
   }
 
   async deleteTravelExpense(id: string): Promise<void> {
-    const response = await fetch(`${API_URL}/api/travel-expenses/${id}`, {
-      method: 'DELETE',
-      headers: this.getAuthHeaders()
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Fehler beim Löschen der Reisekosten');
-    }
+    const response = await api.delete(`/travel-expenses/${id}`);
+    return response.data;
   }
 
   async approveTravelExpense(id: string): Promise<TravelExpense> {
-    const response = await fetch(`${API_URL}/api/travel-expenses/${id}/approve`, {
-      method: 'POST',
-      headers: this.getAuthHeaders()
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Fehler beim Genehmigen der Reisekosten');
-    }
-
-    return response.json();
+    const response = await api.post<TravelExpense>(`/travel-expenses/${id}/approve`, {});
+    return response.data;
   }
 
   async rejectTravelExpense(id: string, rejectionReason?: string): Promise<TravelExpense> {
-    const response = await fetch(`${API_URL}/api/travel-expenses/${id}/reject`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ rejectionReason })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Fehler beim Ablehnen der Reisekosten');
-    }
-
-    return response.json();
+    const response = await api.post<TravelExpense>(`/travel-expenses/${id}/reject`, { rejectionReason });
+    return response.data;
   }
 }
 

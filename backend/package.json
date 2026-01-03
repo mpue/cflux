@@ -5,10 +5,11 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
-    "build": "tsc && tsc prisma/seed.ts --outDir dist/prisma --module commonjs --esModuleInterop --skipLibCheck",
+    "build": "tsc && tsc prisma/seed.ts prisma/seedModules.ts --outDir dist/prisma --module commonjs --esModuleInterop --skipLibCheck",
     "start": "node dist/index.js",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
+    "test:backup": "jest --testPathPattern=backup-restore-integration --runInBand --verbose",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",

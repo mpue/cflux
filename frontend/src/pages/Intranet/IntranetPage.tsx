@@ -33,11 +33,13 @@ import {
   FolderOpen as FolderOpenIcon,
   NavigateNext as NavigateNextIcon,
   Upload as UploadIcon,
+  Group as GroupIcon,
 } from '@mui/icons-material';
 import AppNavbar from '../../components/AppNavbar';
 import documentNodeService, { DocumentNode, CreateDocumentNodeData } from '../../services/documentNode.service';
 import DocumentEditor from './DocumentEditor';
 import DocumentVersionHistory from './DocumentVersionHistory';
+import GroupPermissionsDialog from './GroupPermissionsDialog';
 
 interface IntranetPageProps { }
 
@@ -75,6 +77,9 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
 
   const [versionHistoryOpen, setVersionHistoryOpen] = useState(false);
   const [versionHistoryNode, setVersionHistoryNode] = useState<DocumentNode | null>(null);
+
+  const [groupPermissionsOpen, setGroupPermissionsOpen] = useState(false);
+  const [groupPermissionsNode, setGroupPermissionsNode] = useState<DocumentNode | null>(null);
 
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importParentId, setImportParentId] = useState<string | null>(null);
@@ -269,6 +274,13 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
   const handleOpenVersionHistory = (node: DocumentNode) => {
     setVersionHistoryNode(node);
     setVersionHistoryOpen(true);
+    handleCloseMenu();
+  };
+
+  // Handle group permissions
+  const handleOpenGroupPermissions = (node: DocumentNode) => {
+    setGroupPermissionsNode(node);
+    setGroupPermissionsOpen(true);
     handleCloseMenu();
   };
 
@@ -702,6 +714,22 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
           />
         )}
 
+        {/* Group Permissions Dialog */}
+        {groupPermissionsNode && (
+          <GroupPermissionsDialog
+            open={groupPermissionsOpen}
+            onClose={() => {
+              setGroupPermissionsOpen(false);
+              setGroupPermissionsNode(null);
+            }}
+            nodeId={groupPermissionsNode.id}
+            nodeTitle={groupPermissionsNode.title}
+            onSaved={() => {
+              // Optionally refresh something
+            }}
+          />
+        )}
+
         {/* Context Menu */}
         <Menu
           anchorEl={anchorEl}
@@ -722,6 +750,12 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
             <MenuItem onClick={() => menuNode && handleOpenVersionHistory(menuNode)}>
               <HistoryIcon fontSize="small" sx={{ mr: 1 }} />
               Versionshistorie
+            </MenuItem>
+          )}
+          {canEditIntranet && (
+            <MenuItem onClick={() => menuNode && handleOpenGroupPermissions(menuNode)}>
+              <GroupIcon fontSize="small" sx={{ mr: 1 }} />
+              Gruppen
             </MenuItem>
           )}
           <Divider />

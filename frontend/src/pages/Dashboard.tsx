@@ -319,7 +319,7 @@ const Dashboard: React.FC = () => {
   return (
     <>
       <AppNavbar 
-        title="Zeiterfassung" 
+        title="Dashboard" 
         currentTime={currentTime} 
         onLogout={handleLogout}
         onPdfReport={() => setShowPDFReportModal(true)}

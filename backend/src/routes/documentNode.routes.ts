@@ -43,4 +43,8 @@ router.get('/:id/versions', documentNodeController.getVersionHistory);
 router.get('/:id/versions/:versionId', documentNodeController.getVersionContent);
 router.post('/:id/restore/:versionId', documentNodeController.restoreVersion);
 
+// Group permissions
+router.get('/:id/permissions', documentNodeController.getGroupPermissions);
+router.put('/:id/permissions', documentNodeController.setGroupPermissions);
+
 export default router;

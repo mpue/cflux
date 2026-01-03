@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
+import { seedModules } from './seedModules';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -24,6 +25,9 @@ function randomDate(start: Date, end: Date): Date {
 
 async function main() {
   console.log('🌱 Seeding database with dummy data...');
+
+  // 0. Modules seeden (muss zuerst geschehen wegen Permissions)
+  await seedModules();
 
   // 1. Admin User (falls noch nicht vorhanden)
   const adminPassword = await bcrypt.hash('admin123', 10);

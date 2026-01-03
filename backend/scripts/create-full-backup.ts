@@ -43,7 +43,10 @@ async function createFullBackup() {
       invoiceTemplateWorkflows,
       workflowInstances,
       workflowInstanceSteps,
-      systemSettings
+      systemSettings,
+      documentNodes,
+      documentVersions,
+      documentNodeGroupPermissions
     ] = await Promise.all([
       prisma.user.findMany(),
       prisma.userGroup.findMany(),
@@ -75,15 +78,18 @@ async function createFullBackup() {
       prisma.invoiceTemplateWorkflow.findMany(),
       prisma.workflowInstance.findMany(),
       prisma.workflowInstanceStep.findMany(),
-      prisma.systemSettings.findMany()
+      prisma.systemSettings.findMany(),
+      prisma.documentNode.findMany(),
+      prisma.documentVersion.findMany(),
+      prisma.documentNodeGroupPermission.findMany()
     ]);
 
     const backup = {
       version: '2.0',
       timestamp: new Date().toISOString(),
       schemaInfo: {
-        tablesCount: 31,
-        description: 'Complete database backup including all modules'
+        tablesCount: 34,
+        description: 'Complete database backup including all modules and intranet'
       },
       data: {
         users,
@@ -116,7 +122,10 @@ async function createFullBackup() {
         invoiceTemplateWorkflows,
         workflowInstances,
         workflowInstanceSteps,
-        systemSettings
+        systemSettings,
+        documentNodes,
+        documentVersions,
+        documentNodeGroupPermissions
       },
       statistics: {
         usersCount: users.length,
@@ -130,7 +139,9 @@ async function createFullBackup() {
         absenceRequestsCount: absenceRequests.length,
         invoicesCount: invoices.length,
         incidentsCount: incidents.length,
-        workflowsCount: workflows.length
+        workflowsCount: workflows.length,
+        documentNodesCount: documentNodes.length,
+        documentVersionsCount: documentVersions.length
       }
     };
 
@@ -159,6 +170,9 @@ async function createFullBackup() {
     console.log('  - Artikel:', articles.length);
     console.log('  - Projekte:', projects.length);
     console.log('  - Standorte:', locations.length);
+    console.log('  - Intranet-Dokumente:', documentNodes.length);
+    console.log('  - Dokumentversionen:', documentVersions.length);
+    console.log('  - Dokumentberechtigungen:', documentNodeGroupPermissions.length);
     console.log('  - Zeiteinträge:', timeEntries.length);
     console.log('  - Abwesenheitsanträge:', absenceRequests.length);
     console.log('  - Rechnungen:', invoices.length);

@@ -137,6 +137,14 @@ async function seedModules() {
       route: '/settings',
       sortOrder: 15,
     },
+    {
+      name: 'Intranet',
+      key: 'intranet',
+      description: 'Intranet und Wissensdatenbank',
+      icon: 'folder_shared',
+      route: '/intranet',
+      sortOrder: 16,
+    },
   ];
 
   for (const module of modules) {

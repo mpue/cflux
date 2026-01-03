@@ -142,6 +142,37 @@ export const documentNodeService = {
     });
     return response.data;
   },
+
+  // Get group permissions
+  getGroupPermissions: async (id: string): Promise<DocumentNodeGroupPermission[]> => {
+    const response = await api.get(`/intranet/${id}/permissions`);
+    return response.data;
+  },
+
+  // Set group permissions
+  setGroupPermissions: async (id: string, permissions: SetGroupPermissionsData): Promise<DocumentNodeGroupPermission[]> => {
+    const response = await api.put(`/intranet/${id}/permissions`, permissions);
+    return response.data;
+  },
 };
+
+export interface DocumentNodeGroupPermission {
+  id: string;
+  documentNodeId: string;
+  userGroupId: string;
+  permissionLevel: 'READ' | 'WRITE' | 'ADMIN';
+  userGroup: {
+    id: string;
+    name: string;
+    color: string;
+  };
+}
+
+export interface SetGroupPermissionsData {
+  permissions: Array<{
+    userGroupId: string;
+    permissionLevel: 'READ' | 'WRITE' | 'ADMIN';
+  }>;
+}
 
 export default documentNodeService;
