@@ -1,7 +1,9 @@
 import { travelExpenseService, TravelExpense, CreateTravelExpenseData, TravelExpenseType, RequestStatus } from '../travelExpense.service';
+import api from '../api';
 
-// Mock fetch
-global.fetch = jest.fn();
+// Mock the api module
+jest.mock('../api');
+const mockedApi = api as jest.Mocked<typeof api>;
 
 // Mock localStorage
 const mockLocalStorage = (() => {
@@ -62,22 +64,15 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockCreatedExpense,
+      mockedApi.post.mockResolvedValue({
+        data: mockCreatedExpense,
       });
 
       const result = await travelExpenseService.createTravelExpense(newExpenseData);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/travel-expenses'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-          }),
-          body: JSON.stringify(newExpenseData),
-        })
+      expect(mockedApi.post).toHaveBeenCalledWith(
+        '/travel-expenses',
+        newExpenseData
       );
       expect(result).toEqual(mockCreatedExpense);
       expect(result.type).toBe('FLIGHT');
@@ -105,9 +100,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockExpense,
+      mockedApi.post.mockResolvedValue({
+        data: mockExpense,
       });
 
       const result = await travelExpenseService.createTravelExpense(minimalData);
@@ -140,9 +134,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
           updatedAt: '2026-01-01T10:00:00Z',
         };
 
-        (global.fetch as jest.Mock).mockResolvedValue({
-          ok: true,
-          json: async () => mockExpense,
+        mockedApi.post.mockResolvedValue({
+          data: mockExpense,
         });
 
         const result = await travelExpenseService.createTravelExpense(expenseData);
@@ -178,9 +171,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockExpense,
+      mockedApi.post.mockResolvedValue({
+        data: mockExpense,
       });
 
       const result = await travelExpenseService.createTravelExpense(carExpenseData);
@@ -217,9 +209,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockExpense,
+      mockedApi.post.mockResolvedValue({
+        data: mockExpense,
       });
 
       const result = await travelExpenseService.createTravelExpense(accommodationData);
@@ -236,10 +227,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         amount: 50.00,
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Invalid amount' }),
-      });
+      const error = new Error('Invalid amount');
+      mockedApi.post.mockRejectedValue(error);
 
       await expect(travelExpenseService.createTravelExpense(expenseData))
         .rejects.toThrow('Invalid amount');
@@ -272,9 +261,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
           updatedAt: '2026-01-01T10:00:00Z',
         };
 
-        (global.fetch as jest.Mock).mockResolvedValue({
-          ok: true,
-          json: async () => mockExpense,
+        mockedApi.post.mockResolvedValue({
+          data: mockExpense,
         });
 
         const result = await travelExpenseService.createTravelExpense(expenseData);
@@ -315,29 +303,20 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         },
       ];
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockExpenses,
+      mockedApi.get.mockResolvedValue({
+        data: mockExpenses,
       });
 
       const result = await travelExpenseService.getAllTravelExpenses();
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/travel-expenses'),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-          }),
-        })
-      );
+      expect(mockedApi.get).toHaveBeenCalledWith('/travel-expenses');
       expect(result).toEqual(mockExpenses);
       expect(result).toHaveLength(2);
     });
 
     it('should return empty array when no expenses found', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => [],
+      mockedApi.get.mockResolvedValue({
+        data: [],
       });
 
       const result = await travelExpenseService.getAllTravelExpenses();
@@ -376,9 +355,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         },
       ];
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockExpenses,
+      mockedApi.get.mockResolvedValue({
+        data: mockExpenses,
       });
 
       const result = await travelExpenseService.getAllTravelExpenses();
@@ -389,12 +367,10 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
     });
 
     it('should handle fetch error', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-      });
+      mockedApi.get.mockRejectedValue(new Error('Fehler beim Laden der Reisekosten'));
 
       await expect(travelExpenseService.getAllTravelExpenses())
-        .rejects.toThrow('Fehler beim Laden der Reisekosten');
+        .rejects.toThrow();
     });
   });
 
@@ -414,17 +390,13 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockExpense,
+      mockedApi.get.mockResolvedValue({
+        data: mockExpense,
       });
 
       const result = await travelExpenseService.getTravelExpenseById('expense-123');
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/travel-expenses/expense-123'),
-        expect.any(Object)
-      );
+      expect(mockedApi.get).toHaveBeenCalledWith('/travel-expenses/expense-123');
       expect(result).toEqual(mockExpense);
       expect(result.id).toBe('expense-123');
     });
@@ -463,9 +435,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockExpense,
+      mockedApi.get.mockResolvedValue({
+        data: mockExpense,
       });
 
       const result = await travelExpenseService.getTravelExpenseById('expense-full');
@@ -476,12 +447,10 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
     });
 
     it('should handle not found error', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-      });
+      mockedApi.get.mockRejectedValue(new Error('Fehler beim Laden der Reisekosten'));
 
       await expect(travelExpenseService.getTravelExpenseById('nonexistent-id'))
-        .rejects.toThrow('Fehler beim Laden der Reisekosten');
+        .rejects.toThrow();
     });
   });
 
@@ -507,19 +476,15 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T12:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockUpdatedExpense,
+      mockedApi.put.mockResolvedValue({
+        data: mockUpdatedExpense,
       });
 
       const result = await travelExpenseService.updateTravelExpense('expense-123', updates);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/travel-expenses/expense-123'),
-        expect.objectContaining({
-          method: 'PUT',
-          body: JSON.stringify(updates),
-        })
+      expect(mockedApi.put).toHaveBeenCalledWith(
+        '/travel-expenses/expense-123',
+        updates
       );
       expect(result.amount).toBe(450.00);
     });
@@ -542,9 +507,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T12:30:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockUpdatedExpense,
+      mockedApi.put.mockResolvedValue({
+        data: mockUpdatedExpense,
       });
 
       const result = await travelExpenseService.updateTravelExpense('expense-123', updates);
@@ -572,9 +536,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T13:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockUpdatedExpense,
+      mockedApi.put.mockResolvedValue({
+        data: mockUpdatedExpense,
       });
 
       const result = await travelExpenseService.updateTravelExpense('expense-123', updates);
@@ -602,9 +565,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T13:30:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockUpdatedExpense,
+      mockedApi.put.mockResolvedValue({
+        data: mockUpdatedExpense,
       });
 
       const result = await travelExpenseService.updateTravelExpense('expense-123', updates);
@@ -635,9 +597,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T14:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockUpdatedExpense,
+      mockedApi.put.mockResolvedValue({
+        data: mockUpdatedExpense,
       });
 
       const result = await travelExpenseService.updateTravelExpense('expense-123', updates);
@@ -652,10 +613,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         amount: -100.00,
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Invalid amount' }),
-      });
+      const error = new Error('Invalid amount');
+      mockedApi.put.mockRejectedValue(error);
 
       await expect(travelExpenseService.updateTravelExpense('expense-123', updates))
         .rejects.toThrow('Invalid amount');
@@ -666,10 +625,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         amount: 200.00,
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Expense not found' }),
-      });
+      const error = new Error('Expense not found');
+      mockedApi.put.mockRejectedValue(error);
 
       await expect(travelExpenseService.updateTravelExpense('nonexistent-id', updates))
         .rejects.toThrow('Expense not found');
@@ -681,59 +638,48 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
   // ============================================
   describe('DELETE - deleteTravelExpense', () => {
     it('should delete travel expense successfully', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
+      mockedApi.delete.mockResolvedValue({
+        data: undefined,
       });
 
       await travelExpenseService.deleteTravelExpense('expense-123');
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/travel-expenses/expense-123'),
-        expect.objectContaining({
-          method: 'DELETE',
-        })
-      );
+      expect(mockedApi.delete).toHaveBeenCalledWith('/travel-expenses/expense-123');
     });
 
     it('should delete multiple expenses', async () => {
       const expenseIds = ['expense-1', 'expense-2', 'expense-3'];
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
+      mockedApi.delete.mockResolvedValue({
+        data: undefined,
       });
 
       for (const id of expenseIds) {
         await travelExpenseService.deleteTravelExpense(id);
       }
 
-      expect(global.fetch).toHaveBeenCalledTimes(3);
+      expect(mockedApi.delete).toHaveBeenCalledTimes(3);
     });
 
     it('should handle delete error when expense not found', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Expense not found' }),
-      });
+      const error = new Error('Expense not found');
+      mockedApi.delete.mockRejectedValue(error);
 
       await expect(travelExpenseService.deleteTravelExpense('nonexistent-id'))
         .rejects.toThrow('Expense not found');
     });
 
     it('should handle delete error for approved expense', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Cannot delete approved expense' }),
-      });
+      const error = new Error('Cannot delete approved expense');
+      mockedApi.delete.mockRejectedValue(error);
 
       await expect(travelExpenseService.deleteTravelExpense('expense-123'))
         .rejects.toThrow('Cannot delete approved expense');
     });
 
     it('should handle network error on delete', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Network error' }),
-      });
+      const error = new Error('Network error');
+      mockedApi.delete.mockRejectedValue(error);
 
       await expect(travelExpenseService.deleteTravelExpense('expense-123'))
         .rejects.toThrow('Network error');
@@ -760,28 +706,23 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-05T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockApprovedExpense,
+      mockedApi.post.mockResolvedValue({
+        data: mockApprovedExpense,
       });
 
       const result = await travelExpenseService.approveTravelExpense('expense-123');
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/travel-expenses/expense-123/approve'),
-        expect.objectContaining({
-          method: 'POST',
-        })
+      expect(mockedApi.post).toHaveBeenCalledWith(
+        '/travel-expenses/expense-123/approve',
+        {}
       );
       expect(result.status).toBe('APPROVED');
       expect(result.approvedAt).toBeDefined();
     });
 
     it('should handle approval error', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Not authorized to approve' }),
-      });
+      const error = new Error('Not authorized to approve');
+      mockedApi.post.mockRejectedValue(error);
 
       await expect(travelExpenseService.approveTravelExpense('expense-123'))
         .rejects.toThrow('Not authorized to approve');
@@ -807,19 +748,15 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-05T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockRejectedExpense,
+      mockedApi.post.mockResolvedValue({
+        data: mockRejectedExpense,
       });
 
       const result = await travelExpenseService.rejectTravelExpense('expense-123', rejectionReason);
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/travel-expenses/expense-123/reject'),
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({ rejectionReason }),
-        })
+      expect(mockedApi.post).toHaveBeenCalledWith(
+        '/travel-expenses/expense-123/reject',
+        { rejectionReason }
       );
       expect(result.status).toBe('REJECTED');
       expect(result.rejectionReason).toBe(rejectionReason);
@@ -840,9 +777,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-05T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockRejectedExpense,
+      mockedApi.post.mockResolvedValue({
+        data: mockRejectedExpense,
       });
 
       const result = await travelExpenseService.rejectTravelExpense('expense-123');
@@ -851,10 +787,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
     });
 
     it('should handle rejection error', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Not authorized to reject' }),
-      });
+      const error = new Error('Not authorized to reject');
+      mockedApi.post.mockRejectedValue(error);
 
       await expect(travelExpenseService.rejectTravelExpense('expense-123', 'Test'))
         .rejects.toThrow('Not authorized to reject');
@@ -890,18 +824,16 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => createdExpense,
+      mockedApi.post.mockResolvedValue({
+        data: createdExpense,
       });
 
       const created = await travelExpenseService.createTravelExpense(newExpense);
       expect(created.status).toBe('PENDING');
 
       // READ
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => createdExpense,
+      mockedApi.get.mockResolvedValue({
+        data: createdExpense,
       });
 
       const fetched = await travelExpenseService.getTravelExpenseById('expense-lifecycle');
@@ -914,9 +846,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-02T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => updatedExpense,
+      mockedApi.put.mockResolvedValue({
+        data: updatedExpense,
       });
 
       const updated = await travelExpenseService.updateTravelExpense('expense-lifecycle', {
@@ -933,9 +864,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-05T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => approvedExpense,
+      mockedApi.post.mockResolvedValue({
+        data: approvedExpense,
       });
 
       const approved = await travelExpenseService.approveTravelExpense('expense-lifecycle');
@@ -965,9 +895,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => createdExpense,
+      mockedApi.post.mockResolvedValue({
+        data: createdExpense,
       });
 
       await travelExpenseService.createTravelExpense(newExpense);
@@ -981,9 +910,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-02T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => rejectedExpense,
+      mockedApi.post.mockResolvedValue({
+        data: rejectedExpense,
       });
 
       const rejected = await travelExpenseService.rejectTravelExpense('expense-reject', 'Beleg fehlt');
@@ -1018,9 +946,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockExpense,
+      mockedApi.post.mockResolvedValue({
+        data: mockExpense,
       });
 
       const result = await travelExpenseService.createTravelExpense(expenseData);
@@ -1050,9 +977,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockExpense,
+      mockedApi.post.mockResolvedValue({
+        data: mockExpense,
       });
 
       const result = await travelExpenseService.createTravelExpense(expenseData);
@@ -1083,9 +1009,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockExpense,
+      mockedApi.post.mockResolvedValue({
+        data: mockExpense,
       });
 
       const result = await travelExpenseService.createTravelExpense(expenseData);
@@ -1114,9 +1039,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockExpense,
+      mockedApi.post.mockResolvedValue({
+        data: mockExpense,
       });
 
       const result = await travelExpenseService.createTravelExpense(expenseData);
@@ -1150,9 +1074,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockExpense,
+      mockedApi.post.mockResolvedValue({
+        data: mockExpense,
       });
 
       const result = await travelExpenseService.createTravelExpense(expenseData);
@@ -1186,9 +1109,8 @@ describe('TravelExpense Service - Complete CRUD Tests', () => {
           updatedAt: '2026-01-01T10:00:00Z',
         };
 
-        (global.fetch as jest.Mock).mockResolvedValue({
-          ok: true,
-          json: async () => mockExpense,
+        mockedApi.post.mockResolvedValue({
+          data: mockExpense,
         });
 
         const result = await travelExpenseService.createTravelExpense(expenseData);
