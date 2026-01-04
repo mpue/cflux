@@ -29,6 +29,7 @@ import {
   Person as PersonIcon,
   MoreVert as MoreIcon,
   PictureAsPdf as PdfIcon,
+  PermMedia as MediaIcon,
 } from '@mui/icons-material';
 
 interface AppNavbarProps {
@@ -170,6 +171,10 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
           <MenuItem onClick={() => navigateTo('/intranet')}>
             <IntranetIcon sx={{ mr: 1 }} />
             Intranet
+          </MenuItem>
+          <MenuItem onClick={() => navigateTo('/media')}>
+            <MediaIcon sx={{ mr: 1 }} />
+            Medien
           </MenuItem>
           {(user?.role === 'ADMIN' || modules.length > 0) && (
             <>

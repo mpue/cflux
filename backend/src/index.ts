@@ -30,6 +30,7 @@ import deviceRoutes from './routes/device.routes';
 import travelExpenseRoutes from './routes/travelExpense.routes';
 import messageRoutes from './routes/message.routes';
 import documentNodeRoutes from './routes/documentNode.routes';
+import mediaRoutes from './routes/media.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -88,6 +89,7 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/travel-expenses', travelExpenseRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/intranet', documentNodeRoutes);
+app.use('/api/media', mediaRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -156,6 +156,7 @@ model User {
   createdDocumentNodes DocumentNode[] @relation("DocumentNodeCreator")
   updatedDocumentNodes DocumentNode[] @relation("DocumentNodeUpdater")
   documentVersions DocumentVersion[] @relation("DocumentVersionCreator")
+  uploadedMedia   Media[] @relation("MediaUploadedBy")
   
   @@index([userGroupId])
   @@map("users")
@@ -1305,4 +1306,43 @@ model DocumentVersion {
   @@index([documentNodeId])
   @@index([version])
   @@map("document_versions")
+}
+
+enum MediaType {
+  IMAGE
+  PDF
+  DOCUMENT
+  VIDEO
+  AUDIO
+  ARCHIVE
+  EXECUTABLE
+  OTHER
+}
+
+model Media {
+  id              String        @id @default(uuid())
+  filename        String
+  originalFilename String
+  mimeType        String
+  fileSize        Int           // in bytes
+  mediaType       MediaType
+  path            String        // Relativer Pfad zur Datei
+  url             String?       // Optional: öffentliche URL
+  description     String?
+  tags            String[]      @default([])
+  width           Int?          // für Bilder
+  height          Int?          // für Bilder
+  duration        Int?          // für Videos/Audio in Sekunden
+  isPublic        Boolean       @default(false)
+  uploadedById    String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  uploadedBy      User          @relation("MediaUploadedBy", fields: [uploadedById], references: [id])
+  
+  @@index([uploadedById])
+  @@index([mediaType])
+  @@index([isPublic])
+  @@index([createdAt])
+  @@map("media")
 }
