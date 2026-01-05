@@ -112,6 +112,46 @@ const ModulePermissionsPage: React.FC<{ embedded?: boolean }> = ({ embedded = fa
     setHasChanges(true);
   };
 
+  const handleFullAccessChange = (moduleId: string, value: boolean) => {
+    const existingAccess = getAccessForModule(moduleId);
+
+    if (existingAccess) {
+      // Update existing access with all permissions
+      const updatedAccess = moduleAccess.map((access) =>
+        access.moduleId === moduleId
+          ? { 
+              ...access, 
+              canView: value,
+              canCreate: value,
+              canEdit: value,
+              canDelete: value
+            }
+          : access
+      );
+      setModuleAccess(updatedAccess);
+    } else {
+      // Create new access entry with all permissions
+      const newAccess: ModuleAccess = {
+        id: `temp-${moduleId}`,
+        moduleId,
+        userGroupId: selectedGroupId,
+        canView: value,
+        canCreate: value,
+        canEdit: value,
+        canDelete: value,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setModuleAccess([...moduleAccess, newAccess]);
+    }
+    setHasChanges(true);
+  };
+
+  const hasFullAccess = (moduleId: string): boolean => {
+    const access = getAccessForModule(moduleId);
+    return !!(access?.canView && access?.canCreate && access?.canEdit && access?.canDelete);
+  };
+
   const handleSaveAll = async () => {
     try {
       setError(null);
@@ -235,6 +275,7 @@ const ModulePermissionsPage: React.FC<{ embedded?: boolean }> = ({ embedded = fa
               <TableHead className="module-permissions-table-head">
                 <TableRow>
                   <TableCell className="module-permissions-table-cell-header">Modul</TableCell>
+                  <TableCell align="center" className="module-permissions-table-cell-header">Vollzugriff</TableCell>
                   <TableCell align="center" className="module-permissions-table-cell-header">Ansehen</TableCell>
                   <TableCell align="center" className="module-permissions-table-cell-header">Erstellen</TableCell>
                   <TableCell align="center" className="module-permissions-table-cell-header">Bearbeiten</TableCell>
@@ -269,6 +310,16 @@ const ModulePermissionsPage: React.FC<{ embedded?: boolean }> = ({ embedded = fa
                             )}
                           </Box>
                         </Box>
+                      </TableCell>
+                      <TableCell align="center" className="module-permissions-table-cell">
+                        <Checkbox
+                          checked={hasFullAccess(module.id)}
+                          onChange={(e) =>
+                            handleFullAccessChange(module.id, e.target.checked)
+                          }
+                          className="module-permissions-checkbox"
+                          color="primary"
+                        />
                       </TableCell>
                       <TableCell align="center" className="module-permissions-table-cell">
                         <Checkbox
