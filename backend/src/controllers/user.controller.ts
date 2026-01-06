@@ -56,6 +56,31 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const getUsersList = async (req: AuthRequest, res: Response) => {
+  try {
+    // Return only basic user info for all authenticated users
+    // This is used for dropdowns (e.g., assign incidents to users)
+    const users = await prisma.user.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+      },
+      orderBy: [
+        { firstName: 'asc' },
+        { lastName: 'asc' },
+      ],
+    });
+
+    res.json(users);
+  } catch (error) {
+    console.error('Get users list error:', error);
+    res.status(500).json({ error: 'Failed to get users list' });
+  }
+};
+
 export const getAllUsers = async (req: AuthRequest, res: Response) => {
   try {
     const users = await prisma.user.findMany({

@@ -1,12 +1,23 @@
 import { Request, Response } from 'express';
 import { incidentService } from '../services/incident.service';
 import { IncidentPriority, IncidentStatus } from '@prisma/client';
+import { AuthRequest } from '../middleware/auth';
+import { checkModulePermission } from '../services/module.service';
 
 export const incidentController = {
-  async createIncident(req: Request, res: Response): Promise<void> {
+  async createIncident(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user!.id;
+
+      // Check if user has WRITE permission for incidents module
+      const hasWritePermission = await checkModulePermission(userId, 'incidents', 'WRITE');
+      if (!hasWritePermission) {
+        res.status(403).json({ error: 'No permission to create incidents' });
+        return;
+      }
+
       const { title, description, priority, assignedToId, category, affectedSystem, dueDate, tags } = req.body;
-      const reportedById = (req as any).user.id;
+      const reportedById = userId;
 
       if (!title || !description) {
         res.status(400).json({ error: 'Title and description are required' });
@@ -32,8 +43,17 @@ export const incidentController = {
     }
   },
 
-  async getAllIncidents(req: Request, res: Response): Promise<void> {
+  async getAllIncidents(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user!.id;
+
+      // Check if user has READ permission for incidents module
+      const hasReadPermission = await checkModulePermission(userId, 'incidents', 'READ');
+      if (!hasReadPermission) {
+        res.status(403).json({ error: 'No permission to read incidents' });
+        return;
+      }
+
       const { status, priority, assignedToId } = req.query;
 
       const incidents = await incidentService.getAllIncidents(
@@ -49,8 +69,17 @@ export const incidentController = {
     }
   },
 
-  async getIncidentById(req: Request, res: Response): Promise<void> {
+  async getIncidentById(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user!.id;
+
+      // Check if user has READ permission for incidents module
+      const hasReadPermission = await checkModulePermission(userId, 'incidents', 'READ');
+      if (!hasReadPermission) {
+        res.status(403).json({ error: 'No permission to read incidents' });
+        return;
+      }
+
       const { id } = req.params;
 
       const incident = await incidentService.getIncidentById(id);
@@ -67,8 +96,17 @@ export const incidentController = {
     }
   },
 
-  async updateIncident(req: Request, res: Response): Promise<void> {
+  async updateIncident(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user!.id;
+
+      // Check if user has WRITE permission for incidents module
+      const hasWritePermission = await checkModulePermission(userId, 'incidents', 'WRITE');
+      if (!hasWritePermission) {
+        res.status(403).json({ error: 'No permission to update incidents' });
+        return;
+      }
+
       const { id } = req.params;
       const updateData = req.body;
 
@@ -81,8 +119,17 @@ export const incidentController = {
     }
   },
 
-  async deleteIncident(req: Request, res: Response): Promise<void> {
+  async deleteIncident(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user!.id;
+
+      // Check if user has WRITE permission for incidents module
+      const hasWritePermission = await checkModulePermission(userId, 'incidents', 'WRITE');
+      if (!hasWritePermission) {
+        res.status(403).json({ error: 'No permission to delete incidents' });
+        return;
+      }
+
       const { id } = req.params;
 
       await incidentService.deleteIncident(id);
@@ -94,11 +141,19 @@ export const incidentController = {
     }
   },
 
-  async addComment(req: Request, res: Response): Promise<void> {
+  async addComment(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user!.id;
+
+      // Check if user has WRITE permission for incidents module
+      const hasWritePermission = await checkModulePermission(userId, 'incidents', 'WRITE');
+      if (!hasWritePermission) {
+        res.status(403).json({ error: 'No permission to add comments to incidents' });
+        return;
+      }
+
       const { id } = req.params;
       const { comment } = req.body;
-      const userId = (req as any).user.id;
 
       if (!comment) {
         res.status(400).json({ error: 'Comment is required' });
@@ -117,8 +172,17 @@ export const incidentController = {
     }
   },
 
-  async getComments(req: Request, res: Response): Promise<void> {
+  async getComments(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user!.id;
+
+      // Check if user has READ permission for incidents module
+      const hasReadPermission = await checkModulePermission(userId, 'incidents', 'READ');
+      if (!hasReadPermission) {
+        res.status(403).json({ error: 'No permission to read incident comments' });
+        return;
+      }
+
       const { id } = req.params;
 
       const comments = await incidentService.getComments(id);
@@ -130,8 +194,17 @@ export const incidentController = {
     }
   },
 
-  async getStatistics(req: Request, res: Response): Promise<void> {
+  async getStatistics(req: AuthRequest, res: Response): Promise<void> {
     try {
+      const userId = req.user!.id;
+
+      // Check if user has READ permission for incidents module
+      const hasReadPermission = await checkModulePermission(userId, 'incidents', 'READ');
+      if (!hasReadPermission) {
+        res.status(403).json({ error: 'No permission to read incident statistics' });
+        return;
+      }
+
       const stats = await incidentService.getStatistics();
 
       res.json(stats);

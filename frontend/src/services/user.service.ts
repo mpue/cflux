@@ -3,6 +3,12 @@ import { User } from '../types';
 
 export const userService = {
   getAllUsers: async (): Promise<User[]> => {
+    const response = await api.get('/users/list'); // Use new endpoint for basic user list
+    return response.data;
+  },
+
+  getAllUsersAdmin: async (): Promise<User[]> => {
+    // Admin-only endpoint with full user details
     const response = await api.get('/users');
     return response.data;
   },

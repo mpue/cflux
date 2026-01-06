@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useModules } from '../contexts/ModuleContext';
 import { incidentService, Incident, IncidentStatistics, CreateIncidentDto, UpdateIncidentDto } from '../services/incident.service';
 import { userService } from '../services/user.service';
 import { projectService } from '../services/project.service';
@@ -21,6 +22,7 @@ interface Project {
 
 const IncidentManagement: React.FC = () => {
   const { user } = useAuth();
+  const { canEdit } = useModules();
   const navigate = useNavigate();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [statistics, setStatistics] = useState<IncidentStatistics | null>(null);
@@ -28,6 +30,10 @@ const IncidentManagement: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if user can edit incidents
+  const isAdmin = user?.role === 'ADMIN';
+  const canEditIncidents = isAdmin || canEdit('incidents');
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -210,9 +216,11 @@ const IncidentManagement: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <h1>Incident Management</h1>
         </div>
-        <button onClick={() => setShowCreateModal(true)} className="btn-primary">
-          Neuer Vorfall
-        </button>
+        {canEditIncidents && (
+          <button onClick={() => setShowCreateModal(true)} className="btn-primary">
+            Neuer Vorfall
+          </button>
+        )}
       </div>
 
       {error && (
@@ -458,6 +466,7 @@ const IncidentManagement: React.FC = () => {
                           handleUpdateIncident(selectedIncident.id, { status: e.target.value as any })
                         }
                         className="inline-select"
+                        disabled={!canEditIncidents}
                       >
                         <option value="OPEN">Offen</option>
                         <option value="IN_PROGRESS">In Bearbeitung</option>
@@ -473,6 +482,7 @@ const IncidentManagement: React.FC = () => {
                           handleUpdateIncident(selectedIncident.id, { priority: e.target.value as any })
                         }
                         className="inline-select"
+                        disabled={!canEditIncidents}
                       >
                         <option value="LOW">Niedrig</option>
                         <option value="MEDIUM">Mittel</option>
@@ -500,6 +510,7 @@ const IncidentManagement: React.FC = () => {
                           handleUpdateIncident(selectedIncident.id, { assignedToId: e.target.value })
                         }
                         className="inline-select"
+                        disabled={!canEditIncidents}
                       >
                         <option value="">-- Nicht zugewiesen --</option>
                         {users.map((u) => (
@@ -517,6 +528,7 @@ const IncidentManagement: React.FC = () => {
                           handleUpdateIncident(selectedIncident.id, { projectId: e.target.value })
                         }
                         className="inline-select"
+                        disabled={!canEditIncidents}
                       >
                         <option value="">-- Kein Projekt --</option>
                         {projects.map((p) => (
@@ -561,8 +573,13 @@ const IncidentManagement: React.FC = () => {
                       onChange={(e) => setNewComment(e.target.value)}
                       placeholder="Kommentar hinzufügen..."
                       rows={3}
+                      disabled={!canEditIncidents}
                     />
-                    <button onClick={handleAddComment} className="btn-primary">
+                    <button 
+                      onClick={handleAddComment} 
+                      className="btn-primary"
+                      disabled={!canEditIncidents}
+                    >
                       Kommentar hinzufügen
                     </button>
                   </div>
@@ -570,7 +587,7 @@ const IncidentManagement: React.FC = () => {
               </div>
             </div>
             <div className="modal-actions">
-              {selectedIncident.status !== 'RESOLVED' && selectedIncident.status !== 'CLOSED' && (
+              {canEditIncidents && selectedIncident.status !== 'RESOLVED' && selectedIncident.status !== 'CLOSED' && (
                 <button
                   onClick={() => handleUpdateIncident(selectedIncident.id, { status: 'RESOLVED' })}
                   className="btn-primary"
@@ -579,12 +596,14 @@ const IncidentManagement: React.FC = () => {
                   ✓ Als gelöst markieren
                 </button>
               )}
-              <button
-                onClick={() => handleDeleteIncident(selectedIncident.id)}
-                className="btn-danger"
-              >
-                Löschen
-              </button>
+              {canEditIncidents && (
+                <button
+                  onClick={() => handleDeleteIncident(selectedIncident.id)}
+                  className="btn-danger"
+                >
+                  Löschen
+                </button>
+              )}
               <button onClick={() => setShowDetailModal(false)} className="btn-secondary">
                 Schließen
               </button>
