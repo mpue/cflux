@@ -29,7 +29,7 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave, onCan
 
   const loadUsers = async () => {
     try {
-      const data = await userService.getAllUsers();
+      const data = await userService.getAllUsersAdmin();
       setUsers(data);
     } catch (error) {
       console.error('Fehler beim Laden der Benutzer:', error);

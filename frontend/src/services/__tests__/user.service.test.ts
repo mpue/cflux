@@ -212,7 +212,7 @@ describe('User Service - Complete CRUD Tests', () => {
 
       const result = await userService.getAllUsers();
 
-      expect(mockedApi.get).toHaveBeenCalledWith('/users');
+      expect(mockedApi.get).toHaveBeenCalledWith('/users/list');
       expect(result).toHaveLength(3);
       expect(result[0].firstName).toBe('Alice');
       expect(result[1].role).toBe('ADMIN');
@@ -237,6 +237,88 @@ describe('User Service - Complete CRUD Tests', () => {
       });
 
       await expect(userService.getAllUsers()).rejects.toMatchObject({
+        response: { status: 500 },
+      });
+    });
+  });
+
+  describe('READ - getAllUsersAdmin', () => {
+    it('should fetch all users with full details for admin', async () => {
+      const mockUsers = [
+        {
+          id: 'user-1',
+          email: 'user1@example.com',
+          firstName: 'Alice',
+          lastName: 'Anderson',
+          role: 'USER' as const,
+          vacationDays: 25,
+          isActive: true,
+          phone: '+41 79 123 45 67',
+          address: 'Street 1',
+          city: 'Zurich',
+          postalCode: '8000',
+          country: 'Switzerland',
+          ahvNumber: '756.1234.5678.90',
+          iban: 'CH93 0076 2011 6238 5295 7',
+          createdAt: new Date('2026-01-01'),
+          updatedAt: new Date('2026-01-01'),
+        },
+        {
+          id: 'user-2',
+          email: 'admin@example.com',
+          firstName: 'Bob',
+          lastName: 'Brown',
+          role: 'ADMIN' as const,
+          vacationDays: 30,
+          isActive: true,
+          createdAt: new Date('2026-01-01'),
+          updatedAt: new Date('2026-01-01'),
+        },
+      ];
+
+      mockedApi.get.mockResolvedValue({ data: mockUsers });
+
+      const result = await userService.getAllUsersAdmin();
+
+      expect(mockedApi.get).toHaveBeenCalledWith('/users');
+      expect(result).toHaveLength(2);
+      expect(result[0].firstName).toBe('Alice');
+      expect(result[0].ahvNumber).toBe('756.1234.5678.90');
+      expect(result[0].iban).toBe('CH93 0076 2011 6238 5295 7');
+      expect(result[1].role).toBe('ADMIN');
+    });
+
+    it('should return empty array when no users exist', async () => {
+      mockedApi.get.mockResolvedValue({ data: [] });
+
+      const result = await userService.getAllUsersAdmin();
+
+      expect(result).toEqual([]);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle unauthorized access (403)', async () => {
+      mockedApi.get.mockRejectedValue({
+        response: {
+          status: 403,
+          data: { error: 'Forbidden - Admin access required' },
+        },
+      });
+
+      await expect(userService.getAllUsersAdmin()).rejects.toMatchObject({
+        response: { status: 403 },
+      });
+    });
+
+    it('should handle server error', async () => {
+      mockedApi.get.mockRejectedValue({
+        response: {
+          status: 500,
+          data: { error: 'Internal server error' },
+        },
+      });
+
+      await expect(userService.getAllUsersAdmin()).rejects.toMatchObject({
         response: { status: 500 },
       });
     });

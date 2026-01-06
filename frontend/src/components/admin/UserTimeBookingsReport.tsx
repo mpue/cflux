@@ -90,7 +90,7 @@ export const UserTimeBookingsReport: React.FC = () => {
 
   const loadUsers = async () => {
     try {
-      const usersData = await userService.getAllUsers();
+      const usersData = await userService.getAllUsersAdmin();
       setUsers(usersData.filter((u: User) => u.isActive));
     } catch (err) {
       console.error('Error loading users:', err);

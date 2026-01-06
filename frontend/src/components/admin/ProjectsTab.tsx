@@ -203,7 +203,7 @@ const ProjectAssignModal: React.FC<{
   }, []);
 
   const loadUsers = async () => {
-    const usersData = await userService.getAllUsers();
+    const usersData = await userService.getAllUsersAdmin();
     setUsers(usersData);
     setLoading(false);
   };

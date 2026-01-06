@@ -148,7 +148,7 @@ export const UserGroupsTab: React.FC<UserGroupsTabProps> = ({ onLoad }) => {
     try {
       const [groupsData, usersData] = await Promise.all([
         userGroupService.getAll(showInactive),
-        userService.getAllUsers(),
+        userService.getAllUsersAdmin(),
       ]);
       setGroups(groupsData);
       setUsers(usersData);

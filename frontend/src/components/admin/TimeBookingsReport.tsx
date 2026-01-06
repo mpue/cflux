@@ -93,7 +93,7 @@ export const TimeBookingsReport: React.FC = () => {
   const loadInitialData = async () => {
     try {
       const [usersData, projectsData] = await Promise.all([
-        userService.getAllUsers(),
+        userService.getAllUsersAdmin(),
         projectService.getAllProjects()
       ]);
       setUsers(usersData.filter((u: User) => u.isActive));

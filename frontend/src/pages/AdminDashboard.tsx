@@ -129,7 +129,7 @@ const AdminDashboard: React.FC = () => {
     try {
       switch (activeTab) {
         case 'users':
-          const usersData = await userService.getAllUsers();
+          const usersData = await userService.getAllUsersAdmin();
           setUsers(usersData);
           break;
         case 'projects':

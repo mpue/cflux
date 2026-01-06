@@ -14,6 +14,68 @@ const prisma = new PrismaClient();
 
 
 describe('User Controller', () => {
+  describe('GET /api/users/list (Authenticated)', () => {
+    it('should return basic user list for authenticated users', async () => {
+      const mockUsers = [
+        {
+          id: 'user-1',
+          email: 'user1@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+        },
+        {
+          id: 'user-2',
+          email: 'user2@example.com',
+          firstName: 'Jane',
+          lastName: 'Smith',
+        },
+      ];
+
+      (prisma.user.findMany as jest.Mock).mockResolvedValue(mockUsers);
+
+      const token = generateTestToken('user-1', 'USER');
+      const response = await request(app)
+        .get('/api/users/list')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(2);
+      expect(response.body[0]).toHaveProperty('id');
+      expect(response.body[0]).toHaveProperty('email');
+      expect(response.body[0]).toHaveProperty('firstName');
+      expect(response.body[0]).toHaveProperty('lastName');
+      // Should not have sensitive data
+      expect(response.body[0]).not.toHaveProperty('ahvNumber');
+      expect(response.body[0]).not.toHaveProperty('iban');
+    });
+
+    it('should only return active users', async () => {
+      const mockUsers = [
+        {
+          id: 'user-1',
+          email: 'active@example.com',
+          firstName: 'Active',
+          lastName: 'User',
+        },
+      ];
+
+      (prisma.user.findMany as jest.Mock).mockResolvedValue(mockUsers);
+
+      const token = generateTestToken('user-1', 'USER');
+      const response = await request(app)
+        .get('/api/users/list')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      // Verify that findMany was called with isActive: true filter
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isActive: true },
+        })
+      );
+    });
+  });
+
   describe('GET /api/users (Admin)', () => {
     it('should return all users for admin', async () => {
       const mockUsers = [
