@@ -157,6 +157,9 @@ model User {
   updatedDocumentNodes DocumentNode[] @relation("DocumentNodeUpdater")
   documentVersions DocumentVersion[] @relation("DocumentVersionCreator")
   uploadedMedia   Media[] @relation("MediaUploadedBy")
+  createdAttachments DocumentNodeAttachment[] @relation("AttachmentCreator")
+  updatedAttachments DocumentNodeAttachment[] @relation("AttachmentUpdater")
+  createdAttachmentVersions DocumentNodeAttachmentVersion[] @relation("AttachmentVersionCreator")
   
   @@index([userGroupId])
   @@map("users")
@@ -1250,6 +1253,7 @@ model DocumentNode {
   versions          DocumentVersion[]
   nodeType          DocumentNodeTypeRegistry? @relation(fields: [nodeTypeKey], references: [typeKey])
   groupPermissions  DocumentNodeGroupPermission[]
+  attachments       DocumentNodeAttachment[]  @relation("DocumentNodeAttachments")
   
   @@index([parentId])
   @@index([deletedAt])
@@ -1306,6 +1310,57 @@ model DocumentVersion {
   @@index([documentNodeId])
   @@index([version])
   @@map("document_versions")
+}
+
+// Document Node Attachments with separate versioning
+model DocumentNodeAttachment {
+  id              String        @id @default(uuid())
+  documentNodeId  String
+  filename        String
+  originalFilename String
+  mimeType        String
+  fileSize        Int           // in bytes
+  path            String        // Relativer Pfad zur Datei
+  description     String?
+  version         Int           @default(1)
+  isActive        Boolean       @default(true)  // For soft delete
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?     // Soft delete timestamp
+  createdById     String
+  updatedById     String
+  
+  documentNode    DocumentNode  @relation("DocumentNodeAttachments", fields: [documentNodeId], references: [id], onDelete: Cascade)
+  createdBy       User          @relation("AttachmentCreator", fields: [createdById], references: [id])
+  updatedBy       User          @relation("AttachmentUpdater", fields: [updatedById], references: [id])
+  versions        DocumentNodeAttachmentVersion[]
+  
+  @@index([documentNodeId])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("document_node_attachments")
+}
+
+// Attachment Version History
+model DocumentNodeAttachmentVersion {
+  id              String                    @id @default(uuid())
+  attachmentId    String
+  filename        String
+  originalFilename String
+  mimeType        String
+  fileSize        Int
+  path            String
+  version         Int
+  changeReason    String?                   // Optional reason for version update
+  createdAt       DateTime                  @default(now())
+  createdById     String
+  
+  attachment      DocumentNodeAttachment    @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  createdBy       User                      @relation("AttachmentVersionCreator", fields: [createdById], references: [id])
+  
+  @@index([attachmentId])
+  @@index([version])
+  @@map("document_node_attachment_versions")
 }
 
 enum MediaType {

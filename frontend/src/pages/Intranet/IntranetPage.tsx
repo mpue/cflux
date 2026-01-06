@@ -40,6 +40,7 @@ import documentNodeService, { DocumentNode, CreateDocumentNodeData } from '../..
 import DocumentEditor from './DocumentEditor';
 import DocumentVersionHistory from './DocumentVersionHistory';
 import GroupPermissionsDialog from './GroupPermissionsDialog';
+import DocumentNodeAttachments from '../../components/DocumentNodeAttachments';
 
 interface IntranetPageProps { }
 
@@ -545,6 +546,14 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
                       onSave={handleDocumentSave}
                       canEdit={canEditIntranet}
                     />
+                    
+                    {/* Attachments Section */}
+                    <Box sx={{ mt: 2, mb: 2 }}>
+                      <DocumentNodeAttachments 
+                        nodeId={currentNode.id} 
+                        canEdit={canEditIntranet} 
+                      />
+                    </Box>
                   </Box>
                 ) : (
                   <Box>
@@ -554,6 +563,12 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
                     <Typography variant="body2" color="text.secondary">
                       Ordner mit {currentNode.children?.length || 0} Elementen
                     </Typography>
+                    
+                    {/* Attachments Section for Folders */}
+                    <DocumentNodeAttachments 
+                      nodeId={currentNode.id} 
+                      canEdit={canEditIntranet} 
+                    />
                   </Box>
                 )}
               </>

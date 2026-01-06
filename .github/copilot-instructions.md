@@ -12,12 +12,25 @@ Complete time tracking system with TypeScript, Node.js backend, React frontend, 
 - [x] Create frontend components
 - [x] Install dependencies and compile
 - [x] Create documentation
+- [x] Implement Intranet Module with Attachments (Jan 2026)
 
 ## Technology Stack
 - Frontend: React with TypeScript
 - Backend: Node.js, Express, TypeScript
 - Database: PostgreSQL with Prisma ORM
 - Authentication: JWT
+
+## Recent Updates (January 2026)
+
+### Intranet Module - Attachment Functionality ✅
+- **Revisionssichere Attachments** an DocumentNodes
+- **Separate Versionierung** unabhängig von Node-Versionen
+- **Soft-Delete** für vollständige Revisionssicherheit
+- **API:** 8 neue Endpunkte für Attachment-Management
+- **Frontend:** Vollständige UI mit Upload, Download, Versionen
+- **Dokumentation:** docs/INTRANET_ATTACHMENTS.md
+
+Siehe: `INTRANET_ATTACHMENTS_IMPLEMENTATION.md` für Details
 
 ## Next Steps
 

@@ -477,11 +477,12 @@ input:-webkit-autofill:active {
 @media (max-width: 768px) {
   .container {
     padding: 10px;
+    margin: 0 auto;
   }
 
   .card {
     padding: 15px;
-    border-radius: 4px;
+    border-radius: 8px;
   }
 
   /* Navbar */
@@ -496,15 +497,19 @@ input:-webkit-autofill:active {
   }
 
   .navbar-right {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: 8px;
     width: 100%;
+    justify-content: center;
+    margin-right: 0;
   }
 
   .navbar-right button,
   .navbar-right span {
-    width: 100%;
+    flex: 0 1 auto;
     text-align: center;
+    font-size: 14px;
   }
 
   /* Buttons */
@@ -524,6 +529,8 @@ input:-webkit-autofill:active {
   .table-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    margin: 0 -10px;
+    padding: 0 10px;
   }
 
   .table {
@@ -538,7 +545,7 @@ input:-webkit-autofill:active {
 
   /* Stats Grid */
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
 
@@ -547,6 +554,7 @@ input:-webkit-autofill:active {
     padding: 20px;
     width: 95%;
     max-height: 95vh;
+    border-radius: 12px;
   }
 
   .modal h2 {
@@ -555,6 +563,7 @@ input:-webkit-autofill:active {
 
   .modal-actions {
     flex-direction: column;
+    gap: 8px;
   }
 
   .modal-actions button {
@@ -584,6 +593,52 @@ input:-webkit-autofill:active {
     padding: 12px 16px;
     font-size: 14px;
     min-width: auto;
+  }
+
+  /* Clock Status */
+  .clock-status {
+    padding: 12px 16px;
+    gap: 8px;
+    font-size: 14px;
+  }
+}
+
+/* Tab Label Responsive */
+.tab-label-mobile {
+  display: none;
+}
+
+.tab-label-desktop {
+  display: inline;
+}
+
+@media (max-width: 768px) {
+  .tab-label-mobile {
+    display: inline;
+  }
+
+  .tab-label-desktop {
+    display: none;
+  }
+}
+
+/* Stat Card Title Responsive */
+.stat-card h3.stat-title {
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  .stat-card h3.stat-title {
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+
+  .stat-card .value {
+    font-size: 24px;
+  }
+
+  .stat-card {
+    padding: 16px;
   }
 }
 

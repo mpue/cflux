@@ -328,15 +328,15 @@ const Dashboard: React.FC = () => {
       <div className="container">
         <div className="stats-grid">
           <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-            <h3>Gesamtstunden (Monat)</h3>
+            <h3 className="stat-title">Stunden (Monat)</h3>
             <div className="value">{report?.totalHours.toFixed(1) || 0}h</div>
           </div>
           <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-            <h3>Gesamttage</h3>
+            <h3 className="stat-title">Arbeitstage</h3>
             <div className="value">{report?.totalDays || 0}</div>
           </div>
           <div className="stat-card" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
-            <h3>Urlaubstage übrig</h3>
+            <h3 className="stat-title">Urlaub übrig</h3>
             <div className="value">{user?.vacationDays || 0}</div>
           </div>
           <div 
@@ -347,7 +347,7 @@ const Dashboard: React.FC = () => {
             }}
             onClick={() => navigate('/my-approvals')}
           >
-            <h3>🔔 Genehmigungen</h3>
+            <h3 className="stat-title">🔔 Genehmig.</h3>
             <div className="value">
               {pendingApprovalsCount > 0 ? (
                 <span style={{ color: '#ff4444' }}>{pendingApprovalsCount}</span>
@@ -362,7 +362,9 @@ const Dashboard: React.FC = () => {
           display: 'flex', 
           gap: '10px', 
           marginBottom: '20px',
-          borderBottom: '2px solid #e0e0e0'
+          borderBottom: '2px solid #e0e0e0',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch'
         }}>
           <button
             onClick={() => setActiveTab('timetracking')}
@@ -374,10 +376,13 @@ const Dashboard: React.FC = () => {
               borderBottom: activeTab === 'timetracking' ? '3px solid #007bff' : 'none',
               cursor: 'pointer',
               fontSize: '16px',
-              fontWeight: activeTab === 'timetracking' ? 'bold' : 'normal'
+              fontWeight: activeTab === 'timetracking' ? 'bold' : 'normal',
+              whiteSpace: 'nowrap',
+              minWidth: 'fit-content'
             }}
           >
-            ⏰ Zeiterfassung
+            <span className="tab-label-mobile">⏰ Zeit</span>
+            <span className="tab-label-desktop">⏰ Zeiterfassung</span>
           </button>
           <button
             onClick={() => setActiveTab('payroll')}
@@ -389,10 +394,13 @@ const Dashboard: React.FC = () => {
               borderBottom: activeTab === 'payroll' ? '3px solid #007bff' : 'none',
               cursor: 'pointer',
               fontSize: '16px',
-              fontWeight: activeTab === 'payroll' ? 'bold' : 'normal'
+              fontWeight: activeTab === 'payroll' ? 'bold' : 'normal',
+              whiteSpace: 'nowrap',
+              minWidth: 'fit-content'
             }}
           >
-            💰 Lohnabrechnungen
+            <span className="tab-label-mobile">💰 Lohn</span>
+            <span className="tab-label-desktop">💰 Lohnabrechnungen</span>
           </button>
         </div>
 

@@ -89,6 +89,7 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/travel-expenses', travelExpenseRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/intranet', documentNodeRoutes);
+app.use('/api/document-nodes', documentNodeRoutes);
 app.use('/api/media', mediaRoutes);
 
 // Health check

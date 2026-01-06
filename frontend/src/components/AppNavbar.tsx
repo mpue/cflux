@@ -16,6 +16,8 @@ import {
   Avatar,
   Divider,
   Tooltip,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
@@ -105,53 +107,101 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
     handleMoreMenuClose();
   };
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Shorten title for mobile devices
+  const getDisplayTitle = () => {
+    if (!isMobile) return title;
+    const shortTitles: { [key: string]: string } = {
+      'Dashboard': 'Home',
+      'Zeiterfassung': 'Zeit',
+      'Projekte': 'Proj',
+      'Berichte': 'Report',
+      'Einstellungen': 'Setup',
+      'Administrationsbereich': 'Admin',
+      'Abwesenheiten': 'Urlaub',
+    };
+    return shortTitles[title] || title.substring(0, 10);
+  };
+
   return (
     <AppBar position="static" elevation={1}>
-      <Toolbar sx={{ gap: 1 }}>
+      <Toolbar 
+        sx={{ 
+          gap: isMobile ? 0.5 : 1,
+          padding: isMobile ? '8px 8px' : '8px 16px',
+          minHeight: isMobile ? '56px !important' : '64px',
+        }}
+      >
         {showLogo && logoSrc && (
-          <Box component="img" src={logoSrc} alt="Logo" sx={{ height: 40, mr: 2 }} />
+          <Box 
+            component="img" 
+            src={logoSrc} 
+            alt="Logo" 
+            sx={{ 
+              height: isMobile ? 32 : 40, 
+              mr: isMobile ? 0.5 : 2 
+            }} 
+          />
         )}
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          {title}
+        <Typography 
+          variant={isMobile ? 'subtitle1' : 'h6'} 
+          component="div" 
+          sx={{ 
+            flexGrow: 1,
+            fontSize: isMobile ? '0.9rem' : '1.25rem',
+            fontWeight: isMobile ? 600 : 500,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {getDisplayTitle()}
         </Typography>
 
-        <Typography variant="body1" sx={{ mr: 2, fontWeight: 500 }}>
-          {currentTime || displayTime}
-        </Typography>
+        {!isMobile && (
+          <Typography variant="body2" sx={{ mr: 1, fontWeight: 500, display: { xs: 'none', sm: 'block' } }}>
+            {currentTime || displayTime}
+          </Typography>
+        )}
 
-        {/* Main Action Buttons */}
-        {onPdfReport && (
+        {/* Main Action Buttons - Only show most important on mobile */}
+        {onPdfReport && !isMobile && (
           <Tooltip title="PDF-Bericht">
-            <IconButton color="inherit" onClick={onPdfReport}>
-              <PdfIcon />
+            <IconButton color="inherit" onClick={onPdfReport} size={isMobile ? 'small' : 'medium'}>
+              <PdfIcon fontSize={isMobile ? 'small' : 'medium'} />
             </IconButton>
           </Tooltip>
         )}
 
         <Tooltip title="Genehmigungen">
-          <IconButton color="inherit" onClick={() => navigateTo('/my-approvals')}>
-            <NotificationsIcon />
+          <IconButton color="inherit" onClick={() => navigateTo('/my-approvals')} size={isMobile ? 'small' : 'medium'}>
+            <NotificationsIcon fontSize={isMobile ? 'small' : 'medium'} />
           </IconButton>
         </Tooltip>
 
         <Tooltip title="Nachrichten">
-          <IconButton color="inherit" onClick={() => navigateTo('/messages')}>
+          <IconButton color="inherit" onClick={() => navigateTo('/messages')} size={isMobile ? 'small' : 'medium'}>
             <Badge badgeContent={unreadMessagesCount} color="error">
-              <MessageIcon />
+              <MessageIcon fontSize={isMobile ? 'small' : 'medium'} />
             </Badge>
           </IconButton>
         </Tooltip>
 
-        <Tooltip title="Dashboard">
-          <IconButton color="inherit" onClick={() => navigateTo('/dashboard')}>
-            <DashboardIcon />
-          </IconButton>
-        </Tooltip>
+        {!isMobile && (
+          <Tooltip title="Dashboard">
+            <IconButton color="inherit" onClick={() => navigateTo('/dashboard')} size={isMobile ? 'small' : 'medium'}>
+              <DashboardIcon fontSize={isMobile ? 'small' : 'medium'} />
+            </IconButton>
+          </Tooltip>
+        )}
 
         {/* More Menu */}
         <Tooltip title="Mehr">
-          <IconButton color="inherit" onClick={handleMoreMenuOpen}>
-            <MoreIcon />
+          <IconButton color="inherit" onClick={handleMoreMenuOpen} size={isMobile ? 'small' : 'medium'}>
+            <MoreIcon fontSize={isMobile ? 'small' : 'medium'} />
           </IconButton>
         </Tooltip>
 
@@ -159,7 +209,26 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
           anchorEl={moreMenuAnchor}
           open={Boolean(moreMenuAnchor)}
           onClose={handleMoreMenuClose}
+          PaperProps={{
+            sx: {
+              maxHeight: isMobile ? '70vh' : '80vh',
+              width: isMobile ? '90vw' : 'auto',
+              maxWidth: isMobile ? '320px' : '400px',
+            }
+          }}
         >
+          {isMobile && (
+            <MenuItem onClick={() => navigateTo('/dashboard')}>
+              <DashboardIcon sx={{ mr: 1 }} />
+              Dashboard
+            </MenuItem>
+          )}
+          {onPdfReport && isMobile && (
+            <MenuItem onClick={() => { onPdfReport(); handleMoreMenuClose(); }}>
+              <PdfIcon sx={{ mr: 1 }} />
+              PDF-Bericht
+            </MenuItem>
+          )}
           <MenuItem onClick={() => navigateTo('/travel-expenses')}>
             <MoneyIcon sx={{ mr: 1 }} />
             Reisekosten
@@ -189,8 +258,17 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
 
         {/* User Profile Menu */}
         <Tooltip title="Profil">
-          <IconButton onClick={handleProfileMenuOpen} color="inherit">
-            <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+          <IconButton 
+            onClick={handleProfileMenuOpen} 
+            color="inherit"
+            size={isMobile ? 'small' : 'medium'}
+          >
+            <Avatar sx={{ 
+              width: isMobile ? 28 : 32, 
+              height: isMobile ? 28 : 32, 
+              bgcolor: 'secondary.main',
+              fontSize: isMobile ? '0.75rem' : '1rem',
+            }}>
               {user?.firstName?.[0]}{user?.lastName?.[0]}
             </Avatar>
           </IconButton>
@@ -200,13 +278,19 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
           onClose={handleMenuClose}
+          PaperProps={{
+            sx: {
+              width: isMobile ? '90vw' : 'auto',
+              maxWidth: isMobile ? '300px' : '400px',
+            }
+          }}
         >
           <MenuItem disabled>
             <Box>
-              <Typography variant="body2" fontWeight="bold">
+              <Typography variant={isMobile ? 'body2' : 'body1'} fontWeight="bold">
                 {user?.firstName} {user?.lastName}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>
                 {user?.email}
               </Typography>
             </Box>
