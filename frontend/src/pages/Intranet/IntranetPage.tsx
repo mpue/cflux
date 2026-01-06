@@ -41,6 +41,7 @@ import DocumentEditor from './DocumentEditor';
 import DocumentVersionHistory from './DocumentVersionHistory';
 import GroupPermissionsDialog from './GroupPermissionsDialog';
 import DocumentNodeAttachments from '../../components/DocumentNodeAttachments';
+import IntranetSearch from '../../components/IntranetSearch';
 
 interface IntranetPageProps { }
 
@@ -466,6 +467,18 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
             {error}
           </Alert>
         )}
+
+        {/* Search Component */}
+        <IntranetSearch 
+          onResultClick={(nodeId) => {
+            // Find and load the node
+            documentNodeService.getById(nodeId).then((node) => {
+              handleNodeClick(node);
+            }).catch((err) => {
+              setError('Fehler beim Laden des Dokuments');
+            });
+          }} 
+        />
 
         <Box sx={{ display: 'flex', gap: 0, flexGrow: 1, position: 'relative', minHeight: 0 }}>
           {/* Tree Navigation */}

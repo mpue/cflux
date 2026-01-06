@@ -32,6 +32,16 @@ Complete time tracking system with TypeScript, Node.js backend, React frontend, 
 
 Siehe: `INTRANET_ATTACHMENTS_IMPLEMENTATION.md` für Details
 
+### Intranet Module - Intelligent Search ✅
+- **Volltext-Suche** in Nodes, Attachments, Versionen
+- **Relevanz-Ranking** mit Score-basierter Sortierung
+- **Snippet-Highlighting** zeigt Kontext der Treffer
+- **Type-Filter** (Alle, Dokumente, Anhänge, Versionen)
+- **Berechtigungen** respektiert Group Permissions
+- **API:** 2 Endpunkte (`/search`, `/search/suggestions`)
+- **Frontend:** IntranetSearch Component mit Auto-Complete
+- **Dokumentation:** docs/INTRANET_SEARCH.md
+
 ## Next Steps
 
 To run the application:

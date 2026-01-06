@@ -6,6 +6,7 @@ import { authenticate, authorize } from '../middleware/auth';
 import * as documentNodeController from '../controllers/documentNode.controller';
 import * as documentImportController from '../controllers/documentImport.controller';
 import * as documentNodeAttachmentController from '../controllers/documentNodeAttachment.controller';
+import * as documentNodeSearchController from '../controllers/documentNodeSearch.controller';
 
 const router = Router();
 
@@ -49,6 +50,10 @@ const attachmentUpload = multer({
 });
 
 router.use(authenticate);
+
+// Search routes (must be before :id routes)
+router.get('/search', documentNodeSearchController.searchIntranet);
+router.get('/search/suggestions', documentNodeSearchController.getSearchSuggestions);
 
 // Public routes (all authenticated users can read)
 router.get('/tree', documentNodeController.getDocumentTree);
