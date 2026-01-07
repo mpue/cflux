@@ -51,7 +51,7 @@ import PayrollManagement from './PayrollManagement';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'settings' | 'payroll' | 'devices' | 'travelExpenses';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'settings' | 'payroll' | 'devices' | 'travelExpenses';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -448,6 +448,13 @@ const AdminDashboard: React.FC = () => {
                       active={activeTab === 'suppliers'}
                       onClick={() => setActiveTab('suppliers')}
                       label="🚚 Lieferanten"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('orders')) && (
+                    <TabButton
+                      active={activeTab === 'orders'}
+                      onClick={() => navigate('/orders')}
+                      label="📦 Bestellungen"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (

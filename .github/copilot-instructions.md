@@ -13,6 +13,7 @@ Complete time tracking system with TypeScript, Node.js backend, React frontend, 
 - [x] Install dependencies and compile
 - [x] Create documentation
 - [x] Implement Intranet Module with Attachments (Jan 2026)
+- [x] Implement Orders Module (Jan 2026)
 
 ## Technology Stack
 - Frontend: React with TypeScript
@@ -41,6 +42,18 @@ Siehe: `INTRANET_ATTACHMENTS_IMPLEMENTATION.md` für Details
 - **API:** 2 Endpunkte (`/search`, `/search/suggestions`)
 - **Frontend:** IntranetSearch Component mit Auto-Complete
 - **Dokumentation:** docs/INTRANET_SEARCH.md
+
+### Orders Module - Bestellungsverwaltung ✅
+- **Vollständiger Workflow** von Bestellung bis Wareneingang
+- **Freigabe-Prozess** mit mehrstufigem Approval
+- **Wareneingang** mit Teillieferungen
+- **Lieferanten-Integration** mit Supplier-Anbindung
+- **Projektzuordnung** mit Kostenstellen
+- **8 Status-Stufen** (Draft → Received/Cancelled)
+- **4 Prioritätsstufen** (Low → Urgent)
+- **API:** 11 Endpunkte für vollständiges Management
+- **Frontend:** OrdersPage mit Filter und Statistiken
+- **Dokumentation:** docs/ORDERS_MODULE.md
 
 ## Next Steps
 

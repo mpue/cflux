@@ -160,6 +160,10 @@ model User {
   createdAttachments DocumentNodeAttachment[] @relation("AttachmentCreator")
   updatedAttachments DocumentNodeAttachment[] @relation("AttachmentUpdater")
   createdAttachmentVersions DocumentNodeAttachmentVersion[] @relation("AttachmentVersionCreator")
+  requestedOrders Order[] @relation("OrdersRequested")
+  approvedOrders  Order[] @relation("OrdersApproved")
+  rejectedOrders  Order[] @relation("OrdersRejected")
+  receivedDeliveries OrderDelivery[] @relation("DeliveriesReceived")
   
   @@index([userGroupId])
   @@map("users")
@@ -272,6 +276,8 @@ model Supplier {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
+  orders      Order[]
+
   @@map("suppliers")
 }
 
@@ -304,6 +310,7 @@ model Article {
 
   articleGroup    ArticleGroup? @relation(fields: [articleGroupId], references: [id], onDelete: SetNull)
   invoiceItems    InvoiceItem[]
+  orderItems      OrderItem[]
 
   @@map("articles")
 }
@@ -322,6 +329,7 @@ model Project {
   assignments ProjectAssignment[]
   incidents   Incident[]
   projectTimeAllocations ProjectTimeAllocation[]
+  orders      Order[]
 
   @@map("projects")
 }
@@ -1400,4 +1408,157 @@ model Media {
   @@index([isPublic])
   @@index([createdAt])
   @@map("media")
+}
+
+// ============================================================================
+// BESTELLUNGEN MODULE
+// ============================================================================
+
+enum OrderStatus {
+  DRAFT           // Entwurf
+  REQUESTED       // Angefordert (wartet auf Freigabe)
+  APPROVED        // Freigegeben
+  ORDERED         // Bestellt
+  PARTIALLY_RECEIVED  // Teilweise erhalten
+  RECEIVED        // Vollständig erhalten
+  CANCELLED       // Storniert
+  REJECTED        // Abgelehnt
+}
+
+enum OrderPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Order {
+  id              String        @id @default(uuid())
+  orderNumber     String        @unique
+  supplierId      String?
+  orderDate       DateTime      @default(now())
+  expectedDeliveryDate DateTime?
+  actualDeliveryDate DateTime?
+  status          OrderStatus   @default(DRAFT)
+  priority        OrderPriority @default(MEDIUM)
+  
+  // Bestellinformationen
+  title           String
+  description     String?
+  notes           String?
+  internalNotes   String?       // Interne Notizen (nicht für Lieferanten)
+  
+  // Finanzen
+  totalAmount     Float         @default(0)
+  vatAmount       Float         @default(0)
+  grandTotal      Float         @default(0)
+  currency        String        @default("CHF")
+  
+  // Lieferung
+  deliveryAddress String?
+  deliveryContact String?
+  deliveryPhone   String?
+  
+  // Workflow
+  requestedById   String
+  approvedById    String?
+  approvedAt      DateTime?
+  rejectedById    String?
+  rejectedAt      DateTime?
+  rejectionReason String?
+  
+  // Projekt-Zuordnung (optional)
+  projectId       String?
+  costCenter      String?       // Kostenstelle
+  
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  supplier        Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  requestedBy     User          @relation("OrdersRequested", fields: [requestedById], references: [id])
+  approvedBy      User?         @relation("OrdersApproved", fields: [approvedById], references: [id])
+  rejectedBy      User?         @relation("OrdersRejected", fields: [rejectedById], references: [id])
+  project         Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+  deliveries      OrderDelivery[]
+  
+  @@index([supplierId])
+  @@index([requestedById])
+  @@index([status])
+  @@index([orderDate])
+  @@index([projectId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String   @id @default(uuid())
+  orderId         String
+  position        Int      @default(1)
+  
+  // Artikel-Informationen
+  articleId       String?
+  articleNumber   String?  // Falls kein Artikel aus Stammdaten
+  name            String
+  description     String?
+  
+  // Mengen
+  quantity        Float
+  unit            String   @default("Stück")
+  receivedQuantity Float   @default(0)
+  
+  // Preise
+  unitPrice       Float
+  vatRate         Float    @default(7.7)
+  totalPrice      Float
+  
+  notes           String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  article         Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  
+  @@index([orderId])
+  @@index([articleId])
+  @@map("order_items")
+}
+
+model OrderDelivery {
+  id              String   @id @default(uuid())
+  orderId         String
+  deliveryDate    DateTime @default(now())
+  deliveryNumber  String?  // Lieferschein-Nummer
+  notes           String?
+  receivedById    String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  receivedBy      User     @relation("DeliveriesReceived", fields: [receivedById], references: [id])
+  items           OrderDeliveryItem[]
+  
+  @@index([orderId])
+  @@index([receivedById])
+  @@map("order_deliveries")
+}
+
+model OrderDeliveryItem {
+  id              String        @id @default(uuid())
+  deliveryId      String
+  orderItemId     String?       // Optional: Verknüpfung zu Bestellposition
+  
+  name            String
+  quantity        Float
+  unit            String        @default("Stück")
+  notes           String?
+  
+  createdAt       DateTime      @default(now())
+  
+  delivery        OrderDelivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  
+  @@index([deliveryId])
+  @@map("order_delivery_items")
 }
