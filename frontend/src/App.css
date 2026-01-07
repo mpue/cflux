@@ -753,3 +753,86 @@ input:-webkit-autofill:active {
     background-color: var(--table-hover);
   }
 }
+/* ===== ORDERS MODULE BADGES ===== */
+
+/* Status badges for orders */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-draft {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.status-requested {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.status-approved {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.status-ordered {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.status-partial {
+  background: #e0e7ff;
+  color: #6366f1;
+}
+
+.status-received {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.status-cancelled {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Priority badges for orders */
+.priority-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.priority-low {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+.priority-medium {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.priority-high {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.priority-urgent {
+  background: #fee2e2;
+  color: #dc2626;
+}

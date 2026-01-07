@@ -20,3 +20,4 @@ export { default as SalaryConfigDialog } from './SalaryConfigDialog';
 export { default as UserPayrollHistory } from './UserPayrollHistory';
 export { DevicesTab } from './DevicesTab';
 export { TravelExpensesTab } from './TravelExpensesTab';
+export { OrdersTab } from './OrdersTab';

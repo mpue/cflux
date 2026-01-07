@@ -139,7 +139,8 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
     const matchesSearch = device.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       device.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       device.manufacturer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      device.model?.toLowerCase().includes(searchTerm.toLowerCase());
+      device.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (device.user && `${device.user.firstName} ${device.user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesCategory = !categoryFilter || device.category === categoryFilter;
     const matchesUser = !userFilter || device.userId === userFilter;

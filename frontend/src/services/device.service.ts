@@ -1,6 +1,4 @@
-// Check if running in Electron and use injected backend URL
-const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
-const API_URL = electronBackendUrl || process.env.REACT_APP_API_URL || '';
+import api from './api';
 
 export interface Device {
   id: string;
@@ -41,115 +39,42 @@ export interface DeviceAssignment {
 }
 
 class DeviceService {
-  private getAuthHeader() {
-    const token = localStorage.getItem('token');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
-  }
-
   async getAllDevices(): Promise<Device[]> {
-    const response = await fetch(`${API_URL}/api/devices`, {
-      headers: this.getAuthHeader()
-    });
-
-    if (!response.ok) {
-      throw new Error('Fehler beim Laden der Geräte');
-    }
-
-    return response.json();
+    const response = await api.get('/devices');
+    return response.data;
   }
 
   async getDeviceById(id: string): Promise<Device> {
-    const response = await fetch(`${API_URL}/api/devices/${id}`, {
-      headers: this.getAuthHeader()
-    });
-
-    if (!response.ok) {
-      throw new Error('Fehler beim Laden des Geräts');
-    }
-
-    return response.json();
+    const response = await api.get(`/devices/${id}`);
+    return response.data;
   }
 
   async getDevicesByUser(userId: string): Promise<Device[]> {
-    const response = await fetch(`${API_URL}/api/devices/user/${userId}`, {
-      headers: this.getAuthHeader()
-    });
-
-    if (!response.ok) {
-      throw new Error('Fehler beim Laden der Benutzergeräte');
-    }
-
-    return response.json();
+    const response = await api.get(`/devices/user/${userId}`);
+    return response.data;
   }
 
   async createDevice(device: Partial<Device>): Promise<Device> {
-    const response = await fetch(`${API_URL}/api/devices`, {
-      method: 'POST',
-      headers: this.getAuthHeader(),
-      body: JSON.stringify(device)
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Fehler beim Erstellen des Geräts');
-    }
-
-    return response.json();
+    const response = await api.post('/devices', device);
+    return response.data;
   }
 
   async updateDevice(id: string, device: Partial<Device>): Promise<Device> {
-    const response = await fetch(`${API_URL}/api/devices/${id}`, {
-      method: 'PUT',
-      headers: this.getAuthHeader(),
-      body: JSON.stringify(device)
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Fehler beim Aktualisieren des Geräts');
-    }
-
-    return response.json();
+    const response = await api.put(`/devices/${id}`, device);
+    return response.data;
   }
 
   async deleteDevice(id: string): Promise<void> {
-    const response = await fetch(`${API_URL}/api/devices/${id}`, {
-      method: 'DELETE',
-      headers: this.getAuthHeader()
-    });
-
-    if (!response.ok) {
-      throw new Error('Fehler beim Löschen des Geräts');
-    }
+    await api.delete(`/devices/${id}`);
   }
 
   async assignDevice(id: string, userId: string, notes?: string): Promise<DeviceAssignment> {
-    const response = await fetch(`${API_URL}/api/devices/${id}/assign`, {
-      method: 'POST',
-      headers: this.getAuthHeader(),
-      body: JSON.stringify({ userId, notes })
-    });
-
-    if (!response.ok) {
-      throw new Error('Fehler beim Zuweisen des Geräts');
-    }
-
-    return response.json();
+    const response = await api.post(`/devices/${id}/assign`, { userId, notes });
+    return response.data;
   }
 
   async returnDevice(id: string, notes?: string): Promise<void> {
-    const response = await fetch(`${API_URL}/api/devices/${id}/return`, {
-      method: 'POST',
-      headers: this.getAuthHeader(),
-      body: JSON.stringify({ notes })
-    });
-
-    if (!response.ok) {
-      throw new Error('Fehler beim Zurückgeben des Geräts');
-    }
+    await api.post(`/devices/${id}/return`, { notes });
   }
 }
 

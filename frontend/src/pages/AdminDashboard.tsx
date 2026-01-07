@@ -39,7 +39,8 @@ import {
   InvoicesTab,
   RemindersTab,
   DevicesTab,
-  TravelExpensesTab
+  TravelExpensesTab,
+  OrdersTab
 } from '../components/admin';
 import { TimeBookingsReport } from '../components/admin/TimeBookingsReport';
 import { UserTimeBookingsReport } from '../components/admin/UserTimeBookingsReport';
@@ -77,6 +78,7 @@ const AdminDashboard: React.FC = () => {
   const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
   const [devices, setDevices] = useState<Device[]>([]);
   const [travelExpenses, setTravelExpenses] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const toggleGroup = (groupName: string) => {
@@ -453,7 +455,7 @@ const AdminDashboard: React.FC = () => {
                   {(user?.role === 'ADMIN' || hasModuleAccess('orders')) && (
                     <TabButton
                       active={activeTab === 'orders'}
-                      onClick={() => navigate('/orders')}
+                      onClick={() => setActiveTab('orders')}
                       label="📦 Bestellungen"
                     />
                   )}
@@ -591,6 +593,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'travelExpenses' && <TravelExpensesTab expenses={travelExpenses} users={users} onUpdate={loadData} />}
             {activeTab === 'customers' && <CustomersTab customers={customers} onUpdate={loadData} />}
             {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} onUpdate={loadData} />}
+            {activeTab === 'orders' && <OrdersTab suppliers={suppliers} onUpdate={loadData} />}
             {activeTab === 'articleGroups' && <ArticleGroupsTab articleGroups={articleGroups} onUpdate={loadData} />}
             {activeTab === 'articles' && <ArticlesTab articles={articles} articleGroups={articleGroups} onUpdate={loadData} />}
             {activeTab === 'invoices' && <InvoicesTab invoices={invoices} customers={customers} articles={articles} onUpdate={loadData} />}

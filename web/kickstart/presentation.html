@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cflux - Enterprise ERP System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --accent-color: #3b82f6;
+            --dark-bg: #1e293b;
+            --light-bg: #f8fafc;
+            --text-dark: #0f172a;
+            --text-light: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%);
+            scroll-behavior: smooth;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Navigation */
+        nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+        }
+
+        nav .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        nav .logo img {
+            height: 40px;
+            width: auto;
+        }
+
+        nav ul {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        nav a {
+            color: var(--text-dark);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: var(--primary-color);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            padding-top: 80px;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+
+        .hero .container {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero .logo-hero {
+            width: 200px;
+            height: auto;
+            margin-bottom: 2rem;
+            filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.3));
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .hero p {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            animation: fadeInUp 1s ease-out 0.2s;
+            animation-fill-mode: both;
+        }
+
+        .hero .cta-button {
+            display: inline-block;
+            padding: 1rem 3rem;
+            background: white;
+            color: var(--primary-color);
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+            animation: fadeInUp 1s ease-out 0.4s;
+            animation-fill-mode: both;
+        }
+
+        .hero .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Sections */
+        section {
+            padding: 6rem 0;
+            background: white;
+        }
+
+        section:nth-child(even) {
+            background: var(--light-bg);
+        }
+
+        section h2 {
+            font-size: 3rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            color: var(--primary-color);
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .feature-card .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Screenshots Gallery */
+        .screenshots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .screenshot-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screenshot-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .screenshot-card .image-container {
+            position: relative;
+            height: 200px;
+            overflow: hidden;
+        }
+
+        .screenshot-card .image-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.9));
+            pointer-events: none;
+        }
+
+        .screenshot-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: cover;
+            object-position: top;
+        }
+
+        .screenshot-card .caption {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .screenshot-card .caption h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .screenshot-card .caption p {
+            color: var(--text-light);
+        }
+
+        /* Tech Stack */
+        .tech-stack {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .tech-item {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            min-width: 150px;
+        }
+
+        .tech-item .tech-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Benefits Section */
+        .benefits-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .benefit-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .benefit-item .check {
+            color: var(--success);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            text-align: center;
+            padding: 6rem 0;
+        }
+
+        .cta-section h2 {
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        .cta-section .cta-button {
+            display: inline-block;
+            padding: 1rem 3rem;
+            background: white;
+            color: var(--primary-color);
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .cta-section .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Footer */
+        footer {
+            background: var(--dark-bg);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1.2rem;
+            }
+
+            section h2 {
+                font-size: 2rem;
+            }
+
+            nav ul {
+                display: none;
+            }
+
+            .screenshots-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+
+        .lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+            color: white;
+            font-size: 3rem;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .lightbox-close:hover {
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="container">
+            <div class="logo">
+                <img src="../logo.png" alt="cflux Logo">
+                <span>cflux</span>
+            </div>
+            <ul>
+                <li><a href="#home">Home</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#screenshots">Screenshots</a></li>
+                <li><a href="#tech">Technologie</a></li>
+                <li><a href="#contact">Kontakt</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="container">
+            <img src="../logo.png" alt="cflux Logo" class="logo-hero">
+            <h1>cflux</h1>
+            <p>Enterprise ERP System für moderne Unternehmen</p>
+            <a href="#features" class="cta-button">Mehr erfahren</a>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features">
+        <div class="container">
+            <h2>Umfassende Funktionen</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon">⏰</div>
+                    <h3>Zeiterfassung</h3>
+                    <p>Ein-/Ausstempeln mit Projektbuchung, Übersicht aller Zeitbuchungen, automatische Pausenberechnung</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📊</div>
+                    <h3>Projektmanagement</h3>
+                    <p>Verwaltung von Projekten, Zuordnung zu Mitarbeitern, Zeit- und Kostentracking</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🏖️</div>
+                    <h3>Urlaubsverwaltung</h3>
+                    <p>Antragstellung, Genehmigungsprozesse, Urlaubsplaner mit Übersicht</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📈</div>
+                    <h3>Reporting</h3>
+                    <p>Umfassende Reports und Statistiken, Export-Funktionen, individuelle Auswertungen</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">👥</div>
+                    <h3>Benutzerverwaltung</h3>
+                    <p>Rollenbasierte Zugriffskontrolle, Benutzergruppen, Berechtigungsmanagement</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🧾</div>
+                    <h3>Rechnungsstellung</h3>
+                    <p>Integriertes Invoicing-System, Vorlagen-Editor, PDF-Export</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🔐</div>
+                    <h3>Sicherheit</h3>
+                    <p>JWT Authentication, bcrypt Passwort-Hashing, rollenbasierte Zugriffe</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🇨🇭</div>
+                    <h3>Schweizer Compliance</h3>
+                    <p>OR-konform, Mehrwertsteuer-ready, Schweizerische Gesetzeskonformität</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">⚡</div>
+                    <h3>Workflow-Engine</h3>
+                    <p>Visueller Workflow-Editor, Genehmigungsprozesse, automatisierte Abläufe</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📱</div>
+                    <h3>Geräteverwaltung</h3>
+                    <p>Verwaltung von Firmengeräten, Zuweisungen, Inventarverwaltung</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🚨</div>
+                    <h3>Incident Management</h3>
+                    <p>Erfassung und Verwaltung von Vorfällen, Status-Tracking, Berichtswesen</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">💰</div>
+                    <h3>Lohnabrechnung</h3>
+                    <p>Integrierte Lohnberechnung, Export-Funktionen, Überstundenverwaltung</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots Section -->
+    <section id="screenshots">
+        <div class="container">
+            <h2>System-Übersicht</h2>
+            <div class="screenshots-grid">
+                <div class="screenshot-card" onclick="openLightbox('dashboard.png')">
+                    <div class="image-container">
+                        <img src="dashboard.png" alt="Dashboard">
+                    </div>
+                    <div class="caption">
+                        <h3>Dashboard</h3>
+                        <p>Übersichtliches Dashboard mit allen wichtigen Informationen</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('timemanagement.png')">
+                    <div class="image-container">
+                        <img src="timemanagement.png" alt="Zeiterfassung">
+                    </div>
+                    <div class="caption">
+                        <h3>Zeiterfassung</h3>
+                        <p>Einfaches Ein-/Ausstempeln mit Projektzuordnung</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('projekte.png')">
+                    <div class="image-container">
+                        <img src="projekte.png" alt="Projektmanagement">
+                    </div>
+                    <div class="caption">
+                        <h3>Projektmanagement</h3>
+                        <p>Verwaltung und Übersicht aller Projekte</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('urlaubsplaner.png')">
+                    <div class="image-container">
+                        <img src="urlaubsplaner.png" alt="Urlaubsplaner">
+                    </div>
+                    <div class="caption">
+                        <h3>Urlaubsplaner</h3>
+                        <p>Kalenderansicht für Urlaubsplanung</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('abwesenheit.png')">
+                    <div class="image-container">
+                        <img src="abwesenheit.png" alt="Abwesenheitsverwaltung">
+                    </div>
+                    <div class="caption">
+                        <h3>Abwesenheitsverwaltung</h3>
+                        <p>Verwaltung von Abwesenheiten und Anträgen</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('genehmigungen.png')">
+                    <div class="image-container">
+                        <img src="genehmigungen.png" alt="Genehmigungen">
+                    </div>
+                    <div class="caption">
+                        <h3>Genehmigungen</h3>
+                        <p>Workflow-basierte Genehmigungsprozesse</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('reporting.png')">
+                    <div class="image-container">
+                        <img src="reporting.png" alt="Reporting">
+                    </div>
+                    <div class="caption">
+                        <h3>Reporting</h3>
+                        <p>Umfassende Reports und Statistiken</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('reporting_stunden.png')">
+                    <div class="image-container">
+                        <img src="reporting_stunden.png" alt="Stunden-Reporting">
+                    </div>
+                    <div class="caption">
+                        <h3>Stunden-Reporting</h3>
+                        <p>Detaillierte Auswertung der Arbeitsstunden</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('reoorting_mitarbeiter.png')">
+                    <div class="image-container">
+                        <img src="reoorting_mitarbeiter.png" alt="Mitarbeiter-Reporting">
+                    </div>
+                    <div class="caption">
+                        <h3>Mitarbeiter-Reporting</h3>
+                        <p>Auswertungen pro Mitarbeiter</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('benutzerverwaltung.png')">
+                    <div class="image-container">
+                        <img src="benutzerverwaltung.png" alt="Benutzerverwaltung">
+                    </div>
+                    <div class="caption">
+                        <h3>Benutzerverwaltung</h3>
+                        <p>Verwaltung von Benutzern und Berechtigungen</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('benutzergruppen.png')">
+                    <div class="image-container">
+                        <img src="benutzergruppen.png" alt="Benutzergruppen">
+                    </div>
+                    <div class="caption">
+                        <h3>Benutzergruppen</h3>
+                        <p>Verwaltung von Benutzergruppen</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('berechtigungen.png')">
+                    <div class="image-container">
+                        <img src="berechtigungen.png" alt="Berechtigungen">
+                    </div>
+                    <div class="caption">
+                        <h3>Berechtigungen</h3>
+                        <p>Detaillierte Rechteverwaltung</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('module.png')">
+                    <div class="image-container">
+                        <img src="module.png" alt="Modul-Verwaltung">
+                    </div>
+                    <div class="caption">
+                        <h3>Modul-Verwaltung</h3>
+                        <p>Aktivierung und Konfiguration von Modulen</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('rechnungen.png')">
+                    <div class="image-container">
+                        <img src="rechnungen.png" alt="Rechnungsverwaltung">
+                    </div>
+                    <div class="caption">
+                        <h3>Rechnungsverwaltung</h3>
+                        <p>Erstellung und Verwaltung von Rechnungen</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('rechnung_bearbeiten.png')">
+                    <div class="image-container">
+                        <img src="rechnung_bearbeiten.png" alt="Rechnung bearbeiten">
+                    </div>
+                    <div class="caption">
+                        <h3>Rechnung bearbeiten</h3>
+                        <p>Editor für Rechnungen</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('rechnung_vorschau.png')">
+                    <div class="image-container">
+                        <img src="rechnung_vorschau.png" alt="Rechnungsvorschau">
+                    </div>
+                    <div class="caption">
+                        <h3>Rechnungsvorschau</h3>
+                        <p>Live-Vorschau der Rechnungen</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('rechnungsvorlage.png')">
+                    <div class="image-container">
+                        <img src="rechnungsvorlage.png" alt="Rechnungsvorlagen">
+                    </div>
+                    <div class="caption">
+                        <h3>Rechnungsvorlagen</h3>
+                        <p>Verwaltung von Rechnungsvorlagen</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('workflow_editot.png')">
+                    <div class="image-container">
+                        <img src="workflow_editot.png" alt="Workflow Editor">
+                    </div>
+                    <div class="caption">
+                        <h3>Workflow Editor</h3>
+                        <p>Visueller Editor für Workflows</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('incidents.png')">
+                    <div class="image-container">
+                        <img src="incidents.png" alt="Incident Management">
+                    </div>
+                    <div class="caption">
+                        <h3>Incident Management</h3>
+                        <p>Verwaltung von Vorfällen und Meldungen</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('stammdaten_kunden.png')">
+                    <div class="image-container">
+                        <img src="stammdaten_kunden.png" alt="Kundenverwaltung">
+                    </div>
+                    <div class="caption">
+                        <h3>Kundenverwaltung</h3>
+                        <p>Verwaltung der Kundenstammdaten</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('stammdaten_lieferanten.png')">
+                    <div class="image-container">
+                        <img src="stammdaten_lieferanten.png" alt="Lieferantenverwaltung">
+                    </div>
+                    <div class="caption">
+                        <h3>Lieferantenverwaltung</h3>
+                        <p>Verwaltung der Lieferantenstammdaten</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('stammdaten_artikel.png')">
+                    <div class="image-container">
+                        <img src="stammdaten_artikel.png" alt="Artikelverwaltung">
+                    </div>
+                    <div class="caption">
+                        <h3>Artikelverwaltung</h3>
+                        <p>Verwaltung von Artikeln und Produkten</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('stammdaten_artikelgruppen.png')">
+                    <div class="image-container">
+                        <img src="stammdaten_artikelgruppen.png" alt="Artikelgruppen">
+                    </div>
+                    <div class="caption">
+                        <h3>Artikelgruppen</h3>
+                        <p>Kategorisierung von Artikeln</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('standorte.png')">
+                    <div class="image-container">
+                        <img src="standorte.png" alt="Standortverwaltung">
+                    </div>
+                    <div class="caption">
+                        <h3>Standortverwaltung</h3>
+                        <p>Verwaltung von Unternehmensstandorten</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('feiertage.png')">
+                    <div class="image-container">
+                        <img src="feiertage.png" alt="Feiertage">
+                    </div>
+                    <div class="caption">
+                        <h3>Feiertage</h3>
+                        <p>Verwaltung von Feiertagen</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('intranet.png')">
+                    <div class="image-container">
+                        <img src="intranet.png" alt="Intranet">
+                    </div>
+                    <div class="caption">
+                        <h3>Intranet</h3>
+                        <p>Internes Informationsportal</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('nachrichten.png')">
+                    <div class="image-container">
+                        <img src="nachrichten.png" alt="Nachrichtensystem">
+                    </div>
+                    <div class="caption">
+                        <h3>Nachrichtensystem</h3>
+                        <p>Interne Kommunikation zwischen Mitarbeitern</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('reisekosten.png')">
+                    <div class="image-container">
+                        <img src="reisekosten.png" alt="Reisekostenverwaltung">
+                    </div>
+                    <div class="caption">
+                        <h3>Reisekostenverwaltung</h3>
+                        <p>Erfassung und Abrechnung von Reisekosten</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('lohnabrechnung.png')">
+                    <div class="image-container">
+                        <img src="lohnabrechnung.png" alt="Lohnabrechnung">
+                    </div>
+                    <div class="caption">
+                        <h3>Lohnabrechnung</h3>
+                        <p>Integrierte Lohnberechnung und Export</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('compliance.png')">
+                    <div class="image-container">
+                        <img src="compliance.png" alt="Compliance">
+                    </div>
+                    <div class="caption">
+                        <h3>Compliance</h3>
+                        <p>Schweizer Compliance-Management</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('backup_restore.png')">
+                    <div class="image-container">
+                        <img src="backup_restore.png" alt="Backup & Restore">
+                    </div>
+                    <div class="caption">
+                        <h3>Backup & Restore</h3>
+                        <p>Datensicherung und Wiederherstellung</p>
+                    </div>
+                </div>
+                <div class="screenshot-card" onclick="openLightbox('system_einstellungen.png')">
+                    <div class="image-container">
+                        <img src="system_einstellungen.png" alt="System-Einstellungen">
+                    </div>
+                    <div class="caption">
+                        <h3>System-Einstellungen</h3>
+                        <p>Zentrale Systemkonfiguration</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Stack Section -->
+    <section id="tech">
+        <div class="container">
+            <h2>Moderne Technologien</h2>
+            <div class="tech-stack">
+                <div class="tech-item">
+                    <div class="tech-icon">⚛️</div>
+                    <h4>React 18</h4>
+                    <p>Frontend</p>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">📘</div>
+                    <h4>TypeScript</h4>
+                    <p>Type Safety</p>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🟢</div>
+                    <h4>Node.js</h4>
+                    <p>Backend</p>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🐘</div>
+                    <h4>PostgreSQL</h4>
+                    <p>Datenbank</p>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🐳</div>
+                    <h4>Docker</h4>
+                    <p>Containerization</p>
+                </div>
+                <div class="tech-item">
+                    <div class="tech-icon">🔒</div>
+                    <h4>JWT</h4>
+                    <p>Sicherheit</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section id="benefits">
+        <div class="container">
+            <h2>Ihre Vorteile</h2>
+            <div class="benefits-list">
+                <div class="benefit-item">
+                    <span class="check">✓</span>
+                    <div>
+                        <h4>Vollständige Integration</h4>
+                        <p>Alle Module nahtlos integriert</p>
+                    </div>
+                </div>
+                <div class="benefit-item">
+                    <span class="check">✓</span>
+                    <div>
+                        <h4>Schweizer Compliance</h4>
+                        <p>Erfüllt alle gesetzlichen Anforderungen</p>
+                    </div>
+                </div>
+                <div class="benefit-item">
+                    <span class="check">✓</span>
+                    <div>
+                        <h4>Skalierbar</h4>
+                        <p>Wächst mit Ihrem Unternehmen</p>
+                    </div>
+                </div>
+                <div class="benefit-item">
+                    <span class="check">✓</span>
+                    <div>
+                        <h4>Benutzerfreundlich</h4>
+                        <p>Intuitive Bedienung</p>
+                    </div>
+                </div>
+                <div class="benefit-item">
+                    <span class="check">✓</span>
+                    <div>
+                        <h4>Sicher</h4>
+                        <p>Enterprise-Grade Sicherheit</p>
+                    </div>
+                </div>
+                <div class="benefit-item">
+                    <span class="check">✓</span>
+                    <div>
+                        <h4>Open Source</h4>
+                        <p>Transparenz und Flexibilität</p>
+                    </div>
+                </div>
+                <div class="benefit-item">
+                    <span class="check">✓</span>
+                    <div>
+                        <h4>Docker-Ready</h4>
+                        <p>Einfaches Deployment</p>
+                    </div>
+                </div>
+                <div class="benefit-item">
+                    <span class="check">✓</span>
+                    <div>
+                        <h4>Responsive Design</h4>
+                        <p>Funktioniert auf allen Geräten</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section id="contact" class="cta-section">
+        <div class="container">
+            <h2>Bereit loszulegen?</h2>
+            <p style="font-size: 1.3rem; margin-bottom: 2rem;">Starten Sie noch heute mit cflux</p>
+            <a href="https://github.com/yourusername/cflux" class="cta-button">Zum Repository</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 cflux - Enterprise ERP System | Made with ❤️</p>
+        </div>
+    </footer>
+
+    <!-- Lightbox -->
+    <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+        <span class="lightbox-close">&times;</span>
+        <img id="lightbox-img" src="" alt="">
+    </div>
+
+    <script>
+        function openLightbox(imageSrc) {
+            const lightbox = document.getElementById('lightbox');
+            const lightboxImg = document.getElementById('lightbox-img');
+            lightboxImg.src = imageSrc;
+            lightbox.classList.add('active');
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            lightbox.classList.remove('active');
+        }
+
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Escape key to close lightbox
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeLightbox();
+            }
+        });
+    </script>
+</body>
+</html>

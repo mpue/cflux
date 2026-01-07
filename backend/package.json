@@ -20,6 +20,7 @@
     "seed:intranet": "ts-node prisma/seedIntranet.ts",
     "seed:intranet-module": "ts-node prisma/seedIntranetModule.ts",
     "seed:document-types": "ts-node prisma/seedDocumentTypes.ts",
+    "seed:devices": "ts-node prisma/seedDevices.ts",
     "backup": "ts-node scripts/create-full-backup.ts"
   },
   "keywords": [
