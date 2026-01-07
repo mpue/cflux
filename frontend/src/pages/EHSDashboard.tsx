@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AppNavbar from '../components/AppNavbar';
 import './EHSDashboard.css';
 
 interface EHSPyramid {
@@ -154,30 +155,31 @@ const EHSDashboard: React.FC = () => {
   }
 
   return (
-    <div className="ehs-dashboard">
-      <div className="dashboard-header">
-        <h1>EHS KPI Dashboard</h1>
-        <div className="header-controls">
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-            className="month-selector"
-          >
-            {monthNames.map((name, index) => (
-              <option key={index + 1} value={index + 1}>{name}</option>
-            ))}
-          </select>
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="year-selector"
-          >
-            {[2022, 2023, 2024, 2025, 2026].map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
+    <>
+      <AppNavbar title="EHS KPI Dashboard" />
+      <div className="ehs-dashboard">
+        <div className="dashboard-header">
+          <div className="header-controls">
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              className="month-selector"
+            >
+              {monthNames.map((name, index) => (
+                <option key={index + 1} value={index + 1}>{name}</option>
+              ))}
+            </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="year-selector"
+            >
+              {[2022, 2023, 2024, 2025, 2026].map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
 
       {/* Work Data Input */}
       <div className="work-data-card">
@@ -355,6 +357,7 @@ const EHSDashboard: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

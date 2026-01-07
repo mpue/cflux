@@ -52,20 +52,37 @@
   margin-bottom: 30px;
 }
 
-.stat-card {
-  background: var(--card-background, white);
+.incident-statistics .stat-card {
+  background: white !important;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   text-align: center;
+  transition: all 0.2s ease;
 }
 
-.stat-card h3 {
+.incident-statistics .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+[data-theme='dark'] .incident-statistics .stat-card {
+  background: var(--card-bg) !important;
+  border: 1px solid #374151;
+}
+
+.incident-statistics .stat-card h3 {
   margin: 0 0 10px 0;
   font-size: 14px;
   text-transform: uppercase;
   color: var(--text-secondary, #666);
   font-weight: 600;
+  opacity: 1;
+  text-shadow: none;
+}
+
+[data-theme='dark'] .incident-statistics .stat-card h3 {
+  color: var(--text-secondary);
 }
 
 .stat-value {
@@ -73,6 +90,7 @@
   font-weight: bold;
   margin: 0;
   color: var(--text-primary, #1a1a1a);
+  text-shadow: none;
 }
 
 /* Filters */

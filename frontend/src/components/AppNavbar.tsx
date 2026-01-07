@@ -32,6 +32,7 @@ import {
   MoreVert as MoreIcon,
   PictureAsPdf as PdfIcon,
   PermMedia as MediaIcon,
+  HealthAndSafety as EHSIcon,
 } from '@mui/icons-material';
 
 interface AppNavbarProps {
@@ -236,6 +237,10 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
           <MenuItem onClick={() => navigateTo('/incidents')}>
             <IncidentIcon sx={{ mr: 1 }} />
             Incidents
+          </MenuItem>
+          <MenuItem onClick={() => navigateTo('/ehs-dashboard')}>
+            <EHSIcon sx={{ mr: 1 }} />
+            EHS Dashboard
           </MenuItem>
           <MenuItem onClick={() => navigateTo('/intranet')}>
             <IntranetIcon sx={{ mr: 1 }} />
