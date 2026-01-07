@@ -330,6 +330,7 @@ model Project {
   incidents   Incident[]
   projectTimeAllocations ProjectTimeAllocation[]
   orders      Order[]
+  ehsMonthlyData EHSMonthlyData[]
 
   @@map("projects")
 }
@@ -723,6 +724,26 @@ model Incident {
   notes           String?          @db.Text
   tags            String?          // JSON array of tags
   
+  // EHS (Environmental, Health & Safety) Felder
+  isEHSRelevant   Boolean          @default(false)
+  ehsCategory     EHSCategory?     // EHS-Kategorie (z.B. LTI, Near Miss, etc.)
+  ehsSeverity     EHSSeverity?     // Schweregrad des EHS-Vorfalls
+  incidentDate    DateTime?        // Tatsächliches Vorfalldatum (kann von reportedAt abweichen)
+  location        String?          // Ort des Vorfalls
+  
+  // Verletzungs-/Gesundheitsdaten
+  lostWorkDays    Int?             // Anzahl verlorener Arbeitstage
+  medicalTreatment Boolean         @default(false) // Medizinische Behandlung erforderlich
+  hospitalRequired Boolean         @default(false) // Krankenhausaufenthalt erforderlich
+  
+  // Arbeitskontext
+  workersOnDay    Int?             // Anzahl Arbeiter am Tag des Vorfalls
+  hoursWorkedDay  Float?           // Gearbeitete Stunden am Tag
+  
+  // Maßnahmen
+  correctiveActions  String?       @db.Text // Korrekturmaßnahmen
+  preventiveActions  String?       @db.Text // Präventivmaßnahmen
+  
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   
@@ -738,6 +759,9 @@ model Incident {
   @@index([status])
   @@index([priority])
   @@index([reportedAt])
+  @@index([ehsCategory])
+  @@index([isEHSRelevant])
+  @@index([incidentDate])
   @@map("incidents")
 }
 
@@ -1562,3 +1586,75 @@ model OrderDeliveryItem {
   @@index([deliveryId])
   @@map("order_delivery_items")
 }
+
+// ============================================================================
+// EHS (Environmental, Health & Safety) KPI TRACKING
+// ============================================================================
+
+enum EHSCategory {
+  UNSAFE_CONDITION      // Unsicherer Zustand
+  UNSAFE_BEHAVIOR       // Unsicheres Verhalten
+  NEAR_MISS            // Beinahe-Unfall
+  FIRST_AID            // Erste Hilfe
+  RECORDABLE           // Meldepflichtiger Unfall
+  LTI                  // Lost Time Injury
+  FATALITY             // Todesfall
+  PROPERTY_DAMAGE      // Sachschaden
+  ENVIRONMENT          // Umweltvorfall
+  SAFETY_OBSERVATION   // Sicherheitsbeobachtung
+}
+
+enum EHSSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model EHSMonthlyData {
+  id                    String    @id @default(uuid())
+  year                  Int
+  month                 Int
+  projectId             String?
+  
+  // Arbeitsdaten
+  workingDays           Int       @default(0)
+  workersPerDay         Float     @default(0)
+  hoursPerDay           Float     @default(0)
+  totalEmployees        Int       @default(0)
+  totalHours            Float     @default(0)
+  
+  // Vorfallzähler (EHS Pyramid)
+  unsafeConditions      Int       @default(0)
+  unsafeBehaviors       Int       @default(0)
+  nearMisses            Int       @default(0)
+  firstAids             Int       @default(0)
+  recordables           Int       @default(0)
+  ltis                  Int       @default(0)
+  fatalities            Int       @default(0)
+  propertyDamages       Int       @default(0)
+  environmentIncidents  Int       @default(0)
+  safetyObservations    Int       @default(0)
+  
+  // Berechnete KPIs
+  ltifr                 Float?    // Lost Time Injury Frequency Rate (LTI / Stunden × 1.000.000)
+  trir                  Float?    // Total Recordable Injury Rate (Recordable / Stunden × 200.000)
+  
+  // Zusätzliche Informationen
+  highlights            String?   // Highlights des Monats
+  achievements          String?   // Erfolge
+  hotTopics             String?   // Brennende Themen
+  safetyAward           String?   // Safety Award Empfänger
+  closingRate           Float?    // Closing Rate in %
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  project               Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  
+  @@unique([year, month, projectId])
+  @@index([year, month])
+  @@index([projectId])
+  @@map("ehs_monthly_data")
+}
+
