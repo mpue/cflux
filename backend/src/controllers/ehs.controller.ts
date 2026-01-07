@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { PrismaClient, Incident } from '@prisma/client';
+import { generateEHSReport } from '../services/ehs-pdf.service';
 
 const prisma = new PrismaClient();
 
@@ -332,5 +333,36 @@ export const calculateMonthlyKPIs = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Error calculating monthly KPIs:', error);
     res.status(500).json({ error: 'Failed to calculate monthly KPIs' });
+  }
+};
+
+// Generate EHS PDF Report
+export const generateEHSPDFReport = async (req: AuthRequest, res: Response) => {
+  try {
+    const { year, month } = req.query;
+
+    if (!year || !month) {
+      return res.status(400).json({ error: 'Year and month are required' });
+    }
+
+    const yearInt = parseInt(year as string);
+    const monthInt = parseInt(month as string);
+
+    const monthNames = [
+      'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+      'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
+    ];
+
+    const pdfBuffer = await generateEHSReport(yearInt, monthInt);
+
+    const filename = `EHS_Bericht_${monthNames[monthInt - 1]}_${yearInt}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.send(pdfBuffer);
+  } catch (error) {
+    console.error('Generate EHS PDF report error:', error);
+    res.status(500).json({ error: 'Failed to generate EHS PDF report' });
   }
 };

@@ -141,6 +141,38 @@ const EHSDashboard: React.FC = () => {
     }
   };
 
+  const handleGeneratePDF = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `http://localhost:3001/api/ehs/pdf-report?year=${selectedYear}&month=${selectedMonth}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Fehler beim Generieren des PDF-Berichts');
+      }
+
+      // Download PDF
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `EHS_Bericht_${monthNames[selectedMonth - 1]}_${selectedYear}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Fehler beim Generieren des PDF-Berichts');
+    }
+  };
+
   const monthNames = [
     'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
     'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
@@ -160,6 +192,9 @@ const EHSDashboard: React.FC = () => {
       <div className="ehs-dashboard">
         <div className="dashboard-header">
           <div className="header-controls">
+            <button onClick={handleGeneratePDF} className="btn-pdf">
+              📄 PDF-Bericht erstellen
+            </button>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(parseInt(e.target.value))}

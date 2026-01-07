@@ -4,7 +4,8 @@ import {
   getEHSKPIDashboard, 
   getEHSStatistics, 
   updateMonthlyData,
-  calculateMonthlyKPIs 
+  calculateMonthlyKPIs,
+  generateEHSPDFReport
 } from '../controllers/ehs.controller';
 
 const router = Router();
@@ -17,6 +18,9 @@ router.get('/dashboard', getEHSKPIDashboard);
 
 // GET /api/ehs/statistics - Get multi-year statistics
 router.get('/statistics', getEHSStatistics);
+
+// GET /api/ehs/pdf-report - Generate PDF report
+router.get('/pdf-report', generateEHSPDFReport);
 
 // POST /api/ehs/monthly-data - Update monthly work data (hours, workers, etc.)
 router.post('/monthly-data', updateMonthlyData);
