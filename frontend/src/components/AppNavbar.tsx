@@ -53,7 +53,7 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
   onPdfReport
 }) => {
   const { user, logout } = useAuth();
-  const { modules } = useModules();
+  const { modules, hasModuleAccess } = useModules();
   const navigate = useNavigate();
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const [displayTime, setDisplayTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
@@ -177,19 +177,23 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
           </Tooltip>
         )}
 
-        <Tooltip title="Genehmigungen">
-          <IconButton color="inherit" onClick={() => navigateTo('/my-approvals')} size={isMobile ? 'small' : 'medium'}>
-            <NotificationsIcon fontSize={isMobile ? 'small' : 'medium'} />
-          </IconButton>
-        </Tooltip>
+        {hasModuleAccess('workflow') && (
+          <Tooltip title="Genehmigungen">
+            <IconButton color="inherit" onClick={() => navigateTo('/my-approvals')} size={isMobile ? 'small' : 'medium'}>
+              <NotificationsIcon fontSize={isMobile ? 'small' : 'medium'} />
+            </IconButton>
+          </Tooltip>
+        )}
 
-        <Tooltip title="Nachrichten">
-          <IconButton color="inherit" onClick={() => navigateTo('/messages')} size={isMobile ? 'small' : 'medium'}>
-            <Badge badgeContent={unreadMessagesCount} color="error">
-              <MessageIcon fontSize={isMobile ? 'small' : 'medium'} />
-            </Badge>
-          </IconButton>
-        </Tooltip>
+        {hasModuleAccess('messages') && (
+          <Tooltip title="Nachrichten">
+            <IconButton color="inherit" onClick={() => navigateTo('/messages')} size={isMobile ? 'small' : 'medium'}>
+              <Badge badgeContent={unreadMessagesCount} color="error">
+                <MessageIcon fontSize={isMobile ? 'small' : 'medium'} />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+        )}
 
         {!isMobile && (
           <Tooltip title="Dashboard">
@@ -230,26 +234,36 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
               PDF-Bericht
             </MenuItem>
           )}
-          <MenuItem onClick={() => navigateTo('/travel-expenses')}>
-            <MoneyIcon sx={{ mr: 1 }} />
-            Reisekosten
-          </MenuItem>
-          <MenuItem onClick={() => navigateTo('/incidents')}>
-            <IncidentIcon sx={{ mr: 1 }} />
-            Incidents
-          </MenuItem>
-          <MenuItem onClick={() => navigateTo('/ehs-dashboard')}>
-            <EHSIcon sx={{ mr: 1 }} />
-            EHS Dashboard
-          </MenuItem>
-          <MenuItem onClick={() => navigateTo('/intranet')}>
-            <IntranetIcon sx={{ mr: 1 }} />
-            Intranet
-          </MenuItem>
-          <MenuItem onClick={() => navigateTo('/media')}>
-            <MediaIcon sx={{ mr: 1 }} />
-            Medien
-          </MenuItem>
+          {hasModuleAccess('travel_expenses') && (
+            <MenuItem onClick={() => navigateTo('/travel-expenses')}>
+              <MoneyIcon sx={{ mr: 1 }} />
+              Reisekosten
+            </MenuItem>
+          )}
+          {hasModuleAccess('incidents') && (
+            <MenuItem onClick={() => navigateTo('/incidents')}>
+              <IncidentIcon sx={{ mr: 1 }} />
+              Incidents
+            </MenuItem>
+          )}
+          {hasModuleAccess('ehs') && (
+            <MenuItem onClick={() => navigateTo('/ehs-dashboard')}>
+              <EHSIcon sx={{ mr: 1 }} />
+              EHS Dashboard
+            </MenuItem>
+          )}
+          {hasModuleAccess('intranet') && (
+            <MenuItem onClick={() => navigateTo('/intranet')}>
+              <IntranetIcon sx={{ mr: 1 }} />
+              Intranet
+            </MenuItem>
+          )}
+          {hasModuleAccess('media') && (
+            <MenuItem onClick={() => navigateTo('/media')}>
+              <MediaIcon sx={{ mr: 1 }} />
+              Medien
+            </MenuItem>
+          )}
           {(user?.role === 'ADMIN' || modules.length > 0) && (
             <>
               <Divider />

@@ -45,6 +45,7 @@
   background: linear-gradient(to right, #059669, #0284c7);
 }
 
+.project-selector,
 .month-selector,
 .year-selector {
   padding: 0.5rem 1rem;

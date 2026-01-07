@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import AppNavbar from '../components/AppNavbar';
 import './EHSDashboard.css';
 
+interface Project {
+  id: string;
+  name: string;
+  code: string;
+}
+
 interface EHSPyramid {
   fatalities: number;
   ltis: number;
@@ -56,6 +62,8 @@ const EHSDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  const [projects, setProjects] = useState<Project[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [workData, setWorkData] = useState({
     workingDays: 0,
@@ -65,15 +73,37 @@ const EHSDashboard: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    loadProjects();
+  }, []);
+
+  useEffect(() => {
     loadDashboardData();
-  }, [selectedYear, selectedMonth]);
+  }, [selectedYear, selectedMonth, selectedProjectId]);
+
+  const loadProjects = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3001/api/projects', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const result = await response.json();
+        setProjects(result);
+      }
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  };
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
+      const projectParam = selectedProjectId !== 'all' ? `&projectId=${selectedProjectId}` : '';
       const response = await fetch(
-        `http://localhost:3001/api/ehs/dashboard?year=${selectedYear}&month=${selectedMonth}`,
+        `http://localhost:3001/api/ehs/dashboard?year=${selectedYear}&month=${selectedMonth}${projectParam}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -113,6 +143,7 @@ const EHSDashboard: React.FC = () => {
         body: JSON.stringify({
           year: selectedYear,
           month: selectedMonth,
+          projectId: selectedProjectId !== 'all' ? selectedProjectId : null,
           workingDays: workData.workingDays,
           workersPerDay: workData.workersPerDay,
           hoursPerDay: workData.hoursPerDay,
@@ -131,6 +162,7 @@ const EHSDashboard: React.FC = () => {
         body: JSON.stringify({
           year: selectedYear,
           month: selectedMonth,
+          projectId: selectedProjectId !== 'all' ? selectedProjectId : null,
         }),
       });
 
@@ -144,8 +176,9 @@ const EHSDashboard: React.FC = () => {
   const handleGeneratePDF = async () => {
     try {
       const token = localStorage.getItem('token');
+      const projectParam = selectedProjectId !== 'all' ? `&projectId=${selectedProjectId}` : '';
       const response = await fetch(
-        `http://localhost:3001/api/ehs/pdf-report?year=${selectedYear}&month=${selectedMonth}`,
+        `http://localhost:3001/api/ehs/pdf-report?year=${selectedYear}&month=${selectedMonth}${projectParam}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -195,6 +228,18 @@ const EHSDashboard: React.FC = () => {
             <button onClick={handleGeneratePDF} className="btn-pdf">
               📄 PDF-Bericht erstellen
             </button>
+            <select
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+              className="project-selector"
+            >
+              <option value="all">Alle Projekte</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.code} - {project.name}
+                </option>
+              ))}
+            </select>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
