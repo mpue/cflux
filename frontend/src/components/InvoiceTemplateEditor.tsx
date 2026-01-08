@@ -20,6 +20,7 @@ const InvoiceTemplateEditor: React.FC<InvoiceTemplateEditorProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'company' | 'text' | 'style' | 'settings'>('company');
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const [formData, setFormData] = useState<InvoiceTemplateFormData>({
     name: '',
@@ -120,10 +121,35 @@ const InvoiceTemplateEditor: React.FC<InvoiceTemplateEditorProps> = ({
   };
 
   const handleLogoPositionChange = (position: { x: number; y: number; width: number; height: number }) => {
-    setFormData((prev) => ({
-      ...prev,
-      logoPosition: JSON.stringify(position),
-    }));
+    const newPosition = JSON.stringify(position);
+    
+    // Update form data immediately for UI
+    setFormData((prev) => {
+      const updated = {
+        ...prev,
+        logoPosition: newPosition,
+      };
+      
+      // Auto-save logo position for existing templates with debounce
+      if (templateId && saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      
+      if (templateId) {
+        saveTimeoutRef.current = setTimeout(() => {
+          console.log('Auto-saving logo position:', position);
+          invoiceTemplateService.update(templateId, updated)
+            .then(() => {
+              console.log('Logo position saved successfully');
+            })
+            .catch((err) => {
+              console.error('Error auto-saving logo position:', err);
+            });
+        }, 500); // Wait 500ms after last change
+      }
+      
+      return updated;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -24,6 +24,17 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ template, onLogoPositio
   const [dragStart, setDragStart] = React.useState({ x: 0, y: 0 });
   const logoRef = React.useRef<HTMLDivElement>(null);
 
+  // Update logo position when template changes (e.g., when loading a different template)
+  React.useEffect(() => {
+    if (template.logoPosition) {
+      try {
+        setLogoPosition(JSON.parse(template.logoPosition));
+      } catch {
+        // Keep current position if parsing fails
+      }
+    }
+  }, [template.logoPosition]);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return; // Only left click
     setIsDragging(true);
