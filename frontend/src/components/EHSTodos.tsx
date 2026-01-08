@@ -215,7 +215,6 @@ const EHSTodos: React.FC = () => {
       }));
 
       setShowCamera(false);
-      alert('Foto erfolgreich hochgeladen!');
     } catch (error) {
       console.error('Error uploading photo:', error);
       alert('Fehler beim Hochladen des Fotos');
