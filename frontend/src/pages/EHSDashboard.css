@@ -56,6 +56,21 @@
   cursor: pointer;
 }
 
+[data-theme='dark'] .project-selector,
+[data-theme='dark'] .month-selector,
+[data-theme='dark'] .year-selector {
+  background-color: #2d2d2d;
+  color: #f5f5f5;
+  border-color: #4a4a4a;
+}
+
+[data-theme='dark'] .project-selector option,
+[data-theme='dark'] .month-selector option,
+[data-theme='dark'] .year-selector option {
+  background-color: #2d2d2d;
+  color: #f5f5f5;
+}
+
 /* Work Data Card */
 .work-data-card {
   background: white;
