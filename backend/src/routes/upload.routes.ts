@@ -5,7 +5,10 @@ import { upload, uploadLogo, deleteUpload } from '../controllers/upload.controll
 
 const router = Router();
 
-// All routes require authentication and admin role
+// General file upload - requires authentication only
+router.post('/', authenticate, upload.single('file'), uploadLogo);
+
+// All routes below require authentication and admin role
 router.use(authenticate);
 router.use(authorize(UserRole.ADMIN));
 

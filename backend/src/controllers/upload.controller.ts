@@ -49,12 +49,11 @@ export const uploadLogo = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Keine Datei hochgeladen' });
     }
 
-    // Return absolute URL for direct access (no proxy needed)
-    const baseUrl = process.env.BASE_URL || 'http://localhost:3001';
-    const logoUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    // Return relative URL for proxy access
+    const fileUrl = `/uploads/${req.file.filename}`;
 
     res.json({
-      url: logoUrl,
+      url: fileUrl,
       filename: req.file.filename,
       size: req.file.size,
       mimetype: req.file.mimetype,

@@ -252,6 +252,12 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
               EHS Dashboard
             </MenuItem>
           )}
+          {hasModuleAccess('ehs') && (
+            <MenuItem onClick={() => navigateTo('/ehs-todos')}>
+              <EHSIcon sx={{ mr: 1 }} />
+              EHS Todos
+            </MenuItem>
+          )}
           {hasModuleAccess('intranet') && (
             <MenuItem onClick={() => navigateTo('/intranet')}>
               <IntranetIcon sx={{ mr: 1 }} />

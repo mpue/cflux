@@ -14,6 +14,7 @@ import CustomersPage from './pages/CustomersPage';
 import InvoiceTemplatesPage from './pages/InvoiceTemplatesPage';
 import IncidentManagement from './pages/IncidentManagement';
 import EHSDashboard from './pages/EHSDashboard';
+import EHSTodosPage from './pages/EHSTodosPage';
 import ModulesPage from './pages/ModulesPage';
 import ModulePermissionsPage from './pages/ModulePermissionsPage';
 import MyApprovals from './pages/MyApprovals';
@@ -128,6 +129,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <EHSDashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/ehs-todos"
+              element={
+                <PrivateRoute>
+                  <EHSTodosPage />
                 </PrivateRoute>
               }
             />

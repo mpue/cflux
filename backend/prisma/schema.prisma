@@ -164,6 +164,8 @@ model User {
   approvedOrders  Order[] @relation("OrdersApproved")
   rejectedOrders  Order[] @relation("OrdersRejected")
   receivedDeliveries OrderDelivery[] @relation("DeliveriesReceived")
+  assignedEHSTodos EHSTodo[] @relation("EHSTodoAssignedTo")
+  createdEHSTodos EHSTodo[] @relation("EHSTodoCreatedBy")
   
   @@index([userGroupId])
   @@map("users")
@@ -331,6 +333,7 @@ model Project {
   projectTimeAllocations ProjectTimeAllocation[]
   orders      Order[]
   ehsMonthlyData EHSMonthlyData[]
+  ehsTodos    EHSTodo[]
 
   @@map("projects")
 }
@@ -752,6 +755,7 @@ model Incident {
   assignedTo      User?            @relation("IncidentsAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
   project         Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
   comments        IncidentComment[]
+  ehsTodos        EHSTodo[]
   
   @@index([reportedById])
   @@index([assignedToId])
@@ -1656,5 +1660,65 @@ model EHSMonthlyData {
   @@index([year, month])
   @@index([projectId])
   @@map("ehs_monthly_data")
+}
+
+enum EHSTodoPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum EHSTodoStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model EHSTodo {
+  id              String           @id @default(uuid())
+  title           String
+  description     String?
+  priority        EHSTodoPriority  @default(MEDIUM)
+  status          EHSTodoStatus    @default(OPEN)
+  dueDate         DateTime?
+  completedAt     DateTime?
+  
+  // Zuordnung
+  projectId       String?
+  incidentId      String?         // Optional: Verknüpfung mit einem Incident
+  assignedToId    String?
+  createdById     String
+  
+  // Kategorisierung
+  category        String?         // z.B. "Training", "Inspection", "Corrective Action"
+  tags            String[]        // Array von Tags für flexible Kategorisierung
+  
+  // Fortschritt
+  progressPercent Int             @default(0)
+  
+  // Notizen und Anhänge
+  notes           String?
+  attachmentUrls  String[]        // Array von Datei-URLs
+  
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relationen
+  project         Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  incident        Incident?       @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  assignedTo      User?           @relation("EHSTodoAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy       User            @relation("EHSTodoCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  
+  @@index([projectId])
+  @@index([incidentId])
+  @@index([assignedToId])
+  @@index([createdById])
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+  @@map("ehs_todos")
 }
 

@@ -30,6 +30,17 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Invoice not found' });
     }
 
+    console.log('Invoice Customer Data:', {
+      id: invoice.customer.id,
+      name: invoice.customer.name,
+      address: invoice.customer.address,
+      zipCode: invoice.customer.zipCode,
+      city: invoice.customer.city,
+      country: invoice.customer.country,
+      contactPerson: invoice.customer.contactPerson,
+      allFields: invoice.customer
+    });
+
     // Get default template if no template is set
     let template = invoice.template;
     if (!template) {
@@ -120,6 +131,7 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
       }
     }
     
+    // Company address block
     doc.fontSize(10)
        .fillColor('#000000')
        .text(companyName, 50, headerStartY)
@@ -128,14 +140,28 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
        .text(companyPhone, 50, headerStartY + 45)
        .text(companyEmail, 50, headerStartY + 60);
 
-    // Customer address - adjust based on header height
-    const customerY = headerStartY + 130;
+    // Calculate customer address position - ensure it's below company address and logo
+    const companyAddressEnd = headerStartY + 75;
+    const customerY = companyAddressEnd + 55; // Add space between company and customer
+    
+    console.log('PDF Layout Debug:', {
+      headerStartY,
+      companyAddressEnd,
+      customerY,
+      customerName: invoice.customer.name,
+      customerAddress: invoice.customer.address,
+      customerZip: invoice.customer.zipCode,
+      customerCity: invoice.customer.city
+    });
+    
+    // Customer address
     doc.fontSize(11)
        .font('Helvetica-Bold')
        .text(invoice.customer.name, 50, customerY);
     
     let addressY = customerY + 15;
-    doc.font('Helvetica');
+    doc.font('Helvetica')
+       .fontSize(10);
     
     if (invoice.customer.contactPerson) {
       doc.text(`z.H. ${invoice.customer.contactPerson}`, 50, addressY);

@@ -33,6 +33,7 @@ import documentNodeRoutes from './routes/documentNode.routes';
 import mediaRoutes from './routes/media.routes';
 import orderRoutes from './routes/order.routes';
 import ehsRoutes from './routes/ehs.routes';
+import ehsTodoRoutes from './routes/ehsTodo.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -95,6 +96,7 @@ app.use('/api/document-nodes', documentNodeRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/ehs', ehsRoutes);
+app.use('/api/ehs-todos', ehsTodoRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
