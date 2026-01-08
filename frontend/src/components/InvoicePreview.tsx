@@ -10,6 +10,7 @@ interface InvoicePreviewProps {
 const InvoicePreview: React.FC<InvoicePreviewProps> = ({ template, onLogoPositionChange }) => {
   const [isDragging, setIsDragging] = React.useState(false);
   const [isResizing, setIsResizing] = React.useState(false);
+  
   const [logoPosition, setLogoPosition] = React.useState(() => {
     if (template.logoPosition) {
       try {

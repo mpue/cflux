@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppNavbar from '../components/AppNavbar';
 import './EHSDashboard.css';
@@ -57,6 +57,12 @@ interface DashboardData {
   ytdData: MonthlyData[];
 }
 
+interface CategoryMonthMatrix {
+  [category: string]: {
+    [month: number]: number;
+  };
+}
+
 const EHSDashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +71,7 @@ const EHSDashboard: React.FC = () => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const [projects, setProjects] = useState<Project[]>([]);
   const [editMode, setEditMode] = useState(false);
+  const [yearlyIncidents, setYearlyIncidents] = useState<any[]>([]);
   const [workData, setWorkData] = useState({
     workingDays: 0,
     workersPerDay: 0,
@@ -78,6 +85,7 @@ const EHSDashboard: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData();
+    loadYearlyIncidents();
   }, [selectedYear, selectedMonth, selectedProjectId]);
 
   const loadProjects = async () => {
@@ -125,6 +133,31 @@ const EHSDashboard: React.FC = () => {
       console.error('Error loading EHS dashboard:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadYearlyIncidents = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const projectParam = selectedProjectId !== 'all' ? `&projectId=${selectedProjectId}` : '';
+      const response = await fetch(
+        `http://localhost:3001/api/incidents?year=${selectedYear}${projectParam}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+      if (response.ok) {
+        const result = await response.json();
+        // Filter nur Incidents mit ehsCategory
+        const ehsIncidents = result.filter((inc: any) => inc.ehsCategory != null);
+        console.log('Loaded yearly incidents:', ehsIncidents.length, 'of', result.length);
+        console.log('Sample incident:', ehsIncidents[0]);
+        setYearlyIncidents(ehsIncidents);
+      }
+    } catch (error) {
+      console.error('Error loading yearly incidents:', error);
     }
   };
 
@@ -210,6 +243,58 @@ const EHSDashboard: React.FC = () => {
     'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
     'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'
   ];
+
+  const categoryNames: { [key: string]: string } = {
+    'FATALITY': 'Tödlicher Unfall',
+    'LTI': 'LTI (Lost Time Injury)',
+    'RECORDABLE': 'Meldepflichtiger Unfall',
+    'FIRST_AID': 'Erste Hilfe',
+    'NEAR_MISS': 'Beinahe-Unfall',
+    'UNSAFE_BEHAVIOR': 'Unsicheres Verhalten',
+    'UNSAFE_CONDITION': 'Unsicherer Zustand',
+    'PROPERTY_DAMAGE': 'Sachschaden',
+    'ENVIRONMENT': 'Umweltvorfall',
+    'SAFETY_OBSERVATION': 'Sicherheitsbeobachtung'
+  };
+
+  // Build category-month matrix with useMemo
+  const categoryMatrix = useMemo(() => {
+    const matrix: CategoryMonthMatrix = {};
+    
+    // Initialize matrix with all categories and months
+    Object.keys(categoryNames).forEach(category => {
+      matrix[category] = {};
+      for (let month = 1; month <= 12; month++) {
+        matrix[category][month] = 0;
+      }
+    });
+
+    // Fill matrix with incident counts
+    yearlyIncidents.forEach(incident => {
+      const incidentDate = new Date(incident.incidentDate);
+      const month = incidentDate.getMonth() + 1;
+      const category = incident.ehsCategory;
+      
+      if (matrix[category]) {
+        matrix[category][month]++;
+      }
+    });
+
+    return matrix;
+  }, [yearlyIncidents]);
+  
+  // Calculate totals
+  const getMonthTotal = (month: number): number => {
+    return Object.keys(categoryMatrix).reduce((sum, category) => {
+      return sum + (categoryMatrix[category][month] || 0);
+    }, 0);
+  };
+
+  const getCategoryTotal = (category: string): number => {
+    return Object.values(categoryMatrix[category] || {}).reduce((sum, count) => sum + count, 0);
+  };
+
+  const grandTotal = yearlyIncidents.length;
 
   if (loading) {
     return <div className="loading">Lade EHS-Dashboard...</div>;
@@ -322,6 +407,61 @@ const EHSDashboard: React.FC = () => {
               <span className="value">{data.kpis.totalHours.toLocaleString()}</span>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Category-Month Matrix */}
+      <div className="matrix-card">
+        <h2>Jahresübersicht {selectedYear} - Vorfälle nach Kategorie und Monat</h2>
+        <div className="matrix-wrapper">
+          <table className="matrix-table">
+            <thead>
+              <tr>
+                <th className="category-header">Kategorie</th>
+                {monthNames.map((month, index) => (
+                  <th key={index} className="month-header">{month.substring(0, 3)}</th>
+                ))}
+                <th className="total-header">Gesamt</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.keys(categoryNames).map((category) => {
+                const total = getCategoryTotal(category);
+                return (
+                  <tr key={category} className={total > 0 ? 'has-incidents' : ''}>
+                    <td className="category-cell">{categoryNames[category]}</td>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => {
+                      const count = categoryMatrix[category][month];
+                      return (
+                        <td key={month} className={`count-cell ${count > 0 ? 'has-count' : ''}`}>
+                          {count > 0 ? count : '-'}
+                        </td>
+                      );
+                    })}
+                    <td className="total-cell">{total > 0 ? total : '-'}</td>
+                  </tr>
+                );
+              })}
+              <tr className="totals-row">
+                <td className="category-cell"><strong>Summe</strong></td>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => {
+                  const total = getMonthTotal(month);
+                  return (
+                    <td key={month} className="total-cell">
+                      <strong>{total > 0 ? total : '-'}</strong>
+                    </td>
+                  );
+                })}
+                <td className="grand-total-cell">
+                  <strong>{grandTotal}</strong>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* </div>
         )}
       </div>
 

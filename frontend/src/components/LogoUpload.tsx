@@ -34,10 +34,9 @@ const LogoUpload: React.FC<LogoUploadProps> = ({ currentLogo, onLogoChange, onLo
       const formData = new FormData();
       formData.append('logo', file);
 
-      const API_URL = process.env.REACT_APP_API_URL || '';
       const token = localStorage.getItem('token');
 
-      const response = await fetch(`${API_URL}/api/uploads/logo`, {
+      const response = await fetch('/api/uploads/logo', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -46,7 +45,8 @@ const LogoUpload: React.FC<LogoUploadProps> = ({ currentLogo, onLogoChange, onLo
       });
 
       if (!response.ok) {
-        throw new Error('Upload fehlgeschlagen');
+        const errorData = await response.json().catch(() => ({ error: 'Upload fehlgeschlagen' }));
+        throw new Error(errorData.error || 'Upload fehlgeschlagen');
       }
 
       const data = await response.json();

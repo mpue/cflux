@@ -134,69 +134,147 @@ export const generateEHSReport = async (
     ytdTotalHours
   };
 
+  // Fetch all incidents for the year (for category-month matrix)
+  const yearStartDate = new Date(year, 0, 1);
+  const yearEndDate = new Date(year, 11, 31, 23, 59, 59);
+  const yearIncidents = await prisma.incident.findMany({
+    where: {
+      isEHSRelevant: true,
+      ehsCategory: { not: null },
+      incidentDate: {
+        gte: yearStartDate,
+        lte: yearEndDate
+      }
+    }
+  });
+
+  // Build category-month matrix
+  const categoryNames: { [key: string]: string } = {
+    'FATALITY': 'Tödlicher Unfall',
+    'LTI': 'LTI',
+    'RECORDABLE': 'Meldepflichtig',
+    'FIRST_AID': 'Erste Hilfe',
+    'NEAR_MISS': 'Beinahe-Unfall',
+    'UNSAFE_BEHAVIOR': 'Unsicher. Verhalten',
+    'UNSAFE_CONDITION': 'Unsicher. Zustand',
+    'PROPERTY_DAMAGE': 'Sachschaden',
+    'ENVIRONMENT': 'Umwelt',
+    'SAFETY_OBSERVATION': 'Beobachtung'
+  };
+
+  interface Matrix {
+    [category: string]: { [month: number]: number };
+  }
+
+  const matrix: Matrix = {};
+  Object.keys(categoryNames).forEach(cat => {
+    matrix[cat] = {};
+    for (let m = 1; m <= 12; m++) {
+      matrix[cat][m] = 0;
+    }
+  });
+
+  yearIncidents.forEach(incident => {
+    if (incident.ehsCategory && incident.incidentDate) {
+      const incidentMonth = incident.incidentDate.getMonth() + 1;
+      if (matrix[incident.ehsCategory]) {
+        matrix[incident.ehsCategory][incidentMonth]++;
+      }
+    }
+  });
+
   // Generate PDF
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 50 });
       const chunks: Buffer[] = [];
 
       doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      // Header
-      doc.fontSize(24).font('Helvetica-Bold').text('EHS KPI Bericht', { align: 'center' });
-      doc.moveDown(0.5);
-      doc.fontSize(14).font('Helvetica').text(`${monthNames[month - 1]} ${year}`, { align: 'center' });
+      // ========== SEITE 1: TITELSEITE ==========
+      doc.fontSize(36).font('Helvetica-Bold').text('EHS KPI Bericht', { align: 'center' });
+      doc.moveDown(1);
+      doc.fontSize(24).font('Helvetica').text(`${monthNames[month - 1]} ${year}`, { align: 'center' });
+      doc.moveDown(3);
+      
+      // Report date centered
+      doc.fontSize(12).text(`Erstellt am: ${formatDate(new Date())}`, { align: 'center' });
+      
+      // Company/Project info if needed
+      if (monthlyData?.project) {
+        doc.moveDown(2);
+        doc.fontSize(14).text(`Projekt: ${monthlyData.project.name}`, { align: 'center' });
+      }
+
+      // ========== SEITE 2: ARBEITSDATEN ==========
+      doc.addPage();
+      doc.fontSize(20).font('Helvetica-Bold').text('Arbeitsdaten', { align: 'center' });
+      doc.moveDown(1);
+      
+      // Separator line
+      doc.moveTo(50, doc.y).lineTo(792, doc.y).stroke();
       doc.moveDown(1);
 
-      // Report date
-      doc.fontSize(10).text(`Erstellt am: ${formatDate(new Date())}`, { align: 'right' });
-      doc.moveDown(1);
+      doc.fontSize(14).font('Helvetica');
+      
+      const leftColumn = 100;
+      const rightColumn = 450;
+      let startY = doc.y;
 
-      // Separator
-      doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
-      doc.moveDown(1);
-
-      // Work Data Section
-      doc.fontSize(16).font('Helvetica-Bold').text('Arbeitsdaten');
-      doc.moveDown(0.5);
-      doc.fontSize(11).font('Helvetica');
+      // Left column: Work data
+      doc.font('Helvetica-Bold').text('Monatsdaten:', leftColumn, startY);
+      doc.font('Helvetica');
       
       if (monthlyData) {
-        doc.text(`Arbeitstage: ${monthlyData.workingDays || 0}`);
-        doc.text(`Mitarbeiter pro Tag: ${monthlyData.workersPerDay || 0}`);
-        doc.text(`Stunden pro Tag: ${monthlyData.hoursPerDay || 0}`);
-        doc.text(`Gesamtmitarbeiter: ${monthlyData.totalEmployees || 0}`);
-        doc.text(`Gesamtstunden: ${formatNumber(monthlyData.totalHours || 0, 0)}`);
+        doc.text(`Arbeitstage: ${monthlyData.workingDays || 0}`, leftColumn, doc.y + 20);
+        doc.text(`Mitarbeiter pro Tag: ${monthlyData.workersPerDay || 0}`, leftColumn, doc.y + 10);
+        doc.text(`Stunden pro Tag: ${monthlyData.hoursPerDay || 0}`, leftColumn, doc.y + 10);
+        doc.text(`Gesamtmitarbeiter: ${monthlyData.totalEmployees || 0}`, leftColumn, doc.y + 10);
+        doc.text(`Gesamtstunden: ${formatNumber(monthlyData.totalHours || 0, 0)}`, leftColumn, doc.y + 10);
       } else {
-        doc.text('Keine Arbeitsdaten vorhanden');
+        doc.text('Keine Arbeitsdaten erfasst', leftColumn, doc.y + 20);
+        doc.text('Bitte im Dashboard unter "Arbeitsdaten"', leftColumn, doc.y + 10);
+        doc.text('die monatlichen Daten erfassen.', leftColumn, doc.y + 10);
       }
+
+      // Right column: KPIs
+      doc.font('Helvetica-Bold').text('Sicherheits-KPIs:', rightColumn, startY);
+      doc.font('Helvetica');
+      
+      if (kpis.totalHours > 0) {
+        doc.text(`LTIFR: ${formatNumber(kpis.ltifr)}`, rightColumn, startY + 30);
+        doc.text(`TRIR: ${formatNumber(kpis.trir)}`, rightColumn, doc.y + 10);
+      } else {
+        doc.text('LTIFR: N/A (keine Stunden)', rightColumn, startY + 30);
+        doc.text(`TRIR: N/A (keine Stunden)`, rightColumn, doc.y + 10);
+      }
+      
+      doc.moveDown(2);
+      doc.font('Helvetica-Bold').text('Jahr bis heute (YTD):', rightColumn, doc.y);
+      doc.font('Helvetica');
+      
+      if (kpis.ytdTotalHours > 0) {
+        doc.text(`LTIFR: ${formatNumber(kpis.ytdLTIFR)}`, rightColumn, doc.y + 10);
+        doc.text(`TRIR: ${formatNumber(kpis.ytdTRIR)}`, rightColumn, doc.y + 10);
+        doc.text(`Gesamtstunden: ${formatNumber(kpis.ytdTotalHours, 0)}`, rightColumn, doc.y + 10);
+      } else {
+        doc.text(`LTIFR: N/A (keine Stunden)`, rightColumn, doc.y + 10);
+        doc.text(`TRIR: N/A (keine Stunden)`, rightColumn, doc.y + 10);
+        doc.text(`Gesamtstunden: 0`, rightColumn, doc.y + 10);
+      }
+
+      // ========== SEITE 3: PYRAMIDE ==========
+      doc.addPage();
+      doc.fontSize(20).font('Helvetica-Bold').text('Sicherheitspyramide', { align: 'center' });
       doc.moveDown(1);
+      
+      // Separator line
+      doc.moveTo(50, doc.y).lineTo(792, doc.y).stroke();
+      doc.moveDown(2);
 
-      // KPI Section
-      doc.fontSize(16).font('Helvetica-Bold').text('Sicherheits-KPIs');
-      doc.moveDown(0.5);
-
-      // Monthly KPIs
-      doc.fontSize(12).font('Helvetica-Bold').text('Monat:');
-      doc.fontSize(11).font('Helvetica');
-      doc.text(`LTIFR (Lost Time Injury Frequency Rate): ${formatNumber(kpis.ltifr)}`);
-      doc.text(`TRIR (Total Recordable Injury Rate): ${formatNumber(kpis.trir)}`);
-      doc.moveDown(0.5);
-
-      // YTD KPIs
-      doc.fontSize(12).font('Helvetica-Bold').text('Jahr bis heute (YTD):');
-      doc.fontSize(11).font('Helvetica');
-      doc.text(`LTIFR: ${formatNumber(kpis.ytdLTIFR)}`);
-      doc.text(`TRIR: ${formatNumber(kpis.ytdTRIR)}`);
-      doc.text(`Gesamtstunden YTD: ${formatNumber(kpis.ytdTotalHours, 0)}`);
-      doc.moveDown(1);
-
-      // Pyramid Section
-      doc.fontSize(16).font('Helvetica-Bold').text('Sicherheitspyramide');
-      doc.moveDown(1);
-
+      // Work Data Section
       // Draw visual pyramid
       const pyramidData = [
         { label: 'Todesfälle', count: pyramid.fatalities, color: '#991b1b' },
@@ -250,15 +328,112 @@ export const generateEHSReport = async (
       doc.y = pyramidStartY + pyramidHeight + 20;
       doc.moveDown(1);
 
-      // New page for incidents
+      // ========== SEITE 4: MATRIX ==========
+      doc.addPage();
+      doc.fontSize(20).font('Helvetica-Bold').text('Kategorie-Monats-Übersicht', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.fontSize(12).font('Helvetica').text(`Jahresübersicht ${year}`, { align: 'center' });
+      doc.moveDown(1);
+      
+      // Separator line
+      doc.moveTo(50, doc.y).lineTo(792, doc.y).stroke();
+      doc.moveDown(1);
+
+      // Draw table (landscape A4: 842x595 points, with 50 margin = 742 available width)
+      const tableTop = doc.y;
+      const colWidth = 50;  // Increased for landscape
+      const rowHeight = 24;  // Slightly increased
+      const startX = 50;
+      
+      doc.fontSize(9).font('Helvetica-Bold');
+
+      // Header row
+      doc.text('Kategorie', startX, tableTop, { width: 120, align: 'left' });
+      for (let m = 1; m <= 12; m++) {
+        doc.text(monthNames[m - 1].substring(0, 3), startX + 120 + (m - 1) * colWidth, tableTop, { 
+          width: colWidth, 
+          align: 'center' 
+        });
+      }
+      doc.text('Total', startX + 120 + 12 * colWidth, tableTop, { width: colWidth, align: 'center' });
+
+      // Draw header border
+      doc.moveTo(startX, tableTop + rowHeight - 2)
+         .lineTo(startX + 120 + 13 * colWidth, tableTop + rowHeight - 2)
+         .stroke();
+
+      let currentY = tableTop + rowHeight;
+      doc.font('Helvetica');
+
+      // Data rows
+      Object.keys(categoryNames).forEach((category) => {
+        const germanName = categoryNames[category];
+        let rowTotal = 0;
+
+        doc.text(germanName, startX, currentY, { width: 120, align: 'left' });
+
+        for (let m = 1; m <= 12; m++) {
+          const count = matrix[category][m];
+          rowTotal += count;
+          doc.text(count.toString(), startX + 120 + (m - 1) * colWidth, currentY, { 
+            width: colWidth, 
+            align: 'center' 
+          });
+        }
+
+        doc.font('Helvetica-Bold');
+        doc.text(rowTotal.toString(), startX + 120 + 12 * colWidth, currentY, { 
+          width: colWidth, 
+          align: 'center' 
+        });
+        doc.font('Helvetica');
+
+        currentY += rowHeight;
+      });
+
+      // Totals row
+      doc.moveTo(startX, currentY - 2)
+         .lineTo(startX + 120 + 13 * colWidth, currentY - 2)
+         .stroke();
+
+      doc.font('Helvetica-Bold');
+      doc.text('Total', startX, currentY, { width: 120, align: 'left' });
+
+      let grandTotal = 0;
+      for (let m = 1; m <= 12; m++) {
+        let monthTotal = 0;
+        Object.keys(categoryNames).forEach(category => {
+          monthTotal += matrix[category][m];
+        });
+        grandTotal += monthTotal;
+        doc.text(monthTotal.toString(), startX + 120 + (m - 1) * colWidth, currentY, { 
+          width: colWidth, 
+          align: 'center' 
+        });
+      }
+
+      doc.text(grandTotal.toString(), startX + 120 + 12 * colWidth, currentY, { 
+        width: colWidth, 
+        align: 'center' 
+      });
+
+      doc.moveDown(2);
+
+      // ========== SEITE 5+: VORFALLSLISTE ==========
       if (incidents.length > 0) {
         doc.addPage();
-        doc.fontSize(16).font('Helvetica-Bold').text('Vorfallsliste');
+        doc.fontSize(20).font('Helvetica-Bold').text('Vorfallsliste', { align: 'center' });
         doc.moveDown(0.5);
+        doc.fontSize(12).font('Helvetica').text(`${incidents.length} Vorfall${incidents.length !== 1 ? 'e' : ''} im ${monthNames[month - 1]} ${year}`, { align: 'center' });
+        doc.moveDown(1);
+        
+        // Separator line
+        doc.moveTo(50, doc.y).lineTo(792, doc.y).stroke();
+        doc.moveDown(1);
 
-        doc.fontSize(10).font('Helvetica');
+        doc.fontSize(11).font('Helvetica');
         incidents.forEach((incident, index) => {
-          if (doc.y > 700) {
+          if (doc.y > 480) {  // Adjusted for landscape with header
             doc.addPage();
           }
 
