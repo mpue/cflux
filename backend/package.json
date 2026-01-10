@@ -11,7 +11,7 @@
     "test:watch": "jest --watch",
     "test:backup": "jest --testPathPattern=backup-restore-integration --runInBand --verbose",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "seed": "node dist/prisma/seed.js",
     "seed:dev": "ts-node prisma/seed.ts",
