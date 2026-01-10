@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { mediaService, Media, MediaType } from '../services/media.service';
+import { getBackendURL } from '../services/api';
 
 interface MediaPageProps {
   media: Media[];
@@ -145,7 +146,7 @@ export const MediaPage: React.FC<MediaPageProps> = ({ media: initialMedia, isAdm
     if (item.mediaType === 'IMAGE') {
       return (
         <img
-          src={`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/${item.path}`}
+          src={`${getBackendURL()}/${item.path}`}
           alt={item.originalFilename}
           style={{ 
             width: '100%', 
@@ -522,7 +523,7 @@ export const MediaPage: React.FC<MediaPageProps> = ({ media: initialMedia, isAdm
 
             {selectedMedia.mediaType === 'IMAGE' && (
               <img
-                src={`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/${selectedMedia.path}`}
+                src={`${getBackendURL()}/${selectedMedia.path}`}
                 alt={selectedMedia.originalFilename}
                 style={{ 
                   width: '100%', 

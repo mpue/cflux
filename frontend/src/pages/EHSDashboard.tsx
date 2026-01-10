@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppNavbar from '../components/AppNavbar';
+import { getBackendURL } from '../services/api';
 import './EHSDashboard.css';
 
 interface Project {
@@ -91,7 +92,7 @@ const EHSDashboard: React.FC = () => {
   const loadProjects = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/projects', {
+      const response = await fetch(`${getBackendURL()}/api/projects`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -111,7 +112,7 @@ const EHSDashboard: React.FC = () => {
       const token = localStorage.getItem('token');
       const projectParam = selectedProjectId !== 'all' ? `&projectId=${selectedProjectId}` : '';
       const response = await fetch(
-        `http://localhost:3001/api/ehs/dashboard?year=${selectedYear}&month=${selectedMonth}${projectParam}`,
+        `${getBackendURL()}/api/ehs/dashboard?year=${selectedYear}&month=${selectedMonth}${projectParam}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -141,7 +142,7 @@ const EHSDashboard: React.FC = () => {
       const token = localStorage.getItem('token');
       const projectParam = selectedProjectId !== 'all' ? `&projectId=${selectedProjectId}` : '';
       const response = await fetch(
-        `http://localhost:3001/api/incidents?year=${selectedYear}${projectParam}`,
+        `${getBackendURL()}/api/incidents?year=${selectedYear}${projectParam}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -167,7 +168,7 @@ const EHSDashboard: React.FC = () => {
       const totalHours = workData.workingDays * workData.workersPerDay * workData.hoursPerDay;
       const totalEmployees = workData.workersPerDay;
 
-      await fetch('http://localhost:3001/api/ehs/monthly-data', {
+      await fetch(`${getBackendURL()}/api/ehs/monthly-data`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -186,7 +187,7 @@ const EHSDashboard: React.FC = () => {
       });
 
       // Recalculate KPIs
-      await fetch('http://localhost:3001/api/ehs/calculate-kpis', {
+      await fetch(`${getBackendURL()}/api/ehs/calculate-kpis`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -211,7 +212,7 @@ const EHSDashboard: React.FC = () => {
       const token = localStorage.getItem('token');
       const projectParam = selectedProjectId !== 'all' ? `&projectId=${selectedProjectId}` : '';
       const response = await fetch(
-        `http://localhost:3001/api/ehs/pdf-report?year=${selectedYear}&month=${selectedMonth}${projectParam}`,
+        `${getBackendURL()}/api/ehs/pdf-report?year=${selectedYear}&month=${selectedMonth}${projectParam}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,

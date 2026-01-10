@@ -17,6 +17,12 @@ const getBaseURL = () => {
   return baseUrl;
 };
 
+// Export function to get backend URL for static resources
+export const getBackendURL = () => {
+  const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
+  return electronBackendUrl || process.env.REACT_APP_API_URL?.replace('/api', '') || '';
+};
+
 const api = axios.create({
   baseURL: getBaseURL(),
 });

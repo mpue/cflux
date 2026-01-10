@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { getBackendURL } from '../services/api';
 import CameraCapture from './CameraCapture';
 import './EHSTodos.css';
 
@@ -645,7 +645,7 @@ const EHSTodos: React.FC = () => {
                       {formData.attachmentUrls.map((url, index) => (
                         <div key={index} className="attachment-item">
                           <img 
-                            src={`http://localhost:3001${url}`} 
+                            src={`${getBackendURL()}${url}`} 
                             alt={`Attachment ${index + 1}`}
                             className="attachment-thumbnail"
                           />
