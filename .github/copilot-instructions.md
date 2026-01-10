@@ -11,18 +11,19 @@
 
 ## Database Schema
 
-**Prisma schema**: `backend/prisma/schema.prisma` (1661 lines) - single source of truth
+**Prisma schema**: `backend/prisma/schema.prisma` (1725+ lines) - single source of truth
 - **Core entities**: User, UserGroup, UserGroupMembership, Module, ModuleAccess
 - **Domain models**: TimeEntry, Project, Invoice, DocumentNode, Order, Incident, Device, etc.
 - **Swiss-specific**: ComplianceViolation (ArG/ArGV 1), OvertimeBalance, canton-based public holidays
 - **Soft-delete pattern**: Most models have `isActive` boolean or `deletedAt` timestamp for audit compliance
 
-**Migration workflow**: 
+**Schema-first workflow** (no migrations):
 ```powershell
 cd backend
-npm run prisma:migrate  # Creates and applies migrations
-npm run prisma:generate # Updates Prisma client types
+npm run prisma:push      # Sync schema directly to database
+npm run prisma:generate  # Update Prisma client types
 ```
+Database is automatically created/updated on Docker container start via `prisma db push`.
 
 ## Backend Patterns
 
@@ -131,8 +132,9 @@ npm run test:backup   # Backup/restore integration tests
 
 **Add new model**:
 1. Define in `backend/prisma/schema.prisma`
-2. Run `npm run prisma:migrate` + `prisma:generate`
-3. Create controller/service/routes in backend
-4. Add TypeScript types in `frontend/src/types/` if needed
+2. Run `npm run prisma:push` to sync DB (or restart Docker container)
+3. Run `npm run prisma:generate` to update client types
+4. Create controller/service/routes in backend
+5. Add TypeScript types in `frontend/src/types/` if needed
 
 **Debugging**: Backend logs to console, check Docker logs with `docker-compose logs -f backend`. Frontend uses browser DevTools.
