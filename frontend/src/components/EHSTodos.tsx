@@ -645,7 +645,7 @@ const EHSTodos: React.FC = () => {
                       {formData.attachmentUrls.map((url, index) => (
                         <div key={index} className="attachment-item">
                           <img 
-                            src={`${getBackendURL()}${url}`} 
+                            src={url.startsWith('http') ? url : `${getBackendURL()}${url}`} 
                             alt={`Attachment ${index + 1}`}
                             className="attachment-thumbnail"
                           />

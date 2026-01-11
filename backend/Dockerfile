@@ -74,12 +74,9 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
     echo 'sleep 5' >> /app/start.sh && \
     echo 'echo "✅ Database ready"' >> /app/start.sh && \
     echo 'echo ""' >> /app/start.sh && \
-    echo 'echo "📦 Synchronizing database schema..."' >> /app/start.sh && \
-    echo 'if ! npx prisma db push --skip-generate; then' >> /app/start.sh && \
-    echo '  echo "❌ Schema sync failed - stopping"' >> /app/start.sh && \
-    echo '  exit 1' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo 'echo "✅ Database schema synchronized"' >> /app/start.sh && \
+    echo 'echo "📦 Running database migrations..."' >> /app/start.sh && \
+    echo 'npx prisma migrate deploy' >> /app/start.sh && \
+    echo 'echo "✅ Migrations completed"' >> /app/start.sh && \
     echo 'echo ""' >> /app/start.sh && \
     echo 'echo "🔍 Checking installation status..."' >> /app/start.sh && \
     echo 'node dist/scripts/install.js' >> /app/start.sh && \

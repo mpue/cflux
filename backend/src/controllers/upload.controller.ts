@@ -49,8 +49,9 @@ export const uploadLogo = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Keine Datei hochgeladen' });
     }
 
-    // Return relative URL for proxy access
-    const fileUrl = `/uploads/${req.file.filename}`;
+    // Get backend URL from environment or construct from request
+    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+    const fileUrl = `${backendUrl}/uploads/${req.file.filename}`;
 
     res.json({
       url: fileUrl,
