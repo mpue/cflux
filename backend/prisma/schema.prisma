@@ -166,6 +166,7 @@ model User {
   receivedDeliveries OrderDelivery[] @relation("DeliveriesReceived")
   assignedEHSTodos EHSTodo[] @relation("EHSTodoAssignedTo")
   createdEHSTodos EHSTodo[] @relation("EHSTodoCreatedBy")
+  actionLogs      ActionLog[] @relation("ActionLogUser")
   
   @@index([userGroupId])
   @@map("users")
@@ -815,6 +816,107 @@ enum WorkflowInstanceStatus {
   CANCELLED
 }
 
+// System Actions - Katalog aller verfügbaren Trigger-Events
+enum ActionCategory {
+  AUTHENTICATION  // Login, Logout, etc.
+  TIME_TRACKING   // Clock-in, Clock-out
+  ORDERS          // Bestellung anlegen, genehmigen, etc.
+  INVOICES        // Rechnung erstellen, versenden, etc.
+  USERS           // Benutzer anlegen, bearbeiten, etc.
+  DOCUMENTS       // Dokument hochladen, bearbeiten, etc.
+  INCIDENTS       // Vorfall melden, bearbeiten, etc.
+  COMPLIANCE      // Compliance-Verstöße
+  CUSTOM          // Benutzerdefinierte Actions
+}
+
+enum ActionTriggerTiming {
+  BEFORE   // Vor der Aktion (z.B. Validierung)
+  AFTER    // Nach der Aktion (z.B. Benachrichtigung)
+  INSTEAD  // Ersetzt die Aktion (z.B. Custom Logic)
+}
+
+model SystemAction {
+  id              String            @id @default(uuid())
+  actionKey       String            @unique  // z.B. "order.created", "invoice.sent", "user.login"
+  displayName     String            // Anzeigename für UI
+  description     String?           @db.Text
+  category        ActionCategory    @default(CUSTOM)
+  
+  // Verfügbare Context-Daten für Conditions
+  contextSchema   String?           @db.Text // JSON Schema der verfügbaren Daten
+  
+  isActive        Boolean           @default(true)
+  isSystem        Boolean           @default(false) // Kann nicht gelöscht werden
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  triggers        WorkflowTrigger[]
+  logs            ActionLog[]
+  
+  @@index([category])
+  @@index([isActive])
+  @@map("system_actions")
+}
+
+model WorkflowTrigger {
+  id              String                @id @default(uuid())
+  workflowId      String
+  actionKey       String                // FK zu SystemAction
+  
+  // Wann soll der Workflow getriggert werden?
+  timing          ActionTriggerTiming   @default(AFTER)
+  
+  // Optionale Bedingung (JSON mit Regeln)
+  condition       String?               @db.Text
+  
+  // Priorität (niedrigere Zahl = höhere Priorität)
+  priority        Int                   @default(100)
+  
+  isActive        Boolean               @default(true)
+  
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  
+  workflow        Workflow              @relation("WorkflowTriggers", fields: [workflowId], references: [id], onDelete: Cascade)
+  action          SystemAction          @relation(fields: [actionKey], references: [actionKey], onDelete: Cascade)
+  
+  @@unique([workflowId, actionKey])
+  @@index([actionKey])
+  @@index([isActive])
+  @@map("workflow_triggers")
+}
+
+model ActionLog {
+  id              String            @id @default(uuid())
+  actionKey       String
+  
+  // Wer hat die Aktion ausgeführt?
+  userId          String?
+  
+  // Context-Daten (JSON)
+  contextData     String?           @db.Text
+  
+  // Ergebnis
+  success         Boolean           @default(true)
+  errorMessage    String?           @db.Text
+  
+  // Getriggerte Workflows
+  triggeredWorkflows String?        @db.Text // JSON Array von Workflow IDs
+  
+  executionTime   Int?              // Ausführungszeit in ms
+  
+  createdAt       DateTime          @default(now())
+  
+  action          SystemAction      @relation(fields: [actionKey], references: [actionKey], onDelete: Cascade)
+  user            User?             @relation("ActionLogUser", fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([actionKey])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("action_logs")
+}
+
 model Workflow {
   id              String                @id @default(uuid())
   name            String
@@ -832,6 +934,7 @@ model Workflow {
   templateLinks   InvoiceTemplateWorkflow[]
   instances       WorkflowInstance[]
   travelExpenses  TravelExpense[]       @relation("TravelExpenseDefaultWorkflow")
+  triggers        WorkflowTrigger[]     @relation("WorkflowTriggers")
   
   @@map("workflows")
 }

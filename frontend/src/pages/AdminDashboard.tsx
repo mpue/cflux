@@ -45,6 +45,7 @@ import {
 import { TimeBookingsReport } from '../components/admin/TimeBookingsReport';
 import { UserTimeBookingsReport } from '../components/admin/UserTimeBookingsReport';
 import WorkflowsTab from '../components/admin/WorkflowsTab';
+import WorkflowActionsTab from '../components/admin/WorkflowActionsTab';
 import SystemSettingsTab from '../components/admin/SystemSettingsTab';
 import ModulesPage from './ModulesPage';
 import ModulePermissionsPage from './ModulePermissionsPage';
@@ -52,7 +53,7 @@ import PayrollManagement from './PayrollManagement';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'settings' | 'payroll' | 'devices' | 'travelExpenses';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -199,6 +200,11 @@ const AdminDashboard: React.FC = () => {
         case 'travelExpenses':
           const expensesData = await travelExpenseService.getAllTravelExpenses();
           setTravelExpenses(expensesData);
+          break;
+        case 'orders':
+          // Load suppliers needed for orders
+          const orderSuppliers = await supplierService.getAllSuppliers();
+          setSuppliers(orderSuppliers);
           break;
       }
     } catch (error) {
@@ -552,8 +558,13 @@ const AdminDashboard: React.FC = () => {
                     />
                   )}
                   {user?.role === 'ADMIN' && (
-                    <TabButton
-                      active={activeTab === 'modules'}
+                    <TabButton                      active={activeTab === 'workflowActions'}
+                      onClick={() => setActiveTab('workflowActions')}
+                      label="⚡ Workflow Actions"
+                    />
+                  )}
+                  {user?.role === 'ADMIN' && (
+                    <TabButton                      active={activeTab === 'modules'}
                       onClick={() => setActiveTab('modules')}
                       label="🧩 Module"
                     />
@@ -622,6 +633,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'modules' && <ModulesPage embedded />}
             {activeTab === 'modulePermissions' && <ModulePermissionsPage embedded />}
             {activeTab === 'workflows' && <WorkflowsTab />}
+            {activeTab === 'workflowActions' && <WorkflowActionsTab />}
             {activeTab === 'settings' && <SystemSettingsTab />}
             {activeTab === 'payroll' && <PayrollManagement />}
           </div>

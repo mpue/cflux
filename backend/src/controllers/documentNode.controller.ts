@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import { checkModulePermission } from '../services/module.service';
+import { actionService } from '../services/action.service';
 
 const prisma = new PrismaClient();
 
@@ -351,6 +352,22 @@ export const createDocumentNode = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    // Trigger document.created action
+    try {
+      await actionService.triggerAction('document.created', {
+        entityType: 'DOCUMENT',
+        entityId: node.id,
+        userId: userId,
+        title: node.title,
+        type: node.type,
+        parentId: node.parentId,
+        createdAt: node.createdAt.toISOString()
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger document.created:', actionError);
+      // Don't fail the request if action fails
+    }
+
     res.status(201).json(node);
   } catch (error) {
     console.error('Create document node error:', error);
@@ -446,6 +463,22 @@ export const updateDocumentNode = async (req: AuthRequest, res: Response) => {
         }
       }
     });
+
+    // Trigger document.updated action
+    try {
+      await actionService.triggerAction('document.updated', {
+        entityType: 'DOCUMENT',
+        entityId: node.id,
+        userId: userId,
+        title: node.title,
+        type: node.type,
+        contentChanged: content !== undefined,
+        updatedAt: node.updatedAt.toISOString()
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger document.updated:', actionError);
+      // Don't fail the request if action fails
+    }
 
     res.json(node);
   } catch (error) {

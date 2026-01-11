@@ -1,4 +1,5 @@
 import { PrismaClient, Incident, IncidentPriority, IncidentStatus } from '@prisma/client';
+import { actionService } from './action.service';
 
 const prisma = new PrismaClient();
 
@@ -219,6 +220,23 @@ export const incidentService = {
         },
       },
     });
+
+    // Trigger incident.approved action when status changes to RESOLVED
+    if (data.status === 'RESOLVED') {
+      try {
+        await actionService.triggerAction('incident.approved', {
+          entityType: 'INCIDENT',
+          entityId: incident.id,
+          userId: incident.assignedToId || incident.reportedById,
+          title: incident.title,
+          status: incident.status,
+          solution: incident.solution,
+          resolvedAt: incident.resolvedAt?.toISOString()
+        });
+      } catch (actionError) {
+        console.error('[Action] Failed to trigger incident.approved:', actionError);
+      }
+    }
 
     return incident;
   },

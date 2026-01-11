@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { actionService } from './action.service';
 
 const prisma = new PrismaClient();
 
@@ -39,6 +40,21 @@ export async function checkRestTimeViolation(userId: string, newClockIn: Date) {
         }
       });
       console.log(`[COMPLIANCE] REST_TIME violation created with ID: ${violation.id}`);
+
+      // Trigger compliance.violation action
+      try {
+        await actionService.triggerAction('compliance.violation', {
+          entityType: 'COMPLIANCE_VIOLATION',
+          entityId: violation.id,
+          userId: userId,
+          violationType: violation.type,
+          severity: violation.severity,
+          description: violation.description,
+          createdAt: violation.createdAt.toISOString()
+        });
+      } catch (actionError) {
+        console.error('[Action] Failed to trigger compliance.violation:', actionError);
+      }
     }
   } catch (error) {
     console.error('Error checking rest time violation:', error);
@@ -107,6 +123,21 @@ export async function checkWeeklyHoursViolation(userId: string, date: Date) {
           }
         });
         console.log(`[COMPLIANCE] MAX_WEEKLY_HOURS violation created with ID: ${violation.id}`);
+
+        // Trigger compliance.violation action
+        try {
+          await actionService.triggerAction('compliance.violation', {
+            entityType: 'COMPLIANCE_VIOLATION',
+            entityId: violation.id,
+            userId: userId,
+            violationType: violation.type,
+            severity: violation.severity,
+            description: violation.description,
+            createdAt: violation.createdAt.toISOString()
+          });
+        } catch (actionError) {
+          console.error('[Action] Failed to trigger compliance.violation:', actionError);
+        }
       }
     }
   } catch (error) {
@@ -133,6 +164,21 @@ export async function checkDailyHoursViolation(userId: string, clockIn: Date, cl
         }
       });
       console.log(`[COMPLIANCE] MAX_DAILY_HOURS violation created with ID: ${violation.id}`);
+
+      // Trigger compliance.violation action
+      try {
+        await actionService.triggerAction('compliance.violation', {
+          entityType: 'COMPLIANCE_VIOLATION',
+          entityId: violation.id,
+          userId: userId,
+          violationType: violation.type,
+          severity: violation.severity,
+          description: violation.description,
+          createdAt: violation.createdAt.toISOString()
+        });
+      } catch (actionError) {
+        console.error('[Action] Failed to trigger compliance.violation:', actionError);
+      }
     }
   } catch (error) {
     console.error('Error checking daily hours violation:', error);
@@ -199,6 +245,21 @@ export async function checkMissingPauseViolation(userId: string, clockIn: Date, 
       });
       
       console.log(`[COMPLIANCE] MISSING_PAUSE violation created with ID: ${violation.id}`);
+
+      // Trigger compliance.violation action
+      try {
+        await actionService.triggerAction('compliance.violation', {
+          entityType: 'COMPLIANCE_VIOLATION',
+          entityId: violation.id,
+          userId: userId,
+          violationType: violation.type,
+          severity: violation.severity,
+          description: violation.description,
+          createdAt: violation.createdAt.toISOString()
+        });
+      } catch (actionError) {
+        console.error('[Action] Failed to trigger compliance.violation:', actionError);
+      }
     } else if (requiredPauseMinutes > 0) {
       console.log(`[COMPLIANCE] No MISSING_PAUSE violation for user ${userId}: ${actualPauseMinutes}min pause sufficient for ${netWorkDuration.toFixed(1)}h work`);
     }

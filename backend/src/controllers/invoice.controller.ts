@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { PrismaClient, InvoiceStatus } from '@prisma/client';
 import { AuthRequest } from '../types/auth';
 import { workflowService } from '../services/workflow.service';
+import { actionService } from '../services/action.service';
 
 const prisma = new PrismaClient();
 
@@ -209,6 +210,31 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    // Trigger action events
+    try {
+      // Trigger invoice.created
+      await actionService.triggerAction('invoice.created', {
+        entityType: 'INVOICE',
+        entityId: invoice.id,
+        entityData: invoice,
+        userId: req.user?.id,
+        metadata: { invoiceNumber: invoice.invoiceNumber, status: invoice.status },
+      });
+
+      // Trigger invoice.sent if status is SENT
+      if (status === InvoiceStatus.SENT) {
+        await actionService.triggerAction('invoice.sent', {
+          entityType: 'INVOICE',
+          entityId: invoice.id,
+          entityData: invoice,
+          userId: req.user?.id,
+        });
+      }
+    } catch (actionError) {
+      console.error('Error triggering actions:', actionError);
+      // Don't fail invoice creation if actions fail
+    }
+
     res.status(201).json(invoice);
   } catch (error) {
     console.error('Error creating invoice:', error);
@@ -328,7 +354,9 @@ export const updateInvoice = async (req: AuthRequest, res: Response) => {
     });
 
     // Auto-start workflows if status changes to SENT and template has workflows
-    if (status === InvoiceStatus.SENT && status !== existingInvoice.status) {
+    const statusChanged = status && status !== existingInvoice.status;
+    
+    if (status === InvoiceStatus.SENT && statusChanged) {
       const templateId = invoice.templateId || existingInvoice.templateId;
       
       if (templateId) {
@@ -352,6 +380,38 @@ export const updateInvoice = async (req: AuthRequest, res: Response) => {
           // Don't fail invoice update if workflows fail
         }
       }
+    }
+
+    // Trigger action events for status changes
+    try {
+      if (statusChanged) {
+        // Trigger specific status change actions
+        if (status === InvoiceStatus.SENT) {
+          await actionService.triggerAction('invoice.sent', {
+            entityType: 'INVOICE',
+            entityId: invoice.id,
+            entityData: invoice,
+            userId: req.user?.id,
+          });
+        } else if (status === InvoiceStatus.PAID) {
+          await actionService.triggerAction('invoice.paid', {
+            entityType: 'INVOICE',
+            entityId: invoice.id,
+            entityData: invoice,
+            userId: req.user?.id,
+          });
+        } else if (status === InvoiceStatus.CANCELLED) {
+          await actionService.triggerAction('invoice.cancelled', {
+            entityType: 'INVOICE',
+            entityId: invoice.id,
+            entityData: invoice,
+            userId: req.user?.id,
+          });
+        }
+      }
+    } catch (actionError) {
+      console.error('Error triggering actions:', actionError);
+      // Don't fail invoice update if actions fail
     }
 
     res.json(invoice);

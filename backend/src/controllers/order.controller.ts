@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { PrismaClient, OrderStatus, OrderPriority } from '@prisma/client';
 import { AuthRequest } from '../types/auth';
+import { actionService } from '../services/action.service';
 
 const prisma = new PrismaClient();
 
@@ -243,54 +244,76 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
     let vatAmount = 0;
 
     const orderItems = items.map((item: any, index: number) => {
-      const itemTotal = item.quantity * item.unitPrice;
-      const itemVat = itemTotal * (item.vatRate / 100);
+      const quantity = Number(item.quantity) || 0;
+      const unitPrice = Number(item.unitPrice) || 0;
+      const vatRate = Number(item.vatRate) || 7.7;
+      
+      const itemTotal = quantity * unitPrice;
+      const itemVat = itemTotal * (vatRate / 100);
       totalAmount += itemTotal;
       vatAmount += itemVat;
 
-      return {
+      const itemData: any = {
         position: index + 1,
-        articleId: item.articleId || null,
         articleNumber: item.articleNumber || null,
         name: item.name,
         description: item.description || null,
-        quantity: item.quantity,
+        quantity: quantity,
         unit: item.unit || 'Stück',
         receivedQuantity: 0,
-        unitPrice: item.unitPrice,
-        vatRate: item.vatRate || 7.7,
+        unitPrice: unitPrice,
+        vatRate: vatRate,
         totalPrice: itemTotal,
         notes: item.notes || null,
       };
+
+      // Handle article relation if articleId is provided
+      if (item.articleId) {
+        itemData.article = { connect: { id: item.articleId } };
+      }
+
+      return itemData;
     });
 
     const grandTotal = totalAmount + vatAmount;
 
-    const order = await prisma.order.create({
-      data: {
-        orderNumber,
-        supplierId: supplierId || null,
-        orderDate: orderDate ? new Date(orderDate) : new Date(),
-        expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : null,
-        status: OrderStatus.DRAFT,
-        priority: priority || OrderPriority.MEDIUM,
-        title,
-        description: description || null,
-        notes: notes || null,
-        internalNotes: internalNotes || null,
-        totalAmount,
-        vatAmount,
-        grandTotal,
-        deliveryAddress: deliveryAddress || null,
-        deliveryContact: deliveryContact || null,
-        deliveryPhone: deliveryPhone || null,
-        requestedById: req.user!.id,
-        projectId: projectId || null,
-        costCenter: costCenter || null,
-        items: {
-          create: orderItems,
-        },
+    // Build order data with proper relations
+    const orderData: any = {
+      orderNumber,
+      orderDate: orderDate ? new Date(orderDate) : new Date(),
+      expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : null,
+      status: OrderStatus.DRAFT,
+      priority: priority || OrderPriority.MEDIUM,
+      title,
+      description: description || null,
+      notes: notes || null,
+      internalNotes: internalNotes || null,
+      totalAmount,
+      vatAmount,
+      grandTotal,
+      deliveryAddress: deliveryAddress || null,
+      deliveryContact: deliveryContact || null,
+      deliveryPhone: deliveryPhone || null,
+      requestedBy: {
+        connect: { id: req.user!.id }
       },
+      costCenter: costCenter || null,
+      items: {
+        create: orderItems,
+      },
+    };
+
+    // Add optional relations
+    if (supplierId) {
+      orderData.supplier = { connect: { id: supplierId } };
+    }
+
+    if (projectId) {
+      orderData.project = { connect: { id: projectId } };
+    }
+
+    const order = await prisma.order.create({
+      data: orderData,
       include: {
         supplier: true,
         requestedBy: {
@@ -312,6 +335,23 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
         },
       },
     });
+
+    // Trigger order.created action
+    try {
+      await actionService.triggerAction('order.created', {
+        entityType: 'ORDER',
+        entityId: order.id,
+        userId: req.user!.id,
+        orderNumber: order.orderNumber,
+        totalAmount: order.grandTotal,
+        status: order.status,
+        supplierId: order.supplierId,
+        title: order.title,
+        createdAt: order.createdAt.toISOString()
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger order.created:', actionError);
+    }
 
     res.status(201).json(order);
   } catch (error) {
@@ -571,6 +611,22 @@ export const approveOrder = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // Trigger order.approved action
+    try {
+      await actionService.triggerAction('order.approved', {
+        entityType: 'ORDER',
+        entityId: updatedOrder.id,
+        userId: req.user!.id,
+        orderNumber: updatedOrder.orderNumber,
+        totalAmount: updatedOrder.grandTotal,
+        status: updatedOrder.status,
+        approvedById: req.user!.id,
+        approvedAt: updatedOrder.approvedAt?.toISOString()
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger order.approved:', actionError);
+    }
+
     res.json(updatedOrder);
   } catch (error) {
     console.error('Error approving order:', error);
@@ -629,6 +685,23 @@ export const rejectOrder = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // Trigger order.rejected action
+    try {
+      await actionService.triggerAction('order.rejected', {
+        entityType: 'ORDER',
+        entityId: updatedOrder.id,
+        userId: req.user!.id,
+        orderNumber: updatedOrder.orderNumber,
+        totalAmount: updatedOrder.grandTotal,
+        status: updatedOrder.status,
+        rejectedById: req.user!.id,
+        rejectionReason: updatedOrder.rejectionReason,
+        rejectedAt: updatedOrder.rejectedAt?.toISOString()
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger order.rejected:', actionError);
+    }
+
     res.json(updatedOrder);
   } catch (error) {
     console.error('Error rejecting order:', error);
@@ -671,6 +744,21 @@ export const markOrderAsOrdered = async (req: AuthRequest, res: Response) => {
         items: true,
       },
     });
+
+    // Trigger order.ordered action
+    try {
+      await actionService.triggerAction('order.ordered', {
+        entityType: 'ORDER',
+        entityId: updatedOrder.id,
+        userId: req.user!.id,
+        orderNumber: updatedOrder.orderNumber,
+        totalAmount: updatedOrder.grandTotal,
+        status: updatedOrder.status,
+        supplierId: updatedOrder.supplierId
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger order.ordered:', actionError);
+    }
 
     res.json(updatedOrder);
   } catch (error) {

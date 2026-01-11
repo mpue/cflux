@@ -8,6 +8,7 @@ import {
   checkMissingPauseViolation,
   updateOvertimeBalance
 } from '../services/compliance.service';
+import { actionService } from '../services/action.service';
 
 const prisma = new PrismaClient();
 
@@ -48,6 +49,22 @@ export const clockIn = async (req: AuthRequest, res: Response) => {
         location: true
       }
     });
+
+    // Trigger timeentry.clockin action
+    try {
+      await actionService.triggerAction('timeentry.clockin', {
+        entityType: 'TIMEENTRY',
+        entityId: timeEntry.id,
+        userId: userId,
+        startTime: clockInTime.toISOString(),
+        projectId: projectId,
+        locationId: locationId,
+        description: description
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger timeentry.clockin:', actionError);
+      // Don't fail the request if action fails
+    }
 
     res.status(201).json(timeEntry);
   } catch (error) {
@@ -94,6 +111,25 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
     await checkWeeklyHoursViolation(userId, clockOutTime);
     await updateOvertimeBalance(userId, clockOutTime);
     console.log(`[COMPLIANCE] Compliance checks completed`);
+
+    // Trigger timeentry.clockout action
+    try {
+      const duration = (clockOutTime.getTime() - timeEntry.clockIn.getTime()) / 1000; // seconds
+      await actionService.triggerAction('timeentry.clockout', {
+        entityType: 'TIMEENTRY',
+        entityId: updatedEntry.id,
+        userId: userId,
+        startTime: timeEntry.clockIn.toISOString(),
+        endTime: clockOutTime.toISOString(),
+        duration: duration,
+        pauseMinutes: pauseMinutes || 0,
+        projectId: updatedEntry.projectId,
+        locationId: updatedEntry.locationId
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger timeentry.clockout:', actionError);
+      // Don't fail the request if action fails
+    }
 
     res.json(updatedEntry);
   } catch (error) {

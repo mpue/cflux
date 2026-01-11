@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
+import { actionService } from '../services/action.service';
 
 const prisma = new PrismaClient();
 
@@ -70,6 +71,22 @@ export const register = async (req: AuthRequest, res: Response) => {
       jwtOptions
     );
 
+    // Trigger user.created action
+    try {
+      await actionService.triggerAction('user.created', {
+        entityType: 'USER',
+        entityId: user.id,
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        createdAt: new Date().toISOString()
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger user.created:', actionError);
+    }
+
     res.status(201).json({
       user: {
         id: user.id,
@@ -120,6 +137,21 @@ export const login = async (req: AuthRequest, res: Response) => {
       process.env.JWT_SECRET!,
       jwtOptions
     );
+
+    // Trigger user.login action
+    try {
+      await actionService.triggerAction('user.login', {
+        entityType: 'USER',
+        entityId: user.id,
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        loginTime: new Date().toISOString()
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger user.login:', actionError);
+      // Don't fail the request if action fails
+    }
 
     res.json({
       user: {

@@ -264,7 +264,7 @@ export const workflowService = {
   async createWorkflowInstance(
     workflowId: string, 
     entityId: string, 
-    entityType: 'INVOICE' | 'TRAVEL_EXPENSE' = 'INVOICE'
+    entityType: string = 'INVOICE'
   ) {
     const workflow = await prisma.workflow.findUnique({
       where: { id: workflowId },
@@ -283,37 +283,55 @@ export const workflowService = {
     const definition = JSON.parse(workflow.definition || '{}');
     const { nodes = [], edges = [] } = definition;
 
-    // Load entity data for condition evaluation
-    let entityData: any;
-    if (entityType === 'INVOICE') {
-      entityData = await prisma.invoice.findUnique({
-        where: { id: entityId },
-        include: {
-          items: true,
-          customer: {
-            select: {
-              id: true,
-              name: true,
+    // Load entity data for condition evaluation (optional, only for specific types)
+    let entityData: any = null;
+    
+    try {
+      if (entityType === 'INVOICE') {
+        entityData = await prisma.invoice.findUnique({
+          where: { id: entityId },
+          include: {
+            items: true,
+            customer: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
-        },
-      });
-    } else if (entityType === 'TRAVEL_EXPENSE') {
-      entityData = await prisma.travelExpense.findUnique({
-        where: { id: entityId },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
+        });
+        if (!entityData) {
+          throw new Error('Rechnung nicht gefunden');
+        }
+      } else if (entityType === 'TRAVEL_EXPENSE') {
+        entityData = await prisma.travelExpense.findUnique({
+          where: { id: entityId },
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+              },
             },
           },
-        },
-      });
-    }
-
-    if (!entityData) {
-      throw new Error(`${entityType === 'INVOICE' ? 'Rechnung' : 'Reisekosten'} nicht gefunden`);
+        });
+        if (!entityData) {
+          throw new Error('Reisekosten nicht gefunden');
+        }
+      } else {
+        // For generic entity types (ORDER, USER, TIMEENTRY, etc.),
+        // we don't load entity data - conditions will use action context data
+        console.log(`[Workflow] Creating workflow instance for generic entity type: ${entityType}`);
+        entityData = { id: entityId }; // Minimal data for workflow creation
+      }
+    } catch (error: any) {
+      // For backwards compatibility, if loading fails for INVOICE/TRAVEL_EXPENSE, throw error
+      if (entityType === 'INVOICE' || entityType === 'TRAVEL_EXPENSE') {
+        throw error;
+      }
+      // For other types, continue with minimal data
+      console.warn(`[Workflow] Could not load entity data for ${entityType}, continuing with minimal data`);
+      entityData = { id: entityId };
     }
 
     // Create instance (will update currentStepId later)
@@ -684,7 +702,7 @@ export const workflowService = {
     });
   },
 
-  async getEntityWorkflowInstances(entityId: string, entityType: 'INVOICE' | 'TRAVEL_EXPENSE') {
+  async getEntityWorkflowInstances(entityId: string, entityType: string) {
     return await prisma.workflowInstance.findMany({
       where: { 
         entityId,

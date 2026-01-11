@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import bcrypt from 'bcrypt';
+import { actionService } from '../services/action.service';
 
 const prisma = new PrismaClient();
 
@@ -232,6 +233,23 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       }
     });
 
+    // Trigger user.updated action
+    try {
+      await actionService.triggerAction('user.updated', {
+        entityType: 'USER',
+        entityId: user.id,
+        userId: req.user!.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isActive: user.isActive,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger user.updated:', actionError);
+    }
+
     res.json(user);
   } catch (error) {
     console.error('Update user error:', error);
@@ -290,7 +308,26 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
 
+    const user = await prisma.user.findUnique({ where: { id } });
+
     await prisma.user.delete({ where: { id } });
+
+    // Trigger user.deleted action
+    try {
+      if (user) {
+        await actionService.triggerAction('user.deleted', {
+          entityType: 'USER',
+          entityId: id,
+          userId: req.user!.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          deletedAt: new Date().toISOString()
+        });
+      }
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger user.deleted:', actionError);
+    }
 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {

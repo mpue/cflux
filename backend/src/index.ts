@@ -12,6 +12,7 @@ import customerRoutes from './routes/customer.routes';
 import supplierRoutes from './routes/supplier.routes';
 import articleGroupRoutes from './routes/articleGroup.routes';
 import articleRoutes from './routes/article.routes';
+import orderRoutes from './routes/order.routes';
 import invoiceRoutes from './routes/invoice.routes';
 import invoiceTemplateRoutes from './routes/invoiceTemplate.routes';
 import reminderRoutes from './routes/reminder.routes';
@@ -22,6 +23,8 @@ import locationRoutes from './routes/location.routes';
 import complianceRoutes from './routes/compliance.routes';
 import uploadRoutes from './routes/upload.routes';
 import incidentRoutes from './routes/incident.routes';
+import ehsRoutes from './routes/ehs.routes';
+import ehsTodoRoutes from './routes/ehsTodo.routes';
 import workflowRoutes from './routes/workflow.routes';
 import systemSettingsRoutes from './routes/systemSettings.routes';
 import payrollRoutes from './routes/payroll.routes';
@@ -30,10 +33,9 @@ import deviceRoutes from './routes/device.routes';
 import travelExpenseRoutes from './routes/travelExpense.routes';
 import messageRoutes from './routes/message.routes';
 import documentNodeRoutes from './routes/documentNode.routes';
+import documentNodeAttachmentRoutes from './routes/documentNodeAttachment.routes';
 import mediaRoutes from './routes/media.routes';
-import orderRoutes from './routes/order.routes';
-import ehsRoutes from './routes/ehs.routes';
-import ehsTodoRoutes from './routes/ehsTodo.routes';
+import actionRoutes from './routes/action.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -60,8 +62,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
-// Serve uploaded files via /api/uploads and /uploads (for backwards compatibility)
-app.use('/api/uploads', express.static(path.join(__dirname, '../uploads')));
+// Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
@@ -75,6 +76,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/suppliers', supplierRoutes);
 app.use('/api/article-groups', articleGroupRoutes);
 app.use('/api/articles', articleRoutes);
+app.use('/api/orders', orderRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/invoice-templates', invoiceTemplateRoutes);
 app.use('/api/reminders', reminderRoutes);
@@ -85,6 +87,8 @@ app.use('/api/locations', locationRoutes);
 app.use('/api/compliance', complianceRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/incidents', incidentRoutes);
+app.use('/api/ehs', ehsRoutes);
+app.use('/api/ehs-todos', ehsTodoRoutes);
 app.use('/api/workflows', workflowRoutes);
 app.use('/api/system-settings', systemSettingsRoutes);
 app.use('/api/payroll', payrollRoutes);
@@ -93,11 +97,9 @@ app.use('/api/devices', deviceRoutes);
 app.use('/api/travel-expenses', travelExpenseRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/intranet', documentNodeRoutes);
-app.use('/api/document-nodes', documentNodeRoutes);
+app.use('/api/document-nodes', documentNodeAttachmentRoutes);
 app.use('/api/media', mediaRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/ehs', ehsRoutes);
-app.use('/api/ehs-todos', ehsTodoRoutes);
+app.use('/api/actions', actionRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
