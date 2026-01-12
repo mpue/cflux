@@ -64,7 +64,6 @@ function App() {
       <AuthProvider>
         <ModuleProvider>
           <Router>
-            {/* <ThemeToggle /> */}
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />

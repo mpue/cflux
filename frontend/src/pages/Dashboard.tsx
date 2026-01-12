@@ -350,7 +350,7 @@ const Dashboard: React.FC = () => {
             <h3 className="stat-title">🔔 Genehmig.</h3>
             <div className="value">
               {pendingApprovalsCount > 0 ? (
-                <span style={{ color: '#ff4444' }}>{pendingApprovalsCount}</span>
+                <span className="alert-count">{pendingApprovalsCount}</span>
               ) : (
                 '0'
               )}
@@ -358,46 +358,17 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div style={{ 
-          display: 'flex', 
-          gap: '10px', 
-          marginBottom: '20px',
-          borderBottom: '2px solid #e0e0e0',
-          overflowX: 'auto',
-          WebkitOverflowScrolling: 'touch'
-        }}>
+        <div className="dashboard-tabs">
           <button
+            className={`dashboard-tab ${activeTab === 'timetracking' ? 'active' : ''}`}
             onClick={() => setActiveTab('timetracking')}
-            style={{
-              padding: '10px 20px',
-              background: activeTab === 'timetracking' ? '#007bff' : 'transparent',
-              color: activeTab === 'timetracking' ? 'white' : '#333',
-              border: 'none',
-              borderBottom: activeTab === 'timetracking' ? '3px solid #007bff' : 'none',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: activeTab === 'timetracking' ? 'bold' : 'normal',
-              whiteSpace: 'nowrap',
-              minWidth: 'fit-content'
-            }}
           >
             <span className="tab-label-mobile">⏰ Zeit</span>
             <span className="tab-label-desktop">⏰ Zeiterfassung</span>
           </button>
           <button
+            className={`dashboard-tab ${activeTab === 'payroll' ? 'active' : ''}`}
             onClick={() => setActiveTab('payroll')}
-            style={{
-              padding: '10px 20px',
-              background: activeTab === 'payroll' ? '#007bff' : 'transparent',
-              color: activeTab === 'payroll' ? 'white' : '#333',
-              border: 'none',
-              borderBottom: activeTab === 'payroll' ? '3px solid #007bff' : 'none',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: activeTab === 'payroll' ? 'bold' : 'normal',
-              whiteSpace: 'nowrap',
-              minWidth: 'fit-content'
-            }}
           >
             <span className="tab-label-mobile">💰 Lohn</span>
             <span className="tab-label-desktop">💰 Lohnabrechnungen</span>
@@ -418,7 +389,7 @@ const Dashboard: React.FC = () => {
                     <>
                       ⏸️ Pause läuft seit {currentEntry.pauseStartedAt ? new Date(currentEntry.pauseStartedAt).toLocaleTimeString('de-DE') : ''}
                       <br />
-                      <small style={{ color: '#666' }}>Arbeitszeit: {workDuration}</small>
+                      <small className="hint-text">Arbeitszeit: {workDuration}</small>
                     </>
                   ) : (
                     <>
@@ -426,7 +397,7 @@ const Dashboard: React.FC = () => {
                       {currentEntry.project && ` - ${currentEntry.project.name}`}
                       {currentEntry.location && ` (${currentEntry.location.name})`}
                       <br />
-                      <small style={{ color: '#666' }}>Arbeitszeit: {workDuration} | Pausen: {currentEntry.pauseMinutes || 0} Min</small>
+                      <small className="hint-text">Arbeitszeit: {workDuration} | Pausen: {currentEntry.pauseMinutes || 0} Min</small>
                     </>
                   )}
                 </span>
@@ -508,19 +479,11 @@ const Dashboard: React.FC = () => {
                   <td>{new Date(request.endDate).toLocaleDateString('de-DE')}</td>
                   <td>{request.days}</td>
                   <td>
-                    <span style={{
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      fontSize: '12px',
-                      backgroundColor:
-                        request.status === 'APPROVED' ? '#d4edda' :
-                        request.status === 'REJECTED' ? '#f8d7da' :
-                        '#fff3cd',
-                      color:
-                        request.status === 'APPROVED' ? '#155724' :
-                        request.status === 'REJECTED' ? '#721c24' :
-                        '#856404'
-                    }}>
+                    <span className={`status-badge ${
+                        request.status === 'APPROVED' ? 'approved' :
+                        request.status === 'REJECTED' ? 'rejected' :
+                        'pending'
+                    }`}>
                       {request.status}
                     </span>
                   </td>
@@ -533,7 +496,7 @@ const Dashboard: React.FC = () => {
 
         <div className="card">
           <h2>Letzte Zeiteinträge</h2>
-          <p style={{ fontSize: '14px', color: '#666', marginBottom: '10px' }}>
+          <p className="hint-text">
             💡 Tipp: Nutzen Sie den 📊 Button, um Ihre Arbeitszeit auf verschiedene Projekte aufzuteilen. Mit dem ✏️ Button können Sie Zeiten nachträglich anpassen.
           </p>
           <div className="data-table-wrapper">
@@ -836,7 +799,7 @@ const PauseModal: React.FC<{
         <h2>Pausenzeit erfassen</h2>
         
         <div style={{ padding: '0 0 20px 0' }}>
-          <p style={{ marginBottom: '20px', color: '#666' }}>
+          <p className="hint-text" style={{ marginBottom: '20px' }}>
             Wie viele Minuten Pause hattest du während deiner Arbeitszeit?
           </p>
 
@@ -1061,7 +1024,7 @@ const AllocationModal: React.FC<{
         }}
       >
         <h2 style={{ marginBottom: '20px', fontSize: '24px' }}>Zeit auf Projekte aufteilen</h2>
-        <p style={{ marginBottom: '20px', color: '#666', fontSize: '16px' }}>
+        <p className="hint-text" style={{ marginBottom: '20px', fontSize: '16px' }}>
           Datum: {new Date(timeEntry.clockIn).toLocaleDateString('de-DE')} | 
           Gesamtarbeitszeit: <strong>{totalWorkedHours.toFixed(2)}h</strong>
         </p>

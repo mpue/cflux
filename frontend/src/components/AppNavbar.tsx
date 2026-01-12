@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useModules } from '../contexts/ModuleContext';
+import { useTheme as useCustomTheme } from '../contexts/ThemeContext';
 import { getUnreadCount } from '../services/message.service';
 import {
   AppBar,
@@ -30,6 +31,8 @@ import {
   Logout as LogoutIcon,
   Person as PersonIcon,
   MoreVert as MoreIcon,
+  Brightness4 as DarkModeIcon,
+  Brightness7 as LightModeIcon,
   PictureAsPdf as PdfIcon,
   PermMedia as MediaIcon,
   HealthAndSafety as EHSIcon,
@@ -54,6 +57,7 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
 }) => {
   const { user, logout } = useAuth();
   const { modules, hasModuleAccess } = useModules();
+  const { theme, toggleTheme } = useCustomTheme();
   const navigate = useNavigate();
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const [displayTime, setDisplayTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
@@ -108,9 +112,9 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
     handleMoreMenuClose();
   };
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(muiTheme.breakpoints.down('md'));
 
   // Shorten title for mobile devices
   const getDisplayTitle = () => {
@@ -321,6 +325,14 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
             </Box>
           </MenuItem>
           <Divider />
+          <MenuItem onClick={() => { toggleTheme(); handleMenuClose(); }}>
+            {theme === 'light' ? (
+              <DarkModeIcon sx={{ mr: 1 }} />
+            ) : (
+              <LightModeIcon sx={{ mr: 1 }} />
+            )}
+            {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+          </MenuItem>
           <MenuItem onClick={handleLogout}>
             <LogoutIcon sx={{ mr: 1 }} />
             Abmelden

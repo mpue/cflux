@@ -336,6 +336,117 @@ input:-webkit-autofill:active {
   margin-bottom: 30px;
 }
 
+/* Dashboard Tabs */
+.dashboard-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+[data-theme='dark'] .dashboard-tabs {
+  border-bottom-color: var(--border-color);
+}
+
+.dashboard-tab {
+  padding: 10px 20px;
+  background: transparent;
+  color: #333;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  fontSize: 16px;
+  font-weight: normal;
+  white-space: nowrap;
+  min-width: fit-content;
+  transition: all 0.2s ease;
+}
+
+.dashboard-tab:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+.dashboard-tab.active {
+  background: #007bff;
+  color: white;
+  border-bottom-color: #007bff;
+  font-weight: bold;
+}
+
+[data-theme='dark'] .dashboard-tab {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .dashboard-tab:hover {
+  background-color: var(--bg-tertiary);
+}
+
+[data-theme='dark'] .dashboard-tab.active {
+  background: var(--primary-color);
+  color: white;
+  border-bottom-color: var(--primary-color);
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  fontSize: 12px;
+  display: inline-block;
+}
+
+.status-badge.approved {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.rejected {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge.pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+[data-theme='dark'] .status-badge.approved {
+  background-color: #155724;
+  color: #d4edda;
+}
+
+[data-theme='dark'] .status-badge.rejected {
+  background-color: #721c24;
+  color: #f8d7da;
+}
+
+[data-theme='dark'] .status-badge.pending {
+  background-color: #856404;
+  color: #fff3cd;
+}
+
+/* Hint/Info Text */
+.hint-text {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+[data-theme='dark'] .hint-text {
+  color: var(--text-secondary);
+}
+
+/* Alert Count */
+.alert-count {
+  color: #ff4444;
+}
+
+[data-theme='dark'] .alert-count {
+  color: #ff6b6b;
+}
+
 .stat-card {
   background: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%);
   color: white;
@@ -351,8 +462,21 @@ input:-webkit-autofill:active {
 }
 
 [data-theme='dark'] .stat-card {
-  background: linear-gradient(135deg, #059669 0%, #0284c7 100%);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme='dark'] .stat-card h3,
+[data-theme='dark'] .stat-card .stat-title {
+  color: var(--text-primary) !important;
+  opacity: 0.9;
+  text-shadow: none;
+}
+
+[data-theme='dark'] .stat-card .value {
+  color: var(--text-primary) !important;
+  text-shadow: none;
 }
 
 /* Dark Mode Button Styles */
@@ -452,7 +576,21 @@ input:-webkit-autofill:active {
 }
 
 [data-theme='dark'] .clock-status {
-  background-color: var(--bg-tertiary);
+  background-color: var(--bg-tertiary) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .clock-status.clocked-in {
+  background: #065f46 !important;
+  color: #d1fae5 !important;
+  border: 1px solid #10b981 !important;
+}
+
+[data-theme='dark'] .clock-status.on-pause {
+  background: #92400e !important;
+  color: #fef3c7 !important;
+  border: 1px solid #f59e0b !important;
 }
 
 .status-indicator {
