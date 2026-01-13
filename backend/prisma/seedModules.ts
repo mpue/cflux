@@ -145,6 +145,14 @@ async function seedModules() {
       route: '/intranet',
       sortOrder: 16,
     },
+    {
+      name: 'Kostenstellen',
+      key: 'cost_centers',
+      description: 'Kostenstellenverwaltung',
+      icon: 'account_balance',
+      route: '/cost-centers',
+      sortOrder: 17,
+    },
   ];
 
   for (const module of modules) {

@@ -45,6 +45,7 @@ const Dashboard: React.FC = () => {
   const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | null>(null);
   const [allocations, setAllocations] = useState<AllocationInput[]>([]);
   const [existingAllocations, setExistingAllocations] = useState<ProjectTimeAllocation[]>([]);
+  const [loggedInUsers, setLoggedInUsers] = useState<any[]>([]);
 
   useEffect(() => {
     document.title = 'CFlux - Dashboard';
@@ -58,6 +59,23 @@ const Dashboard: React.FC = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, [currentEntry]);
+
+  useEffect(() => {
+    // Aktualisiere die Liste der angemeldeten User alle 30 Sekunden
+    const interval = setInterval(() => {
+      loadLoggedInUsers();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadLoggedInUsers = async () => {
+    try {
+      const users = await timeService.getLoggedInUsers();
+      setLoggedInUsers(users);
+    } catch (error) {
+      console.error('Error loading logged in users:', error);
+    }
+  };
 
   const updateWorkDuration = () => {
     if (!currentEntry || currentEntry.status === 'CLOCKED_OUT') {
@@ -147,6 +165,9 @@ const Dashboard: React.FC = () => {
       setReport(reportData);
       setPendingApprovalsCount(approvals.length);
       setUnreadMessagesCount(unreadCount);
+
+      // Load logged in users
+      await loadLoggedInUsers();
 
       // Load existing allocations for all time entries
       if (entries.length > 0) {
@@ -377,6 +398,58 @@ const Dashboard: React.FC = () => {
 
         {activeTab === 'timetracking' && (
         <>
+        <div className="card">
+          <h2>👥 Angemeldete Mitarbeiter ({loggedInUsers.length})</h2>
+          <div className="data-table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Seit</th>
+                  <th>Dauer</th>
+                  <th>Projekt</th>
+                  <th>Standort</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loggedInUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', color: '#999' }}>
+                      Aktuell ist niemand angemeldet
+                    </td>
+                  </tr>
+                ) : (
+                  loggedInUsers.map((loggedUser) => {
+                    const clockInTime = new Date(loggedUser.clockIn);
+                    const now = new Date();
+                    const durationMinutes = Math.floor((now.getTime() - clockInTime.getTime()) / (1000 * 60)) - (loggedUser.pauseMinutes || 0);
+                    const hours = Math.floor(durationMinutes / 60);
+                    const minutes = durationMinutes % 60;
+                    
+                    return (
+                      <tr key={loggedUser.userId}>
+                        <td>
+                          <strong>{loggedUser.firstName} {loggedUser.lastName}</strong>
+                        </td>
+                        <td>
+                          <span className={`status-badge ${loggedUser.status === 'ON_PAUSE' ? 'pending' : 'approved'}`}>
+                            {loggedUser.status === 'ON_PAUSE' ? '⏸️ Pause' : '✅ Aktiv'}
+                          </span>
+                        </td>
+                        <td>{clockInTime.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</td>
+                        <td>{hours}h {minutes}m</td>
+                        <td>{loggedUser.project?.name || '-'}</td>
+                        <td>{loggedUser.location?.name || '-'}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div className="card">
           <h2>Zeit erfassen</h2>
           

@@ -167,6 +167,7 @@ model User {
   assignedEHSTodos EHSTodo[] @relation("EHSTodoAssignedTo")
   createdEHSTodos EHSTodo[] @relation("EHSTodoCreatedBy")
   actionLogs      ActionLog[] @relation("ActionLogUser")
+  managedCostCenters CostCenter[] @relation("CostCenterManager")
   
   @@index([userGroupId])
   @@map("users")
@@ -318,6 +319,24 @@ model Article {
   @@map("articles")
 }
 
+model CostCenter {
+  id          String       @id @default(uuid())
+  code        String       @unique
+  name        String
+  description String?
+  managerId   String?      // Verantwortlicher (User)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  manager     User?        @relation("CostCenterManager", fields: [managerId], references: [id], onDelete: SetNull)
+  timeEntries TimeEntry[]
+  invoices    Invoice[]
+  orders      Order[]
+
+  @@map("cost_centers")
+}
+
 model Project {
   id          String       @id @default(uuid())
   name        String
@@ -371,6 +390,7 @@ model TimeEntry {
   userId      String
   projectId   String?
   locationId  String?
+  costCenterId String?
   clockIn     DateTime
   clockOut    DateTime?
   status      TimeEntryStatus  @default(CLOCKED_IN)
@@ -383,6 +403,7 @@ model TimeEntry {
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   project  Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  costCenter CostCenter? @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
   projectTimeAllocations ProjectTimeAllocation[]
 
   @@index([userId, clockIn])
@@ -564,6 +585,7 @@ model Invoice {
   invoiceDate   DateTime
   dueDate       DateTime
   customerId    String
+  costCenterId  String?
   templateId    String?
   status        InvoiceStatus @default(DRAFT)
   subtotal      Float         @default(0)
@@ -575,12 +597,14 @@ model Invoice {
   updatedAt     DateTime      @updatedAt
   
   customer      Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  costCenter    CostCenter?       @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
   template      InvoiceTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
   items         InvoiceItem[]
   reminders     Reminder[]
   workflowInstances WorkflowInstance[]
   
   @@index([customerId])
+  @@index([costCenterId])
   @@index([templateId])
   @@index([status])
   @@index([invoiceDate])
@@ -1600,7 +1624,7 @@ model Order {
   
   // Projekt-Zuordnung (optional)
   projectId       String?
-  costCenter      String?       // Kostenstelle
+  costCenterId    String?       // Kostenstelle
   
   isActive        Boolean       @default(true)
   createdAt       DateTime      @default(now())
@@ -1611,6 +1635,7 @@ model Order {
   approvedBy      User?         @relation("OrdersApproved", fields: [approvedById], references: [id])
   rejectedBy      User?         @relation("OrdersRejected", fields: [rejectedById], references: [id])
   project         Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  costCenter      CostCenter?   @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
   items           OrderItem[]
   deliveries      OrderDelivery[]
   

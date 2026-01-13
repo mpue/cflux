@@ -58,4 +58,9 @@ export const timeService = {
   deleteMyTimeEntry: async (id: string): Promise<void> => {
     await api.delete(`/time/my-entries/${id}`);
   },
+
+  getLoggedInUsers: async (): Promise<any[]> => {
+    const response = await api.get('/time/logged-in-users');
+    return response.data;
+  },
 };

@@ -494,43 +494,43 @@ const EHSDashboard: React.FC = () => {
       <div className="pyramid-card">
         <h2>EHS Pyramide</h2>
         <div className="pyramid">
-          <div className="pyramid-level level-fatalities" style={{ width: '10%' }}>
+          <div className="pyramid-level level-fatalities level-1">
             <span className="level-label">Todesfälle</span>
             <span className="level-count">{data.pyramid.fatalities}</span>
           </div>
-          <div className="pyramid-level level-ltis" style={{ width: '20%' }}>
+          <div className="pyramid-level level-ltis level-2">
             <span className="level-label">LTI (Lost Time Injuries)</span>
             <span className="level-count">{data.pyramid.ltis}</span>
           </div>
-          <div className="pyramid-level level-recordables" style={{ width: '30%' }}>
+          <div className="pyramid-level level-recordables level-3">
             <span className="level-label">Meldepflichtige Unfälle</span>
             <span className="level-count">{data.pyramid.recordables}</span>
           </div>
-          <div className="pyramid-level level-firstaid" style={{ width: '40%' }}>
+          <div className="pyramid-level level-firstaid level-4">
             <span className="level-label">Erste Hilfe</span>
             <span className="level-count">{data.pyramid.firstAids}</span>
           </div>
-          <div className="pyramid-level level-nearmiss" style={{ width: '50%' }}>
+          <div className="pyramid-level level-nearmiss level-5">
             <span className="level-label">Beinahe-Unfälle</span>
             <span className="level-count">{data.pyramid.nearMisses}</span>
           </div>
-          <div className="pyramid-level level-unsafe-behavior" style={{ width: '60%' }}>
+          <div className="pyramid-level level-unsafe-behavior level-6">
             <span className="level-label">Unsicheres Verhalten</span>
             <span className="level-count">{data.pyramid.unsafeBehaviors}</span>
           </div>
-          <div className="pyramid-level level-unsafe-condition" style={{ width: '70%' }}>
+          <div className="pyramid-level level-unsafe-condition level-7">
             <span className="level-label">Unsichere Zustände</span>
             <span className="level-count">{data.pyramid.unsafeConditions}</span>
           </div>
-          <div className="pyramid-level level-property" style={{ width: '80%' }}>
+          <div className="pyramid-level level-property level-8">
             <span className="level-label">Sachschäden</span>
             <span className="level-count">{data.pyramid.propertyDamages}</span>
           </div>
-          <div className="pyramid-level level-environment" style={{ width: '90%' }}>
+          <div className="pyramid-level level-environment level-9">
             <span className="level-label">Umweltvorfälle</span>
             <span className="level-count">{data.pyramid.environmentIncidents}</span>
           </div>
-          <div className="pyramid-level level-observations" style={{ width: '100%' }}>
+          <div className="pyramid-level level-observations level-10">
             <span className="level-label">Sicherheitsbeobachtungen</span>
             <span className="level-count">{data.pyramid.safetyObservations}</span>
           </div>

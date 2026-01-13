@@ -449,3 +449,58 @@ export const endPause = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to end pause' });
   }
 };
+
+export const getLoggedInUsers = async (req: AuthRequest, res: Response) => {
+  try {
+    const loggedInUsers = await prisma.timeEntry.findMany({
+      where: {
+        status: {
+          in: ['CLOCKED_IN', 'ON_PAUSE']
+        },
+        clockOut: null
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        project: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        location: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      },
+      orderBy: {
+        clockIn: 'desc'
+      }
+    });
+
+    const formattedUsers = loggedInUsers.map(entry => ({
+      userId: entry.user.id,
+      firstName: entry.user.firstName,
+      lastName: entry.user.lastName,
+      email: entry.user.email,
+      status: entry.status,
+      clockIn: entry.clockIn,
+      project: entry.project,
+      location: entry.location,
+      pauseMinutes: entry.pauseMinutes || 0
+    }));
+
+    res.json(formattedUsers);
+  } catch (error) {
+    console.error('Get logged in users error:', error);
+    res.status(500).json({ error: 'Failed to get logged in users' });
+  }
+};

@@ -26,6 +26,7 @@ import ComposeMessage from './pages/ComposeMessage';
 import IntranetPage from './pages/Intranet/IntranetPage';
 import { MediaPageWrapper } from './pages/MediaPageWrapper';
 import OrdersPage from './pages/OrdersPage';
+import CostCentersPage from './pages/CostCentersPage';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
@@ -224,6 +225,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <OrdersPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/cost-centers"
+              element={
+                <PrivateRoute adminOnly allowModuleAccess>
+                  <CostCentersPage />
                 </PrivateRoute>
               }
             />

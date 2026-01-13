@@ -46,6 +46,7 @@ import { TimeBookingsReport } from '../components/admin/TimeBookingsReport';
 import { UserTimeBookingsReport } from '../components/admin/UserTimeBookingsReport';
 import WorkflowsTab from '../components/admin/WorkflowsTab';
 import WorkflowActionsTab from '../components/admin/WorkflowActionsTab';
+import CostCentersTab from '../components/tabs/CostCentersTab';
 import SystemSettingsTab from '../components/admin/SystemSettingsTab';
 import ModulesPage from './ModulesPage';
 import ModulePermissionsPage from './ModulePermissionsPage';
@@ -53,7 +54,7 @@ import PayrollManagement from './PayrollManagement';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -205,6 +206,9 @@ const AdminDashboard: React.FC = () => {
           // Load suppliers needed for orders
           const orderSuppliers = await supplierService.getAllSuppliers();
           setSuppliers(orderSuppliers);
+          break;
+        case 'costCenters':
+          // Cost centers load their own data
           break;
       }
     } catch (error) {
@@ -486,6 +490,13 @@ const AdminDashboard: React.FC = () => {
                       label="💻 Geräte"
                     />
                   )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('cost_centers')) && (
+                    <TabButton
+                      active={activeTab === 'costCenters'}
+                      onClick={() => setActiveTab('costCenters')}
+                      label="💰 Kostenstellen"
+                    />
+                  )}
                 </>
               )}
             </div>
@@ -602,6 +613,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'locations' && <LocationsTab locations={locations} onUpdate={loadData} />}
             {activeTab === 'devices' && <DevicesTab devices={devices} users={users} onUpdate={loadData} />}
             {activeTab === 'travelExpenses' && <TravelExpensesTab expenses={travelExpenses} users={users} onUpdate={loadData} />}
+            {activeTab === 'costCenters' && <CostCentersTab onUpdate={loadData} />}
             {activeTab === 'customers' && <CustomersTab customers={customers} onUpdate={loadData} />}
             {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} onUpdate={loadData} />}
             {activeTab === 'orders' && <OrdersTab suppliers={suppliers} onUpdate={loadData} />}
