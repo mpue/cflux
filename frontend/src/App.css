@@ -427,6 +427,37 @@ input:-webkit-autofill:active {
   color: #fff3cd;
 }
 
+/* Inventory Status Badges */
+.status-badge.status-in-stock {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.status-low-stock {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.status-out-of-stock {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+[data-theme='dark'] .status-badge.status-in-stock {
+  background-color: #155724;
+  color: #d4edda;
+}
+
+[data-theme='dark'] .status-badge.status-low-stock {
+  background-color: #856404;
+  color: #fff3cd;
+}
+
+[data-theme='dark'] .status-badge.status-out-of-stock {
+  background-color: #721c24;
+  color: #f8d7da;
+}
+
 /* Hint/Info Text */
 .hint-text {
   font-size: 14px;
