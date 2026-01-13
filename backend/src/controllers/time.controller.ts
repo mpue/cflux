@@ -112,6 +112,16 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
     await updateOvertimeBalance(userId, clockOutTime);
     console.log(`[COMPLIANCE] Compliance checks completed`);
 
+    // Budget-Update nach Clock-Out (async, blocking nicht erforderlich)
+    try {
+      const { updateBudgetFromTimeEntry } = require('../services/budgetUpdate.service');
+      updateBudgetFromTimeEntry(updatedEntry.id).catch((budgetError: any) => {
+        console.error('[BUDGET] Failed to update budget from time entry:', budgetError);
+      });
+    } catch (budgetImportError) {
+      console.error('[BUDGET] Failed to import budget service:', budgetImportError);
+    }
+
     // Trigger timeentry.clockout action
     try {
       const duration = (clockOutTime.getTime() - timeEntry.clockIn.getTime()) / 1000; // seconds

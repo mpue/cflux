@@ -131,6 +131,7 @@ model User {
   canton             String?  @default("ZH") // ZH, BE, AG, BS, SG, etc.
   exemptFromTracking Boolean  @default(false) // Zeiterfassung nicht nötig (leitende Angestellte)
   contractHours      Float?   // Vertragliche Wochenstunden (für Überstunden-Berechnung)
+  hourlyRate         Float?   // Stundensatz für Budget-Berechnung (CHF/h)
   
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
@@ -381,6 +382,7 @@ model Project {
   description String?
   customerId  String?
   isActive    Boolean      @default(true)
+  defaultHourlyRate Float?   // Default-Stundensatz für dieses Projekt (CHF/h)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
@@ -1156,6 +1158,9 @@ model SystemSettings {
   
   // Default Workflows
   travelExpenseDefaultWorkflowId String?
+  
+  // Budget & Billing
+  defaultHourlyRate     Float     @default(100.0)  // Globaler Default-Stundensatz (CHF/h)
   
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt

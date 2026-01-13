@@ -169,6 +169,14 @@ async function seedModules() {
       route: '/project-budget',
       sortOrder: 19,
     },
+    {
+      name: 'Projekt-Reports',
+      key: 'project_reports',
+      description: 'Umfassende Projekt-Berichte und Analysen',
+      icon: 'assessment',
+      route: '/project-reports',
+      sortOrder: 20,
+    },
   ];
 
   for (const module of modules) {

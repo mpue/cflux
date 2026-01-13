@@ -39,6 +39,7 @@ import documentNodeRoutes from './routes/documentNode.routes';
 import documentNodeAttachmentRoutes from './routes/documentNodeAttachment.routes';
 import mediaRoutes from './routes/media.routes';
 import actionRoutes from './routes/action.routes';
+import projectReportsRoutes from './routes/projectReports.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -106,6 +107,7 @@ app.use('/api/intranet', documentNodeRoutes);
 app.use('/api/document-nodes', documentNodeAttachmentRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/actions', actionRoutes);
+app.use('/api/project-reports', projectReportsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
