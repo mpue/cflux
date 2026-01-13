@@ -153,6 +153,22 @@ async function seedModules() {
       route: '/cost-centers',
       sortOrder: 17,
     },
+    {
+      name: 'Lagerbestand',
+      key: 'inventory',
+      description: 'Lagerverwaltung und Bestandsübersicht',
+      icon: 'warehouse',
+      route: '/inventory',
+      sortOrder: 18,
+    },
+    {
+      name: 'Projekt-Budget',
+      key: 'project_budget',
+      description: 'Projektbudget-Planung und -Überwachung',
+      icon: 'account_balance_wallet',
+      route: '/project-budget',
+      sortOrder: 19,
+    },
   ];
 
   for (const module of modules) {

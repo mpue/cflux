@@ -48,6 +48,7 @@ import WorkflowsTab from '../components/admin/WorkflowsTab';
 import WorkflowActionsTab from '../components/admin/WorkflowActionsTab';
 import CostCentersTab from '../components/tabs/CostCentersTab';
 import InventoryTab from '../components/tabs/InventoryTab';
+import ProjectBudgetTab from '../components/tabs/ProjectBudgetTab';
 import SystemSettingsTab from '../components/admin/SystemSettingsTab';
 import ModulesPage from './ModulesPage';
 import ModulePermissionsPage from './ModulePermissionsPage';
@@ -55,7 +56,7 @@ import PayrollManagement from './PayrollManagement';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -213,6 +214,9 @@ const AdminDashboard: React.FC = () => {
           break;
         case 'inventory':
           // Inventory loads its own data
+          break;
+        case 'projectBudget':
+          // Project budget loads its own data
           break;
       }
     } catch (error) {
@@ -508,6 +512,13 @@ const AdminDashboard: React.FC = () => {
                       label="📦 Lagerbestand"
                     />
                   )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('project_budget')) && (
+                    <TabButton
+                      active={activeTab === 'projectBudget'}
+                      onClick={() => setActiveTab('projectBudget')}
+                      label="💼 Projekt-Budget"
+                    />
+                  )}
                 </>
               )}
             </div>
@@ -626,6 +637,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'travelExpenses' && <TravelExpensesTab expenses={travelExpenses} users={users} onUpdate={loadData} />}
             {activeTab === 'costCenters' && <CostCentersTab onUpdate={loadData} />}
             {activeTab === 'inventory' && <InventoryTab onUpdate={loadData} />}
+            {activeTab === 'projectBudget' && <ProjectBudgetTab />}
             {activeTab === 'customers' && <CustomersTab customers={customers} onUpdate={loadData} />}
             {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} onUpdate={loadData} />}
             {activeTab === 'orders' && <OrdersTab suppliers={suppliers} onUpdate={loadData} />}

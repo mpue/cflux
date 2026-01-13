@@ -168,6 +168,8 @@ model User {
   createdEHSTodos EHSTodo[] @relation("EHSTodoCreatedBy")
   actionLogs      ActionLog[] @relation("ActionLogUser")
   managedCostCenters CostCenter[] @relation("CostCenterManager")
+  inventoryMovements InventoryMovement[] @relation("InventoryMovements")
+  createdProjectBudgets ProjectBudget[] @relation("ProjectBudgetCreatedBy")
   
   @@index([userGroupId])
   @@map("users")
@@ -315,6 +317,7 @@ model Article {
   articleGroup    ArticleGroup? @relation(fields: [articleGroupId], references: [id], onDelete: SetNull)
   invoiceItems    InvoiceItem[]
   orderItems      OrderItem[]
+  inventoryItem   InventoryItem?
 
   @@map("articles")
 }
@@ -333,8 +336,43 @@ model CostCenter {
   timeEntries TimeEntry[]
   invoices    Invoice[]
   orders      Order[]
+  projectBudgets ProjectBudget[]
+  projectBudgetItems ProjectBudgetItem[]
 
   @@map("cost_centers")
+}
+
+model InventoryItem {
+  id              String        @id @default(uuid())
+  articleId       String        @unique
+  quantity        Float         @default(0)
+  minQuantity     Float         @default(0)  // Mindestbestand für Warnungen
+  location        String?                     // Lagerort
+  notes           String?
+  lastRestocked   DateTime?                   // Letzte Wiederbefüllung
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  article         Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  movements       InventoryMovement[]
+  budgetItems     ProjectBudgetItem[]
+
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id              String        @id @default(uuid())
+  inventoryItemId String
+  type            String        // IN (Eingang), OUT (Ausgang), ADJUSTMENT (Korrektur)
+  quantity        Float
+  reason          String?       // Grund für Bewegung
+  userId          String        // Wer hat die Bewegung durchgeführt
+  createdAt       DateTime      @default(now())
+
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  user            User          @relation("InventoryMovements", fields: [userId], references: [id])
+
+  @@map("inventory_movements")
 }
 
 model Project {
@@ -354,6 +392,7 @@ model Project {
   orders      Order[]
   ehsMonthlyData EHSMonthlyData[]
   ehsTodos    EHSTodo[]
+  budget      ProjectBudget?
 
   @@map("projects")
 }
@@ -1848,5 +1887,98 @@ model EHSTodo {
   @@index([priority])
   @@index([dueDate])
   @@map("ehs_todos")
+}
+
+// ============================================
+// PROJEKT-BUDGET MODUL
+// ============================================
+
+model ProjectBudget {
+  id                String   @id @default(uuid())
+  projectId         String   @unique
+  costCenterId      String?
+  
+  // Budget-Informationen
+  budgetName        String
+  totalBudget       Float    @default(0)
+  fiscalYear        Int
+  startDate         DateTime
+  endDate           DateTime
+  
+  // Berechnete Werte (werden aus Items aggregiert)
+  plannedCosts      Float    @default(0)  // Summe aller geplanten Kosten
+  actualCosts       Float    @default(0)  // Summe aller tatsächlichen Kosten
+  remainingBudget   Float    @default(0)  // totalBudget - actualCosts
+  budgetUtilization Float    @default(0)  // (actualCosts / totalBudget) * 100
+  
+  status            String   @default("PLANNING") // PLANNING, ACTIVE, COMPLETED, EXCEEDED
+  
+  notes             String?
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdById       String
+  
+  // Relationen
+  project           Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  costCenter        CostCenter?     @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  createdBy         User            @relation("ProjectBudgetCreatedBy", fields: [createdById], references: [id])
+  items             ProjectBudgetItem[]
+  
+  @@index([projectId])
+  @@index([costCenterId])
+  @@index([status])
+  @@index([fiscalYear])
+  @@map("project_budgets")
+}
+
+model ProjectBudgetItem {
+  id                String   @id @default(uuid())
+  budgetId          String
+  
+  // Kategorisierung
+  category          String   // LABOR, MATERIALS, INVENTORY, EXTERNAL_SERVICES, OVERHEAD, OTHER
+  itemName          String
+  description       String?
+  
+  // Verknüpfungen zu anderen Modulen
+  inventoryItemId   String?  // Verknüpfung zu Lagerverwaltung
+  costCenterId      String?  // Kostenstelle für diesen Posten
+  
+  // Budget-Werte
+  plannedQuantity   Float    @default(0)
+  actualQuantity    Float    @default(0)
+  unitPrice         Float    @default(0)
+  plannedCost       Float    @default(0)  // plannedQuantity * unitPrice
+  actualCost        Float    @default(0)  // actualQuantity * unitPrice oder aus TimeEntry
+  
+  // Zeiterfassung (für LABOR Kategorie)
+  plannedHours      Float?   // Geplante Arbeitsstunden
+  actualHours       Float?   // Tatsächliche Stunden (aus TimeEntry)
+  hourlyRate        Float?   // Stundensatz
+  
+  // Status und Tracking
+  status            String   @default("PLANNED") // PLANNED, IN_PROGRESS, COMPLETED, CANCELLED
+  variance          Float    @default(0)  // actualCost - plannedCost
+  variancePercent   Float    @default(0)  // (variance / plannedCost) * 100
+  
+  notes             String?
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relationen
+  budget            ProjectBudget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  inventoryItem     InventoryItem?  @relation(fields: [inventoryItemId], references: [id], onDelete: SetNull)
+  costCenter        CostCenter?     @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  
+  @@index([budgetId])
+  @@index([category])
+  @@index([inventoryItemId])
+  @@index([costCenterId])
+  @@index([status])
+  @@map("project_budget_items")
 }
 

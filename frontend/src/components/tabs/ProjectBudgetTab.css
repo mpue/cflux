@@ -1,0 +1,400 @@
+.project-budget-tab {
+  padding: 20px;
+}
+
+.tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.tab-header h2 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(600px, 1fr));
+  gap: 24px;
+}
+
+.budget-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.budget-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.budget-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.budget-card-header h3 {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+  font-size: 1.3em;
+}
+
+.project-name {
+  color: #7f8c8d;
+  margin: 0;
+  font-size: 0.95em;
+}
+
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-planning {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-active {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.status-completed {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.status-exceeded {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.budget-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.stat-label {
+  font-size: 0.85em;
+  color: #2c3e50 !important;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: #2c3e50 !important;
+}
+
+.stat-value.negative {
+  color: #dc3545;
+}
+
+.stat-value.positive {
+  color: #28a745;
+}
+
+.budget-utilization {
+  margin: 20px 0;
+}
+
+.utilization-bar {
+  height: 24px;
+  background: #e9ecef;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.utilization-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 12px;
+}
+
+.utilization-text {
+  display: block;
+  text-align: center;
+  font-weight: 600;
+  color: #495057;
+}
+
+.budget-meta {
+  display: flex;
+  gap: 16px;
+  margin: 15px 0;
+  padding: 10px 0;
+  border-top: 1px solid #e9ecef;
+  font-size: 0.9em;
+  color: #6c757d;
+}
+
+.budget-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #e9ecef;
+}
+
+.budget-actions button {
+  flex: 1;
+}
+
+.budget-items {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid #e9ecef;
+}
+
+.budget-items h4 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-size: 1.1em;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+}
+
+.items-table th {
+  text-align: left;
+  padding: 10px;
+  background: #f8f9fa;
+  color: #495057;
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.items-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.items-table tr:hover {
+  background: #f8f9fa;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: #e7f3ff;
+  color: #0066cc;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.items-table small {
+  color: #6c757d;
+  display: block;
+  margin-top: 4px;
+}
+
+.items-table .positive {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.items-table .negative {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.items-table .btn-sm {
+  padding: 4px 8px;
+  font-size: 0.85em;
+  margin-right: 5px;
+  border: none;
+  background: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.items-table .btn-sm:hover {
+  background: #0056b3;
+}
+
+.items-table .btn-sm.btn-danger {
+  background: #dc3545;
+}
+
+.items-table .btn-sm.btn-danger:hover {
+  background: #bd2130;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 1em;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #545b62;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-danger:hover {
+  background: #bd2130;
+}
+
+.alert {
+  padding: 12px 20px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.alert-error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.alert-success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+/* Dark Mode Support */
+[data-theme='dark'] .project-budget-tab {
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+[data-theme='dark'] .tab-header h2 {
+  color: #e0e0e0;
+}
+
+[data-theme='dark'] .budget-card {
+  background: #2d2d2d;
+  color: #e0e0e0;
+}
+
+[data-theme='dark'] .budget-card-header h3,
+[data-theme='dark'] .stat-value {
+  color: #e0e0e0;
+}
+
+[data-theme='dark'] .stat {
+  background: #3a3a3a;
+}
+
+[data-theme='dark'] .items-table th {
+  background: #3a3a3a;
+  color: #e0e0e0;
+}
+
+[data-theme='dark'] .items-table tr:hover {
+  background: #3a3a3a;
+}
+
+[data-theme='dark'] .form-group input,
+[data-theme='dark'] .form-group select,
+[data-theme='dark'] .form-group textarea {
+  background: #3a3a3a;
+  color: #e0e0e0;
+  border-color: #4a4a4a;
+}
