@@ -278,14 +278,6 @@
   margin-bottom: 0;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #333;
-  font-size: 14px;
-}
-
 .form-group textarea {
   width: 100%;
   padding: 12px;

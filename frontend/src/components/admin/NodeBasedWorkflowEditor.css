@@ -233,12 +233,6 @@
   gap: 8px;
 }
 
-.form-group label {
-  font-weight: 600;
-  font-size: 13px;
-  color: #555;
-}
-
 .form-group input[type="text"],
 .form-group input[type="number"],
 .form-group input[type="date"],

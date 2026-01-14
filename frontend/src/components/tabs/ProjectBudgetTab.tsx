@@ -42,6 +42,10 @@ const ProjectBudgetTab: React.FC = () => {
     unitPrice: '',
     plannedHours: '',
     hourlyRate: '',
+    actualQuantity: '',
+    actualUnitPrice: '',
+    actualHours: '',
+    actualHourlyRate: '',
     notes: '',
   });
 
@@ -129,11 +133,26 @@ const ProjectBudgetTab: React.FC = () => {
         costCenterId: itemFormData.costCenterId || undefined,
         plannedQuantity: itemFormData.plannedQuantity ? parseFloat(itemFormData.plannedQuantity) : undefined,
         unitPrice: itemFormData.unitPrice ? parseFloat(itemFormData.unitPrice) : undefined,
-        plannedCost: itemFormData.plannedQuantity && itemFormData.unitPrice 
-          ? parseFloat(itemFormData.plannedQuantity) * parseFloat(itemFormData.unitPrice)
-          : 0,
+        plannedCost: itemFormData.category === 'LABOR'
+          ? (itemFormData.plannedHours && itemFormData.hourlyRate
+              ? parseFloat(itemFormData.plannedHours) * parseFloat(itemFormData.hourlyRate)
+              : 0)
+          : (itemFormData.plannedQuantity && itemFormData.unitPrice 
+              ? parseFloat(itemFormData.plannedQuantity) * parseFloat(itemFormData.unitPrice)
+              : 0),
         plannedHours: itemFormData.plannedHours ? parseFloat(itemFormData.plannedHours) : undefined,
         hourlyRate: itemFormData.hourlyRate ? parseFloat(itemFormData.hourlyRate) : undefined,
+        actualQuantity: itemFormData.actualQuantity ? parseFloat(itemFormData.actualQuantity) : undefined,
+        actualUnitPrice: itemFormData.actualUnitPrice ? parseFloat(itemFormData.actualUnitPrice) : undefined,
+        actualCost: itemFormData.category === 'LABOR'
+          ? (itemFormData.actualHours && (itemFormData.actualHourlyRate || itemFormData.hourlyRate)
+              ? parseFloat(itemFormData.actualHours) * parseFloat(itemFormData.actualHourlyRate || itemFormData.hourlyRate)
+              : 0)
+          : (itemFormData.actualQuantity && (itemFormData.actualUnitPrice || itemFormData.unitPrice)
+              ? parseFloat(itemFormData.actualQuantity) * parseFloat(itemFormData.actualUnitPrice || itemFormData.unitPrice)
+              : 0),
+        actualHours: itemFormData.actualHours ? parseFloat(itemFormData.actualHours) : undefined,
+        actualHourlyRate: itemFormData.actualHourlyRate ? parseFloat(itemFormData.actualHourlyRate) : undefined,
         notes: itemFormData.notes || undefined,
       };
       await projectBudgetService.addBudgetItem(selectedBudget.id, itemData as any);
@@ -159,11 +178,26 @@ const ProjectBudgetTab: React.FC = () => {
         costCenterId: itemFormData.costCenterId || undefined,
         plannedQuantity: itemFormData.plannedQuantity ? parseFloat(itemFormData.plannedQuantity) : undefined,
         unitPrice: itemFormData.unitPrice ? parseFloat(itemFormData.unitPrice) : undefined,
-        plannedCost: itemFormData.plannedQuantity && itemFormData.unitPrice 
-          ? parseFloat(itemFormData.plannedQuantity) * parseFloat(itemFormData.unitPrice)
-          : undefined,
+        plannedCost: itemFormData.category === 'LABOR'
+          ? (itemFormData.plannedHours && itemFormData.hourlyRate
+              ? parseFloat(itemFormData.plannedHours) * parseFloat(itemFormData.hourlyRate)
+              : undefined)
+          : (itemFormData.plannedQuantity && itemFormData.unitPrice 
+              ? parseFloat(itemFormData.plannedQuantity) * parseFloat(itemFormData.unitPrice)
+              : undefined),
         plannedHours: itemFormData.plannedHours ? parseFloat(itemFormData.plannedHours) : undefined,
         hourlyRate: itemFormData.hourlyRate ? parseFloat(itemFormData.hourlyRate) : undefined,
+        actualQuantity: itemFormData.actualQuantity ? parseFloat(itemFormData.actualQuantity) : undefined,
+        actualUnitPrice: itemFormData.actualUnitPrice ? parseFloat(itemFormData.actualUnitPrice) : undefined,
+        actualCost: itemFormData.category === 'LABOR'
+          ? (itemFormData.actualHours && (itemFormData.actualHourlyRate || itemFormData.hourlyRate)
+              ? parseFloat(itemFormData.actualHours) * parseFloat(itemFormData.actualHourlyRate || itemFormData.hourlyRate)
+              : undefined)
+          : (itemFormData.actualQuantity && (itemFormData.actualUnitPrice || itemFormData.unitPrice)
+              ? parseFloat(itemFormData.actualQuantity) * parseFloat(itemFormData.actualUnitPrice || itemFormData.unitPrice)
+              : undefined),
+        actualHours: itemFormData.actualHours ? parseFloat(itemFormData.actualHours) : undefined,
+        actualHourlyRate: itemFormData.actualHourlyRate ? parseFloat(itemFormData.actualHourlyRate) : undefined,
         notes: itemFormData.notes || undefined,
       };
       await projectBudgetService.updateBudgetItem(editingItem.id, itemData as any);
@@ -214,10 +248,14 @@ const ProjectBudgetTab: React.FC = () => {
         description: item.description || '',
         inventoryItemId: item.inventoryItemId || '',
         costCenterId: item.costCenterId || '',
-        plannedQuantity: item.plannedQuantity.toString(),
-        unitPrice: item.unitPrice.toString(),
+        plannedQuantity: item.plannedQuantity?.toString() || '',
+        unitPrice: item.unitPrice?.toString() || '',
         plannedHours: item.plannedHours?.toString() || '',
         hourlyRate: item.hourlyRate?.toString() || '',
+        actualQuantity: item.actualQuantity?.toString() || '',
+        actualUnitPrice: item.actualUnitPrice?.toString() || '',
+        actualHours: item.actualHours?.toString() || '',
+        actualHourlyRate: item.actualHourlyRate?.toString() || '',
         notes: item.notes || '',
       });
     }
@@ -249,6 +287,10 @@ const ProjectBudgetTab: React.FC = () => {
       unitPrice: '',
       plannedHours: '',
       hourlyRate: '',
+      actualQuantity: '',
+      actualUnitPrice: '',
+      actualHours: '',
+      actualHourlyRate: '',
       notes: '',
     });
     setEditingItem(null);
@@ -620,6 +662,31 @@ const ProjectBudgetTab: React.FC = () => {
                   />
                 </div>
               </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Tatsächliche Stunden</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={itemFormData.actualHours}
+                    onChange={(e) =>
+                      setItemFormData({ ...itemFormData, actualHours: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Tatsächlicher Stundensatz (CHF)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={itemFormData.actualHourlyRate}
+                    onChange={(e) =>
+                      setItemFormData({ ...itemFormData, actualHourlyRate: e.target.value })
+                    }
+                    placeholder="Wenn leer, wird geplanter Satz verwendet"
+                  />
+                </div>
+              </div>
             </>
           ) : (
             <>
@@ -644,6 +711,31 @@ const ProjectBudgetTab: React.FC = () => {
                     onChange={(e) =>
                       setItemFormData({ ...itemFormData, unitPrice: e.target.value })
                     }
+                  />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Tatsächliche Menge</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={itemFormData.actualQuantity}
+                    onChange={(e) =>
+                      setItemFormData({ ...itemFormData, actualQuantity: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Tatsächlicher Einzelpreis (CHF)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={itemFormData.actualUnitPrice}
+                    onChange={(e) =>
+                      setItemFormData({ ...itemFormData, actualUnitPrice: e.target.value })
+                    }
+                    placeholder="Wenn leer, wird geplanter Preis verwendet"
                   />
                 </div>
               </div>

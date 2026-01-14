@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Project, User } from '../../types';
+import { Project, User, Customer } from '../../types';
 import { projectService } from '../../services/project.service';
 import { userService } from '../../services/user.service';
+import { getAllCustomers } from '../../services/customerService';
 import { BaseModal } from '../common/BaseModal';
 
 interface ProjectsTabProps {
@@ -52,7 +53,32 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({ projects, onUpdate }) 
                   <span style={{ color: '#999' }}>Keine</span>
                 )}
               </td>
-              <td>{project.isActive ? 'Aktiv' : 'Inaktiv'}</td>
+              <td>
+                <span style={{ 
+                  display: 'inline-block',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  backgroundColor: 
+                    project.status === 'ACTIVE' ? '#17a2b8' :
+                    project.status === 'COMPLETED' ? '#28a745' :
+                    project.status === 'ON_HOLD' ? '#dc3545' :
+                    project.status === 'CANCELLED' ? '#6c757d' :
+                    '#ffc107',
+                  color: project.status === 'PLANNING' ? '#000' : '#fff'
+                }}>
+                  {project.status === 'PLANNING' ? 'Planung' :
+                   project.status === 'ACTIVE' ? 'Aktiv' :
+                   project.status === 'ON_HOLD' ? 'Pausiert' :
+                   project.status === 'COMPLETED' ? 'Abgeschlossen' :
+                   project.status === 'CANCELLED' ? 'Abgebrochen' :
+                   'Unbekannt'}
+                </span>
+                {!project.isActive && (
+                  <span style={{ marginLeft: '8px', color: '#999', fontSize: '12px' }}>(Inaktiv)</span>
+                )}
+              </td>
               <td>
                 <button
                   className="btn btn-primary"
@@ -131,11 +157,28 @@ const ProjectModal: React.FC<{
   onClose: () => void;
   onSave: (data: any) => Promise<void>;
 }> = ({ project, onClose, onSave }) => {
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [formData, setFormData] = useState({
     name: project?.name || '',
     description: project?.description || '',
     isActive: project?.isActive ?? true,
+    status: project?.status || 'PLANNING',
+    customerId: project?.customerId || '',
+    defaultHourlyRate: project?.defaultHourlyRate?.toString() || '',
   });
+
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  const loadCustomers = async () => {
+    try {
+      const data = await getAllCustomers(undefined, true);
+      setCustomers(data);
+    } catch (error) {
+      console.error('Error loading customers:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,12 +200,56 @@ const ProjectModal: React.FC<{
           </div>
 
           <div className="form-group">
+            <label>Kunde</label>
+            <select
+              value={formData.customerId}
+              onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
+            >
+              <option value="">Kein Kunde</option>
+              {customers.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
             <label>Beschreibung</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
             />
+          </div>
+
+          <div className="form-group">
+            <label>Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+            >
+              <option value="PLANNING">Planung</option>
+              <option value="ACTIVE">Aktiv</option>
+              <option value="ON_HOLD">Pausiert</option>
+              <option value="COMPLETED">Abgeschlossen</option>
+              <option value="CANCELLED">Abgebrochen</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Standard-Stundensatz (CHF/h)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.defaultHourlyRate}
+              onChange={(e) => setFormData({ ...formData, defaultHourlyRate: e.target.value })}
+              placeholder="z.B. 120"
+            />
+            <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+              Wird für Kostenkalkulation in Reports verwendet
+            </small>
           </div>
 
           <div className="form-group">

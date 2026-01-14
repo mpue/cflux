@@ -301,14 +301,6 @@
   margin-bottom: 20px;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: var(--text-primary, #1a1a1a);
-  font-size: 14px;
-}
-
 .form-group input,
 .form-group textarea,
 .form-group select {

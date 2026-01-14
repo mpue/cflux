@@ -329,13 +329,6 @@
   margin-bottom: 15px;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-  font-size: 14px;
-}
-
 .form-group input,
 .form-group select {
   width: 100%;

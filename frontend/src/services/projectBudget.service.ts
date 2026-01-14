@@ -36,11 +36,13 @@ export interface ProjectBudgetItem {
   plannedQuantity: number;
   actualQuantity: number;
   unitPrice: number;
+  actualUnitPrice?: number;
   plannedCost: number;
   actualCost: number;
   plannedHours?: number;
   actualHours?: number;
   hourlyRate?: number;
+  actualHourlyRate?: number;
   status: string;
   variance: number;
   variancePercent: number;

@@ -117,14 +117,6 @@
   margin-bottom: 0;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: var(--text-primary);
-  font-size: 14px;
-}
-
 .form-group input[type="text"],
 .form-group textarea,
 .form-group select {

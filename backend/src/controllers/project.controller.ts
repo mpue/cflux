@@ -54,12 +54,15 @@ export const getMyProjects = async (req: AuthRequest, res: Response) => {
 
 export const createProject = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, status, customerId, defaultHourlyRate } = req.body;
 
     const project = await prisma.project.create({
       data: {
         name,
-        description
+        description,
+        status: status || 'PLANNING',
+        customerId: customerId || null,
+        defaultHourlyRate: defaultHourlyRate ? parseFloat(defaultHourlyRate) : null
       }
     });
 
@@ -73,14 +76,17 @@ export const createProject = async (req: AuthRequest, res: Response) => {
 export const updateProject = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, isActive } = req.body;
+    const { name, description, isActive, status, customerId, defaultHourlyRate } = req.body;
 
     const project = await prisma.project.update({
       where: { id },
       data: {
         name,
         description,
-        isActive
+        isActive,
+        ...(status && { status }),
+        customerId: customerId || null,
+        defaultHourlyRate: defaultHourlyRate ? parseFloat(defaultHourlyRate) : null
       }
     });
 

@@ -373,14 +373,6 @@
   margin-bottom: 20px;
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #333;
-  font-size: 14px;
-}
-
 .form-group input,
 .form-group select,
 .form-group textarea {

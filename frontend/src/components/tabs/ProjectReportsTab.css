@@ -149,6 +149,69 @@
 /* Summary Cards */
 .summary-cards {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+/* Charts Section */
+.charts-section {
+  margin: 30px 0;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.chart-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.chart-card-wide {
+  grid-column: span 2;
+}
+
+.chart-card h3 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .chart-card {
+  background: #2d2d2d;
+  color: #e0e0e0;
+}
+
+[data-theme='dark'] .chart-card h3 {
+  color: #e0e0e0;
+}
+
+/* Responsive Charts */
+@media (max-width: 1200px) {
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .chart-card-wide {
+    grid-column: span 1;
+  }
+}
+
+.summary-cards {
+  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px;
   margin-bottom: 32px;
@@ -242,41 +305,47 @@
 
 .status-badge {
   display: inline-block;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 12px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 6px;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .status-planning {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: #ffc107;
+  color: #000000;
 }
 
 .status-active {
-  background-color: #d1ecf1;
-  color: #0c5460;
+  background-color: #17a2b8;
+  color: #ffffff;
 }
 
 .status-completed {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: #28a745;
+  color: #ffffff;
 }
 
 .status-on_hold {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #dc3545;
+  color: #ffffff;
+}
+
+.status-cancelled {
+  background-color: #6c757d;
+  color: #ffffff;
 }
 
 .status-over_budget {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #dc3545;
+  color: #ffffff;
 }
 
 .status-unknown {
-  background-color: #e2e3e5;
-  color: #383d41;
+  background-color: #6c757d;
+  color: #ffffff;
 }
 
 .utilization-bar {

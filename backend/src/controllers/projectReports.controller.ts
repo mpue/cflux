@@ -43,14 +43,14 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
         },
         budget: {
           where: { isActive: true },
-          select: {
-            id: true,
-            totalBudget: true,
-            plannedCosts: true,
-            actualCosts: true,
-            remainingBudget: true,
-            budgetUtilization: true,
-            status: true,
+          include: {
+            items: {
+              where: { isActive: true },
+              select: {
+                plannedCost: true,
+                actualCost: true,
+              },
+            },
           },
         },
         assignments: {
@@ -104,7 +104,7 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
           },
         });
 
-        // Stunden berechnen
+        // Stunden und Kosten berechnen
         let totalHours = 0;
         const userHours: Record<string, number> = {};
 
@@ -125,11 +125,16 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
           }
         }
 
+        // Kosten aus Zeiteinträgen berechnen (wenn Stundensatz vorhanden)
+        const hourlyRate = project.defaultHourlyRate || 0;
+        const timeCosts = hourlyRate > 0 ? totalHours * hourlyRate : 0;
+
         return {
           id: project.id,
           name: project.name,
           description: project.description,
           isActive: project.isActive,
+          status: project.status,
           customer: project.customer
             ? {
                 id: project.customer.id,
@@ -137,15 +142,38 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
               }
             : null,
           budget: project.budget
-            ? {
-                totalBudget: project.budget.totalBudget,
-                plannedCosts: project.budget.plannedCosts,
-                actualCosts: project.budget.actualCosts,
-                remainingBudget: project.budget.remainingBudget,
-                utilization: project.budget.budgetUtilization,
-                status: project.budget.status,
-              }
-            : null,
+            ? (() => {
+                // Budget-Werte aus Items neu berechnen
+                const plannedCosts = project.budget.items?.reduce((sum, item) => sum + item.plannedCost, 0) || 0;
+                const budgetItemCosts = project.budget.items?.reduce((sum, item) => sum + item.actualCost, 0) || 0;
+                
+                // Kosten kombinieren: Budget-Items + Zeitkosten
+                const actualCosts = budgetItemCosts + timeCosts;
+                const remainingBudget = project.budget.totalBudget - actualCosts;
+                const utilization = project.budget.totalBudget > 0 
+                  ? (actualCosts / project.budget.totalBudget) * 100 
+                  : 0;
+
+                return {
+                  totalBudget: project.budget.totalBudget,
+                  plannedCosts,
+                  actualCosts,
+                  remainingBudget,
+                  utilization,
+                  status: project.budget.status,
+                };
+              })()
+            : timeCosts > 0 
+              ? {
+                  // Kein Budget definiert, aber Zeitkosten vorhanden
+                  totalBudget: 0,
+                  plannedCosts: 0,
+                  actualCosts: timeCosts,
+                  remainingBudget: -timeCosts,
+                  utilization: 0,
+                  status: 'NO_BUDGET',
+                }
+              : null,
           timeTracking: {
             totalHours: Math.round(totalHours * 100) / 100,
             userCount: Object.keys(userHours).length,

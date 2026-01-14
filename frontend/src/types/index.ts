@@ -57,12 +57,16 @@ export interface User {
   createdAt: string;
 }
 
+export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
+
 export interface Project {
   id: string;
   name: string;
   description?: string;
   customerId?: string;
   isActive: boolean;
+  status?: ProjectStatus;
+  defaultHourlyRate?: number;
   createdAt: string;
   updatedAt: string;
   customer?: Customer;

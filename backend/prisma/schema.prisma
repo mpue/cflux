@@ -376,12 +376,21 @@ model InventoryMovement {
   @@map("inventory_movements")
 }
 
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
 model Project {
   id          String       @id @default(uuid())
   name        String
   description String?
   customerId  String?
   isActive    Boolean      @default(true)
+  status      ProjectStatus @default(PLANNING)
   defaultHourlyRate Float?   // Default-Stundensatz für dieses Projekt (CHF/h)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt

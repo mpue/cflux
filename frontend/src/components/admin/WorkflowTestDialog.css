@@ -141,10 +141,3 @@
 .workflow-test-dialog .form-group {
   margin-bottom: 20px;
 }
-
-.workflow-test-dialog .form-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-  color: #333;
-}
