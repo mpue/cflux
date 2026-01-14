@@ -1,0 +1,1998 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum TimeEntryStatus {
+  CLOCKED_IN
+  ON_PAUSE
+  CLOCKED_OUT
+}
+
+enum AbsenceType {
+  VACATION
+  SICK_LEAVE
+  PERSONAL_LEAVE
+  UNPAID_LEAVE
+  OTHER
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TravelExpenseType {
+  FLIGHT
+  TRAIN
+  CAR
+  TAXI
+  ACCOMMODATION
+  MEALS
+  OTHER
+}
+
+enum ViolationType {
+  REST_TIME
+  MAX_WEEKLY_HOURS
+  MAX_DAILY_HOURS
+  MISSING_PAUSE
+  OVERTIME_LIMIT
+  NIGHT_WORK
+  SUNDAY_WORK
+}
+
+enum ViolationSeverity {
+  WARNING
+  CRITICAL
+}
+
+enum MessageType {
+  USER
+  SYSTEM
+  WORKFLOW
+}
+
+enum MessageFolder {
+  INBOX
+  SENT
+  TRASH
+}
+
+enum DocumentContentType {
+  MARKDOWN
+  HTML
+  LINK
+  CONTAINER
+  PLAIN_TEXT
+}
+
+enum DocumentPermissionLevel {
+  READ
+  WRITE
+  ADMIN
+}
+
+model User {
+  id            String          @id @default(uuid())
+  email         String          @unique
+  password      String
+  firstName     String
+  lastName      String
+  role          UserRole        @default(USER)
+  isActive      Boolean         @default(true)
+  requiresPasswordChange Boolean @default(false)
+  vacationDays  Float           @default(30)
+  userGroupId   String?         // Deprecated: wird für Rückwärtskompatibilität beibehalten
+  
+  // Personalien
+  dateOfBirth   DateTime?
+  placeOfBirth  String?
+  nationality   String?
+  
+  // Kontakt
+  phone         String?
+  mobile        String?
+  street        String?
+  streetNumber  String?
+  zipCode       String?
+  city          String?
+  country       String?         @default("Schweiz")
+  
+  // Anstellung
+  employeeNumber String?        @unique
+  entryDate     DateTime?
+  exitDate      DateTime?
+  
+  // Bankverbindung
+  iban          String?
+  bankName      String?
+  
+  // Persönliche Angaben
+  civilStatus   String?         // ledig, verheiratet, geschieden, verwitwet
+  religion      String?         // römisch-katholisch, evangelisch-reformiert, andere, keine
+  
+  // Sozialversicherung & Steuern
+  ahvNumber     String?         @unique  // AHV-Nummer (Schweizer SV-Nummer)
+  isCrossBorderCommuter Boolean @default(false)  // Grenzgänger
+  
+  // Swiss Compliance
+  weeklyHours        Int      @default(45)  // 45 oder 50 Stunden/Woche
+  canton             String?  @default("ZH") // ZH, BE, AG, BS, SG, etc.
+  exemptFromTracking Boolean  @default(false) // Zeiterfassung nicht nötig (leitende Angestellte)
+  contractHours      Float?   // Vertragliche Wochenstunden (für Überstunden-Berechnung)
+  hourlyRate         Float?   // Stundensatz für Budget-Berechnung (CHF/h)
+  
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  timeEntries   TimeEntry[]
+  absenceRequests AbsenceRequest[]
+  projectAssignments ProjectAssignment[]
+  overtimeBalances OvertimeBalance[]
+  complianceViolations ComplianceViolation[]
+  reportedIncidents Incident[] @relation("IncidentsReported")
+  assignedIncidents Incident[] @relation("IncidentsAssigned")
+  workflowApprovals WorkflowInstanceStep[]
+  userGroup     UserGroup? @relation("UserGroupDeprecated", fields: [userGroupId], references: [id], onDelete: SetNull)
+  userGroupMemberships UserGroupMembership[]
+  payrollEntries PayrollEntry[]
+  salaryConfiguration SalaryConfiguration?
+  devices         Device[]
+  deviceAssignments DeviceAssignment[]
+  travelExpenses  TravelExpense[]
+  approvedTravelExpenses TravelExpense[] @relation("TravelExpenseApprover")
+  sentMessages    Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  createdDocumentNodes DocumentNode[] @relation("DocumentNodeCreator")
+  updatedDocumentNodes DocumentNode[] @relation("DocumentNodeUpdater")
+  documentVersions DocumentVersion[] @relation("DocumentVersionCreator")
+  uploadedMedia   Media[] @relation("MediaUploadedBy")
+  createdAttachments DocumentNodeAttachment[] @relation("AttachmentCreator")
+  updatedAttachments DocumentNodeAttachment[] @relation("AttachmentUpdater")
+  createdAttachmentVersions DocumentNodeAttachmentVersion[] @relation("AttachmentVersionCreator")
+  requestedOrders Order[] @relation("OrdersRequested")
+  approvedOrders  Order[] @relation("OrdersApproved")
+  rejectedOrders  Order[] @relation("OrdersRejected")
+  receivedDeliveries OrderDelivery[] @relation("DeliveriesReceived")
+  assignedEHSTodos EHSTodo[] @relation("EHSTodoAssignedTo")
+  createdEHSTodos EHSTodo[] @relation("EHSTodoCreatedBy")
+  actionLogs      ActionLog[] @relation("ActionLogUser")
+  managedCostCenters CostCenter[] @relation("CostCenterManager")
+  inventoryMovements InventoryMovement[] @relation("InventoryMovements")
+  createdProjectBudgets ProjectBudget[] @relation("ProjectBudgetCreatedBy")
+  
+  @@index([userGroupId])
+  @@map("users")
+}
+
+model UserGroup {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  color       String?  // Hex color for UI display
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  users       User[]   @relation("UserGroupDeprecated") // Deprecated
+  userGroupMemberships UserGroupMembership[]
+  moduleAccess ModuleAccess[]
+  documentNodePermissions DocumentNodeGroupPermission[]
+  
+  @@map("user_groups")
+}
+
+model UserGroupMembership {
+  id          String   @id @default(uuid())
+  userId      String
+  userGroupId String
+  createdAt   DateTime @default(now())
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userGroup   UserGroup @relation(fields: [userGroupId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, userGroupId])
+  @@index([userId])
+  @@index([userGroupId])
+  @@map("user_group_memberships")
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  key         String   @unique  // z.B. "time_tracking", "invoices", "projects"
+  description String?
+  icon        String?  // Icon name for UI
+  route       String?  // Frontend route
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  groupAccess ModuleAccess[]
+  
+  @@map("modules")
+}
+
+model ModuleAccess {
+  id          String   @id @default(uuid())
+  moduleId    String
+  userGroupId String
+  canView     Boolean  @default(true)
+  canCreate   Boolean  @default(false)
+  canEdit     Boolean  @default(false)
+  canDelete   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  module      Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  userGroup   UserGroup @relation(fields: [userGroupId], references: [id], onDelete: Cascade)
+  
+  @@unique([moduleId, userGroupId])
+  @@index([userGroupId])
+  @@index([moduleId])
+  @@map("module_access")
+}
+
+model Customer {
+  id          String       @id @default(uuid())
+  name        String
+  contactPerson String?
+  email       String?
+  phone       String?
+  address     String?
+  zipCode     String?
+  city        String?
+  country     String?      @default("Schweiz")
+  taxId       String?      // Steuernummer/UID
+  notes       String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  projects    Project[]
+  invoices    Invoice[]
+
+  @@map("customers")
+}
+
+model Supplier {
+  id          String       @id @default(uuid())
+  name        String
+  contactPerson String?
+  email       String?
+  phone       String?
+  address     String?
+  zipCode     String?
+  city        String?
+  country     String?      @default("Schweiz")
+  taxId       String?      // Steuernummer/UID
+  notes       String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  orders      Order[]
+
+  @@map("suppliers")
+}
+
+model ArticleGroup {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  articles    Article[]
+
+  @@map("article_groups")
+}
+
+model Article {
+  id              String       @id @default(uuid())
+  articleNumber   String       @unique
+  name            String
+  description     String?
+  articleGroupId  String?
+  price           Float        @default(0)
+  unit            String       @default("Stück") // Stück, Stunden, kg, m, l, etc.
+  vatRate         Float        @default(7.7) // MwSt-Satz in %
+  notes           String?
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  articleGroup    ArticleGroup? @relation(fields: [articleGroupId], references: [id], onDelete: SetNull)
+  invoiceItems    InvoiceItem[]
+  orderItems      OrderItem[]
+  inventoryItem   InventoryItem?
+
+  @@map("articles")
+}
+
+model CostCenter {
+  id          String       @id @default(uuid())
+  code        String       @unique
+  name        String
+  description String?
+  managerId   String?      // Verantwortlicher (User)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  manager     User?        @relation("CostCenterManager", fields: [managerId], references: [id], onDelete: SetNull)
+  timeEntries TimeEntry[]
+  invoices    Invoice[]
+  orders      Order[]
+  projectBudgets ProjectBudget[]
+  projectBudgetItems ProjectBudgetItem[]
+
+  @@map("cost_centers")
+}
+
+model InventoryItem {
+  id              String        @id @default(uuid())
+  articleId       String        @unique
+  quantity        Float         @default(0)
+  minQuantity     Float         @default(0)  // Mindestbestand für Warnungen
+  location        String?                     // Lagerort
+  notes           String?
+  lastRestocked   DateTime?                   // Letzte Wiederbefüllung
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  article         Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  movements       InventoryMovement[]
+  budgetItems     ProjectBudgetItem[]
+
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id              String        @id @default(uuid())
+  inventoryItemId String
+  type            String        // IN (Eingang), OUT (Ausgang), ADJUSTMENT (Korrektur)
+  quantity        Float
+  reason          String?       // Grund für Bewegung
+  userId          String        // Wer hat die Bewegung durchgeführt
+  createdAt       DateTime      @default(now())
+
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  user            User          @relation("InventoryMovements", fields: [userId], references: [id])
+
+  @@map("inventory_movements")
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+model Project {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  customerId  String?
+  isActive    Boolean      @default(true)
+  status      ProjectStatus @default(PLANNING)
+  defaultHourlyRate Float?   // Default-Stundensatz für dieses Projekt (CHF/h)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  customer    Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  timeEntries TimeEntry[]
+  assignments ProjectAssignment[]
+  incidents   Incident[]
+  projectTimeAllocations ProjectTimeAllocation[]
+  orders      Order[]
+  ehsMonthlyData EHSMonthlyData[]
+  ehsTodos    EHSTodo[]
+  budget      ProjectBudget?
+
+  @@map("projects")
+}
+
+model Location {
+  id          String       @id @default(uuid())
+  name        String
+  address     String?
+  description String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  timeEntries TimeEntry[]
+
+  @@map("locations")
+}
+
+model ProjectAssignment {
+  id        String   @id @default(uuid())
+  userId    String
+  projectId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@map("project_assignments")
+}
+
+model TimeEntry {
+  id          String           @id @default(uuid())
+  userId      String
+  projectId   String?
+  locationId  String?
+  costCenterId String?
+  clockIn     DateTime
+  clockOut    DateTime?
+  status      TimeEntryStatus  @default(CLOCKED_IN)
+  description String?
+  pauseMinutes Int?            @default(0) // Pausenzeit in Minuten
+  pauseStartedAt DateTime?     // Timestamp wenn aktuelle Pause gestartet wurde
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project  Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  costCenter CostCenter? @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  projectTimeAllocations ProjectTimeAllocation[]
+
+  @@index([userId, clockIn])
+  @@map("time_entries")
+}
+
+model ProjectTimeAllocation {
+  id          String   @id @default(uuid())
+  timeEntryId String
+  projectId   String
+  hours       Float    // Stunden für dieses Projekt
+  description String?  // Optionale Beschreibung der Tätigkeit
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  timeEntry TimeEntry @relation(fields: [timeEntryId], references: [id], onDelete: Cascade)
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([timeEntryId])
+  @@index([projectId])
+  @@map("project_time_allocations")
+}
+
+model AbsenceRequest {
+  id          String        @id @default(uuid())
+  userId      String
+  type        AbsenceType
+  startDate   DateTime
+  endDate     DateTime
+  days        Float
+  reason      String?
+  status      RequestStatus @default(PENDING)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("absence_requests")
+}
+
+model Holiday {
+  id          String   @id @default(uuid())
+  date        DateTime @unique
+  name        String
+  canton      String   // "CH" for national, "ZH" for canton-specific
+  percentage  Float    @default(100) // 100% = full day off
+  createdAt   DateTime @default(now())
+  
+  @@index([date, canton])
+  @@map("holidays")
+}
+
+model OvertimeBalance {
+  id              String   @id @default(uuid())
+  userId          String
+  year            Int
+  regularOvertime Float    @default(0)  // Überstunden (über Vertrag, unter Höchstarbeitszeit)
+  extraTime       Float    @default(0)  // Überzeit (über gesetzliche Höchstarbeitszeit)
+  nightHours      Float    @default(0)  // Nachtarbeitsstunden
+  sundayHours     Float    @default(0)  // Sonntagsarbeitsstunden
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, year])
+  @@map("overtime_balances")
+}
+
+model ComplianceViolation {
+  id              String             @id @default(uuid())
+  userId          String
+  type            ViolationType
+  severity        ViolationSeverity  @default(WARNING)
+  date            DateTime
+  description     String
+  actualValue     String?            // z.B. "12 Stunden" oder "8 Stunden Ruhezeit"
+  requiredValue   String?            // z.B. "11 Stunden Ruhezeit"
+  resolved        Boolean            @default(false)
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  notes           String?
+  createdAt       DateTime           @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, date])
+  @@index([resolved, severity])
+  @@map("compliance_violations")
+}
+
+model ComplianceSettings {
+  id                  String   @id @default(uuid())
+  defaultWeeklyHours  Int      @default(45)
+  defaultCanton       String   @default("ZH")
+  overtimeLimit170    Boolean  @default(true)  // true=45h-Woche (170h limit), false=50h-Woche (140h)
+  enableAutoWarnings  Boolean  @default(true)
+  enableEmailAlerts   Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@map("compliance_settings")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum ReminderLevel {
+  FIRST_REMINDER    // 1. Mahnung
+  SECOND_REMINDER   // 2. Mahnung
+  FINAL_REMINDER    // 3. Mahnung / Letzte Mahnung
+}
+
+enum ReminderStatus {
+  PENDING           // Vorbereitet, noch nicht versendet
+  SENT              // Versendet
+  PAID              // Bezahlt nach Mahnung
+  ESCALATED         // An Inkasso übergeben
+  CANCELLED         // Storniert
+}
+
+model InvoiceTemplate {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  isDefault     Boolean  @default(false)
+  
+  // Company Info
+  companyName   String   @default("Ihre Firma")
+  companyStreet String   @default("")
+  companyZip    String   @default("")
+  companyCity   String   @default("")
+  companyCountry String  @default("Schweiz")
+  companyPhone  String   @default("")
+  companyEmail  String   @default("")
+  companyWebsite String  @default("")
+  companyTaxId  String   @default("")
+  companyIban   String   @default("")
+  companyBank   String   @default("")
+  
+  // Header/Footer
+  headerText    String?  @db.Text
+  footerText    String?  @db.Text
+  
+  // Styling
+  primaryColor  String   @default("#2563eb")
+  logoUrl       String?
+  logoPosition  String?  // JSON: {x, y, width, height}
+  logoAlignment String   @default("left") // left, center, right
+  
+  // Text Templates
+  introText     String?  @db.Text
+  paymentTermsText String? @db.Text
+  
+  // Settings
+  showLogo      Boolean  @default(true)
+  showTaxId     Boolean  @default(true)
+  showPaymentInfo Boolean @default(true)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  invoices      Invoice[]
+  workflows     InvoiceTemplateWorkflow[]
+  
+  @@map("invoice_templates")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  invoiceDate   DateTime
+  dueDate       DateTime
+  customerId    String
+  costCenterId  String?
+  templateId    String?
+  status        InvoiceStatus @default(DRAFT)
+  subtotal      Float         @default(0)
+  vatAmount     Float         @default(0)
+  totalAmount   Float         @default(0)
+  notes         String?       @db.Text
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  customer      Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  costCenter    CostCenter?       @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  template      InvoiceTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  items         InvoiceItem[]
+  reminders     Reminder[]
+  workflowInstances WorkflowInstance[]
+  
+  @@index([customerId])
+  @@index([costCenterId])
+  @@index([templateId])
+  @@index([status])
+  @@index([invoiceDate])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  articleId   String?
+  position    Int      @default(1)
+  description String
+  quantity    Float    @default(1)
+  unitPrice   Float    @default(0)
+  unit        String   @default("Stück")
+  vatRate     Float    @default(7.7)
+  totalPrice  Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  article     Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model Reminder {
+  id              String         @id @default(uuid())
+  invoiceId       String
+  reminderNumber  String         @unique // z.B. "M-2024-001"
+  level           ReminderLevel
+  status          ReminderStatus @default(PENDING)
+  reminderDate    DateTime       @default(now())
+  dueDate         DateTime       // Neue Zahlungsfrist
+  
+  // Beträge
+  originalAmount  Float          // Ursprünglicher Rechnungsbetrag
+  reminderFee     Float          @default(0) // Mahngebühr
+  interestAmount  Float          @default(0) // Verzugszinsen
+  totalAmount     Float          // Gesamtbetrag inkl. Gebühren
+  
+  // Zinssatz
+  interestRate    Float          @default(5.0) // Verzugszinssatz in %
+  
+  // Texte
+  subject         String?        // Betreff der Mahnung
+  message         String?        @db.Text // Mahntext
+  notes           String?        @db.Text // Interne Notizen
+  
+  // Versand
+  sentDate        DateTime?      // Wann wurde die Mahnung versendet
+  sentBy          String?        // Wer hat die Mahnung versendet
+  paidDate        DateTime?      // Wann wurde bezahlt
+  
+  // Schweizer Spezifika
+  paymentSlipRef  String?        // QR-Rechnung Referenz
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  invoice         Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  @@index([invoiceId])
+  @@index([status])
+  @@index([level])
+  @@index([reminderDate])
+  @@map("reminders")
+}
+
+model ReminderSettings {
+  id                      String   @id @default(uuid())
+  
+  // Mahnfristen (in Tagen nach Fälligkeit)
+  firstReminderDays       Int      @default(7)   // 1. Mahnung nach 7 Tagen
+  secondReminderDays      Int      @default(14)  // 2. Mahnung nach 14 Tagen
+  finalReminderDays       Int      @default(21)  // 3. Mahnung nach 21 Tagen
+  
+  // Mahngebühren (CHF)
+  firstReminderFee        Float    @default(10.00)
+  secondReminderFee       Float    @default(20.00)
+  finalReminderFee        Float    @default(30.00)
+  
+  // Verzugszins
+  defaultInterestRate     Float    @default(5.0)  // 5% pro Jahr
+  
+  // Zahlungsfristen ab Mahndatum
+  firstReminderPaymentDays  Int    @default(10)  // 10 Tage Zahlungsfrist
+  secondReminderPaymentDays Int    @default(7)   // 7 Tage Zahlungsfrist
+  finalReminderPaymentDays  Int    @default(5)   // 5 Tage Zahlungsfrist
+  
+  // Automatisierung
+  autoSendReminders       Boolean  @default(false)
+  autoEscalate            Boolean  @default(false)
+  
+  // Texte
+  firstReminderTemplate   String?  @db.Text
+  secondReminderTemplate  String?  @db.Text
+  finalReminderTemplate   String?  @db.Text
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  
+  @@map("reminder_settings")
+}
+
+enum IncidentPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model Incident {
+  id              String           @id @default(uuid())
+  title           String
+  description     String           @db.Text
+  priority        IncidentPriority @default(MEDIUM)
+  status          IncidentStatus   @default(OPEN)
+  
+  // Beziehungen
+  reportedById    String           // Wer hat den Vorfall gemeldet
+  assignedToId    String?          // Wem ist der Vorfall zugewiesen
+  projectId       String?          // Zugeordnetes Projekt
+  
+  // Kategorisierung
+  category        String?          // z.B. "IT", "HR", "Facility", "Security"
+  affectedSystem  String?          // Betroffenes System oder Bereich
+  
+  // Zeitstempel
+  reportedAt      DateTime         @default(now())
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  dueDate         DateTime?        // Deadline für Lösung
+  
+  // Details
+  solution        String?          @db.Text
+  notes           String?          @db.Text
+  tags            String?          // JSON array of tags
+  
+  // EHS (Environmental, Health & Safety) Felder
+  isEHSRelevant   Boolean          @default(false)
+  ehsCategory     EHSCategory?     // EHS-Kategorie (z.B. LTI, Near Miss, etc.)
+  ehsSeverity     EHSSeverity?     // Schweregrad des EHS-Vorfalls
+  incidentDate    DateTime?        // Tatsächliches Vorfalldatum (kann von reportedAt abweichen)
+  location        String?          // Ort des Vorfalls
+  
+  // Verletzungs-/Gesundheitsdaten
+  lostWorkDays    Int?             // Anzahl verlorener Arbeitstage
+  medicalTreatment Boolean         @default(false) // Medizinische Behandlung erforderlich
+  hospitalRequired Boolean         @default(false) // Krankenhausaufenthalt erforderlich
+  
+  // Arbeitskontext
+  workersOnDay    Int?             // Anzahl Arbeiter am Tag des Vorfalls
+  hoursWorkedDay  Float?           // Gearbeitete Stunden am Tag
+  
+  // Maßnahmen
+  correctiveActions  String?       @db.Text // Korrekturmaßnahmen
+  preventiveActions  String?       @db.Text // Präventivmaßnahmen
+  
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  // Relations
+  reportedBy      User             @relation("IncidentsReported", fields: [reportedById], references: [id], onDelete: Restrict)
+  assignedTo      User?            @relation("IncidentsAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  project         Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  comments        IncidentComment[]
+  ehsTodos        EHSTodo[]
+  
+  @@index([reportedById])
+  @@index([assignedToId])
+  @@index([projectId])
+  @@index([status])
+  @@index([priority])
+  @@index([reportedAt])
+  @@index([ehsCategory])
+  @@index([isEHSRelevant])
+  @@index([incidentDate])
+  @@map("incidents")
+}
+
+model IncidentComment {
+  id          String   @id @default(uuid())
+  incidentId  String
+  userId      String
+  comment     String   @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  
+  @@index([incidentId])
+  @@index([createdAt])
+  @@map("incident_comments")
+}
+
+// ========== WORKFLOW SYSTEM ==========
+
+enum WorkflowStepType {
+  APPROVAL       // Genehmigung durch Benutzer/Gruppe
+  NOTIFICATION   // Benachrichtigung
+  CONDITION      // Bedingung prüfen
+  DELAY          // Zeitverzögerung
+  EMAIL          // E-Mail senden
+  DATE_CONDITION // Datumsvergleich
+  VALUE_CONDITION // Wertvergleich (Beträge, Zahlen)
+  TEXT_CONDITION  // Textvergleich
+  LOGIC_AND       // UND-Verknüpfung
+  LOGIC_OR        // ODER-Verknüpfung
+}
+
+enum WorkflowStepStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SKIPPED
+  COMPLETED
+}
+
+enum WorkflowInstanceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+// System Actions - Katalog aller verfügbaren Trigger-Events
+enum ActionCategory {
+  AUTHENTICATION  // Login, Logout, etc.
+  TIME_TRACKING   // Clock-in, Clock-out
+  ORDERS          // Bestellung anlegen, genehmigen, etc.
+  INVOICES        // Rechnung erstellen, versenden, etc.
+  USERS           // Benutzer anlegen, bearbeiten, etc.
+  DOCUMENTS       // Dokument hochladen, bearbeiten, etc.
+  INCIDENTS       // Vorfall melden, bearbeiten, etc.
+  COMPLIANCE      // Compliance-Verstöße
+  CUSTOM          // Benutzerdefinierte Actions
+}
+
+enum ActionTriggerTiming {
+  BEFORE   // Vor der Aktion (z.B. Validierung)
+  AFTER    // Nach der Aktion (z.B. Benachrichtigung)
+  INSTEAD  // Ersetzt die Aktion (z.B. Custom Logic)
+}
+
+model SystemAction {
+  id              String            @id @default(uuid())
+  actionKey       String            @unique  // z.B. "order.created", "invoice.sent", "user.login"
+  displayName     String            // Anzeigename für UI
+  description     String?           @db.Text
+  category        ActionCategory    @default(CUSTOM)
+  
+  // Verfügbare Context-Daten für Conditions
+  contextSchema   String?           @db.Text // JSON Schema der verfügbaren Daten
+  
+  isActive        Boolean           @default(true)
+  isSystem        Boolean           @default(false) // Kann nicht gelöscht werden
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  triggers        WorkflowTrigger[]
+  logs            ActionLog[]
+  
+  @@index([category])
+  @@index([isActive])
+  @@map("system_actions")
+}
+
+model WorkflowTrigger {
+  id              String                @id @default(uuid())
+  workflowId      String
+  actionKey       String                // FK zu SystemAction
+  
+  // Wann soll der Workflow getriggert werden?
+  timing          ActionTriggerTiming   @default(AFTER)
+  
+  // Optionale Bedingung (JSON mit Regeln)
+  condition       String?               @db.Text
+  
+  // Priorität (niedrigere Zahl = höhere Priorität)
+  priority        Int                   @default(100)
+  
+  isActive        Boolean               @default(true)
+  
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  
+  workflow        Workflow              @relation("WorkflowTriggers", fields: [workflowId], references: [id], onDelete: Cascade)
+  action          SystemAction          @relation(fields: [actionKey], references: [actionKey], onDelete: Cascade)
+  
+  @@unique([workflowId, actionKey])
+  @@index([actionKey])
+  @@index([isActive])
+  @@map("workflow_triggers")
+}
+
+model ActionLog {
+  id              String            @id @default(uuid())
+  actionKey       String
+  
+  // Wer hat die Aktion ausgeführt?
+  userId          String?
+  
+  // Context-Daten (JSON)
+  contextData     String?           @db.Text
+  
+  // Ergebnis
+  success         Boolean           @default(true)
+  errorMessage    String?           @db.Text
+  
+  // Getriggerte Workflows
+  triggeredWorkflows String?        @db.Text // JSON Array von Workflow IDs
+  
+  executionTime   Int?              // Ausführungszeit in ms
+  
+  createdAt       DateTime          @default(now())
+  
+  action          SystemAction      @relation(fields: [actionKey], references: [actionKey], onDelete: Cascade)
+  user            User?             @relation("ActionLogUser", fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([actionKey])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("action_logs")
+}
+
+model Workflow {
+  id              String                @id @default(uuid())
+  name            String
+  description     String?               @db.Text
+  isActive        Boolean               @default(true)
+  
+  // Workflow Definition (JSON)
+  definition      String                @db.Text // JSON mit Nodes und Connections
+  
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  
+  // Beziehungen
+  steps           WorkflowStep[]
+  templateLinks   InvoiceTemplateWorkflow[]
+  instances       WorkflowInstance[]
+  travelExpenses  TravelExpense[]       @relation("TravelExpenseDefaultWorkflow")
+  triggers        WorkflowTrigger[]     @relation("WorkflowTriggers")
+  
+  @@map("workflows")
+}
+
+model WorkflowStep {
+  id              String            @id @default(uuid())
+  workflowId      String
+  
+  // Step Configuration
+  name            String
+  type            WorkflowStepType
+  order           Int               // Reihenfolge im Workflow
+  
+  // Approval Configuration
+  approverUserIds String?           @db.Text // JSON Array von User IDs
+  approverGroupIds String?          @db.Text // JSON Array von UserGroup IDs
+  requireAllApprovers Boolean       @default(false) // true = alle müssen genehmigen
+  
+  // Condition/Notification Configuration
+  config          String?           @db.Text // JSON mit zusätzlicher Config
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  workflow        Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  instanceSteps   WorkflowInstanceStep[]
+  
+  @@index([workflowId])
+  @@index([order])
+  @@map("workflow_steps")
+}
+
+model InvoiceTemplateWorkflow {
+  id                String          @id @default(uuid())
+  invoiceTemplateId String
+  workflowId        String
+  order             Int             // Reihenfolge der Workflow-Ausführung
+  isActive          Boolean         @default(true)
+  
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  template          InvoiceTemplate @relation(fields: [invoiceTemplateId], references: [id], onDelete: Cascade)
+  workflow          Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  @@unique([invoiceTemplateId, workflowId])
+  @@index([invoiceTemplateId])
+  @@index([workflowId])
+  @@map("invoice_template_workflows")
+}
+
+model WorkflowInstance {
+  id              String                    @id @default(uuid())
+  workflowId      String
+  
+  // Generic entity reference
+  entityType      String                    // 'INVOICE' or 'TRAVEL_EXPENSE'
+  entityId        String                    // Reference to Invoice or TravelExpense
+  
+  // Legacy field for backwards compatibility
+  invoiceId       String?
+  
+  status          WorkflowInstanceStatus    @default(PENDING)
+  currentStepId   String?                   // Aktueller Workflow-Schritt
+  
+  startedAt       DateTime                  @default(now())
+  completedAt     DateTime?
+  
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  
+  workflow        Workflow                  @relation(fields: [workflowId], references: [id], onDelete: Restrict)
+  invoice         Invoice?                  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  steps           WorkflowInstanceStep[]
+  
+  @@index([workflowId])
+  @@index([invoiceId])
+  @@index([entityType, entityId])
+  @@index([status])
+  @@map("workflow_instances")
+}
+
+model WorkflowInstanceStep {
+  id              String              @id @default(uuid())
+  instanceId      String
+  stepId          String
+  
+  status          WorkflowStepStatus  @default(PENDING)
+  
+  // Approval Information
+  approvedById    String?
+  approvedAt      DateTime?
+  comment         String?             @db.Text
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  instance        WorkflowInstance    @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  step            WorkflowStep        @relation(fields: [stepId], references: [id], onDelete: Restrict)
+  approvedBy      User?               @relation(fields: [approvedById], references: [id], onDelete: SetNull)
+  
+  @@index([instanceId])
+  @@index([stepId])
+  @@index([status])
+  @@map("workflow_instance_steps")
+}
+
+model SystemSettings {
+  id                    String    @id @default(uuid())
+  
+  // Company Information
+  companyName           String?
+  companyLogo           String?   @db.Text // Base64 oder URL
+  companyAddress        String?   @db.Text
+  companyPhone          String?
+  companyEmail          String?
+  companyWebsite        String?
+  companyTaxId          String?   // Steuernummer/UID
+  
+  // System Settings
+  currency              String    @default("CHF")
+  dateFormat            String    @default("DD.MM.YYYY")
+  timeFormat            String    @default("HH:mm")
+  language              String    @default("de")
+  timezone              String    @default("Europe/Zurich")
+  
+  // Backup Settings
+  autoBackupEnabled     Boolean   @default(false)
+  backupInterval        String    @default("daily") // daily, weekly, monthly
+  backupTime            String    @default("02:00") // HH:mm
+  backupRetention       Int       @default(30)      // Tage
+  lastBackupAt          DateTime?
+  
+  // Email Settings (SMTP)
+  smtpEnabled           Boolean   @default(false)
+  smtpHost              String?
+  smtpPort              Int       @default(587)
+  smtpSecure            Boolean   @default(true)    // TLS/SSL
+  smtpUser              String?
+  smtpPassword          String?   // Sollte verschlüsselt gespeichert werden
+  smtpFromEmail         String?
+  smtpFromName          String?
+  
+  // Invoice Settings
+  invoicePrefix         String    @default("RE-")
+  invoiceNumberStart    Int       @default(1000)
+  invoiceNumberPadding  Int       @default(4)       // Anzahl Stellen: 0001
+  invoiceTermsDays      Int       @default(30)      // Zahlungsziel
+  invoiceFooter         String?   @db.Text
+  
+  // Feature Flags
+  enableWorkflows       Boolean   @default(true)
+  enableIncidents       Boolean   @default(true)
+  enableCompliance      Boolean   @default(true)
+  enableTimeTracking    Boolean   @default(true)
+  
+  // Default Workflows
+  travelExpenseDefaultWorkflowId String?
+  
+  // Budget & Billing
+  defaultHourlyRate     Float     @default(100.0)  // Globaler Default-Stundensatz (CHF/h)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  @@map("system_settings")
+}
+
+enum PayrollStatus {
+  DRAFT
+  CALCULATED
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum PayrollType {
+  MONTHLY
+  BONUS
+  CORRECTION
+}
+
+model PayrollPeriod {
+  id          String          @id @default(uuid())
+  name        String          // z.B. "Januar 2025"
+  year        Int
+  month       Int
+  startDate   DateTime
+  endDate     DateTime
+  status      PayrollStatus   @default(DRAFT)
+  type        PayrollType     @default(MONTHLY)
+  notes       String?         @db.Text
+  approvedAt  DateTime?
+  approvedBy  String?
+  paidAt      DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  
+  payrollEntries PayrollEntry[]
+  
+  @@unique([year, month, type])
+  @@index([year, month])
+  @@index([status])
+  @@map("payroll_periods")
+}
+
+model PayrollEntry {
+  id                String        @id @default(uuid())
+  payrollPeriodId   String
+  userId            String
+  
+  // Arbeitsstunden
+  regularHours      Float         @default(0)
+  overtimeHours     Float         @default(0)
+  nightHours        Float         @default(0)
+  sundayHours       Float         @default(0)
+  holidayHours      Float         @default(0)
+  
+  // Bruttogehalt & Zuschläge
+  baseSalary        Float         @default(0)
+  overtimePay       Float         @default(0)
+  nightBonus        Float         @default(0)
+  sundayBonus       Float         @default(0)
+  holidayBonus      Float         @default(0)
+  bonus             Float         @default(0)
+  commission        Float         @default(0)
+  
+  // Abzüge
+  ahvDeduction      Float         @default(0)   // AHV/IV/EO (Schweiz)
+  alvDeduction      Float         @default(0)   // Arbeitslosenversicherung
+  nbuvDeduction     Float         @default(0)   // Nichtberufsunfall
+  pensionDeduction  Float         @default(0)   // Pensionskasse (BVG)
+  taxDeduction      Float         @default(0)   // Quellensteuer
+  otherDeductions   Float         @default(0)
+  
+  // Berechnet
+  grossSalary       Float         @default(0)
+  totalDeductions   Float         @default(0)
+  netSalary         Float         @default(0)
+  
+  // Zusatzinformationen
+  absenceDays       Float         @default(0)
+  vacationDaysTaken Float         @default(0)
+  sickDays          Float         @default(0)
+  
+  notes             String?       @db.Text
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  payrollPeriod     PayrollPeriod @relation(fields: [payrollPeriodId], references: [id], onDelete: Cascade)
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([payrollPeriodId, userId])
+  @@index([userId])
+  @@index([payrollPeriodId])
+  @@map("payroll_entries")
+}
+
+model SalaryConfiguration {
+  id                    String    @id @default(uuid())
+  userId                String    @unique
+  
+  // Grundgehalt
+  monthlySalary         Float     @default(0)
+  hourlySalary          Float?
+  
+  // Zuschlagsätze (in Prozent)
+  overtimeRate          Float     @default(125)   // 125% = +25% Zuschlag
+  nightRate             Float     @default(125)
+  sundayRate            Float     @default(150)
+  holidayRate           Float     @default(200)
+  
+  // Abzugsätze (in Prozent)
+  ahvRate               Float     @default(5.3)   // AHV/IV/EO Arbeitnehmeranteil
+  alvRate               Float     @default(1.1)   // ALV
+  nbuvRate              Float     @default(0.8)   // NBU
+  pensionRate           Float     @default(7.0)   // BVG
+  taxRate               Float     @default(0)     // Quellensteuer (individuell)
+  
+  // Aktiv
+  validFrom             DateTime
+  validUntil            DateTime?
+  isActive              Boolean   @default(true)
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([isActive])
+  @@map("salary_configurations")
+}
+
+model Device {
+  id            String    @id @default(uuid())
+  name          String
+  serialNumber  String?   @unique
+  manufacturer  String?
+  model         String?
+  category      String?   // z.B. "Laptop", "Handy", "Tablet", "PSA", "Werkzeug"
+  purchaseDate  DateTime?
+  warrantyUntil DateTime?
+  notes         String?
+  isActive      Boolean   @default(true)
+  userId        String?   // Aktueller Besitzer
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  assignments   DeviceAssignment[]
+  
+  @@index([userId])
+  @@index([serialNumber])
+  @@map("devices")
+}
+
+model DeviceAssignment {
+  id            String    @id @default(uuid())
+  deviceId      String
+  userId        String
+  assignedAt    DateTime  @default(now())
+  returnedAt    DateTime?
+  notes         String?
+  
+  device        Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  assignedUser  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([deviceId])
+  @@index([userId])
+  @@map("device_assignments")
+}
+
+model TravelExpense {
+  id            String              @id @default(uuid())
+  userId        String
+  type          TravelExpenseType
+  date          DateTime
+  description   String
+  destination   String?
+  purpose       String?
+  
+  // Transport Details
+  distance      Float?              // Kilometer (bei Auto)
+  vehicleType   String?             // z.B. "PKW", "Firmenwagen"
+  
+  // Kosten
+  amount        Float
+  currency      String              @default("CHF")
+  receipt       String?             // Pfad zum Beleg/Attachment
+  
+  // Genehmigung
+  status        RequestStatus       @default(PENDING)
+  approverId    String?
+  approvedAt    DateTime?
+  rejectionReason String?
+  
+  // Workflow
+  workflowId    String?
+  
+  notes         String?
+  
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approver      User?               @relation("TravelExpenseApprover", fields: [approverId], references: [id], onDelete: SetNull)
+  workflow      Workflow?           @relation("TravelExpenseDefaultWorkflow", fields: [workflowId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([approverId])
+  @@index([status])
+  @@index([date])
+  @@index([workflowId])
+  @@map("travel_expenses")
+}
+
+model Message {
+  id            String        @id @default(uuid())
+  subject       String
+  body          String        @db.Text
+  
+  // Sender & Receiver
+  senderId      String?       // null für Systemnachrichten
+  receiverId    String
+  
+  // Message Type
+  type          MessageType   @default(USER)
+  
+  // Folder Management
+  senderFolder  MessageFolder @default(SENT)
+  receiverFolder MessageFolder @default(INBOX)
+  
+  // Status
+  isRead        Boolean       @default(false)
+  readAt        DateTime?
+  
+  // Workflow Integration
+  workflowId    String?
+  workflowInstanceId String?
+  
+  // Metadata
+  priority      String?       @default("normal") // low, normal, high
+  replyToId     String?       // Für Antworten auf Nachrichten
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  sender        User?         @relation("SentMessages", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver      User          @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  replyTo       Message?      @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies       Message[]     @relation("MessageReplies")
+  
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([receiverFolder])
+  @@index([senderFolder])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([workflowId])
+  @@index([workflowInstanceId])
+  @@map("messages")
+}
+
+// Enums for Document System (extend existing)
+enum DocumentNodeType {
+  FOLDER
+  DOCUMENT
+  LINK
+}
+
+// Intranet Document Tree Models
+model DocumentNode {
+  id            String              @id @default(uuid())
+  title         String
+  slug          String?
+  type          DocumentNodeType    @default(DOCUMENT)
+  contentType   String              @default("HTML")  // Changed from enum temporarily
+  content       String              @default("") @db.Text
+  externalUrl   String?
+  parentId      String?
+  nodeTypeKey   String?             // e.g., 'intranet_page', 'wiki_article'
+  order         Int                 @default(0)
+  isActive      Boolean             @default(true)
+  tags          Json?
+  metadata      Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  deletedAt     DateTime?
+  createdById   String
+  updatedById   String
+  
+  parent            DocumentNode?             @relation("DocumentNodeTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children          DocumentNode[]            @relation("DocumentNodeTree")
+  createdBy         User                      @relation("DocumentNodeCreator", fields: [createdById], references: [id])
+  updatedBy         User                      @relation("DocumentNodeUpdater", fields: [updatedById], references: [id])
+  versions          DocumentVersion[]
+  nodeType          DocumentNodeTypeRegistry? @relation(fields: [nodeTypeKey], references: [typeKey])
+  groupPermissions  DocumentNodeGroupPermission[]
+  attachments       DocumentNodeAttachment[]  @relation("DocumentNodeAttachments")
+  
+  @@index([parentId])
+  @@index([deletedAt])
+  @@index([order])
+  @@index([nodeTypeKey])
+  @@index([slug])
+  @@map("document_nodes")
+}
+
+model DocumentNodeTypeRegistry {
+  id            String    @id @default(uuid())
+  typeKey       String    @unique  // 'intranet_page', 'wiki_article', etc.
+  displayName   String
+  icon          String?
+  module        String    // 'intranet', 'wiki', etc.
+  schema        Json?     // JSON Schema for metadata validation
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  nodes         DocumentNode[]
+  
+  @@map("document_node_types")
+}
+
+model DocumentNodeGroupPermission {
+  id              String                    @id @default(uuid())
+  documentNodeId  String
+  userGroupId     String
+  permissionLevel DocumentPermissionLevel   @default(READ)
+  inherited       Boolean                   @default(false)
+  createdAt       DateTime                  @default(now())
+  
+  documentNode    DocumentNode  @relation(fields: [documentNodeId], references: [id], onDelete: Cascade)
+  userGroup       UserGroup     @relation(fields: [userGroupId], references: [id], onDelete: Cascade)
+  
+  @@unique([documentNodeId, userGroupId])
+  @@index([documentNodeId])
+  @@index([userGroupId])
+  @@map("document_node_group_permissions")
+}
+
+model DocumentVersion {
+  id              String        @id @default(uuid())
+  documentNodeId  String
+  content         String        @db.Text
+  version         Int
+  createdAt       DateTime      @default(now())
+  createdById     String
+  
+  documentNode    DocumentNode  @relation(fields: [documentNodeId], references: [id], onDelete: Cascade)
+  createdBy       User          @relation("DocumentVersionCreator", fields: [createdById], references: [id])
+  
+  @@index([documentNodeId])
+  @@index([version])
+  @@map("document_versions")
+}
+
+// Document Node Attachments with separate versioning
+model DocumentNodeAttachment {
+  id              String        @id @default(uuid())
+  documentNodeId  String
+  filename        String
+  originalFilename String
+  mimeType        String
+  fileSize        Int           // in bytes
+  path            String        // Relativer Pfad zur Datei
+  description     String?
+  version         Int           @default(1)
+  isActive        Boolean       @default(true)  // For soft delete
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?     // Soft delete timestamp
+  createdById     String
+  updatedById     String
+  
+  documentNode    DocumentNode  @relation("DocumentNodeAttachments", fields: [documentNodeId], references: [id], onDelete: Cascade)
+  createdBy       User          @relation("AttachmentCreator", fields: [createdById], references: [id])
+  updatedBy       User          @relation("AttachmentUpdater", fields: [updatedById], references: [id])
+  versions        DocumentNodeAttachmentVersion[]
+  
+  @@index([documentNodeId])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("document_node_attachments")
+}
+
+// Attachment Version History
+model DocumentNodeAttachmentVersion {
+  id              String                    @id @default(uuid())
+  attachmentId    String
+  filename        String
+  originalFilename String
+  mimeType        String
+  fileSize        Int
+  path            String
+  version         Int
+  changeReason    String?                   // Optional reason for version update
+  createdAt       DateTime                  @default(now())
+  createdById     String
+  
+  attachment      DocumentNodeAttachment    @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  createdBy       User                      @relation("AttachmentVersionCreator", fields: [createdById], references: [id])
+  
+  @@index([attachmentId])
+  @@index([version])
+  @@map("document_node_attachment_versions")
+}
+
+enum MediaType {
+  IMAGE
+  PDF
+  DOCUMENT
+  VIDEO
+  AUDIO
+  ARCHIVE
+  EXECUTABLE
+  OTHER
+}
+
+model Media {
+  id              String        @id @default(uuid())
+  filename        String
+  originalFilename String
+  mimeType        String
+  fileSize        Int           // in bytes
+  mediaType       MediaType
+  path            String        // Relativer Pfad zur Datei
+  url             String?       // Optional: öffentliche URL
+  description     String?
+  tags            String[]      @default([])
+  width           Int?          // für Bilder
+  height          Int?          // für Bilder
+  duration        Int?          // für Videos/Audio in Sekunden
+  isPublic        Boolean       @default(false)
+  uploadedById    String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  uploadedBy      User          @relation("MediaUploadedBy", fields: [uploadedById], references: [id])
+  
+  @@index([uploadedById])
+  @@index([mediaType])
+  @@index([isPublic])
+  @@index([createdAt])
+  @@map("media")
+}
+
+// ============================================================================
+// BESTELLUNGEN MODULE
+// ============================================================================
+
+enum OrderStatus {
+  DRAFT           // Entwurf
+  REQUESTED       // Angefordert (wartet auf Freigabe)
+  APPROVED        // Freigegeben
+  ORDERED         // Bestellt
+  PARTIALLY_RECEIVED  // Teilweise erhalten
+  RECEIVED        // Vollständig erhalten
+  CANCELLED       // Storniert
+  REJECTED        // Abgelehnt
+}
+
+enum OrderPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Order {
+  id              String        @id @default(uuid())
+  orderNumber     String        @unique
+  supplierId      String?
+  orderDate       DateTime      @default(now())
+  expectedDeliveryDate DateTime?
+  actualDeliveryDate DateTime?
+  status          OrderStatus   @default(DRAFT)
+  priority        OrderPriority @default(MEDIUM)
+  
+  // Bestellinformationen
+  title           String
+  description     String?
+  notes           String?
+  internalNotes   String?       // Interne Notizen (nicht für Lieferanten)
+  
+  // Finanzen
+  totalAmount     Float         @default(0)
+  vatAmount       Float         @default(0)
+  grandTotal      Float         @default(0)
+  currency        String        @default("CHF")
+  
+  // Lieferung
+  deliveryAddress String?
+  deliveryContact String?
+  deliveryPhone   String?
+  
+  // Workflow
+  requestedById   String
+  approvedById    String?
+  approvedAt      DateTime?
+  rejectedById    String?
+  rejectedAt      DateTime?
+  rejectionReason String?
+  
+  // Projekt-Zuordnung (optional)
+  projectId       String?
+  costCenterId    String?       // Kostenstelle
+  
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  supplier        Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  requestedBy     User          @relation("OrdersRequested", fields: [requestedById], references: [id])
+  approvedBy      User?         @relation("OrdersApproved", fields: [approvedById], references: [id])
+  rejectedBy      User?         @relation("OrdersRejected", fields: [rejectedById], references: [id])
+  project         Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  costCenter      CostCenter?   @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+  deliveries      OrderDelivery[]
+  
+  @@index([supplierId])
+  @@index([requestedById])
+  @@index([status])
+  @@index([orderDate])
+  @@index([projectId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String   @id @default(uuid())
+  orderId         String
+  position        Int      @default(1)
+  
+  // Artikel-Informationen
+  articleId       String?
+  articleNumber   String?  // Falls kein Artikel aus Stammdaten
+  name            String
+  description     String?
+  
+  // Mengen
+  quantity        Float
+  unit            String   @default("Stück")
+  receivedQuantity Float   @default(0)
+  
+  // Preise
+  unitPrice       Float
+  vatRate         Float    @default(7.7)
+  totalPrice      Float
+  
+  notes           String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  article         Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+  
+  @@index([orderId])
+  @@index([articleId])
+  @@map("order_items")
+}
+
+model OrderDelivery {
+  id              String   @id @default(uuid())
+  orderId         String
+  deliveryDate    DateTime @default(now())
+  deliveryNumber  String?  // Lieferschein-Nummer
+  notes           String?
+  receivedById    String
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  receivedBy      User     @relation("DeliveriesReceived", fields: [receivedById], references: [id])
+  items           OrderDeliveryItem[]
+  
+  @@index([orderId])
+  @@index([receivedById])
+  @@map("order_deliveries")
+}
+
+model OrderDeliveryItem {
+  id              String        @id @default(uuid())
+  deliveryId      String
+  orderItemId     String?       // Optional: Verknüpfung zu Bestellposition
+  
+  name            String
+  quantity        Float
+  unit            String        @default("Stück")
+  notes           String?
+  
+  createdAt       DateTime      @default(now())
+  
+  delivery        OrderDelivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  
+  @@index([deliveryId])
+  @@map("order_delivery_items")
+}
+
+// ============================================================================
+// EHS (Environmental, Health & Safety) KPI TRACKING
+// ============================================================================
+
+enum EHSCategory {
+  UNSAFE_CONDITION      // Unsicherer Zustand
+  UNSAFE_BEHAVIOR       // Unsicheres Verhalten
+  NEAR_MISS            // Beinahe-Unfall
+  FIRST_AID            // Erste Hilfe
+  RECORDABLE           // Meldepflichtiger Unfall
+  LTI                  // Lost Time Injury
+  FATALITY             // Todesfall
+  PROPERTY_DAMAGE      // Sachschaden
+  ENVIRONMENT          // Umweltvorfall
+  SAFETY_OBSERVATION   // Sicherheitsbeobachtung
+}
+
+enum EHSSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model EHSMonthlyData {
+  id                    String    @id @default(uuid())
+  year                  Int
+  month                 Int
+  projectId             String?
+  
+  // Arbeitsdaten
+  workingDays           Int       @default(0)
+  workersPerDay         Float     @default(0)
+  hoursPerDay           Float     @default(0)
+  totalEmployees        Int       @default(0)
+  totalHours            Float     @default(0)
+  
+  // Vorfallzähler (EHS Pyramid)
+  unsafeConditions      Int       @default(0)
+  unsafeBehaviors       Int       @default(0)
+  nearMisses            Int       @default(0)
+  firstAids             Int       @default(0)
+  recordables           Int       @default(0)
+  ltis                  Int       @default(0)
+  fatalities            Int       @default(0)
+  propertyDamages       Int       @default(0)
+  environmentIncidents  Int       @default(0)
+  safetyObservations    Int       @default(0)
+  
+  // Berechnete KPIs
+  ltifr                 Float?    // Lost Time Injury Frequency Rate (LTI / Stunden × 1.000.000)
+  trir                  Float?    // Total Recordable Injury Rate (Recordable / Stunden × 200.000)
+  
+  // Zusätzliche Informationen
+  highlights            String?   // Highlights des Monats
+  achievements          String?   // Erfolge
+  hotTopics             String?   // Brennende Themen
+  safetyAward           String?   // Safety Award Empfänger
+  closingRate           Float?    // Closing Rate in %
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  
+  project               Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  
+  @@unique([year, month, projectId])
+  @@index([year, month])
+  @@index([projectId])
+  @@map("ehs_monthly_data")
+}
+
+enum EHSTodoPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum EHSTodoStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model EHSTodo {
+  id              String           @id @default(uuid())
+  title           String
+  description     String?
+  priority        EHSTodoPriority  @default(MEDIUM)
+  status          EHSTodoStatus    @default(OPEN)
+  dueDate         DateTime?
+  completedAt     DateTime?
+  
+  // Zuordnung
+  projectId       String?
+  incidentId      String?         // Optional: Verknüpfung mit einem Incident
+  assignedToId    String?
+  createdById     String
+  
+  // Kategorisierung
+  category        String?         // z.B. "Training", "Inspection", "Corrective Action"
+  tags            String[]        // Array von Tags für flexible Kategorisierung
+  
+  // Fortschritt
+  progressPercent Int             @default(0)
+  
+  // Notizen und Anhänge
+  notes           String?
+  attachmentUrls  String[]        // Array von Datei-URLs
+  
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relationen
+  project         Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  incident        Incident?       @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  assignedTo      User?           @relation("EHSTodoAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy       User            @relation("EHSTodoCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  
+  @@index([projectId])
+  @@index([incidentId])
+  @@index([assignedToId])
+  @@index([createdById])
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+  @@map("ehs_todos")
+}
+
+// ============================================
+// PROJEKT-BUDGET MODUL
+// ============================================
+
+model ProjectBudget {
+  id                String   @id @default(uuid())
+  projectId         String   @unique
+  costCenterId      String?
+  
+  // Budget-Informationen
+  budgetName        String
+  totalBudget       Float    @default(0)
+  fiscalYear        Int
+  startDate         DateTime
+  endDate           DateTime
+  
+  // Berechnete Werte (werden aus Items aggregiert)
+  plannedCosts      Float    @default(0)  // Summe aller geplanten Kosten
+  actualCosts       Float    @default(0)  // Summe aller tatsächlichen Kosten
+  remainingBudget   Float    @default(0)  // totalBudget - actualCosts
+  budgetUtilization Float    @default(0)  // (actualCosts / totalBudget) * 100
+  
+  status            String   @default("PLANNING") // PLANNING, ACTIVE, COMPLETED, EXCEEDED
+  
+  notes             String?
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdById       String
+  
+  // Relationen
+  project           Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  costCenter        CostCenter?     @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  createdBy         User            @relation("ProjectBudgetCreatedBy", fields: [createdById], references: [id])
+  items             ProjectBudgetItem[]
+  
+  @@index([projectId])
+  @@index([costCenterId])
+  @@index([status])
+  @@index([fiscalYear])
+  @@map("project_budgets")
+}
+
+model ProjectBudgetItem {
+  id                String   @id @default(uuid())
+  budgetId          String
+  
+  // Kategorisierung
+  category          String   // LABOR, MATERIALS, INVENTORY, EXTERNAL_SERVICES, OVERHEAD, OTHER
+  itemName          String
+  description       String?
+  
+  // Verknüpfungen zu anderen Modulen
+  inventoryItemId   String?  // Verknüpfung zu Lagerverwaltung
+  costCenterId      String?  // Kostenstelle für diesen Posten
+  
+  // Budget-Werte
+  plannedQuantity   Float    @default(0)
+  actualQuantity    Float    @default(0)
+  unitPrice         Float    @default(0)
+  plannedCost       Float    @default(0)  // plannedQuantity * unitPrice
+  actualCost        Float    @default(0)  // actualQuantity * unitPrice oder aus TimeEntry
+  
+  // Zeiterfassung (für LABOR Kategorie)
+  plannedHours      Float?   // Geplante Arbeitsstunden
+  actualHours       Float?   // Tatsächliche Stunden (aus TimeEntry)
+  hourlyRate        Float?   // Stundensatz
+  
+  // Status und Tracking
+  status            String   @default("PLANNED") // PLANNED, IN_PROGRESS, COMPLETED, CANCELLED
+  variance          Float    @default(0)  // actualCost - plannedCost
+  variancePercent   Float    @default(0)  // (variance / plannedCost) * 100
+  
+  notes             String?
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relationen
+  budget            ProjectBudget   @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  inventoryItem     InventoryItem?  @relation(fields: [inventoryItemId], references: [id], onDelete: SetNull)
+  costCenter        CostCenter?     @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
+  
+  @@index([budgetId])
+  @@index([category])
+  @@index([inventoryItemId])
+  @@index([costCenterId])
+  @@index([status])
+  @@map("project_budget_items")
+}
+

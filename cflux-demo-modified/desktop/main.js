@@ -1,17 +1,15 @@
 const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
-const { spawn, execSync } = require('child_process');
+const { spawn } = require('child_process');
 const fs = require('fs');
 const net = require('net');
 
 const store = new Store();
 
-// Backend and PostgreSQL process references
+// Backend process reference
 let backendProcess = null;
-let postgresProcess = null;
 let backendPort = 3001;
-let pgPort = 5555;
 
 // Keep a global reference of the window object
 let mainWindow;
@@ -32,246 +30,11 @@ function findAvailablePort(startPort) {
   });
 }
 
-// Function to check if PostgreSQL is ready
-async function waitForPostgres(port, maxRetries = 30) {
-  const { Client } = require('pg');
-  
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const client = new Client({
-        host: 'localhost',
-        port: port,
-        user: 'postgres',
-        password: 'postgres',
-        database: 'postgres',
-        connectionTimeoutMillis: 2000
-      });
-      
-      await client.connect();
-      await client.end();
-      return true;
-    } catch (err) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-  }
-  
-  throw new Error('PostgreSQL did not start in time');
-}
-
-// Function to ensure PostgreSQL Portable exists (copy from resources on first run)
-async function ensurePostgresPortable() {
-  const pgDir = path.join(app.getPath('userData'), 'postgres');
-  const pgBinDir = path.join(pgDir, 'bin');
-  const pgExe = path.join(pgBinDir, 'postgres.exe');
-  
-  // Check if already exists in user directory
-  if (fs.existsSync(pgExe)) {
-    console.log('✅ PostgreSQL Portable already exists');
-    return pgDir;
-  }
-  
-  console.log('📦 PostgreSQL not found in user directory, copying from installation...');
-  
-  // Try to copy from resources (packaged app)
-  const resourcesPath = app.isPackaged 
-    ? process.resourcesPath 
-    : path.join(__dirname, '..');
-  
-  const sourcePgDir = path.join(resourcesPath, 'postgres');
-  
-  if (!fs.existsSync(path.join(sourcePgDir, 'bin', 'postgres.exe'))) {
-    console.log('❌ PostgreSQL Portable not found in installation');
-    console.log('Expected location:', sourcePgDir);
-    console.log('Please download PostgreSQL Portable from:');
-    console.log('https://github.com/garethflowers/postgresql-portable/releases');
-    console.log('Extract to:', pgDir);
-    throw new Error('PostgreSQL Portable not included in installation.');
-  }
-  
-  console.log('📋 Copying PostgreSQL from:', sourcePgDir);
-  console.log('📋 To:', pgDir);
-  
-  // Copy recursively
-  try {
-    copyRecursiveSync(sourcePgDir, pgDir);
-    console.log('✅ PostgreSQL copied successfully');
-    return pgDir;
-  } catch (err) {
-    console.error('Failed to copy PostgreSQL:', err);
-    throw err;
-  }
-}
-
-// Helper function to copy directory recursively
-function copyRecursiveSync(src, dest) {
-  const exists = fs.existsSync(src);
-  const stats = exists && fs.statSync(src);
-  const isDirectory = exists && stats.isDirectory();
-  
-  if (isDirectory) {
-    if (!fs.existsSync(dest)) {
-      fs.mkdirSync(dest, { recursive: true });
-    }
-    fs.readdirSync(src).forEach((childItemName) => {
-      copyRecursiveSync(
-        path.join(src, childItemName),
-        path.join(dest, childItemName)
-      );
-    });
-  } else {
-    fs.copyFileSync(src, dest);
-  }
-}
-
-// Function to start PostgreSQL Portable
-async function startPostgreSQL() {
-  return new Promise(async (resolve, reject) => {
-    try {
-      console.log('🐘 Starting PostgreSQL Portable...');
-      
-      // Get PostgreSQL directory
-      const pgDir = await ensurePostgresPortable();
-      const pgBinDir = path.join(pgDir, 'bin');
-      const pgDataDir = path.join(app.getPath('userData'), 'pgdata');
-      
-      // Find available port
-      pgPort = await findAvailablePort(5555);
-      console.log('📍 PostgreSQL will run on port:', pgPort);
-      
-      // Check if data directory needs initialization
-      const needsInit = !fs.existsSync(path.join(pgDataDir, 'PG_VERSION'));
-      
-      if (needsInit) {
-        console.log('📦 First run - initializing PostgreSQL database...');
-        
-        // Ensure data directory exists
-        if (!fs.existsSync(pgDataDir)) {
-          fs.mkdirSync(pgDataDir, { recursive: true });
-        }
-        
-        // Initialize database (without password, using trust auth)
-        const initdbExe = path.join(pgBinDir, 'initdb.exe');
-        try {
-          execSync(`"${initdbExe}" -D "${pgDataDir}" -U postgres -E UTF8 -A trust`, {
-            stdio: 'inherit',
-            windowsHide: true
-          });
-          console.log('✅ PostgreSQL initialized');
-        } catch (err) {
-          console.error('Failed to initialize PostgreSQL:', err);
-          throw err;
-        }
-      }
-      
-      // Start PostgreSQL
-      const pgExe = path.join(pgBinDir, 'postgres.exe');
-      postgresProcess = spawn(pgExe, [
-        '-D', pgDataDir,
-        '-p', pgPort.toString(),
-        '-k', '', // No Unix socket directory on Windows
-        '-h', 'localhost'
-      ], {
-        cwd: pgBinDir,
-        stdio: ['ignore', 'pipe', 'pipe']
-      });
-      
-      // Log PostgreSQL output
-      postgresProcess.stdout.on('data', (data) => {
-        console.log(`[PostgreSQL]: ${data.toString().trim()}`);
-      });
-      
-      postgresProcess.stderr.on('data', (data) => {
-        console.log(`[PostgreSQL]: ${data.toString().trim()}`);
-      });
-      
-      postgresProcess.on('error', (error) => {
-        console.error('Failed to start PostgreSQL:', error);
-        reject(error);
-      });
-      
-      postgresProcess.on('close', (code) => {
-        console.log(`PostgreSQL process exited with code ${code}`);
-        postgresProcess = null;
-      });
-      
-      // Wait for PostgreSQL to be ready
-      console.log('⏳ Waiting for PostgreSQL to be ready...');
-      await waitForPostgres(pgPort);
-      console.log('✅ PostgreSQL is ready!');
-      
-      // Create database and user if first run
-      if (needsInit) {
-        const { Client } = require('pg');
-        const client = new Client({
-          host: 'localhost',
-          port: pgPort,
-          user: 'postgres',
-          password: 'postgres',
-          database: 'postgres'
-        });
-        
-        await client.connect();
-        
-        try {
-          await client.query("CREATE USER cflux WITH PASSWORD 'cflux123';");
-          console.log('✅ User cflux created');
-        } catch (err) {
-          if (!err.message.includes('already exists')) throw err;
-        }
-        
-        try {
-          await client.query("CREATE DATABASE timetracking OWNER cflux;");
-          console.log('✅ Database timetracking created');
-        } catch (err) {
-          if (!err.message.includes('already exists')) throw err;
-        }
-        
-        await client.end();
-      }
-      
-      resolve(pgPort);
-      
-    } catch (error) {
-      console.error('❌ Failed to start PostgreSQL:', error);
-      reject(error);
-    }
-  });
-}
-
-// Function to stop PostgreSQL
-function stopPostgreSQL() {
-  if (postgresProcess) {
-    console.log('🛑 Stopping PostgreSQL...');
-    
-    // Try graceful shutdown first
-    try {
-      const pgBinDir = path.join(app.getPath('userData'), 'postgres', 'bin');
-      const pgCtlExe = path.join(pgBinDir, 'pg_ctl.exe');
-      const pgDataDir = path.join(app.getPath('userData'), 'pgdata');
-      
-      execSync(`"${pgCtlExe}" stop -D "${pgDataDir}" -m fast`, {
-        timeout: 5000
-      });
-      console.log('✅ PostgreSQL stopped gracefully');
-    } catch (err) {
-      // Force kill if graceful shutdown fails
-      postgresProcess.kill('SIGTERM');
-      setTimeout(() => {
-        if (postgresProcess) {
-          postgresProcess.kill('SIGKILL');
-        }
-      }, 3000);
-    }
-    
-    postgresProcess = null;
-  }
-}
-
 // Function to start the backend server
 async function startBackend() {
   return new Promise(async (resolve, reject) => {
     try {
-      console.log('🚀 Starting backend...');
+      console.log('🚀 Starting integrated backend...');
       
       // Find available port
       backendPort = await findAvailablePort(3001);
@@ -285,17 +48,17 @@ async function startBackend() {
       
       const backendEntry = path.join(backendPath, 'dist', 'index.js');
       
+      // Database path in user data directory
+      const dbPath = path.join(app.getPath('userData'), 'cflux-demo.db');
+      const dbUrl = `file:${dbPath}`;
+      
       console.log('📂 Backend path:', backendPath);
+      console.log('💾 Database path:', dbPath);
       
       // Check if backend exists
       if (!fs.existsSync(backendEntry)) {
         throw new Error(`Backend not found at: ${backendEntry}`);
       }
-      
-      // Database URL
-      const dbUrl = `postgresql://cflux:cflux123@localhost:${pgPort}/timetracking?schema=public`;
-      
-      console.log('💾 Database URL:', dbUrl.replace('cflux123', '***'));
       
       // Environment variables for backend
       const env = {
@@ -308,42 +71,36 @@ async function startBackend() {
         CORS_ORIGIN: '*'
       };
       
-      // Run startup sequence (like Docker)
-      console.log('📦 Running startup sequence...');
+      // Check if database needs initialization
+      const needsInit = !fs.existsSync(dbPath);
       
-      try {
-        // Step 1: Run migrations
-        console.log('1️⃣  Running database migrations...');
-        execSync('npx prisma migrate deploy', {
-          env,
+      if (needsInit) {
+        console.log('📦 First run detected - initializing database...');
+        
+        // Run Prisma migrations
+        const prismaPath = path.join(backendPath, 'node_modules', '.bin', 'prisma');
+        const prismaMigrate = spawn(prismaPath, ['migrate', 'deploy'], {
+          env: {
+            ...env,
+            DATABASE_URL: dbUrl
+          },
           cwd: backendPath,
-          stdio: 'inherit',
-          windowsHide: true
+          shell: true
         });
-        console.log('✅ Migrations completed');
         
-        // Step 2: Run installation script (seeds + admin user)
-        console.log('2️⃣  Running installation script...');
-        const installScript = path.join(backendPath, 'dist', 'scripts', 'install.js');
-        if (fs.existsSync(installScript)) {
-          execSync(`node "${installScript}"`, {
-            env,
-            cwd: backendPath,
-            stdio: 'inherit',
-            windowsHide: true
+        await new Promise((res, rej) => {
+          prismaMigrate.on('close', (code) => {
+            if (code === 0) {
+              console.log('✅ Database initialized');
+              res();
+            } else {
+              rej(new Error('Failed to initialize database'));
+            }
           });
-        } else {
-          console.log('⚠️  Install script not found, skipping...');
-        }
-        console.log('✅ Installation completed');
-        
-      } catch (err) {
-        console.error('⚠️  Startup sequence error:', err.message);
-        console.log('⚠️  Continuing anyway, backend will handle initialization...');
+        });
       }
       
       // Start backend process
-      console.log('3️⃣  Starting backend server...');
       backendProcess = spawn('node', [backendEntry], {
         env,
         cwd: backendPath,
@@ -612,7 +369,7 @@ function createMenu() {
               type: 'info',
               title: 'Über CFlux Demo',
               message: 'CFlux Time Tracking System - Demo Version',
-              detail: `Version: ${app.getVersion()}\nElectron: ${process.versions.electron}\n\nDies ist eine Demo-Version mit PostgreSQL Portable.`,
+              detail: `Version: ${app.getVersion()}\nElectron: ${process.versions.electron}\n\nDies ist eine Demo-Version mit integriertem Backend.`,
               buttons: ['OK']
             });
           }
@@ -628,26 +385,14 @@ function createMenu() {
 // Initialize app
 app.whenReady().then(async () => {
   try {
-    console.log('═══════════════════════════════════════');
-    console.log('  CFlux Demo - Starting...            ');
-    console.log('═══════════════════════════════════════');
-    
-    // Start PostgreSQL first
-    await startPostgreSQL();
-    
-    // Then start backend
+    // Start backend first
     await startBackend();
     
-    // Finally create window
+    // Then create window
     createWindow();
-    
-    console.log('═══════════════════════════════════════');
-    console.log('  ✅ Application ready!                ');
-    console.log('═══════════════════════════════════════');
-    
   } catch (error) {
     console.error('Failed to start application:', error);
-    dialog.showErrorBox('Startfehler', `Die Anwendung konnte nicht gestartet werden:\n\n${error.message}\n\nBitte PostgreSQL Portable installieren!`);
+    dialog.showErrorBox('Startfehler', `Die Anwendung konnte nicht gestartet werden:\n\n${error.message}`);
     app.quit();
   }
 });
@@ -655,7 +400,6 @@ app.whenReady().then(async () => {
 // Quit when all windows are closed
 app.on('window-all-closed', () => {
   stopBackend();
-  stopPostgreSQL();
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -670,14 +414,12 @@ app.on('activate', () => {
 // Cleanup on quit
 app.on('before-quit', () => {
   stopBackend();
-  stopPostgreSQL();
 });
 
 // Handle app crashes and errors
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
   stopBackend();
-  stopPostgreSQL();
 });
 
 // IPC Handlers
