@@ -154,7 +154,7 @@ export const uploadAttachment = async (req: AuthRequest, res: Response) => {
         originalFilename: file.originalname,
         mimeType: file.mimetype,
         fileSize: file.size,
-        path: `uploads/attachments/${file.filename}`,
+        path: `/uploads/attachments/${file.filename}`,
         description: description || null,
         version: 1,
         createdById: userId,
@@ -188,7 +188,7 @@ export const uploadAttachment = async (req: AuthRequest, res: Response) => {
         originalFilename: file.originalname,
         mimeType: file.mimetype,
         fileSize: file.size,
-        path: `uploads/attachments/${file.filename}`,
+        path: `/uploads/attachments/${file.filename}`,
         version: 1,
         changeReason: 'Initial upload',
         createdById: userId
@@ -276,7 +276,7 @@ export const updateAttachment = async (req: AuthRequest, res: Response) => {
         originalFilename: file.originalname,
         mimeType: file.mimetype,
         fileSize: file.size,
-        path: `uploads/attachments/${file.filename}`,
+        path: `/uploads/attachments/${file.filename}`,
         description: description || existingAttachment.description,
         version: newVersion,
         updatedById: userId
@@ -309,7 +309,7 @@ export const updateAttachment = async (req: AuthRequest, res: Response) => {
         originalFilename: file.originalname,
         mimeType: file.mimetype,
         fileSize: file.size,
-        path: `uploads/attachments/${file.filename}`,
+        path: `/uploads/attachments/${file.filename}`,
         version: newVersion,
         changeReason: changeReason || `Updated to version ${newVersion}`,
         createdById: userId
