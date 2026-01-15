@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Download, Calendar, TrendingUp, Users, DollarSign, BarChart3, PieChart } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Download, Calendar, TrendingUp, Users, DollarSign, BarChart3, PieChart, FileText } from 'lucide-react';
 import { BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import api from '../../services/api';
 import './ProjectReportsTab.css';
 
@@ -90,6 +92,9 @@ interface TimeTrackingResponse {
 
 const ProjectReportsTab: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'time'>('overview');
+  const overviewContentRef = useRef<HTMLDivElement>(null);
+  const timeContentRef = useRef<HTMLDivElement>(null);
+  const [isPdfGenerating, setIsPdfGenerating] = useState(false);
   
   // Overview State
   const [overviewData, setOverviewData] = useState<OverviewResponse | null>(null);
@@ -197,12 +202,361 @@ const ProjectReportsTab: React.FC = () => {
     link.click();
   };
 
+  // Export als PDF mit professionellem Layout
+  const exportToPDF = async () => {
+    setIsPdfGenerating(true);
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      const contentWidth = pageWidth - (2 * margin);
+
+      // Header
+      pdf.setFillColor(33, 150, 243);
+      pdf.rect(0, 0, pageWidth, 35, 'F');
+      
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(24);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Projekt Report', margin, 20);
+      
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      const dateStr = new Date().toLocaleDateString('de-CH', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      pdf.text(`Erstellt am: ${dateStr}`, margin, 28);
+
+      let yPosition = 45;
+
+      if (activeTab === 'overview' && overviewData && overviewContentRef.current) {
+        // Übersichts-Report
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Projekt-Übersicht', margin, yPosition);
+        yPosition += 10;
+
+        // Summary Statistiken
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        
+        const summaryData = [
+          ['Gesamt Projekte:', `${overviewData.summary.totalProjects}`],
+          ['Aktive Projekte:', `${overviewData.summary.activeProjects}`],
+          ['Gesamtbudget:', `CHF ${overviewData.summary.totalBudget.toLocaleString('de-CH')}`],
+          ['Gesamtkosten:', `CHF ${overviewData.summary.totalActualCosts.toLocaleString('de-CH')}`],
+          ['Gesamt Stunden:', `${overviewData.summary.totalHours.toFixed(1)} h`],
+        ];
+
+        summaryData.forEach(([label, value]) => {
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(label, margin, yPosition);
+          pdf.setFont('helvetica', 'normal');
+          pdf.text(value, margin + 50, yPosition);
+          yPosition += 6;
+        });
+
+        yPosition += 5;
+
+        // Capture Charts
+        const chartsSection = overviewContentRef.current.querySelector('.charts-section') as HTMLElement;
+        if (chartsSection) {
+          const chartCards = chartsSection.querySelectorAll('.chart-card');
+          
+          for (let i = 0; i < chartCards.length; i++) {
+            const chartCard = chartCards[i] as HTMLElement;
+            
+            // Check if we need a new page
+            if (yPosition > pageHeight - 100) {
+              pdf.addPage();
+              yPosition = margin;
+            }
+
+            try {
+              const canvas = await html2canvas(chartCard, {
+                backgroundColor: '#ffffff',
+                logging: false,
+                useCORS: true,
+              } as any);
+
+              const imgData = canvas.toDataURL('image/png');
+              
+              // Calculate dimensions to maintain aspect ratio
+              const maxWidth = contentWidth;
+              const maxHeight = 110; // Maximum height in mm
+              const aspectRatio = canvas.width / canvas.height;
+              
+              let imgWidth = maxWidth;
+              let imgHeight = maxWidth / aspectRatio;
+              
+              // If height exceeds max, scale down based on height
+              if (imgHeight > maxHeight) {
+                imgHeight = maxHeight;
+                imgWidth = maxHeight * aspectRatio;
+              }
+
+              // Add chart title
+              const title = chartCard.querySelector('h3')?.textContent || '';
+              pdf.setFontSize(12);
+              pdf.setFont('helvetica', 'bold');
+              pdf.text(title, margin, yPosition);
+              yPosition += 7;
+
+              // Center the image if it's narrower than max width
+              const xOffset = margin + (maxWidth - imgWidth) / 2;
+
+              // Add chart image with correct aspect ratio
+              pdf.addImage(imgData, 'PNG', xOffset, yPosition, imgWidth, imgHeight);
+              yPosition += imgHeight + 10;
+            } catch (err) {
+              console.error('Error capturing chart:', err);
+            }
+          }
+        }
+
+        // Add Projects Table on new page
+        pdf.addPage();
+        yPosition = margin;
+        
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Projekt-Details', margin, yPosition);
+        yPosition += 10;
+
+        // Table Header
+        pdf.setFontSize(8);
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(margin, yPosition - 4, contentWidth, 6, 'F');
+        
+        const colWidths = [40, 30, 20, 25, 25, 20];
+        const headers = ['Projekt', 'Kunde', 'Status', 'Budget', 'Kosten', 'Stunden'];
+        let xPos = margin;
+        
+        pdf.setFont('helvetica', 'bold');
+        headers.forEach((header, idx) => {
+          pdf.text(header, xPos, yPosition);
+          xPos += colWidths[idx];
+        });
+        yPosition += 7;
+
+        // Table Rows
+        pdf.setFont('helvetica', 'normal');
+        overviewData.projects.slice(0, 30).forEach((project) => {
+          if (yPosition > pageHeight - 15) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+
+          xPos = margin;
+          const rowData = [
+            project.name.length > 25 ? project.name.substring(0, 22) + '...' : project.name,
+            (project.customer?.name || '-').substring(0, 18),
+            project.isActive ? 'Aktiv' : 'Inaktiv',
+            project.budget ? `${project.budget.totalBudget.toFixed(0)}` : '-',
+            project.budget ? `${project.budget.actualCosts.toFixed(0)}` : '-',
+            `${project.timeTracking.totalHours.toFixed(1)}h`,
+          ];
+
+          rowData.forEach((data, idx) => {
+            pdf.text(data, xPos, yPosition);
+            xPos += colWidths[idx];
+          });
+          yPosition += 5;
+        });
+
+      } else if (activeTab === 'time' && timeTrackingData && timeContentRef.current) {
+        // Zeiterfassung Report
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Zeiterfassung Report', margin, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(12);
+        pdf.text(timeTrackingData.project.name, margin, yPosition);
+        yPosition += 10;
+
+        // Summary
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        const timeSummary = [
+          ['Zeitraum:', `${timeTrackingData.summary.period.from} - ${timeTrackingData.summary.period.to}`],
+          ['Gesamt Stunden:', `${timeTrackingData.summary.totalHours.toFixed(1)} h`],
+          ['Gesamt Kosten:', `CHF ${timeTrackingData.summary.totalCost.toLocaleString('de-CH')}`],
+          ['Anzahl Einträge:', `${timeTrackingData.summary.entryCount}`],
+        ];
+
+        timeSummary.forEach(([label, value]) => {
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(label, margin, yPosition);
+          pdf.setFont('helvetica', 'normal');
+          pdf.text(value, margin + 50, yPosition);
+          yPosition += 6;
+        });
+
+        yPosition += 5;
+
+        // Capture Charts
+        const chartsSection = timeContentRef.current.querySelector('.charts-section') as HTMLElement;
+        if (chartsSection) {
+          const chartCards = chartsSection.querySelectorAll('.chart-card');
+          
+          for (let i = 0; i < chartCards.length; i++) {
+            const chartCard = chartCards[i] as HTMLElement;
+            
+            if (yPosition > pageHeight - 100) {
+              pdf.addPage();
+              yPosition = margin;
+            }
+
+            try {
+              const canvas = await html2canvas(chartCard, {
+                backgroundColor: '#ffffff',
+                logging: false,
+                useCORS: true,
+              } as any);
+
+              const imgData = canvas.toDataURL('image/png');
+              
+              // Calculate dimensions to maintain aspect ratio
+              const maxWidth = contentWidth;
+              const maxHeight = 110; // Maximum height in mm
+              const aspectRatio = canvas.width / canvas.height;
+              
+              let imgWidth = maxWidth;
+              let imgHeight = maxWidth / aspectRatio;
+              
+              // If height exceeds max, scale down based on height
+              if (imgHeight > maxHeight) {
+                imgHeight = maxHeight;
+                imgWidth = maxHeight * aspectRatio;
+              }
+
+              const title = chartCard.querySelector('h3')?.textContent || '';
+              pdf.setFontSize(12);
+              pdf.setFont('helvetica', 'bold');
+              pdf.text(title, margin, yPosition);
+              yPosition += 7;
+
+              // Center the image if it's narrower than max width
+              const xOffset = margin + (maxWidth - imgWidth) / 2;
+
+              // Add chart image with correct aspect ratio
+              pdf.addImage(imgData, 'PNG', xOffset, yPosition, imgWidth, imgHeight);
+              yPosition += imgHeight + 10;
+            } catch (err) {
+              console.error('Error capturing chart:', err);
+            }
+          }
+        }
+
+        // Add Grouped Data Table
+        pdf.addPage();
+        yPosition = margin;
+        
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Gruppierte Daten', margin, yPosition);
+        yPosition += 10;
+
+        // Table Header
+        pdf.setFontSize(8);
+        pdf.setFillColor(240, 240, 240);
+        pdf.rect(margin, yPosition - 4, contentWidth, 6, 'F');
+        
+        const colWidths = [70, 30, 40, 30];
+        const headers = [groupBy === 'user' ? 'Benutzer' : 'Zeitraum', 'Stunden', 'Kosten (CHF)', 'Einträge'];
+        let xPos = margin;
+        
+        pdf.setFont('helvetica', 'bold');
+        headers.forEach((header, idx) => {
+          pdf.text(header, xPos, yPosition);
+          xPos += colWidths[idx];
+        });
+        yPosition += 7;
+
+        // Table Rows
+        pdf.setFont('helvetica', 'normal');
+        timeTrackingData.groupedData.forEach((row) => {
+          if (yPosition > pageHeight - 15) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+
+          xPos = margin;
+          const rowData = [
+            (row.userName || row.key).substring(0, 40),
+            `${row.hours.toFixed(2)} h`,
+            row.cost.toLocaleString('de-CH'),
+            row.entries.toString(),
+          ];
+
+          rowData.forEach((data, idx) => {
+            pdf.text(data, xPos, yPosition);
+            xPos += colWidths[idx];
+          });
+          yPosition += 5;
+        });
+      }
+
+      // Footer auf jeder Seite
+      const totalPages = pdf.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(8);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text(
+          `Seite ${i} von ${totalPages}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+        pdf.text(
+          'Vertraulich - Nur für internen Gebrauch',
+          pageWidth - margin,
+          pageHeight - 10,
+          { align: 'right' }
+        );
+      }
+
+      // Save PDF
+      const filename = activeTab === 'overview' 
+        ? `Projekt-Uebersicht_${new Date().toISOString().split('T')[0]}.pdf`
+        : `Zeiterfassung_${timeTrackingData?.project.name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      
+      pdf.save(filename);
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      alert('Fehler beim Erstellen des PDFs. Bitte versuchen Sie es erneut.');
+    } finally {
+      setIsPdfGenerating(false);
+    }
+  };
+
   return (
     <div className="project-reports-tab">
       <div className="reports-header">
         <h2>Projekt Reports</h2>
         <div className="header-actions">
-          <button onClick={exportToCSV} className="btn-export" disabled={!overviewData && !timeTrackingData}>
+          <button 
+            onClick={exportToPDF} 
+            className="btn-export btn-pdf" 
+            disabled={(!overviewData && !timeTrackingData) || isPdfGenerating}
+            title="Als PDF exportieren"
+          >
+            <FileText size={18} />
+            {isPdfGenerating ? 'PDF wird erstellt...' : 'Export PDF'}
+          </button>
+          <button 
+            onClick={exportToCSV} 
+            className="btn-export" 
+            disabled={!overviewData && !timeTrackingData}
+            title="Als CSV exportieren"
+          >
             <Download size={18} />
             Export CSV
           </button>
@@ -235,7 +589,7 @@ const ProjectReportsTab: React.FC = () => {
 
       {/* Projekt-Übersicht Tab */}
       {activeTab === 'overview' && (
-        <div className="overview-section">
+        <div className="overview-section" ref={overviewContentRef}>
           <div className="filters-row">
             <div className="filter-group">
               <label>Status</label>
@@ -558,7 +912,7 @@ const ProjectReportsTab: React.FC = () => {
 
       {/* Zeiterfassung Tab */}
       {activeTab === 'time' && (
-        <div className="time-section">
+        <div className="time-section" ref={timeContentRef}>
           <div className="filters-row">
             <div className="filter-group">
               <label>Projekt</label>

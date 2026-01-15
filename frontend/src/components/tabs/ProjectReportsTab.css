@@ -46,6 +46,14 @@
   opacity: 0.6;
 }
 
+.btn-pdf {
+  background-color: #dc3545;
+}
+
+.btn-pdf:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
 /* Tab Navigation */
 .tab-navigation {
   display: flex;
