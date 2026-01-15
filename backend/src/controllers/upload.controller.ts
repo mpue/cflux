@@ -49,9 +49,9 @@ export const uploadLogo = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Keine Datei hochgeladen' });
     }
 
-    // Get backend URL from environment or construct from request
-    const backendUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
-    const fileUrl = `${backendUrl}/uploads/${req.file.filename}`;
+    // Return relative URL path instead of absolute URL to avoid CORS issues
+    // The frontend will use the correct base URL (http://localhost:3001 in dev)
+    const fileUrl = `/uploads/${req.file.filename}`;
 
     res.json({
       url: fileUrl,
