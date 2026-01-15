@@ -1,5 +1,6 @@
 import React from 'react';
 import { InvoiceTemplateFormData } from '../types/invoiceTemplate';
+import { normalizeUploadUrl } from '../services/api';
 import '../styles/InvoicePreview.css';
 
 interface InvoicePreviewProps {
@@ -161,7 +162,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ template, onLogoPositio
             onMouseDown={handleMouseDown}
           >
             <img
-              src={template.logoUrl}
+              src={normalizeUploadUrl(template.logoUrl)}
               alt="Logo"
               style={{
                 width: '100%',

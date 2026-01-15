@@ -21,6 +21,11 @@ import {
   Tooltip,
   Menu,
   MenuItem,
+  Grid,
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions,
 } from '@mui/material';
 import {
   AttachFile as AttachFileIcon,
@@ -31,11 +36,15 @@ import {
   History as HistoryIcon,
   MoreVert as MoreVertIcon,
   Info as InfoIcon,
+  Image as ImageIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import documentNodeAttachmentService, {
   DocumentNodeAttachment,
   AttachmentVersion,
 } from '../services/documentNodeAttachment.service';
+import ImageViewer from './ImageViewer';
+import { normalizeUploadUrl } from '../services/api';
 
 interface DocumentNodeAttachmentsProps {
   nodeId: string;
@@ -77,6 +86,10 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
   // Context menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuAttachment, setMenuAttachment] = useState<DocumentNodeAttachment | null>(null);
+
+  // Image viewer
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [imageViewerIndex, setImageViewerIndex] = useState(0);
 
   useEffect(() => {
     loadAttachments();
@@ -250,6 +263,33 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
     setMenuAttachment(null);
   };
 
+  // Helper function to check if file is an image
+  const isImage = (filename: string): boolean => {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp'];
+    return imageExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+  };
+
+  // Get all images for the viewer
+  const getImageAttachments = () => {
+    return attachments
+      .filter(att => isImage(att.originalFilename))
+      .map(att => ({
+        url: normalizeUploadUrl(att.path) || '',
+        filename: att.originalFilename,
+        description: att.description,
+      }));
+  };
+
+  // Open image viewer at specific image
+  const handleImageClick = (attachment: DocumentNodeAttachment) => {
+    const images = getImageAttachments();
+    const index = images.findIndex(img => img.filename === attachment.originalFilename);
+    if (index !== -1) {
+      setImageViewerIndex(index);
+      setImageViewerOpen(true);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('de-CH');
   };
@@ -298,57 +338,159 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
           </Typography>
         </Paper>
       ) : (
-        <Paper>
-          <List>
-            {attachments.map((attachment, index) => (
-              <React.Fragment key={attachment.id}>
-                {index > 0 && <Divider />}
-                <ListItem>
-                  <ListItemText
-                    primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <span>{documentNodeAttachmentService.getFileIcon(attachment.mimeType)}</span>
-                        <span>{attachment.originalFilename}</span>
-                        <Chip label={`v${attachment.version}`} size="small" />
-                      </Box>
-                    }
-                    secondary={
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          {documentNodeAttachmentService.formatFileSize(attachment.fileSize)} • 
-                          Hochgeladen von {attachment.createdBy.firstName} {attachment.createdBy.lastName} • 
-                          {formatDate(attachment.createdAt)}
-                        </Typography>
-                        {attachment.description && (
-                          <Typography variant="body2" sx={{ mt: 0.5 }}>
-                            {attachment.description}
-                          </Typography>
-                        )}
-                      </Box>
-                    }
-                  />
-                  <ListItemSecondaryAction>
-                    <Tooltip title="Herunterladen">
-                      <IconButton
-                        edge="end"
-                        onClick={() => handleDownload(attachment)}
-                      >
-                        <DownloadIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <IconButton
-                      edge="end"
-                      onClick={(e) => handleMenuOpen(e, attachment)}
-                    >
-                      <MoreVertIcon />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              </React.Fragment>
-            ))}
-          </List>
-        </Paper>
+        <>
+          {/* Image Attachments Grid */}
+          {attachments.some(att => isImage(att.originalFilename)) && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <ImageIcon /> Bilder
+              </Typography>
+              <Grid container spacing={2}>
+                {attachments
+                  .filter(att => isImage(att.originalFilename))
+                  .map((attachment) => (
+                    <Grid item xs={12} sm={6} md={4} lg={3} key={attachment.id}>
+                      <Card>
+                        <CardMedia
+                          component="img"
+                          height="200"
+                          image={normalizeUploadUrl(attachment.path)}
+                          alt={attachment.originalFilename}
+                          sx={{
+                            objectFit: 'contain',
+                            backgroundColor: '#f5f5f5',
+                            cursor: 'pointer',
+                            '&:hover': {
+                              opacity: 0.8,
+                            },
+                          }}
+                          onClick={() => handleImageClick(attachment)}
+                        />
+                        <CardContent sx={{ pb: 1 }}>
+                          <Tooltip title={attachment.originalFilename}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {attachment.originalFilename}
+                            </Typography>
+                          </Tooltip>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                            <Chip label={`v${attachment.version}`} size="small" />
+                            <Typography variant="caption" color="text.secondary">
+                              {documentNodeAttachmentService.formatFileSize(attachment.fileSize)}
+                            </Typography>
+                          </Box>
+                          {attachment.description && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{
+                                display: 'block',
+                                mt: 0.5,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {attachment.description}
+                            </Typography>
+                          )}
+                        </CardContent>
+                        <CardActions sx={{ justifyContent: 'space-between', pt: 0 }}>
+                          <Tooltip title="Bild anzeigen">
+                            <IconButton size="small" onClick={() => handleImageClick(attachment)}>
+                              <VisibilityIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Herunterladen">
+                            <IconButton size="small" onClick={() => handleDownload(attachment)}>
+                              <DownloadIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <IconButton size="small" onClick={(e) => handleMenuOpen(e, attachment)}>
+                            <MoreVertIcon />
+                          </IconButton>
+                        </CardActions>
+                      </Card>
+                    </Grid>
+                  ))}
+              </Grid>
+            </Box>
+          )}
+
+          {/* Non-Image Attachments List */}
+          {attachments.some(att => !isImage(att.originalFilename)) && (
+            <Paper>
+              <Typography variant="subtitle1" sx={{ p: 2, pb: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AttachFileIcon /> Weitere Dateien
+              </Typography>
+              <List>
+                {attachments
+                  .filter(att => !isImage(att.originalFilename))
+                  .map((attachment, index) => (
+                    <React.Fragment key={attachment.id}>
+                      {index > 0 && <Divider />}
+                      <ListItem>
+                        <ListItemText
+                          primary={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <span>{documentNodeAttachmentService.getFileIcon(attachment.mimeType)}</span>
+                              <span>{attachment.originalFilename}</span>
+                              <Chip label={`v${attachment.version}`} size="small" />
+                            </Box>
+                          }
+                          secondary={
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">
+                                {documentNodeAttachmentService.formatFileSize(attachment.fileSize)} • 
+                                Hochgeladen von {attachment.createdBy.firstName} {attachment.createdBy.lastName} • 
+                                {formatDate(attachment.createdAt)}
+                              </Typography>
+                              {attachment.description && (
+                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                  {attachment.description}
+                                </Typography>
+                              )}
+                            </Box>
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <Tooltip title="Herunterladen">
+                            <IconButton
+                              edge="end"
+                              onClick={() => handleDownload(attachment)}
+                            >
+                              <DownloadIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <IconButton
+                            edge="end"
+                            onClick={(e) => handleMenuOpen(e, attachment)}
+                          >
+                            <MoreVertIcon />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    </React.Fragment>
+                  ))}
+              </List>
+            </Paper>
+          )}
+        </>
       )}
+
+      {/* Image Viewer */}
+      <ImageViewer
+        open={imageViewerOpen}
+        onClose={() => setImageViewerOpen(false)}
+        images={getImageAttachments()}
+        initialIndex={imageViewerIndex}
+      />
 
       {/* Context Menu */}
       <Menu

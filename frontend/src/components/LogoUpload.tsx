@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { normalizeUploadUrl } from '../services/api';
 import '../styles/LogoUpload.css';
 
 interface LogoUploadProps {
@@ -50,7 +51,12 @@ const LogoUpload: React.FC<LogoUploadProps> = ({ currentLogo, onLogoChange, onLo
       }
 
       const data = await response.json();
-      onLogoChange(data.url);
+      
+      // Normalize the URL using the centralized function
+      const normalizedUrl = normalizeUploadUrl(data.url);
+      if (normalizedUrl) {
+        onLogoChange(normalizedUrl);
+      }
     } catch (err: any) {
       setError(err.message || 'Fehler beim Hochladen des Logos');
     } finally {
@@ -95,7 +101,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({ currentLogo, onLogoChange, onLo
     <div className="logo-upload">
       {currentLogo ? (
         <div className="logo-preview">
-          <img src={currentLogo} alt="Logo" />
+          <img src={normalizeUploadUrl(currentLogo)} alt="Logo" />
           <div className="logo-actions">
             <button
               type="button"

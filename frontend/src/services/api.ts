@@ -20,7 +20,30 @@ const getBaseURL = () => {
 // Export function to get backend URL for static resources
 export const getBackendURL = () => {
   const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
-  return electronBackendUrl || process.env.REACT_APP_API_URL?.replace('/api', '') || '';
+  return electronBackendUrl || process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:3001';
+};
+
+// Normalize upload URLs to always point to the correct backend
+export const normalizeUploadUrl = (url: string | undefined): string | undefined => {
+  if (!url) return undefined;
+  
+  const backendUrl = getBackendURL();
+  
+  // Already correct full URL
+  if (url.startsWith(`${backendUrl}/uploads/`)) {
+    return url;
+  }
+  
+  // Extract filename from any URL format
+  let filename = url;
+  if (url.includes('/uploads/')) {
+    filename = url.substring(url.indexOf('/uploads/') + 9);
+  } else if (url.includes('/')) {
+    filename = url.split('/').pop() || url;
+  }
+  
+  // Build correct URL
+  return `${backendUrl}/uploads/${filename}`;
 };
 
 const api = axios.create({
