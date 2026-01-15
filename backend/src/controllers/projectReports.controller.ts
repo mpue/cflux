@@ -143,13 +143,14 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
             : null,
           budget: project.budget
             ? (() => {
-                // Budget-Werte aus Items neu berechnen
+                // Budget-Werte verwenden die bereits im Budget-Objekt berechnet wurden
+                // Die actualCosts in ProjectBudget enthalten bereits die Summe aller Budget-Item actualCosts
+                // Diese werden durch den budgetUpdate.service.ts aktualisiert
                 const plannedCosts = project.budget.items?.reduce((sum, item) => sum + item.plannedCost, 0) || 0;
-                const budgetItemCosts = project.budget.items?.reduce((sum, item) => sum + item.actualCost, 0) || 0;
-                
-                // Kosten kombinieren: Budget-Items + Zeitkosten
-                const actualCosts = budgetItemCosts + timeCosts;
+                const actualCosts = project.budget.actualCosts || 0;
                 const remainingBudget = project.budget.totalBudget - actualCosts;
+                
+                // Auslastung = tatsächliche Kosten / Gesamtbudget * 100
                 const utilization = project.budget.totalBudget > 0 
                   ? (actualCosts / project.budget.totalBudget) * 100 
                   : 0;
