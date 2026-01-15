@@ -166,9 +166,18 @@ async function recalculateBudget(budgetId: string): Promise<void> {
 
   const variance = totalActual - totalPlanned;
   const variancePercent = totalPlanned > 0 ? (variance / totalPlanned) * 100 : 0;
-  const utilization = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 0;
+  
+  // Budget holen um totalBudget zu verwenden
+  const budget = await prisma.projectBudget.findUnique({
+    where: { id: budgetId },
+    select: { totalBudget: true },
+  });
+  
+  if (!budget) return;
+  
+  const utilization = budget.totalBudget > 0 ? (totalActual / budget.totalBudget) * 100 : 0;
 
-  // Budget-Status ermitteln
+  // Budget-Status ermitteln basierend auf totalBudget
   let status: string = 'PLANNING';
   if (totalActual > 0) {
     status = 'ACTIVE';
@@ -180,9 +189,10 @@ async function recalculateBudget(budgetId: string): Promise<void> {
   await prisma.projectBudget.update({
     where: { id: budgetId },
     data: {
+      plannedCosts: totalPlanned,
       actualCosts: totalActual,
-      remainingBudget: totalPlanned - totalActual,
-      budgetUtilization: totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 0,
+      remainingBudget: budget.totalBudget - totalActual,
+      budgetUtilization: utilization,
       status: status as any,
     },
   });

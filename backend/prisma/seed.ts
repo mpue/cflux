@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 const seedModulesModule = require('./seedModules');
+import { actionService } from '../src/services/action.service';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -31,6 +32,16 @@ async function main() {
     await seedModulesModule.seedModules();
   } else {
     console.log('⚠️ seedModules not available, skipping module seeding');
+  }
+
+  // 0.5 System Actions seeden
+  try {
+    console.log('🌱 Seeding System Actions...');
+    await actionService.seedSystemActions();
+    console.log('✅ System Actions seeded successfully');
+  } catch (error) {
+    console.error('❌ Error seeding system actions:', error);
+    // Continue with seeding even if actions fail
   }
 
   // 1. Admin User (falls noch nicht vorhanden)

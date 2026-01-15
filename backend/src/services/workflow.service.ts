@@ -432,7 +432,7 @@ export const workflowService = {
     console.log(`[Workflow] Active steps after start node processing: ${activeSteps.size} steps`);
 
     // Process VALUE_CONDITION nodes and activate connected steps
-    for (const [nodeId, conditionMet] of evaluatedConditions) {
+    for (const [nodeId, conditionMet] of Array.from(evaluatedConditions.entries())) {
       const expectedHandle = conditionMet ? 'true' : 'false';
       const conditionEdges = edges.filter((e: any) => 
         e.source === nodeId && e.sourceHandle === expectedHandle

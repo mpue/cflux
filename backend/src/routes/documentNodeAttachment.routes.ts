@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import * as documentNodeAttachmentController from '../controllers/documentNodeAttachment.controller';
+import * as documentNodeSearchController from '../controllers/documentNodeSearch.controller';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -33,6 +34,10 @@ const upload = multer({
 
 // All routes require authentication
 router.use(authenticate);
+
+// Search routes (must be before :nodeId routes to avoid conflicts)
+router.get('/search', documentNodeSearchController.searchIntranet);
+router.get('/search/suggestions', documentNodeSearchController.getSearchSuggestions);
 
 // Get attachments for a document node
 router.get('/:nodeId/attachments', documentNodeAttachmentController.getNodeAttachments);

@@ -52,6 +52,21 @@ async function install() {
     }
 
     console.log('');
+
+    // Step 3: Seed system actions
+    console.log('3️⃣  Installing system actions...');
+    try {
+      execSync('npx ts-node scripts/seedActions.ts', { 
+        stdio: 'inherit',
+        cwd: '/app'
+      });
+      console.log('✅ System actions installed successfully');
+    } catch (error) {
+      console.error('❌ Error installing system actions:', error);
+      throw error;
+    }
+
+    console.log('');
     console.log('🎉 Installation completed successfully!');
     console.log('');
     console.log('📝 Next steps:');
