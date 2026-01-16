@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import orderService, { Order, OrderStatistics } from '../../services/order.service';
+import { costCenterService, CostCenter } from '../../services/costCenter.service';
 import { Supplier } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -467,6 +468,20 @@ const OrderModal: React.FC<{
   onSuccess: () => void;
 }> = ({ suppliers, onClose, onSuccess }) => {
   const navigate = useNavigate();
+  const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
+  
+  useEffect(() => {
+    const loadCostCenters = async () => {
+      try {
+        const data = await costCenterService.getAll(false);
+        setCostCenters(data);
+      } catch (error) {
+        console.error('Error loading cost centers:', error);
+      }
+    };
+    loadCostCenters();
+  }, []);
+  
   const [formData, setFormData] = useState({
     title: '',
     supplierId: '',
@@ -597,6 +612,21 @@ const OrderModal: React.FC<{
                 <option value="MEDIUM">Normal</option>
                 <option value="HIGH">Hoch</option>
                 <option value="URGENT">Dringend</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Kostenstelle</label>
+              <select
+                value={formData.costCenter}
+                onChange={(e) => setFormData({ ...formData, costCenter: e.target.value })}
+              >
+                <option value="">Keine Zuordnung</option>
+                {costCenters.map(cc => (
+                  <option key={cc.id} value={cc.id}>
+                    {cc.code} - {cc.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

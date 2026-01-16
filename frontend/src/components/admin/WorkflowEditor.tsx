@@ -45,6 +45,7 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave, onCan
         order: steps.length + 1,
         approverUserIds: '[]',
         requireAllApprovers: false,
+        config: '{}',
       },
     ]);
   };
@@ -60,6 +61,21 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave, onCan
     const newSteps = [...steps];
     newSteps[index] = { ...newSteps[index], [field]: value };
     setSteps(newSteps);
+  };
+
+  const getStepConfig = (stepIndex: number): any => {
+    const step = steps[stepIndex];
+    try {
+      return JSON.parse(step.config || '{}');
+    } catch {
+      return {};
+    }
+  };
+
+  const updateStepConfig = (stepIndex: number, configUpdates: any) => {
+    const currentConfig = getStepConfig(stepIndex);
+    const newConfig = { ...currentConfig, ...configUpdates };
+    handleUpdateStep(stepIndex, 'config', JSON.stringify(newConfig));
   };
 
   const handleMoveStep = (index: number, direction: 'up' | 'down') => {
@@ -297,6 +313,62 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave, onCan
                           />
                           Alle Genehmiger erforderlich
                         </label>
+                      </div>
+                    </>
+                  )}
+
+                  {step.type === 'NOTIFICATION' && (
+                    <>
+                      <div className="form-group">
+                        <label>Empfänger auswählen</label>
+                        <div className="approvers-list">
+                          {users.map((user) => {
+                            const config = getStepConfig(index);
+                            const recipients = config.recipients || [];
+                            return (
+                              <label key={user.id} className="approver-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={recipients.includes(user.id)}
+                                  onChange={() => {
+                                    const currentRecipients = [...recipients];
+                                    const idx = currentRecipients.indexOf(user.id);
+                                    if (idx > -1) {
+                                      currentRecipients.splice(idx, 1);
+                                    } else {
+                                      currentRecipients.push(user.id);
+                                    }
+                                    updateStepConfig(index, { recipients: currentRecipients });
+                                  }}
+                                />
+                                <span>
+                                  {user.firstName} {user.lastName} ({user.email})
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="form-group">
+                        <label>Nachrichtentext</label>
+                        <textarea
+                          value={getStepConfig(index).message || ''}
+                          onChange={(e) => updateStepConfig(index, { message: e.target.value })}
+                          placeholder="Geben Sie die Nachricht ein..."
+                          rows={4}
+                        />
+                        <div style={{ fontSize: '0.85em', color: '#666', marginTop: '8px' }}>
+                          <strong>Verfügbare Platzhalter:</strong>
+                          <br />
+                          <code>{'{{orderNumber}}'}</code> - Bestellnummer<br />
+                          <code>{'{{invoiceNumber}}'}</code> - Rechnungsnummer<br />
+                          <code>{'{{userName}}'}</code> - Name des Benutzers<br />
+                          <code>{'{{userId}}'}</code> - Benutzer-ID<br />
+                          <code>{'{{workflowName}}'}</code> - Workflow-Name<br />
+                          <code>{'{{entityType}}'}</code> - Entitätstyp<br />
+                          <code>{'{{currentDate}}'}</code> - Aktuelles Datum
+                        </div>
                       </div>
                     </>
                   )}

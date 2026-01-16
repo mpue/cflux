@@ -18,15 +18,26 @@ interface PendingApproval {
     id: string;
     status: string;
     startedAt: string;
+    entityType: string;
     workflow: {
       id: string;
       name: string;
     };
-    invoice: {
+    invoice?: {
       id: string;
       invoiceNumber: string;
       totalAmount: number;
       customer: {
+        id: string;
+        name: string;
+      };
+    };
+    order?: {
+      id: string;
+      orderNumber: string;
+      title: string;
+      grandTotal: number;
+      supplier?: {
         id: string;
         name: string;
       };
@@ -166,15 +177,40 @@ const MyApprovals: React.FC = () => {
                 </div>
 
                 <div className="invoice-info">
-                  <div className="invoice-number">
-                    Rechnung #{approval.instance.invoice.invoiceNumber}
-                  </div>
-                  <div className="customer-name">
-                    {approval.instance.invoice.customer.name}
-                  </div>
-                  <div className="invoice-amount">
-                    {formatCurrency(approval.instance.invoice.totalAmount)}
-                  </div>
+                  {approval.instance.entityType === 'INVOICE' && approval.instance.invoice ? (
+                    <>
+                      <div className="invoice-number">
+                        Rechnung #{approval.instance.invoice.invoiceNumber}
+                      </div>
+                      <div className="customer-name">
+                        {approval.instance.invoice.customer.name}
+                      </div>
+                      <div className="invoice-amount">
+                        {formatCurrency(approval.instance.invoice.totalAmount)}
+                      </div>
+                    </>
+                  ) : approval.instance.entityType === 'ORDER' && approval.instance.order ? (
+                    <>
+                      <div className="invoice-number">
+                        Bestellung {approval.instance.order.orderNumber}
+                      </div>
+                      <div className="customer-name">
+                        {approval.instance.order.title}
+                      </div>
+                      {approval.instance.order.supplier && (
+                        <div className="customer-name" style={{ fontSize: '0.9em', color: '#666' }}>
+                          Lieferant: {approval.instance.order.supplier.name}
+                        </div>
+                      )}
+                      <div className="invoice-amount">
+                        {formatCurrency(approval.instance.order.grandTotal)}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="invoice-number">
+                      {approval.instance.entityType}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -209,18 +245,48 @@ const MyApprovals: React.FC = () => {
                   <span className="label">Schritt:</span>
                   <span className="value">{selectedApproval.step.name}</span>
                 </div>
-                <div className="detail-row">
-                  <span className="label">Rechnung:</span>
-                  <span className="value">#{selectedApproval.instance.invoice.invoiceNumber}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Kunde:</span>
-                  <span className="value">{selectedApproval.instance.invoice.customer.name}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Betrag:</span>
-                  <span className="value">{formatCurrency(selectedApproval.instance.invoice.totalAmount)}</span>
-                </div>
+                {selectedApproval.instance.entityType === 'INVOICE' && selectedApproval.instance.invoice ? (
+                  <>
+                    <div className="detail-row">
+                      <span className="label">Rechnung:</span>
+                      <span className="value">#{selectedApproval.instance.invoice.invoiceNumber}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="label">Kunde:</span>
+                      <span className="value">{selectedApproval.instance.invoice.customer.name}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="label">Betrag:</span>
+                      <span className="value">{formatCurrency(selectedApproval.instance.invoice.totalAmount)}</span>
+                    </div>
+                  </>
+                ) : selectedApproval.instance.entityType === 'ORDER' && selectedApproval.instance.order ? (
+                  <>
+                    <div className="detail-row">
+                      <span className="label">Bestellung:</span>
+                      <span className="value">{selectedApproval.instance.order.orderNumber}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="label">Titel:</span>
+                      <span className="value">{selectedApproval.instance.order.title}</span>
+                    </div>
+                    {selectedApproval.instance.order.supplier && (
+                      <div className="detail-row">
+                        <span className="label">Lieferant:</span>
+                        <span className="value">{selectedApproval.instance.order.supplier.name}</span>
+                      </div>
+                    )}
+                    <div className="detail-row">
+                      <span className="label">Betrag:</span>
+                      <span className="value">{formatCurrency(selectedApproval.instance.order.grandTotal)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="detail-row">
+                    <span className="label">Entität:</span>
+                    <span className="value">{selectedApproval.instance.entityType}</span>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
