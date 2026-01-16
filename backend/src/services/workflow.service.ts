@@ -130,13 +130,49 @@ export const workflowService = {
           }
         });
 
-        // If there are referenced steps, we can only update the workflow definition
-        // but not the steps themselves to avoid breaking references
+        // If there are referenced steps, update existing steps instead of deleting
         if (referencedSteps > 0) {
-          console.log(`[Workflow Update] Skipping step deletion because ${referencedSteps} instance step(s) reference them`);
-          console.log('[Workflow Update] Only workflow metadata (name, description, definition) will be updated');
+          console.log(`[Workflow Update] ${referencedSteps} instance step(s) reference existing steps`);
+          console.log('[Workflow Update] Updating existing steps in-place to preserve references');
           
-          // Return workflow with existing steps
+          // Create a map of existing steps by order
+          const existingStepsWithOrder = await prisma.workflowStep.findMany({
+            where: { workflowId: id },
+            orderBy: { order: 'asc' },
+          });
+          
+          // Update existing steps with new data (match by order)
+          for (const stepData of stepsData) {
+            const existingStep = existingStepsWithOrder.find(s => s.order === stepData.order);
+            
+            if (existingStep) {
+              // Update existing step
+              console.log(`[Workflow Update] Updating step ${existingStep.id} (order ${stepData.order})`);
+              await prisma.workflowStep.update({
+                where: { id: existingStep.id },
+                data: {
+                  name: stepData.name,
+                  type: stepData.type,
+                  order: stepData.order,
+                  config: stepData.config,
+                  approverUserIds: stepData.approverUserIds,
+                  approverGroupIds: stepData.approverGroupIds,
+                  requireAllApprovers: stepData.requireAllApprovers,
+                },
+              });
+            } else {
+              // Create new step
+              console.log(`[Workflow Update] Creating new step (order ${stepData.order})`);
+              await prisma.workflowStep.create({
+                data: {
+                  ...stepData,
+                  workflowId: id,
+                },
+              });
+            }
+          }
+          
+          // Return workflow with updated steps
           return await prisma.workflow.findUnique({
             where: { id },
             include: {
@@ -1216,7 +1252,7 @@ export const workflowService = {
     try {
       const config = JSON.parse(step.config || '{}');
       const recipients = config.recipients || [];
-      const message = config.message || 'Sie haben eine neue Workflow-Benachrichtigung.';
+      let message = config.message || 'Sie haben eine neue Workflow-Benachrichtigung.';
       
       if (recipients.length === 0) {
         console.log('[WORKFLOW] No recipients configured for notification');
@@ -1233,12 +1269,71 @@ export const workflowService = {
       const entityType = workflowInstance.entityType || 'ENTITY';
       const entityId = workflowInstance.invoiceId || workflowInstance.entityId || '';
 
+      // Fetch entity details for template variables
+      let entityData: any = {};
+      
+      // Support legacy invoiceId field
+      if (workflowInstance.invoiceId) {
+        const invoice = await prisma.invoice.findUnique({
+          where: { id: workflowInstance.invoiceId },
+          include: { customer: true }
+        });
+        entityData = {
+          invoiceNumber: invoice?.invoiceNumber || '',
+          customerName: invoice?.customer?.name || ''
+        };
+      }
+      
+      // Support generic entityType/entityId
+      if (entityType === 'ORDER' && entityId) {
+        const order = await prisma.order.findUnique({
+          where: { id: entityId },
+          include: { supplier: true, requestedBy: true }
+        });
+        entityData = {
+          orderNumber: order?.orderNumber || '',
+          supplierName: order?.supplier?.name || '',
+          userName: order?.requestedBy ? `${order.requestedBy.firstName} ${order.requestedBy.lastName}` : '',
+          userId: order?.requestedById || ''
+        };
+      } else if (entityType === 'INVOICE' && entityId && !workflowInstance.invoiceId) {
+        const invoice = await prisma.invoice.findUnique({
+          where: { id: entityId },
+          include: { customer: true }
+        });
+        entityData = {
+          invoiceNumber: invoice?.invoiceNumber || '',
+          customerName: invoice?.customer?.name || ''
+        };
+      }
+
+      // Template variables
+      const variables: Record<string, string> = {
+        workflowName,
+        entityType,
+        currentDate: new Date().toLocaleDateString('de-CH'),
+        orderNumber: entityData.orderNumber || '',
+        invoiceNumber: entityData.invoiceNumber || '',
+        userName: entityData.userName || '',
+        userId: entityData.userId || '',
+        customerName: entityData.customerName || '',
+        supplierName: entityData.supplierName || ''
+      };
+
+      // Replace template variables in message
+      Object.entries(variables).forEach(([key, value]) => {
+        const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+        message = message.replace(regex, value);
+      });
+
       // Send message to each recipient
       for (const recipientId of recipients) {
-        const subject = `🔔 ${workflowName}: ${config.name || 'Benachrichtigung'}`;
+        const subject = `🔔 ${workflowName}: ${step.name || 'Benachrichtigung'}`;
         const body = `<p>${message}</p>
-                      <p><strong>Workflow:</strong> ${workflowName}</p>
-                      <p><strong>Entität:</strong> ${entityType}</p>`;
+                      <p style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 0.9em; color: #666;">
+                        <strong>Workflow:</strong> ${workflowName}<br/>
+                        <strong>Entität:</strong> ${entityType}
+                      </p>`;
 
         await sendSystemMessage(
           recipientId,

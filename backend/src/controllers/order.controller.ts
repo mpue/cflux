@@ -297,7 +297,6 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
       requestedBy: {
         connect: { id: req.user!.id }
       },
-      costCenter: costCenter || null,
       items: {
         create: orderItems,
       },
@@ -310,6 +309,10 @@ export const createOrder = async (req: AuthRequest, res: Response) => {
 
     if (projectId) {
       orderData.project = { connect: { id: projectId } };
+    }
+
+    if (costCenter) {
+      orderData.costCenter = { connect: { id: costCenter } };
     }
 
     const order = await prisma.order.create({
