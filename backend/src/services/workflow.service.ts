@@ -807,6 +807,19 @@ export const workflowService = {
           completedAt: new Date(),
         },
       });
+
+      // Update entity status based on entityType
+      if (instanceStep.instance.entityType === 'ORDER') {
+        await prisma.order.update({
+          where: { id: instanceStep.instance.entityId },
+          data: {
+            status: 'APPROVED',
+            approvedById: userId,
+            approvedAt: new Date(),
+          },
+        });
+      }
+      // Note: Invoice status is not updated here as workflow completion itself indicates approval
     } else {
       // Load workflow definition to find next steps based on edges
       const workflow = await prisma.workflow.findUnique({
@@ -935,6 +948,9 @@ export const workflowService = {
         approvedAt: new Date(),
         comment,
       },
+      include: {
+        instance: true,
+      },
     });
 
     // Reject entire workflow instance
@@ -945,6 +961,20 @@ export const workflowService = {
         completedAt: new Date(),
       },
     });
+
+    // Update entity status based on entityType
+    if (instanceStep.instance.entityType === 'ORDER') {
+      await prisma.order.update({
+        where: { id: instanceStep.instance.entityId },
+        data: {
+          status: 'REJECTED',
+          rejectedById: userId,
+          rejectedAt: new Date(),
+          rejectionReason: comment || 'Workflow abgelehnt',
+        },
+      });
+    }
+    // Note: Invoice status is not updated here as workflow rejection is tracked via WorkflowInstance status
 
     return instanceStep;
   },
@@ -1016,10 +1046,39 @@ export const workflowService = {
     });
 
     // Filter manually to check if user is in approverUserIds array
-    return steps.filter(step => {
+    const filteredSteps = steps.filter(step => {
       const approverIds = JSON.parse(step.step.approverUserIds || '[]');
       return approverIds.includes(userId);
     });
+
+    // Load order data for ORDER entity types
+    const stepsWithOrders = await Promise.all(
+      filteredSteps.map(async (step) => {
+        if (step.instance.entityType === 'ORDER') {
+          const order = await prisma.order.findUnique({
+            where: { id: step.instance.entityId },
+            include: {
+              supplier: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          });
+          return {
+            ...step,
+            instance: {
+              ...step.instance,
+              order,
+            },
+          };
+        }
+        return step;
+      })
+    );
+
+    return stepsWithOrders;
   },
 
   // Test Workflow (executes workflow and cleans up old test instances)
