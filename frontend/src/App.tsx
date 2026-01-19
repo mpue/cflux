@@ -6,7 +6,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import ThemeToggle from './components/ThemeToggle';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './pages/DashboardNew';
 import AdminDashboard from './pages/AdminDashboard';
 import VacationPlanner from './pages/VacationPlanner';
 import ComplianceDashboard from './pages/ComplianceDashboard';
