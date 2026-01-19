@@ -8,6 +8,7 @@ export type WidgetType =
   | 'pending-approvals'
   | 'messages'
   | 'clock'
+  | 'budget'
   | 'payroll';
 
 export interface DashboardWidget {
@@ -126,5 +127,15 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     minH: 2,
     defaultW: 4,
     defaultH: 3,
+  },
+  {
+    id: 'budget',
+    type: 'budget',
+    title: '💰 Budget-Auslastung',
+    isVisible: false,
+    minW: 4,
+    minH: 4,
+    defaultW: 6,
+    defaultH: 5,
   },
 ];

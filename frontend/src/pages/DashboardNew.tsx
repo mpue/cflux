@@ -28,6 +28,7 @@ import {
   PendingApprovalsWidget,
   MessagesWidget,
   ClockWidget,
+  BudgetWidget,
   WidgetSettingsModal,
   AddWidgetModal,
 } from '../components/DashboardWidgets';
@@ -536,6 +537,13 @@ const Dashboard: React.FC = () => {
                 return (
                   <div key={widget.id}>
                     <ClockWidget onRemove={() => removeWidget(widget.id)} />
+                  </div>
+                );
+              
+              case 'budget':
+                return (
+                  <div key={widget.id}>
+                    <BudgetWidget onRemove={() => removeWidget(widget.id)} />
                   </div>
                 );
               
