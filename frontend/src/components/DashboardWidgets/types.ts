@@ -7,6 +7,7 @@ export type WidgetType =
   | 'summary'
   | 'pending-approvals'
   | 'messages'
+  | 'clock'
   | 'payroll';
 
 export interface DashboardWidget {
@@ -115,5 +116,15 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     minH: 1,
     defaultW: 4,
     defaultH: 2,
+  },
+  {
+    id: 'clock',
+    type: 'clock',
+    title: '🕐 Uhr & Datum',
+    isVisible: false,
+    minW: 2,
+    minH: 2,
+    defaultW: 4,
+    defaultH: 3,
   },
 ];

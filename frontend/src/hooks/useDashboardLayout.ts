@@ -60,8 +60,15 @@ const loadInitialState = (): { widgets: DashboardWidget[], layouts: Layouts } =>
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed: UserDashboardLayout = JSON.parse(stored);
+      
+      // Merge with DEFAULT_WIDGETS to ensure all widgets are present
+      const mergedWidgets = DEFAULT_WIDGETS.map(defaultWidget => {
+        const savedWidget = parsed.widgets.find(w => w.id === defaultWidget.id);
+        return savedWidget || defaultWidget;
+      });
+      
       return {
-        widgets: parsed.widgets,
+        widgets: mergedWidgets,
         layouts: parsed.layouts
       };
     }
@@ -91,16 +98,22 @@ export const useDashboardLayout = (userId: string | undefined) => {
         if (userId) {
           const backendLayout = await dashboardLayoutService.getMyLayout();
           if (backendLayout) {
+            // Merge with DEFAULT_WIDGETS to ensure all widgets are present
+            const mergedWidgets = DEFAULT_WIDGETS.map(defaultWidget => {
+              const savedWidget = backendLayout.widgets.find(w => w.id === defaultWidget.id);
+              return savedWidget || defaultWidget;
+            });
+            
             // Only update if different from current state
             const layoutChanged = JSON.stringify(backendLayout.layouts) !== JSON.stringify(layouts);
-            const widgetsChanged = JSON.stringify(backendLayout.widgets) !== JSON.stringify(widgets);
+            const widgetsChanged = JSON.stringify(mergedWidgets) !== JSON.stringify(widgets);
             
             if (layoutChanged || widgetsChanged) {
-              setWidgets(backendLayout.widgets);
+              setWidgets(mergedWidgets);
               setLayouts(backendLayout.layouts);
               // Also update localStorage
               localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                widgets: backendLayout.widgets,
+                widgets: mergedWidgets,
                 layouts: backendLayout.layouts
               }));
             }
@@ -164,12 +177,67 @@ export const useDashboardLayout = (userId: string | undefined) => {
     const widgetToAdd = DEFAULT_WIDGETS.find(w => w.id === widgetId);
     if (!widgetToAdd) return;
 
-    const newWidgets = widgets.map(w => 
-      w.id === widgetId ? { ...w, isVisible: true } : w
-    );
-    const newLayouts = generateDefaultLayouts(newWidgets);
-    saveLayout(newLayouts, newWidgets);
-  }, [widgets, saveLayout]);
+    let newWidgets: DashboardWidget[];
+    const existingWidget = widgets.find(w => w.id === widgetId);
+    
+    if (existingWidget) {
+      // Widget exists, just make it visible
+      newWidgets = widgets.map(w => 
+        w.id === widgetId ? { ...w, isVisible: true } : w
+      );
+    } else {
+      // Widget doesn't exist yet, add it to the list
+      newWidgets = [...widgets, { ...widgetToAdd, isVisible: true }];
+    }
+
+    // Calculate position for the new widget without disrupting existing ones
+    const currentLayouts = { ...layouts };
+    const visibleWidgets = newWidgets.filter(w => w.isVisible);
+    
+    // Find maximum Y position for each breakpoint
+    const maxYLg = currentLayouts.lg.reduce((max, item) => Math.max(max, item.y + item.h), 0);
+    const maxYMd = currentLayouts.md.reduce((max, item) => Math.max(max, item.y + item.h), 0);
+    const maxYSm = currentLayouts.sm.reduce((max, item) => Math.max(max, item.y + item.h), 0);
+
+    // Add layout for new widget if it doesn't exist
+    if (!currentLayouts.lg.find(l => l.i === widgetId)) {
+      currentLayouts.lg.push({
+        i: widgetId,
+        x: 0,
+        y: maxYLg,
+        w: widgetToAdd.defaultW || 6,
+        h: widgetToAdd.defaultH || 2,
+        minW: widgetToAdd.minW || 2,
+        minH: widgetToAdd.minH || 1,
+      });
+    }
+
+    if (!currentLayouts.md.find(l => l.i === widgetId)) {
+      currentLayouts.md.push({
+        i: widgetId,
+        x: 0,
+        y: maxYMd,
+        w: Math.min(widgetToAdd.defaultW || 5, 10),
+        h: widgetToAdd.defaultH || 2,
+        minW: widgetToAdd.minW || 2,
+        minH: widgetToAdd.minH || 1,
+      });
+    }
+
+    if (!currentLayouts.sm.find(l => l.i === widgetId)) {
+      currentLayouts.sm.push({
+        i: widgetId,
+        x: 0,
+        y: maxYSm,
+        w: 6,
+        h: widgetToAdd.defaultH || 2,
+        minW: widgetToAdd.minW || 2,
+        minH: widgetToAdd.minH || 1,
+      });
+    }
+
+    saveLayout(currentLayouts, newWidgets);
+  }, [widgets, layouts, saveLayout]);
 
   // Remove a widget
   const removeWidget = useCallback((widgetId: string) => {

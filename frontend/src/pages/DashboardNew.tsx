@@ -27,6 +27,7 @@ import {
   SummaryWidget,
   PendingApprovalsWidget,
   MessagesWidget,
+  ClockWidget,
   WidgetSettingsModal,
   AddWidgetModal,
 } from '../components/DashboardWidgets';
@@ -528,6 +529,13 @@ const Dashboard: React.FC = () => {
                       unreadMessagesCount={unreadMessagesCount}
                       onRemove={() => removeWidget(widget.id)}
                     />
+                  </div>
+                );
+              
+              case 'clock':
+                return (
+                  <div key={widget.id}>
+                    <ClockWidget onRemove={() => removeWidget(widget.id)} />
                   </div>
                 );
               

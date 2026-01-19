@@ -471,3 +471,72 @@
 .dark-mode .widget-selection-title {
   color: #e0e0e0;
 }
+
+/* Clock Widget Styles */
+.clock-widget-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.clock-greeting {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 15px;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.clock-time {
+  font-size: 72px;
+  font-weight: 700;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1;
+  margin: 20px 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  letter-spacing: 2px;
+}
+
+.clock-date {
+  font-size: 20px;
+  font-weight: 400;
+  margin-top: 15px;
+  opacity: 0.95;
+  text-transform: capitalize;
+}
+
+.clock-week {
+  font-size: 14px;
+  margin-top: 15px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  opacity: 0.9;
+}
+
+/* Responsive clock sizes */
+@media (max-width: 768px) {
+  .clock-time {
+    font-size: 48px;
+  }
+  
+  .clock-date {
+    font-size: 16px;
+  }
+  
+  .clock-greeting {
+    font-size: 14px;
+  }
+}
+
+/* Dark mode adjustments */
+.dark-mode .clock-widget-content {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
