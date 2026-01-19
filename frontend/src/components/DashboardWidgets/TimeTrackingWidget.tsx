@@ -17,6 +17,7 @@ interface TimeTrackingWidgetProps {
   onClockOut: () => void;
   onStartPause: () => void;
   onEndPause: () => void;
+  onRemove?: () => void;
 }
 
 const TimeTrackingWidget: React.FC<TimeTrackingWidgetProps> = ({
@@ -33,10 +34,11 @@ const TimeTrackingWidget: React.FC<TimeTrackingWidgetProps> = ({
   onClockOut,
   onStartPause,
   onEndPause,
+  onRemove,
 }) => {
   return (
     <div className="dashboard-widget">
-      <WidgetHeader title="Zeit erfassen" icon="⏰" />
+      <WidgetHeader title="Zeit erfassen" icon="⏰" onRemove={onRemove} />
       <div className="widget-content">
         {currentEntry ? (
           <div>

@@ -6,13 +6,14 @@ import './DashboardWidgets.css';
 interface SummaryWidgetProps {
   report: Report | null;
   onShowPDFReport: () => void;
+  onRemove?: () => void;
 }
 
-const SummaryWidget: React.FC<SummaryWidgetProps> = ({ report, onShowPDFReport }) => {
+const SummaryWidget: React.FC<SummaryWidgetProps> = ({ report, onShowPDFReport, onRemove }) => {
   if (!report) {
     return (
       <div className="dashboard-widget">
-        <WidgetHeader title="Zusammenfassung" icon="📈" />
+        <WidgetHeader title="Zusammenfassung" icon="📈" onRemove={onRemove} />
         <div className="widget-content">
           <div className="widget-loading">Laden...</div>
         </div>
@@ -25,6 +26,7 @@ const SummaryWidget: React.FC<SummaryWidgetProps> = ({ report, onShowPDFReport }
       <WidgetHeader 
         title="Zusammenfassung" 
         icon="📈"
+        onRemove={onRemove}
         actions={
           <button className="btn btn-primary btn-small" onClick={onShowPDFReport}>
             PDF Report

@@ -159,10 +159,31 @@ export const useDashboardLayout = (userId: string | undefined) => {
     saveLayout(newLayouts, newWidgets);
   }, [widgets, saveLayout]);
 
+  // Add a new widget
+  const addWidget = useCallback((widgetId: string) => {
+    const widgetToAdd = DEFAULT_WIDGETS.find(w => w.id === widgetId);
+    if (!widgetToAdd) return;
+
+    const newWidgets = widgets.map(w => 
+      w.id === widgetId ? { ...w, isVisible: true } : w
+    );
+    const newLayouts = generateDefaultLayouts(newWidgets);
+    saveLayout(newLayouts, newWidgets);
+  }, [widgets, saveLayout]);
+
+  // Remove a widget
+  const removeWidget = useCallback((widgetId: string) => {
+    const newWidgets = widgets.map(w => 
+      w.id === widgetId ? { ...w, isVisible: false } : w
+    );
+    const newLayouts = generateDefaultLayouts(newWidgets);
+    saveLayout(newLayouts, newWidgets);
+  }, [widgets, saveLayout]);
+
   // Reset to default layout
   const resetLayout = useCallback(async () => {
     try {
-      const defaultWidgets = DEFAULT_WIDGETS.map(w => ({ ...w, isVisible: true }));
+      const defaultWidgets = DEFAULT_WIDGETS.map(w => ({ ...w, isVisible: false }));
       const defaultLayouts = generateDefaultLayouts(defaultWidgets);
       
       // Clear localStorage
@@ -178,7 +199,7 @@ export const useDashboardLayout = (userId: string | undefined) => {
     } catch (error) {
       console.error('Error resetting dashboard layout:', error);
       // Still update locally even if backend fails
-      const defaultWidgets = DEFAULT_WIDGETS.map(w => ({ ...w, isVisible: true }));
+      const defaultWidgets = DEFAULT_WIDGETS.map(w => ({ ...w, isVisible: false }));
       const defaultLayouts = generateDefaultLayouts(defaultWidgets);
       setWidgets(defaultWidgets);
       setLayouts(defaultLayouts);
@@ -191,6 +212,8 @@ export const useDashboardLayout = (userId: string | undefined) => {
     isLoading,
     handleLayoutChange,
     toggleWidget,
+    addWidget,
+    removeWidget,
     resetLayout,
   };
 };

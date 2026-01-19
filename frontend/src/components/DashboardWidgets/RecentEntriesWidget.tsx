@@ -13,6 +13,7 @@ interface RecentEntriesWidgetProps {
   onDeleteEntry: (entryId: string) => Promise<void>;
   onOpenAllocation: (entry: TimeEntry) => void;
   formatDuration: (clockIn: string, clockOut: string) => string;
+  onRemove?: () => void;
 }
 
 const RecentEntriesWidget: React.FC<RecentEntriesWidgetProps> = ({
@@ -24,10 +25,11 @@ const RecentEntriesWidget: React.FC<RecentEntriesWidgetProps> = ({
   onDeleteEntry,
   onOpenAllocation,
   formatDuration,
+  onRemove,
 }) => {
   return (
     <div className="dashboard-widget">
-      <WidgetHeader title="Letzte Zeiteinträge" icon="📊" />
+      <WidgetHeader title="Letzte Zeiteinträge" icon="📊" onRemove={onRemove} />
       <div className="widget-content">
         <p className="hint-text">
           💡 Tipp: Nutzen Sie den 📊 Button, um Ihre Arbeitszeit auf verschiedene Projekte aufzuteilen. Mit dem ✏️ Button können Sie Zeiten nachträglich anpassen.

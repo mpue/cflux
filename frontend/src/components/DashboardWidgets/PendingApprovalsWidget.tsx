@@ -5,14 +5,15 @@ import './DashboardWidgets.css';
 
 interface PendingApprovalsWidgetProps {
   pendingApprovalsCount: number;
+  onRemove?: () => void;
 }
 
-const PendingApprovalsWidget: React.FC<PendingApprovalsWidgetProps> = ({ pendingApprovalsCount }) => {
+const PendingApprovalsWidget: React.FC<PendingApprovalsWidgetProps> = ({ pendingApprovalsCount, onRemove }) => {
   const navigate = useNavigate();
 
   return (
     <div className="dashboard-widget">
-      <WidgetHeader title="Ausstehende Genehmigungen" icon="✅" />
+      <WidgetHeader title="Ausstehende Genehmigungen" icon="✅" onRemove={onRemove} />
       <div className="widget-content">
         {pendingApprovalsCount > 0 ? (
           <div style={{ textAlign: 'center', padding: '20px' }}>

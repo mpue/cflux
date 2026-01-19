@@ -6,17 +6,20 @@ import './DashboardWidgets.css';
 interface AbsenceRequestsWidgetProps {
   absenceRequests: AbsenceRequest[];
   onNewRequest: () => void;
+  onRemove?: () => void;
 }
 
 const AbsenceRequestsWidget: React.FC<AbsenceRequestsWidgetProps> = ({
   absenceRequests,
   onNewRequest,
+  onRemove,
 }) => {
   return (
     <div className="dashboard-widget">
       <WidgetHeader 
         title="Abwesenheitsanträge" 
         icon="📋"
+        onRemove={onRemove}
         actions={
           <button className="btn btn-primary btn-small" onClick={onNewRequest}>
             Neuer Antrag

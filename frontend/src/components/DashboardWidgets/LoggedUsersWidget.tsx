@@ -15,12 +15,13 @@ interface LoggedUser {
 
 interface LoggedUsersWidgetProps {
   loggedInUsers: LoggedUser[];
+  onRemove?: () => void;
 }
 
-const LoggedUsersWidget: React.FC<LoggedUsersWidgetProps> = ({ loggedInUsers }) => {
+const LoggedUsersWidget: React.FC<LoggedUsersWidgetProps> = ({ loggedInUsers, onRemove }) => {
   return (
     <div className="dashboard-widget">
-      <WidgetHeader title={`Angemeldete Mitarbeiter (${loggedInUsers.length})`} icon="👥" />
+      <WidgetHeader title="Angemeldete Mitarbeiter" icon="👥" onRemove={onRemove} />
       <div className="widget-content">
         <div className="data-table-wrapper">
           <table className="table">

@@ -381,3 +381,93 @@
 .dark-mode .widget-toggle-slider {
   background-color: #555;
 }
+
+/* Widget Selection Modal */
+.widget-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 15px;
+  padding: 10px 0;
+}
+
+.widget-selection-card {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.widget-selection-card:hover {
+  border-color: #007bff;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.widget-selection-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.widget-selection-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+}
+
+.widget-selection-action {
+  width: 100%;
+}
+
+.widget-selection-action .btn {
+  width: 100%;
+}
+
+/* Widget Header Actions */
+.widget-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.widget-remove-btn {
+  background: transparent;
+  border: none;
+  color: #dc3545;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.widget-remove-btn:hover {
+  background: #dc3545;
+  color: white;
+  opacity: 1;
+}
+
+.dark-mode .widget-selection-card {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+.dark-mode .widget-selection-card:hover {
+  border-color: #007bff;
+}
+
+.dark-mode .widget-selection-title {
+  color: #e0e0e0;
+}

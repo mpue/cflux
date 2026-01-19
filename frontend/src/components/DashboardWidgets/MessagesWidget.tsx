@@ -5,14 +5,15 @@ import './DashboardWidgets.css';
 
 interface MessagesWidgetProps {
   unreadMessagesCount: number;
+  onRemove?: () => void;
 }
 
-const MessagesWidget: React.FC<MessagesWidgetProps> = ({ unreadMessagesCount }) => {
+const MessagesWidget: React.FC<MessagesWidgetProps> = ({ unreadMessagesCount, onRemove }) => {
   const navigate = useNavigate();
 
   return (
     <div className="dashboard-widget">
-      <WidgetHeader title="Nachrichten" icon="💬" />
+      <WidgetHeader title="Nachrichten" icon="💬" onRemove={onRemove} />
       <div className="widget-content">
         {unreadMessagesCount > 0 ? (
           <div style={{ textAlign: 'center', padding: '20px' }}>

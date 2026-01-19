@@ -28,6 +28,7 @@ import {
   PendingApprovalsWidget,
   MessagesWidget,
   WidgetSettingsModal,
+  AddWidgetModal,
 } from '../components/DashboardWidgets';
 import '../components/DashboardWidgets/DashboardWidgets.css';
 import '../App.css';
@@ -39,11 +40,12 @@ const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { modules } = useModules();
   const navigate = useNavigate();
-  const { widgets, layouts, isLoading, handleLayoutChange, toggleWidget, resetLayout } = useDashboardLayout(user?.id);
+  const { widgets, layouts, isLoading, handleLayoutChange, toggleWidget, addWidget, removeWidget, resetLayout } = useDashboardLayout(user?.id);
   
   // View mode state
   const [viewMode, setViewMode] = useState<'grid' | 'classic'>('grid');
   const [showSettings, setShowSettings] = useState(false);
+  const [showAddWidget, setShowAddWidget] = useState(false);
   const [containerWidth, setContainerWidth] = useState(1200);
   
   // Data state
@@ -405,6 +407,13 @@ const Dashboard: React.FC = () => {
           <h1>Dashboard</h1>
           <div className="dashboard-toolbar-actions">
             <button 
+              className="btn btn-success btn-small"
+              onClick={() => setShowAddWidget(true)}
+              title="Widget hinzufügen"
+            >
+              ➕ Widget hinzufügen
+            </button>
+            <button 
               className="btn btn-secondary btn-small"
               onClick={() => setViewMode('classic')}
               title="Zur klassischen Ansicht wechseln"
@@ -415,7 +424,7 @@ const Dashboard: React.FC = () => {
               className="btn btn-primary btn-small"
               onClick={() => setShowSettings(true)}
             >
-              ⚙️ Widgets
+              ⚙️ Einstellungen
             </button>
           </div>
         </div>
@@ -448,6 +457,7 @@ const Dashboard: React.FC = () => {
                       onClockOut={handleClockOut}
                       onStartPause={handleStartPause}
                       onEndPause={handleEndPause}
+                      onRemove={() => removeWidget(widget.id)}
                     />
                   </div>
                 );
@@ -455,7 +465,10 @@ const Dashboard: React.FC = () => {
               case 'logged-users':
                 return (
                   <div key={widget.id}>
-                    <LoggedUsersWidget loggedInUsers={loggedInUsers} />
+                    <LoggedUsersWidget 
+                      loggedInUsers={loggedInUsers}
+                      onRemove={() => removeWidget(widget.id)}
+                    />
                   </div>
                 );
               
@@ -471,6 +484,7 @@ const Dashboard: React.FC = () => {
                       onDeleteEntry={handleDeleteEntry}
                       onOpenAllocation={openAllocationModal}
                       formatDuration={formatDuration}
+                      onRemove={() => removeWidget(widget.id)}
                     />
                   </div>
                 );
@@ -481,6 +495,7 @@ const Dashboard: React.FC = () => {
                     <AbsenceRequestsWidget
                       absenceRequests={absenceRequests}
                       onNewRequest={() => setShowAbsenceModal(true)}
+                      onRemove={() => removeWidget(widget.id)}
                     />
                   </div>
                 );
@@ -491,6 +506,7 @@ const Dashboard: React.FC = () => {
                     <SummaryWidget
                       report={report}
                       onShowPDFReport={() => setShowPDFReportModal(true)}
+                      onRemove={() => removeWidget(widget.id)}
                     />
                   </div>
                 );
@@ -498,14 +514,20 @@ const Dashboard: React.FC = () => {
               case 'pending-approvals':
                 return (
                   <div key={widget.id}>
-                    <PendingApprovalsWidget pendingApprovalsCount={pendingApprovalsCount} />
+                    <PendingApprovalsWidget 
+                      pendingApprovalsCount={pendingApprovalsCount}
+                      onRemove={() => removeWidget(widget.id)}
+                    />
                   </div>
                 );
               
               case 'messages':
                 return (
                   <div key={widget.id}>
-                    <MessagesWidget unreadMessagesCount={unreadMessagesCount} />
+                    <MessagesWidget 
+                      unreadMessagesCount={unreadMessagesCount}
+                      onRemove={() => removeWidget(widget.id)}
+                    />
                   </div>
                 );
               
@@ -643,6 +665,13 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Modals */}
+      <AddWidgetModal
+        isOpen={showAddWidget}
+        onClose={() => setShowAddWidget(false)}
+        onAddWidget={addWidget}
+        currentWidgets={widgets}
+      />
+
       <WidgetSettingsModal
         show={showSettings}
         widgets={widgets}
