@@ -684,3 +684,342 @@
   background: #5a2026;
   color: #f8a5ac;
 }
+
+/* Notes Widget */
+.notes-widget-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.notes-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 12px;
+}
+
+.notes-add-btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.notes-add-form {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.notes-textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.notes-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+}
+
+.notes-form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.notes-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notes-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  padding: 2rem;
+  text-align: center;
+}
+
+.notes-empty svg {
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+
+.notes-empty p {
+  margin: 8px 0 4px 0;
+  font-weight: 500;
+}
+
+.notes-empty small {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.note-item {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+.note-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.note-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.note-date {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.note-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.note-delete-btn:hover {
+  background: #fee;
+  color: #dc3545;
+}
+
+.note-content {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Dark Mode */
+[data-theme="dark"] .note-item {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+[data-theme="dark"] .notes-add-form {
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+[data-theme="dark"] .note-delete-btn:hover {
+  background: #4a1f1f;
+  color: #ff6b6b;
+}
+
+/* Weather Widget */
+.weather-widget-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.weather-location {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.weather-location-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  flex: 1;
+}
+
+.weather-location-display:hover {
+  background: var(--bg-secondary);
+}
+
+.weather-location-display span {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.weather-location-edit {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+
+.weather-location-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.weather-location-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.weather-refresh-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.weather-refresh-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--primary-color);
+}
+
+.weather-current {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.weather-icon {
+  margin-bottom: 12px;
+}
+
+.weather-temp {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.weather-description {
+  font-size: 16px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.weather-details {
+  display: flex;
+  justify-content: space-around;
+  padding: 16px 0;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+.weather-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.weather-forecast {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.weather-forecast-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 8px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  transition: transform 0.2s;
+}
+
+.weather-forecast-day:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.forecast-day-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.forecast-icon {
+  margin-bottom: 8px;
+}
+
+.forecast-temp {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Dark Mode */
+[data-theme="dark"] .weather-forecast-day {
+  background: #2a2a2a;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .weather-temp {
+    font-size: 36px;
+  }
+  
+  .weather-forecast {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

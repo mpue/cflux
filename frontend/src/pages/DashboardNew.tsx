@@ -29,6 +29,8 @@ import {
   MessagesWidget,
   ClockWidget,
   BudgetWidget,
+  NotesWidget,
+  WeatherWidget,
   WidgetSettingsModal,
   AddWidgetModal,
 } from '../components/DashboardWidgets';
@@ -544,6 +546,20 @@ const Dashboard: React.FC = () => {
                 return (
                   <div key={widget.id}>
                     <BudgetWidget onRemove={() => removeWidget(widget.id)} />
+                  </div>
+                );
+              
+              case 'notes':
+                return (
+                  <div key={widget.id}>
+                    <NotesWidget onRemove={() => removeWidget(widget.id)} />
+                  </div>
+                );
+              
+              case 'weather':
+                return (
+                  <div key={widget.id}>
+                    <WeatherWidget onRemove={() => removeWidget(widget.id)} />
                   </div>
                 );
               

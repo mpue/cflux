@@ -3,21 +3,26 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy only package files first (better layer caching)
 COPY package*.json ./
-COPY tsconfig.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with cache mount (this layer will be cached unless package.json changes)
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefer-offline --no-audit
+
+# Copy config files
+COPY tsconfig.json ./
 
 # Copy environment files
 COPY .env* ./
 
-# Copy source code
+# Copy source code (changing source won't invalidate npm ci layer)
 COPY public ./public
 COPY src ./src
 
-# Build the application
+# Build the application with optimizations
+ENV NODE_ENV=production
+ENV GENERATE_SOURCEMAP=false
 RUN npm run build
 
 # Production stage

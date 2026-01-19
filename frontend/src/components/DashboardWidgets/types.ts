@@ -9,6 +9,8 @@ export type WidgetType =
   | 'messages'
   | 'clock'
   | 'budget'
+  | 'notes'
+  | 'weather'
   | 'payroll';
 
 export interface DashboardWidget {
@@ -137,5 +139,25 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     minH: 4,
     defaultW: 6,
     defaultH: 5,
+  },
+  {
+    id: 'notes',
+    type: 'notes',
+    title: '📝 Notizen',
+    isVisible: false,
+    minW: 3,
+    minH: 3,
+    defaultW: 4,
+    defaultH: 4,
+  },
+  {
+    id: 'weather',
+    type: 'weather',
+    title: '🌤️ Wetter',
+    isVisible: false,
+    minW: 3,
+    minH: 4,
+    defaultW: 4,
+    defaultH: 4,
   },
 ];
