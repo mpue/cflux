@@ -22,9 +22,14 @@
     "seed:document-types": "ts-node prisma/seedDocumentTypes.ts",
     "seed:devices": "ts-node prisma/seedDevices.ts",
     "seed:actions": "ts-node scripts/seedActions.ts",
+<<<<<<< HEAD
     "seed:test-data": "ts-node scripts/generate-test-data.ts",
     "seed:massive": "ts-node scripts/add-massive-testdata.ts",
     "backup": "ts-node scripts/create-full-backup.ts"
+=======
+    "backup": "ts-node scripts/create-full-backup.ts",
+    "import:dlk": "ts-node scripts/import-dlk-articles.ts"
+>>>>>>> 86a30158f6f8f5a5f7f475885bab29b3b2a3e2dc
   },
   "keywords": [
     "timetracking",

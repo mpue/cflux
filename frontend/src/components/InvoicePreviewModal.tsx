@@ -206,7 +206,20 @@ const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoice, onCl
                 {invoice.items?.map((item, index) => (
                   <tr key={item.id || index} style={{ borderBottom: '1px solid #e5e7eb' }}>
                     <td style={{ padding: '6px' }}>{item.position}</td>
-                    <td style={{ padding: '6px' }}>{item.description}</td>
+                    <td style={{ padding: '6px' }}>
+                      {item.article ? (
+                        <>
+                          <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>{item.article.name}</div>
+                          {item.article.description && (
+                            <div style={{ fontSize: '9px', color: '#666', whiteSpace: 'pre-wrap' }}>
+                              {item.article.description}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        item.description
+                      )}
+                    </td>
                     <td style={{ textAlign: 'right', padding: '6px' }}>{item.quantity}</td>
                     <td style={{ textAlign: 'right', padding: '6px' }}>{item.unit}</td>
                     <td style={{ textAlign: 'right', padding: '6px' }}>CHF {item.unitPrice.toFixed(2)}</td>

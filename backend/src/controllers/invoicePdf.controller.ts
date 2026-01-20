@@ -258,17 +258,65 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
         currentY = 50;
       }
 
-      doc.text(item.position.toString(), posX, currentY)
-         .text(item.description, descX, currentY, { width: 260 });
+      const startY = currentY;
       
-      const descHeight = doc.heightOfString(item.description, { width: 260 });
+      // Position number
+      doc.font('Helvetica')
+         .fontSize(9)
+         .fillColor('#000000')
+         .text(item.position.toString(), posX, currentY);
       
-      doc.text(item.quantity.toString(), qtyX, currentY, { width: 40, align: 'right' })
-         .text(item.unit, unitX, currentY)
-         .text(`CHF ${item.unitPrice.toFixed(2)}`, priceX, currentY, { width: 55, align: 'right' })
-         .text(`CHF ${item.totalPrice.toFixed(2)}`, totalX, currentY, { width: 55, align: 'right' });
+      // Display article name and description if article is available
+      let descHeight = 0;
+      let descY = currentY;
+      
+      if (item.article) {
+        // Display article name in bold
+        doc.font('Helvetica-Bold')
+           .fontSize(9)
+           .fillColor('#000000');
+        
+        const nameHeight = doc.heightOfString(item.article.name, { width: 260 });
+        doc.text(item.article.name, descX, descY, { width: 260 });
+        descY += nameHeight;
+        
+        // Display article description in smaller font if available
+        if (item.article.description) {
+          doc.font('Helvetica')
+             .fontSize(8)
+             .fillColor('#666666');
+          
+          const articleDescHeight = doc.heightOfString(item.article.description, { width: 260 });
+          doc.text(item.article.description, descX, descY, { width: 260 });
+          
+          descHeight = nameHeight + articleDescHeight;
+        } else {
+          descHeight = nameHeight;
+        }
+        
+        // Reset font for next items
+        doc.font('Helvetica')
+           .fontSize(9)
+           .fillColor('#000000');
+      } else {
+        // Fallback to description if no article
+        doc.font('Helvetica')
+           .fontSize(9)
+           .fillColor('#000000');
+        descHeight = doc.heightOfString(item.description, { width: 260 });
+        doc.text(item.description, descX, descY, { width: 260 });
+      }
+      
+      // Display quantity, unit, price and total aligned with the first line
+      doc.font('Helvetica')
+         .fontSize(9)
+         .fillColor('#000000')
+         .text(item.quantity.toString(), qtyX, startY, { width: 40, align: 'right' })
+         .text(item.unit, unitX, startY)
+         .text(`CHF ${item.unitPrice.toFixed(2)}`, priceX, startY, { width: 55, align: 'right' })
+         .text(`CHF ${item.totalPrice.toFixed(2)}`, totalX, startY, { width: 55, align: 'right' });
 
-      currentY += Math.max(descHeight, 15) + 10;
+      currentY = startY + Math.max(descHeight, 15) + 10;
     });
 
     // Draw line before totals
