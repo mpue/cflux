@@ -1,0 +1,89 @@
+{
+  "name": "timetracking-backend",
+  "version": "1.0.0",
+  "description": "Time tracking system backend with TypeScript and Node.js",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.ts",
+    "build": "tsc && tsc prisma/seed.ts prisma/seedModules.ts --outDir dist/prisma --module commonjs --esModuleInterop --skipLibCheck",
+    "start": "node dist/index.js",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:backup": "jest --testPathPattern=backup-restore-integration --runInBand --verbose",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:studio": "prisma studio",
+    "seed": "node dist/prisma/seed.js",
+    "seed:dev": "ts-node prisma/seed.ts",
+    "seed:modules": "node prisma/seedModules.js",
+    "seed:modules:dev": "ts-node prisma/seedModules.ts",
+    "seed:intranet": "ts-node prisma/seedIntranet.ts",
+    "seed:intranet-module": "ts-node prisma/seedIntranetModule.ts",
+    "seed:document-types": "ts-node prisma/seedDocumentTypes.ts",
+    "seed:devices": "ts-node prisma/seedDevices.ts",
+    "seed:actions": "ts-node scripts/seedActions.ts",
+<<<<<<< HEAD
+    "seed:test-data": "ts-node scripts/generate-test-data.ts",
+    "seed:massive": "ts-node scripts/add-massive-testdata.ts",
+    "backup": "ts-node scripts/create-full-backup.ts"
+=======
+    "backup": "ts-node scripts/create-full-backup.ts",
+    "import:dlk": "ts-node scripts/import-dlk-articles.ts"
+>>>>>>> 86a30158f6f8f5a5f7f475885bab29b3b2a3e2dc
+  },
+  "keywords": [
+    "timetracking",
+    "typescript",
+    "express"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@floating-ui/dom": "^1.7.4",
+    "@prisma/client": "^5.8.0",
+    "@tiptap/extension-link": "^3.14.0",
+    "@tiptap/extension-table": "^3.14.0",
+    "@tiptap/extension-table-cell": "^3.14.0",
+    "@tiptap/extension-table-header": "^3.14.0",
+    "@tiptap/extension-table-row": "^3.14.0",
+    "@tiptap/react": "^3.14.0",
+    "@tiptap/starter-kit": "^3.14.0",
+    "@types/multer": "^2.0.0",
+    "@types/pdfkit": "^0.17.4",
+    "adm-zip": "^0.5.16",
+    "axios": "^1.6.5",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "marked": "^11.2.0",
+    "multer": "^2.0.2",
+    "nodemailer": "^6.9.8",
+    "pdfkit": "^0.17.2",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.5",
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.14",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.6",
+    "@types/nodemailer": "^6.4.14",
+    "@types/supertest": "^6.0.3",
+    "@types/uuid": "^9.0.7",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "prisma": "^5.8.0",
+    "supertest": "^6.3.4",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "prisma": {
+    "seed": "node dist/prisma/seed.js"
+  }
+}

@@ -65,10 +65,15 @@ export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<vo
     return;
   }
 
-  // 3. Stundensatz ermitteln
+  // 3. Stundensatz ermitteln (mit Zeitmodell-Support)
   let hourlyRate: number;
   try {
-    hourlyRate = await getHourlyRateForUser(timeEntry.userId, timeEntry.projectId);
+    // Verwende Clock-Out Zeit für Zeitmodell-Berechnung
+    hourlyRate = await getHourlyRateForUser(
+      timeEntry.userId, 
+      timeEntry.projectId,
+      timeEntry.clockOut // Timestamp für Zeitmodell-Lookup
+    );
   } catch (error) {
     console.error(`Fehler beim Ermitteln des Stundensatzes: ${error}`);
     return; // Ohne Stundensatz können wir nicht weitermachen

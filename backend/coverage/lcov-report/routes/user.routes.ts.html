@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>11/11</span>
+                <span class='fraction'>0/13</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>11/11</span>
+                <span class='fraction'>0/13</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line high'></div>
+    <div class='status-line low'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -78,36 +78,42 @@
 <a name='L13'></a><a href='#L13'>13</a>
 <a name='L14'></a><a href='#L14'>14</a>
 <a name='L15'></a><a href='#L15'>15</a>
-<a name='L16'></a><a href='#L16'>16</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
-import * as userController from '../controllers/user.controller';
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { Router } from 'express';</span>
+<span class="cstat-no" title="statement not covered" >import { authenticate, authorize } from '../middleware/auth';</span>
+<span class="cstat-no" title="statement not covered" >import * as userController from '../controllers/user.controller';</span>
 &nbsp;
-const router = Router();
+const router = <span class="cstat-no" title="statement not covered" >Router();</span>
 &nbsp;
-router.use(authenticate);
+<span class="cstat-no" title="statement not covered" >router.use(authenticate);</span>
 &nbsp;
-router.get('/me', userController.getCurrentUser);
-router.get('/', authorize('ADMIN'), userController.getAllUsers);
-router.get('/:id', authorize('ADMIN'), userController.getUserById);
-router.put('/:id', authorize('ADMIN'), userController.updateUser);
-router.delete('/:id', authorize('ADMIN'), userController.deleteUser);
+<span class="cstat-no" title="statement not covered" >router.get('/me', userController.getCurrentUser);</span>
+<span class="cstat-no" title="statement not covered" >router.post('/change-password', userController.changePassword);</span>
+<span class="cstat-no" title="statement not covered" >router.get('/list', userController.getUsersList); </span>// Basic user list for all authenticated users
+<span class="cstat-no" title="statement not covered" >router.get('/', authorize('ADMIN'), userController.getAllUsers);</span>
+<span class="cstat-no" title="statement not covered" >router.get('/:id', authorize('ADMIN'), userController.getUserById);</span>
+<span class="cstat-no" title="statement not covered" >router.put('/:id', authorize('ADMIN'), userController.updateUser);</span>
+<span class="cstat-no" title="statement not covered" >router.delete('/:id', authorize('ADMIN'), userController.deleteUser);</span>
 &nbsp;
-export default router;
+<span class="cstat-no" title="statement not covered" >export default router;</span>
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -115,7 +121,7 @@ export default router;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-12-22T15:49:13.187Z
+                at 2026-01-20T17:22:11.965Z
             </div>
         <script src="../prettify.js"></script>
         <script>

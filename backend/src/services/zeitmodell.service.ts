@@ -26,7 +26,7 @@ export interface AbrechnungsResult {
   gesamtBetrag: number;
 }
 
-class ZeitmodellService {
+export class ZeitmodellService {
   
   // ==================== CRUD Operations ====================
   
@@ -332,6 +332,12 @@ class ZeitmodellService {
 
   // ==================== Stundensatz-Ermittlung ====================
 
+  /**
+   * Ermittelt den Stundensatz aus dem Zeitmodell für einen bestimmten Zeitpunkt.
+   * Diese Methode wird jetzt auch vom Budget-System verwendet.
+   * 
+   * @throws Error wenn kein aktives Zeitmodell oder passender Eintrag gefunden
+   */
   async getStundensatz(
     mitarbeiterId: string,
     datum: Date,
