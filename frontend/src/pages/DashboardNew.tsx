@@ -31,6 +31,7 @@ import {
   BudgetWidget,
   NotesWidget,
   WeatherWidget,
+  BauhausClockWidget,
   WidgetSettingsModal,
   AddWidgetModal,
 } from '../components/DashboardWidgets';
@@ -560,6 +561,13 @@ const Dashboard: React.FC = () => {
                 return (
                   <div key={widget.id}>
                     <WeatherWidget onRemove={() => removeWidget(widget.id)} />
+                  </div>
+                );
+              
+              case 'bauhaus-clock':
+                return (
+                  <div key={widget.id}>
+                    <BauhausClockWidget onRemove={() => removeWidget(widget.id)} />
                   </div>
                 );
               

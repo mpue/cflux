@@ -173,6 +173,11 @@ model User {
   createdProjectBudgets ProjectBudget[] @relation("ProjectBudgetCreatedBy")
   dashboardLayout UserDashboardLayout?
   
+  // Zeitmodelle
+  mitarbeiterZeitmodelle MitarbeiterZeitmodell[] @relation("MitarbeiterZeitmodelle")
+  updatedZeitmodelle Zeitmodell[] @relation("ZeitmodellUpdatedBy")
+  zeitmodellAenderungen ZeitmodellAenderung[] @relation("ZeitmodellAenderungCreatedBy")
+  
   @@index([userGroupId])
   @@map("users")
 }
@@ -2010,5 +2015,101 @@ model UserDashboardLayout {
   
   @@index([userId])
   @@map("user_dashboard_layouts")
+}
+
+// ==================== ZEITMODELLE ====================
+
+enum AenderungsTyp {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+model Zeitmodell {
+  id              String   @id @default(uuid())
+  name            String
+  beschreibung    String?
+  gueltigVon      DateTime
+  gueltigBis      DateTime?
+  version         Int      @default(1)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  updatedBy       String?
+  
+  // Relationen
+  eintraege       ZeitmodellEintrag[]
+  mitarbeiter     MitarbeiterZeitmodell[]
+  aenderungen     ZeitmodellAenderung[]
+  updatedByUser   User?    @relation("ZeitmodellUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+  
+  @@index([name])
+  @@index([gueltigVon])
+  @@index([gueltigBis])
+  @@map("zeitmodelle")
+}
+
+model ZeitmodellEintrag {
+  id              String   @id @default(uuid())
+  zeitmodellId    String
+  stundensatz     Float    // Decimal als Float
+  startzeit       String   // Format "HH:MM:SS"
+  endzeit         String   // Format "HH:MM:SS"
+  wochentage      Int[]    // [0-6], leer = alle Tage, 0=Montag, 6=Sonntag
+  nurFeiertage    Boolean  @default(false)
+  keineFeiertage  Boolean  @default(false)
+  prioritaet      Int      @default(50)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relationen
+  zeitmodell      Zeitmodell @relation(fields: [zeitmodellId], references: [id], onDelete: Cascade)
+  
+  @@index([zeitmodellId])
+  @@index([prioritaet])
+  @@map("zeitmodell_eintraege")
+}
+
+model MitarbeiterZeitmodell {
+  id              String   @id @default(uuid())
+  mitarbeiterId   String
+  zeitmodellId    String
+  gueltigVon      DateTime
+  gueltigBis      DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relationen
+  mitarbeiter     User       @relation("MitarbeiterZeitmodelle", fields: [mitarbeiterId], references: [id], onDelete: Cascade)
+  zeitmodell      Zeitmodell @relation(fields: [zeitmodellId], references: [id], onDelete: Cascade)
+  
+  @@unique([mitarbeiterId, zeitmodellId, gueltigVon])
+  @@index([mitarbeiterId])
+  @@index([zeitmodellId])
+  @@index([gueltigVon])
+  @@index([gueltigBis])
+  @@map("mitarbeiter_zeitmodelle")
+}
+
+model ZeitmodellAenderung {
+  id              String   @id @default(uuid())
+  zeitmodellId    String
+  aenderungstyp   AenderungsTyp
+  altJson         Json?
+  neuJson         Json
+  kommentar       String?
+  
+  createdAt       DateTime @default(now())
+  createdBy       String?
+  
+  // Relationen
+  zeitmodell      Zeitmodell @relation(fields: [zeitmodellId], references: [id], onDelete: Cascade)
+  createdByUser   User?      @relation("ZeitmodellAenderungCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  
+  @@index([zeitmodellId])
+  @@index([createdAt])
+  @@map("zeitmodell_aenderungen")
 }
 

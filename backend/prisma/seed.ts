@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 const seedModulesModule = require('./seedModules');
+const seedZeitmodelleModule = require('./seedZeitmodelle');
 import { actionService } from '../src/services/action.service';
 
 // Load environment variables from .env file
@@ -32,6 +33,13 @@ async function main() {
     await seedModulesModule.seedModules();
   } else {
     console.log('⚠️ seedModules not available, skipping module seeding');
+  }
+
+  // 0.1 Zeitmodelle Module seeden
+  if (typeof seedZeitmodelleModule.default === 'function') {
+    await seedZeitmodelleModule.default();
+  } else {
+    console.log('⚠️ seedZeitmodelle not available, skipping Zeitmodelle seeding');
   }
 
   // 0.5 System Actions seeden

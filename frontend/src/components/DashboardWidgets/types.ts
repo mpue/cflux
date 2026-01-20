@@ -11,7 +11,8 @@ export type WidgetType =
   | 'budget'
   | 'notes'
   | 'weather'
-  | 'payroll';
+  | 'payroll'
+  | 'bauhaus-clock';
 
 export interface DashboardWidget {
   id: string;
@@ -159,5 +160,15 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     minH: 4,
     defaultW: 4,
     defaultH: 4,
+  },
+  {
+    id: 'bauhaus-clock',
+    type: 'bauhaus-clock',
+    title: '🎨 Bauhaus Uhr',
+    isVisible: false,
+    minW: 2,
+    minH: 2,
+    defaultW: 3,
+    defaultH: 3,
   },
 ];

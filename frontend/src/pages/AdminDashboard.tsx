@@ -54,10 +54,11 @@ import SystemSettingsTab from '../components/admin/SystemSettingsTab';
 import ModulesPage from './ModulesPage';
 import ModulePermissionsPage from './ModulePermissionsPage';
 import PayrollManagement from './PayrollManagement';
+import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'zeitmodelle';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -439,6 +440,13 @@ const AdminDashboard: React.FC = () => {
                       label="💵 Lohnabrechnung"
                     />
                   )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('zeitmodelle')) && (
+                    <TabButton
+                      active={activeTab === 'zeitmodelle'}
+                      onClick={() => setActiveTab('zeitmodelle')}
+                      label="🕒 Zeitmodelle"
+                    />
+                  )}
                 </>
               )}
             </div>
@@ -681,6 +689,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'workflowActions' && <WorkflowActionsTab />}
             {activeTab === 'settings' && <SystemSettingsTab />}
             {activeTab === 'payroll' && <PayrollManagement />}
+            {activeTab === 'zeitmodelle' && <ZeitmodelleVerwaltung />}
           </div>
         </div>
       </div>
