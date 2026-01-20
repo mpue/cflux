@@ -174,9 +174,9 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
                         border: 'none'
                       }}
                       onClick={() => {
-                        const API_URL = process.env.REACT_APP_API_URL || '';
+                        const API_URL = process.env.REACT_APP_API_URL || '/api';
                         const token = localStorage.getItem('token');
-                        const url = `${API_URL}/api/invoices/${invoice.id}/pdf`;
+                        const url = `${API_URL}/invoices/${invoice.id}/pdf`;
                         
                         fetch(url, {
                           headers: { Authorization: `Bearer ${token}` }
