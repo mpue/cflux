@@ -120,8 +120,10 @@ export const generateReminderPdf = async (req: Request, res: Response) => {
     doc.text(`Rechnungsdatum:`, 50, infoY + 45);
     doc.text(new Date(invoice.invoiceDate).toLocaleDateString('de-CH'), 200, infoY + 45);
     
-    doc.text(`Ursprünglich fällig:`, 50, infoY + 60);
-    doc.text(new Date(invoice.dueDate).toLocaleDateString('de-CH'), 200, infoY + 60);
+    if (invoice.dueDate) {
+      doc.text(`Ursprünglich fällig:`, 50, infoY + 60);
+      doc.text(new Date(invoice.dueDate).toLocaleDateString('de-CH'), 200, infoY + 60);
+    }
     
     doc.text(`Neue Zahlungsfrist:`, 50, infoY + 75);
     doc.font('Helvetica-Bold');

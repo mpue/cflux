@@ -567,12 +567,19 @@ model ComplianceSettings {
   @@map("compliance_settings")
 }
 
+enum DocumentType {
+  INVOICE   // Rechnung
+  QUOTE     // Angebot/Offerte
+}
+
 enum InvoiceStatus {
   DRAFT
   SENT
   PAID
   OVERDUE
   CANCELLED
+  ACCEPTED  // Nur für Angebote
+  DECLINED  // Nur für Angebote
 }
 
 enum ReminderLevel {
@@ -637,9 +644,11 @@ model InvoiceTemplate {
 
 model Invoice {
   id            String        @id @default(uuid())
+  documentType  DocumentType  @default(INVOICE)
   invoiceNumber String        @unique
   invoiceDate   DateTime
-  dueDate       DateTime
+  dueDate       DateTime?     // Optional für Angebote
+  validUntil    DateTime?     // Nur für Angebote: Gültigkeitsdatum
   customerId    String
   costCenterId  String?
   templateId    String?

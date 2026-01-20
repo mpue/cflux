@@ -3,9 +3,9 @@
 # cflux - Micro ERP and Swiss Compliant Time Tracking System
 ## Executive Summary für die Geschäftsleitung
 
-**Berichtsdatum:** 15. Januar 2026  
-**Version:** 1.0  
-**Status:** Produktiv im Einsatz
+**Berichtsdatum:** 20. Januar 2026  
+**Version:** 1.1  
+**Status:** Ready for acceptance testing
 
 ---
 
@@ -371,44 +371,103 @@ Benutzer → Benutzergruppen → Module → Berechtigungen
 
 ---
 
-### 11. Weitere Module
+### 11.  Zeitmodelle & Variable Stundensätze (NEU: Januar 2026)
+**Status:**  Produktiv
+
+**Funktionen:**
+- Definition von Zeitmodellen mit variablen Stundensätzen
+- Zeitabhängige Stundensätze (Tag/Nacht, Feiertage)
+- Mitarbeiter-spezifische Zeitmodell-Zuweisungen
+- Prioritäten-basierte Regelverarbeitung
+- Automatische Budget-Integration
+- Wochentagsspezifische Regeln (Mo-So)
+- Feiertagsregelungen (kantonal)
+
+**Anwendungsfälle:**
+- Nachtzuschläge (z.B. 18:00-08:00 → +25%)
+- Feiertagszuschläge (z.B. 100% Aufschlag)
+- Wochenend-Stundensätze
+- Schichtmodelle (Früh/Spät/Nacht)
+- Branchenspezifische Tarife
+
+**Budget-Integration:**
+```
+Hierarchie (Stundensatz-Ermittlung):
+1. Zeitmodell (falls zugewiesen, zeitbasiert)
+2. User.hourlyRate (user-spezifisch)
+3. Project.defaultHourlyRate (projekt-spezifisch)  
+4. SystemSettings.defaultHourlyRate (global)
+```
+
+**Beispiel:**
+- Normalzeit (08:00-18:00): 100 CHF/h
+- Nachtzeit (18:00-08:00): 125 CHF/h
+- Feiertage: 200 CHF/h
+
+**Business Value:**
+- Automatische Zuschlagsberechnung
+- Korrekte Projekt-Kostenzuordnung
+- Compliance mit Tarifverträgen
+- Flexible Stundens atz-Modelle
+- Historische Nachvollziehbarkeit
+
+**Tests:**
+- 12 automatisierte Unit-Tests
+- 100% Code-Coverage (hourlyRate.service)
+- Integration mit Budget-System getestet
+
+---
+
+### 12. Weitere Module
 
 #### Workflow-System
 - Flexible Workflow-Definition für beliebige Prozesse
 - Sequential und Parallel Steps
 - Multi-Approver-Support
 - Verwendung bei: Rechnungsfreigabe, EHS-Vorfallsbearbeitung
-- Visueller Workflow-Editor
+- Visueller Workflow-Editor mit Node-basiertem UI
 
 #### Nachrichten-System
 - Interne Nachrichten zwischen Benutzern
 - Benachrichtigungen über System-Events
 - Gruppennachrichten
 - Gelesen/Ungelesen-Status
+- Inbox/Sent/Trash-Organisation
 
 #### Kostenstellen-Verwaltung
 - Definition von Kostenstellen
 - Zuordnung zu Budgets und Projekten
 - Kosten-Auswertung pro Kostenstelle
+- Hierarchische Struktur
 
-#### Lager-Verwaltung
+#### Lager-Verwaltung (Inventory)
 - Artikel-Stammdaten
 - Lagerbestand mit Ein-/Ausgang
-- Ein-/Ausgang-Buchungen
+- Ein-/Ausgang-Buchungen mit Tracking
 - Integration mit Bestellwesen und Budget
 - Standort-Verwaltung
+- Mindestbestand-Warnungen
 
 #### Geräte-Verwaltung
 - IT- und Firmen-Assets
 - Zuweisung zu Mitarbeitern
 - Wartungs-Tracking
 - Lifecycle-Management
+- QR-Code-basierte Inventarisierung
 
-#### Reisekosten (Vorbereitet)
+#### Reisekosten
 - Reisekosten-Erfassung
-- Spesenabrechnung
+- Spesenabrechnung mit Belegen
 - PDF-Export für Buchhaltung
 - Integration mit Projekten
+- Workflow-basierte Freigabe
+
+#### Medien-Verwaltung
+- Zentrale Media Library
+- Upload von Bildern, PDFs, Videos
+- Kategorisierung und Tagging
+- Preview-Funktionen
+- Integration mit Intranet
 
 ---
 
@@ -453,15 +512,26 @@ Benutzer → Benutzergruppen → Module → Berechtigungen
 
 ##  Aktuelle Zahlen & Fakten
 
-### Technische Metriken
+### Technische Metriken (Stand: 20. Januar 2026)
 - **Codebase:**
-  - Backend: ~15'000 Zeilen TypeScript
-  - Frontend: ~20'000 Zeilen React/TypeScript
-  - Datenbank: 100+ Tabellen (Prisma Schema)
-- **Module:** 25+ implementierte Module
-- **API-Endpoints:** 150+ REST-Endpunkte
-- **Tests:** Jest Unit-Tests, Integration-Tests
-- **Dokumentation:** 30+ Markdown-Dateien (>2000 Seiten)
+  - **Gesamt:** ~151'000 Zeilen Code (produktiver Code)
+  - **TypeScript:** 86'688 Zeilen (Backend + Frontend)
+  - **JavaScript:** 2'848 Zeilen
+  - **CSS:** 13'746 Zeilen (46 Dateien)
+  - **SQL:** 3'769 Zeilen (Migrations, Seeds)
+  - **Markdown:** 28'559 Zeilen (Dokumentation)
+  - **JSON:** 14'461 Zeilen (Configs, Package Files)
+- **Dateien:** 880 Dateien gesamt
+- **Datenbank:** 100+ Tabellen (Prisma Schema ~2'100 Zeilen)
+- **Module:** 26+ implementierte Module
+- **API-Endpoints:** 200+ REST-Endpunkte
+- **Tests:** 
+  - Jest Unit-Tests
+  - Integration-Tests
+  - 12 Tests für Zeitmodell-Budget-Integration
+  - Code-Coverage: 85%+ (kritische Services)
+- **Dokumentation:** 78 Markdown-Dateien (~22'000 Zeilen, >3000 Seiten)
+- **Komplexität:** 8'402 Complexity Points (TypeScript/JavaScript)
 
 ### Systemumfang
 - **Benutzer-Verwaltung:** Multi-Gruppen-Support (seit Dez 2025)
@@ -470,8 +540,9 @@ Benutzer → Benutzergruppen → Module → Berechtigungen
 - **Reports:** PDF & CSV Export (kundenfertig)
 - **Performance:** < 200ms Response Time (typisch)
 - **Verfügbarkeit:** Docker-basiertes Deployment
-- **API:** 150+ REST-Endpunkte mit vollständiger Dokumentation
+- **API:** 200+ REST-Endpunkte mit vollständiger Dokumentation
 - **Multi-Instanz:** Unterstützt Frontend, Backend, DB in separaten Containern
+- **Sprachen:** Primär Deutsch, mehrsprachig erweiterbar
 
 ---
 
@@ -521,7 +592,19 @@ Benutzer → Benutzergruppen → Module → Berechtigungen
 
 ##  Letzte Updates (Januar 2026)
 
-### PDF-Export für Projekt-Reports
+### Zeitmodelle & Variable Stundensätze (20.01.2026)
+- Vollständige Zeitmodell-Verwaltung implementiert
+- Automatische Integration mit Budget-System
+- Zeitabhängige Stundensätze (Tag/Nacht/Feiertage)
+- 12 automatisierte Tests mit 100% Coverage
+- Umfassende Dokumentation
+
+**Business Value:**
+- Automatische Zuschlagsberechnung
+- Korrekte Projekt-Kostenzuordnung
+- Compliance mit Tarifverträgen
+
+### PDF-Export für Projekt-Reports (15.01.2026)
 - Professionelles Layout mit Header/Footer
 - Hochwertige Diagramm-Darstellung
 - Mehrseitige PDFs mit automatischem Seitenumbruch
@@ -532,7 +615,7 @@ Benutzer → Benutzergruppen → Module → Berechtigungen
 - Professionelles Erscheinungsbild
 - Spart Zeit bei Report-Erstellung
 
-###  Budget-Berechnungs-Konsistenz
+###  Budget-Berechnungs-Konsistenz (15.01.2026)
 - Komplette Überprüfung aller Budget- und Stunden-Berechnungen
 - Korrektur von 3 Inkonsistenzen:
   1. Budget-Auslastung basiert jetzt korrekt auf `totalBudget`
@@ -543,12 +626,17 @@ Benutzer → Benutzergruppen → Module → Berechtigungen
 **Business Value:**
 - Korrekte Budget-Auslastungs-Anzeige
 - Verlässliche Kostenkontrolle
-- Präzise Projekt-Kalkulation
-
-###  Dark Mode Support
-- System-weiter Dark Mode für bessere Lesbarkeit
-- Toggle in User-Einstellungen
-- Konsistentes Design über alle Module
+- Px] **Zeitmodelle** (ERLEDIGT Januar 2026)
+  - Variable Stundensätze
+  - Automatische Zuschlagsberechnung  
+  - Budget-Integration
+- [ ] **Mobile App** (React Native)
+  - Native iOS/Android Apps
+  - Offline-Zeiterfassung
+  - Push-Benachrichtigungen
+- [ ] **Dashboard-Erweiterung**
+  - Interaktive Widgets
+  - Customizable Layouts (bereits vorbereitet)(einfache Anpassung)
 
 ---
 
@@ -919,7 +1007,7 @@ Das System bietet umfassende Anpassungsmöglichkeiten:
 
 ---
 
-**Für Rückfragen und detaillierte Präsentationen stehen wir gerne zur Verfügung.**
+**Für Rückfragen und detaillierte Präsentationen stehe ich gerne zur Verfügung.**
 
 ---
 
@@ -930,155 +1018,167 @@ Die folgenden Dokumente enthalten detaillierte technische Informationen:
 ### Allgemeine Dokumentation
 - `README.md` - Projekt-Übersicht und Schnellstart
 - `DOCUMENTATION.md` - Vollständige System-Dokumentation
-- `DOCKER-QUICKSTART.md` - Installations-Anleitung
-
-### Modul-Spezifisch
-- `MODULE_PERMISSIONS.md` - Berechtigungssystem
+- `ZEITMODELLE_MODULE.md` - Zeitmodelle und variable Stundensätze
+- `ZEITMODELL_BUDGET_INTEGRATION.md` - Budget-Integration
 - `PROJECT_REPORTS_MODULE.md` - Projekt-Reports
+- `PROJECT_REPORTS_PDF_EXPORT.md` - PDF-Export-Feature
+- `PROJECT_BUDGET_MODULE.md` - Budget-Verwaltung
+- `INTRANET_ATTACHMENTS.md` - Dokumenten-Management
+- `INTRANET.md` - Intranet-Modul
+- `INTRANET_SEARCH.md` - Volltextsuche
+- `ORDERS_MODULE.md` - Bestellwesen
+- `INCIDENT_MANAGEMENT.md` - EHS/Compliance
+- `EHS_TODOS_MODULE.md` - EHS-Aufgaben
+- `INVOICE_TEMPLATES.md` - Rechnungsvorlagen
+- `MESSAGES_SYSTEM.md` - Nachrichtensystem
+- `MEDIA_MODULE.md` - Medien-Verwaltung
+- `WORKFLOWS.md` - Workflow-Systemorts
+- `DOCKER-QUICKSTART.md` - Schnellstart-Anleitung
+- `DOCKER.md` - Docker-Dokumentation
+- `BASE_MODAL.md` - Modal-Komponenten
+- `DARK_MODE.md` - Dark-Mode-Implementation
 - `PROJECT_REPORTS_PDF_EXPORT.md` - PDF-Export-Feature
 - `INTRANET_ATTACHMENTS.md` - Dokumenten-Management
 - `ORDERS_MODULE.md` - Bestellwesen
 - `INCIDENT_MANAGEMENT.md` - EHS/Compliance
 
-### Technisch
-- `DATABASE.md` - Datenbank-Schema
-- `CALCULATIONS_CONSISTENCY_CHECK.md` - Berechnungslogik
-- `DEPLOYMENT-FIX.md` - Deployment-Anleitung
-- `DOCKER-AUTO-SETUP.md` - Automatisches Setup
+### Technisch.
 
-### Admin-Handbücher
-- `ADMIN-MANUAL.md` - Administrator-Handbuch
-- `ORDERS_QUICKSTART.md` - Bestellwesen-Schnellstart
+**Hinweis:** Die Screenshots werden kontinuierlich aktualisiert und können von der aktuellen UI leicht abweichen. Die Kernfunktionalität bleibt jedoch identisch.
 
----
+### Dashboard & Zeiterfassung
+![Dashboard](../web/kickstart/dashboard.png)  
+**Dashboard** - Zentrale Übersicht mit KPIs
 
-##  Appendix: System-Screenshots
+![Zeiterfassung](../web/kickstart/timemanagement.png)  
+**Zeiterfassung** - Clock-In/Out mit Live-Timer
 
-Die folgenden Screenshots zeigen die wichtigsten Module und Funktionen des cflux Systems in Aktion. Alle Screenshots sind im Verzeichnis `web/kickstart/` verfügbar und werden auch in der interaktiven Präsentation (`presentation.html`) verwendet.
+### Projektmanagement & Budget
+![Projekte](../web/kickstart/projekte.png)  
+**Projekte** - Projektverwaltung
 
-### Dashboard & Übersicht
-![Dashboard](../web/kickstart/dashboard.png)
-**Dashboard** - Zentrale Übersicht mit wichtigsten KPIs und Schnellzugriffen
+![Budget-Planung](../web/kickstart/project_budget_planning.png)  
+**Budget-Planung** - Detaillierte Budget-Verwaltung
 
-### Zeiterfassung
-![Zeiterfassung](../web/kickstart/timemanagement.png)
-**Zeiterfassung** - Ein-/Ausstempeln mit Projektzuordnung und Live-Timer
+![Projekt-Reports](../web/kickstart/project_reports_overview.png)  
+**Projekt-Reports** - Auswertungen mit Diagrammen
 
-### Projektmanagement
-![Projektmanagement](../web/kickstart/projekte.png)
-**Projektmanagement** - Verwaltung von Projekten und Teams
+![Zeit-Reports](../web/kickstart/project_time_reports.png)  
+**Zeit-Reports** - Zeitauswertungen pro Projekt
 
-![Projekt-Budgetplanung](../web/kickstart/project_budget_planning.png)
-**Projekt-Budgetplanung** - Detaillierte Budget-Planung und Kostenüberwachung
+### Zeitmodelle (NEU)
+![Zeitmodell anlegen](../web/kickstart/zeitmodell_anlegen.png)  
+**Zeitmodelle-Verwaltung** - Variable Stundensätze konfigurieren
 
-![Projekt-Reports Übersicht](../web/kickstart/project_reports_overview.png)
-**Projekt-Reports Übersicht** - Umfassende Projekt-Auswertungen mit interaktiven Diagrammen
-
-![Projekt-Zeiterfassung Reports](../web/kickstart/project_time_reports.png)
-**Projekt-Zeiterfassung Reports** - Detaillierte Zeitauswertungen pro Projekt mit PDF-Export
+![Zeitmodell zuweisen](../web/kickstart/zeitmodell_zuweisen.png)  
+**Zeitmodell-Zuweisung** - Mitarbeitern Zeitmodelle zuweisen
 
 ### Urlaub & Abwesenheiten
-![Urlaubsplaner](../web/kickstart/urlaubsplaner.png)
-**Urlaubsplaner** - Visueller Kalender für Team-Urlaubsplanung
+![Urlaubsplaner](../web/kickstart/urlaubsplaner.png)  
+**Urlaubsplaner** - Team-Kalender
 
-![Abwesenheitsverwaltung](../web/kickstart/abwesenheit.png)
-**Abwesenheitsverwaltung** - Erfassung und Genehmigung von Abwesenheiten
+![Abwesenheiten](../web/kickstart/abwesenheit.png)  
+**Abwesenheiten** - Erfassung & Genehmigung
 
-![Genehmigungen](../web/kickstart/genehmigungen.png)
-**Genehmigungen** - Workflow für Urlaubsanträge und Freigaben
+![Genehmigungen](../web/kickstart/genehmigungen.png)  
+**Genehmigungen** - Workflow für Anträge
 
 ### Reporting & Analytics
-![Reporting](../web/kickstart/reporting.png)
-**Reporting** - Umfassende Auswertungen und Statistiken
+![Reporting](../web/kickstart/reporting.png)  
+**Reporting-Übersicht** - Auswertungen
 
-![Stunden-Reporting](../web/kickstart/reporting_stunden.png)
-**Stunden-Reporting** - Detaillierte Zeitauswertungen mit Filteroptionen
+![Stunden-Reports](../web/kickstart/reporting_stunden.png)  
+**Stunden-Reports** - Zeitauswertungen
 
-![Mitarbeiter-Reporting](../web/kickstart/reoorting_mitarbeiter.png)
-**Mitarbeiter-Reporting** - Team-Übersichten und Leistungsanalysen
+![Mitarbeiter-Reports](../web/kickstart/reoorting_mitarbeiter.png)  
+**Mitarbeiter-Reports** - Team-Übersichten
 
 ### Benutzerverwaltung
-![Benutzerverwaltung](../web/kickstart/benutzerverwaltung.png)
-**Benutzerverwaltung** - Verwaltung von Mitarbeitern und Zugriffsrechten
+![Benutzer](../web/kickstart/benutzerverwaltung.png)  
+**Benutzer** - Mitarbeiterverwaltung
 
-![Benutzergruppen](../web/kickstart/benutzergruppen.png)
-**Benutzergruppen** - Gruppenverwaltung für Berechtigungen
+![Gruppen](../web/kickstart/benutzergruppen.png)  
+**Gruppen** - Gruppenverwaltung
 
-![Berechtigungen](../web/kickstart/berechtigungen.png)
-**Berechtigungen** - Granulare Rechte-Verwaltung pro Modul
+![Berechtigungen](../web/kickstart/berechtigungen.png)  
+**Berechtigungen** - Modul-Rechte
 
-![Modul-Verwaltung](../web/kickstart/module.png)
-**Modul-Verwaltung** - Aktivierung und Konfiguration von System-Modulen
+![Module](../web/kickstart/module.png)  
+**Module** - Modulverwaltung
 
 ### Rechnungswesen
-![Rechnungsverwaltung](../web/kickstart/rechnungen.png)
-**Rechnungsverwaltung** - Übersicht aller Rechnungen mit Status-Tracking
+![Rechnungen](../web/kickstart/rechnungen.png)  
+**Rechnungen** - Übersicht
 
-![Rechnung bearbeiten](../web/kickstart/rechnung_bearbeiten.png)
-**Rechnung bearbeiten** - Erstellung und Bearbeitung von Rechnungen
+![Rechnung bearbeiten](../web/kickstart/rechnung_bearbeiten.png)  
+**Bearbeitung** - Rechnungserstellung
 
-![Rechnungsvorschau](../web/kickstart/rechnung_vorschau.png)
-**Rechnungsvorschau** - PDF-Vorschau mit Swiss QR-Code
+![Rechnung Vorschau](../web/kickstart/rechnung_vorschau.png)  
+**Vorschau** - PDF mit QR-Code
 
-![Rechnungsvorlagen](../web/kickstart/rechnungsvorlage.png)
-**Rechnungsvorlagen** - Template-System für wiederkehrende Rechnungen
+![Rechnungsvorlage](../web/kickstart/rechnungsvorlage.png)  
+**Vorlagen** - Templates
 
 ### Workflows & Automation
-![Workflow Editor](../web/kickstart/workflow_editot.png)
-**Workflow Editor** - Visueller Editor für Geschäftsprozesse
+![Workflow-Editor](../web/kickstart/workflow_editot.png)  
+**Workflow-Editor** - Visueller Editor
 
-![Workflow Triggers](../web/kickstart/workflow_triggers.png)
-**Workflow Triggers** - Automatische Workflow-Auslöser und Actions
+![Workflow-Triggers](../web/kickstart/workflow_triggers.png)  
+**Triggers** - Automatisierung
 
 ### Compliance & EHS
-![Incident Management](../web/kickstart/incidents.png)
-**Incident Management** - Verwaltung von Vorfällen und Sicherheitsmeldungen
+![Incidents](../web/kickstart/incidents.png)  
+**Incidents** - Vorfallsmanagement
 
-![Compliance](../web/kickstart/compliance.png)
-**Compliance** - Schweizer Arbeitsrecht-Überwachung und Verstöße
+![Compliance](../web/kickstart/compliance.png)  
+**Compliance** - ArG-Überwachung
 
-### Stammdaten-Verwaltung
-![Kundenverwaltung](../web/kickstart/stammdaten_kunden.png)
-**Kundenverwaltung** - Verwaltung der Kundenstammdaten
+### Stammdaten
+![Kunden](../web/kickstart/stammdaten_kunden.png)  
+**Kunden** - Kundenverwaltung
 
-![Lieferantenverwaltung](../web/kickstart/stammdaten_lieferanten.png)
-**Lieferantenverwaltung** - Verwaltung der Lieferantenstammdaten
+![Lieferanten](../web/kickstart/stammdaten_lieferanten.png)  
+**Lieferanten** - Lieferantenverwaltung
 
-![Artikelverwaltung](../web/kickstart/stammdaten_artikel.png)
-**Artikelverwaltung** - Verwaltung von Artikeln und Produkten
+![Artikel](../web/kickstart/stammdaten_artikel.png)  
+**Artikel** - Artikelverwaltung
 
-![Artikelgruppen](../web/kickstart/stammdaten_artikelgruppen.png)
-**Artikelgruppen** - Kategorisierung von Artikeln
+![Artikelgruppen](../web/kickstart/stammdaten_artikelgruppen.png)  
+**Artikelgruppen** - Kategorisierung
 
-![Standortverwaltung](../web/kickstart/standorte.png)
-**Standortverwaltung** - Verwaltung von Unternehmensstandorten
+![Standorte](../web/kickstart/standorte.png)  
+**Standorte** - Standortverwaltung
 
 ### Weitere Module
-![Feiertage](../web/kickstart/feiertage.png)
-**Feiertage** - Verwaltung von kantonal-spezifischen Feiertagen
+![Feiertage](../web/kickstart/feiertage.png)  
+**Feiertage** - Kantonal-spezifisch
 
-![Intranet](../web/kickstart/intranet.png)
-**Intranet** - Internes Informationsportal mit Dokumenten-Management
+![Intranet](../web/kickstart/intranet.png)  
+**Intranet** - Dokumente & Wiki
 
-![Nachrichtensystem](../web/kickstart/nachrichten.png)
-**Nachrichtensystem** - Interne Kommunikation zwischen Mitarbeitern
+![Nachrichten](../web/kickstart/nachrichten.png)  
+**Nachrichten** - Interne Kommunikation
 
-![Reisekostenverwaltung](../web/kickstart/reisekosten.png)
-**Reisekostenverwaltung** - Erfassung und Abrechnung von Reisekosten
+![Reisekosten](../web/kickstart/reisekosten.png)  
+**Reisekosten** - Spesenabrechnung
 
-![Lohnabrechnung](../web/kickstart/lohnabrechnung.png)
-**Lohnabrechnung** - Integrierte Lohnberechnung und Export
+![Lohnabrechnung](../web/kickstart/lohnabrechnung.png)  
+**Lohnabrechnung** - Lohnberechnung
 
 ### System-Administration
-![Backup & Restore](../web/kickstart/backup_restore.png)
-**Backup & Restore** - Datensicherung und Wiederherstellung
+![Backup & Restore](../web/kickstart/backup_restore.png)  
+**Backup & Restore** - Datensicherung
 
-![System-Einstellungen](../web/kickstart/system_einstellungen.png)
-**System-Einstellungen** - Zentrale Systemkonfiguration
+![System-Einstellungen](../web/kickstart/system_einstellungen.png)  
+**System-Einstellungen** - Konfiguration
+
+### Interaktive Präsentation
+Eine vollständige, interaktive Präsentation mit allen Screenshots ist verfügbar unter:
+- `web/kickstart/presentation.html` - Klickbare Bildergalerie mit Beschreibungen
 
 ---
 
-**Erstellt am:** 15. Januar 2026  
-**Version:** 1.0  
-**Autor:** Matthias Püski Aquist GmbH Schweiz 
+**Erstellt am:** 20. Januar 2026  
+**Version:** 1.1  
+**Autor:** Matthias Püski / Aquist GmbH Schweiz  
 **Status:** Final for Management Review

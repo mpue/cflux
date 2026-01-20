@@ -38,6 +38,8 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
       case 'PAID': return { bg: '#d4edda', color: '#155724' };
       case 'OVERDUE': return { bg: '#f8d7da', color: '#721c24' };
       case 'CANCELLED': return { bg: '#f5f5f5', color: '#616161' };
+      case 'ACCEPTED': return { bg: '#d4edda', color: '#155724' };
+      case 'DECLINED': return { bg: '#f8d7da', color: '#721c24' };
       default: return { bg: '#f5f5f5', color: '#000' };
     }
   };
@@ -49,6 +51,8 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
       case 'PAID': return 'Bezahlt';
       case 'OVERDUE': return 'Überfällig';
       case 'CANCELLED': return 'Storniert';
+      case 'ACCEPTED': return 'Angenommen';
+      case 'DECLINED': return 'Abgelehnt';
       default: return status;
     }
   };
@@ -56,16 +60,27 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Rechnungsverwaltung</h2>
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            setEditingInvoice(null);
-            setShowModal(true);
-          }}
-        >
-          Neue Rechnung
-        </button>
+        <h2>Rechnungs- und Angebotsverwaltung</h2>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setEditingInvoice(null);
+              setShowModal(true);
+            }}
+          >
+            Neue Rechnung
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              setEditingInvoice({ documentType: 'QUOTE' } as Invoice);
+              setShowModal(true);
+            }}
+          >
+            Neues Angebot
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>
@@ -103,10 +118,11 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
       <table className="table">
         <thead>
           <tr>
-            <th>Rechnungsnr.</th>
+            <th>Typ</th>
+            <th>Nummer</th>
             <th>Kunde</th>
             <th>Datum</th>
-            <th>Fällig</th>
+            <th>Fällig/Gültig bis</th>
             <th>Betrag</th>
             <th>Status</th>
             <th>Aktionen</th>
@@ -115,8 +131,8 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
         <tbody>
           {filteredInvoices.length === 0 ? (
             <tr>
-              <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
-                Keine Rechnungen gefunden
+              <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+                Keine Dokumente gefunden
               </td>
             </tr>
           ) : (
@@ -124,10 +140,28 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
               const statusStyle = getStatusColor(invoice.status);
               return (
                 <tr key={invoice.id}>
+                  <td>
+                    <span style={{
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '0.75em',
+                      backgroundColor: invoice.documentType === 'QUOTE' ? '#f3e8ff' : '#e3f2fd',
+                      color: invoice.documentType === 'QUOTE' ? '#7c3aed' : '#1565c0'
+                    }}>
+                      {invoice.documentType === 'QUOTE' ? 'Angebot' : 'Rechnung'}
+                    </span>
+                  </td>
                   <td><strong>{invoice.invoiceNumber}</strong></td>
                   <td>{invoice.customer?.name || '-'}</td>
                   <td>{new Date(invoice.invoiceDate).toLocaleDateString('de-CH')}</td>
-                  <td>{new Date(invoice.dueDate).toLocaleDateString('de-CH')}</td>
+                  <td>
+                    {invoice.documentType === 'QUOTE' && invoice.validUntil
+                      ? new Date(invoice.validUntil).toLocaleDateString('de-CH')
+                      : invoice.dueDate 
+                        ? new Date(invoice.dueDate).toLocaleDateString('de-CH')
+                        : '-'
+                    }
+                  </td>
                   <td style={{ textAlign: 'right' }}>
                     <strong>CHF {invoice.totalAmount.toFixed(2)}</strong>
                     <div style={{ fontSize: '0.85em', color: '#666' }}>
@@ -277,9 +311,11 @@ const InvoiceModal: React.FC<{
   onSave: (data: any) => Promise<void>;
 }> = ({ invoice, customers, articles, onClose, onSave }) => {
   const [formData, setFormData] = useState({
+    documentType: invoice?.documentType || 'INVOICE',
     invoiceNumber: invoice?.invoiceNumber || '',
     invoiceDate: invoice?.invoiceDate ? invoice.invoiceDate.split('T')[0] : new Date().toISOString().split('T')[0],
     dueDate: invoice?.dueDate ? invoice.dueDate.split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    validUntil: invoice?.validUntil ? invoice.validUntil.split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     customerId: invoice?.customerId || '',
     status: invoice?.status || 'DRAFT',
     notes: invoice?.notes || '',
@@ -420,11 +456,23 @@ const InvoiceModal: React.FC<{
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}>
-        <h2>{invoice ? 'Rechnung bearbeiten' : 'Neue Rechnung'}</h2>
+        <h2>{invoice ? (formData.documentType === 'QUOTE' ? 'Angebot bearbeiten' : 'Rechnung bearbeiten') : (formData.documentType === 'QUOTE' ? 'Neues Angebot' : 'Neue Rechnung')}</h2>
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
             <div className="form-group">
-              <label>Rechnungsnummer *</label>
+              <label>Dokumenttyp *</label>
+              <select
+                value={formData.documentType}
+                onChange={(e) => setFormData({ ...formData, documentType: e.target.value as 'INVOICE' | 'QUOTE' })}
+                disabled={!!invoice}
+              >
+                <option value="INVOICE">Rechnung</option>
+                <option value="QUOTE">Angebot</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>{formData.documentType === 'QUOTE' ? 'Angebotsnummer' : 'Rechnungsnummer'} *</label>
               <input
                 type="text"
                 value={formData.invoiceNumber}
@@ -461,7 +509,7 @@ const InvoiceModal: React.FC<{
             </div>
 
             <div className="form-group">
-              <label>Rechnungsdatum *</label>
+              <label>{formData.documentType === 'QUOTE' ? 'Angebotsdatum' : 'Rechnungsdatum'} *</label>
               <input
                 type="date"
                 value={formData.invoiceDate}
@@ -470,15 +518,26 @@ const InvoiceModal: React.FC<{
               />
             </div>
 
-            <div className="form-group">
-              <label>Fälligkeitsdatum *</label>
-              <input
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                required
-              />
-            </div>
+            {formData.documentType === 'INVOICE' ? (
+              <div className="form-group">
+                <label>Fälligkeitsdatum *</label>
+                <input
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  required
+                />
+              </div>
+            ) : (
+              <div className="form-group">
+                <label>Gültig bis</label>
+                <input
+                  type="date"
+                  value={formData.validUntil}
+                  onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <label>Status</label>
@@ -488,8 +547,17 @@ const InvoiceModal: React.FC<{
               >
                 <option value="DRAFT">Entwurf</option>
                 <option value="SENT">Versendet</option>
-                <option value="PAID">Bezahlt</option>
-                <option value="OVERDUE">Überfällig</option>
+                {formData.documentType === 'INVOICE' ? (
+                  <>
+                    <option value="PAID">Bezahlt</option>
+                    <option value="OVERDUE">Überfällig</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="ACCEPTED">Angenommen</option>
+                    <option value="DECLINED">Abgelehnt</option>
+                  </>
+                )}
                 <option value="CANCELLED">Storniert</option>
               </select>
             </div>

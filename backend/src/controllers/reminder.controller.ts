@@ -346,6 +346,9 @@ export const getOverdueInvoices = async (req: Request, res: Response) => {
     
     // Kategorisieren nach Mahnstufe
     const result = overdueInvoices.map(invoice => {
+      // Mahnungen sind nur für Rechnungen (nicht Angebote) relevant
+      if (!invoice.dueDate) return null;
+      
       const daysPastDue = Math.floor((today.getTime() - new Date(invoice.dueDate).getTime()) / (1000 * 60 * 60 * 24));
       const reminderCount = invoice.reminders.length;
       const lastReminder = invoice.reminders[0];
@@ -379,7 +382,7 @@ export const getOverdueInvoices = async (req: Request, res: Response) => {
         suggestedFee,
         shouldSendReminder
       };
-    });
+    }).filter(item => item !== null); // Filtere Angebote ohne dueDate aus
     
     res.json(result);
   } catch (error) {

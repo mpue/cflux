@@ -134,13 +134,17 @@ export interface Article {
   articleGroup?: ArticleGroup;
 }
 
-export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+export type DocumentType = 'INVOICE' | 'QUOTE';
+
+export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'CANCELLED' | 'ACCEPTED' | 'DECLINED';
 
 export interface Invoice {
   id: string;
+  documentType: DocumentType;
   invoiceNumber: string;
   invoiceDate: string;
-  dueDate: string;
+  dueDate?: string;        // Optional für Angebote
+  validUntil?: string;     // Nur für Angebote
   customerId: string;
   templateId?: string;
   status: InvoiceStatus;

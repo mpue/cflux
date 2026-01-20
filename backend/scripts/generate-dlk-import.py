@@ -13,8 +13,8 @@ def generate_uuid():
     return str(uuid.uuid4())
 
 # Read CSV file
-csv_file = r'c:\Users\mpue\Documents\devel\cflux\docs\dlk.csv'
-output_file = r'c:\Users\mpue\Documents\devel\cflux\db\import_dlk_articles.sql'
+csv_file = r'..\\..\\\docs\dlk.csv'
+output_file = r'..\\..\\db\import_dlk_articles.sql'
 
 print(f"Reading CSV from: {csv_file}")
 

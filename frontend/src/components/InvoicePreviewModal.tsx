@@ -162,24 +162,33 @@ const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoice, onCl
                     <td style={{ textAlign: 'right' }}>{invoice.invoiceNumber}</td>
                   </tr>
                   <tr>
-                    <td>Rechnungsdatum:</td>
+                    <td>{invoice.documentType === 'QUOTE' ? 'Angebotsdatum:' : 'Rechnungsdatum:'}</td>
                     <td style={{ textAlign: 'right' }}>
                       {new Date(invoice.invoiceDate).toLocaleDateString('de-CH')}
                     </td>
                   </tr>
-                  <tr>
-                    <td>Fälligkeitsdatum:</td>
-                    <td style={{ textAlign: 'right' }}>
-                      {new Date(invoice.dueDate).toLocaleDateString('de-CH')}
-                    </td>
-                  </tr>
+                  {invoice.documentType === 'QUOTE' && invoice.validUntil ? (
+                    <tr>
+                      <td>Gültig bis:</td>
+                      <td style={{ textAlign: 'right' }}>
+                        {new Date(invoice.validUntil).toLocaleDateString('de-CH')}
+                      </td>
+                    </tr>
+                  ) : invoice.dueDate ? (
+                    <tr>
+                      <td>Fälligkeitsdatum:</td>
+                      <td style={{ textAlign: 'right' }}>
+                        {new Date(invoice.dueDate).toLocaleDateString('de-CH')}
+                      </td>
+                    </tr>
+                  ) : null}
                 </tbody>
               </table>
             </div>
 
             {/* Title */}
             <div className="preview-title" style={{ color: template.primaryColor }}>
-              RECHNUNG
+              {invoice.documentType === 'QUOTE' ? 'ANGEBOT' : 'RECHNUNG'}
             </div>
 
             {/* Intro Text */}

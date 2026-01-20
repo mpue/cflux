@@ -107,9 +107,11 @@ export const getInvoiceById = async (req: AuthRequest, res: Response) => {
 export const createInvoice = async (req: AuthRequest, res: Response) => {
   try {
     const {
+      documentType = 'INVOICE', // Default: Rechnung
       invoiceNumber,
       invoiceDate,
       dueDate,
+      validUntil,
       customerId,
       templateId,
       status = InvoiceStatus.DRAFT,
@@ -118,9 +120,16 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
     } = req.body;
 
     // Validate required fields
-    if (!invoiceNumber || !invoiceDate || !dueDate || !customerId) {
+    if (!invoiceNumber || !invoiceDate || !customerId) {
       return res.status(400).json({
-        error: 'invoiceNumber, invoiceDate, dueDate, and customerId are required',
+        error: 'invoiceNumber, invoiceDate, and customerId are required',
+      });
+    }
+
+    // Validate dueDate for invoices
+    if (documentType === 'INVOICE' && !dueDate) {
+      return res.status(400).json({
+        error: 'dueDate is required for invoices',
       });
     }
 
@@ -165,9 +174,11 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
     // Create invoice with items
     const invoice = await prisma.invoice.create({
       data: {
+        documentType,
         invoiceNumber,
         invoiceDate: new Date(invoiceDate),
-        dueDate: new Date(dueDate),
+        dueDate: dueDate ? new Date(dueDate) : null,
+        validUntil: validUntil ? new Date(validUntil) : null,
         customerId,
         templateId: templateId || null,
         status,
@@ -247,9 +258,11 @@ export const updateInvoice = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const {
+      documentType,
       invoiceNumber,
       invoiceDate,
       dueDate,
+      validUntil,
       customerId,
       templateId,
       status,
@@ -292,9 +305,11 @@ export const updateInvoice = async (req: AuthRequest, res: Response) => {
 
     const updateData: any = {};
     
+    if (documentType !== undefined) updateData.documentType = documentType;
     if (invoiceNumber !== undefined) updateData.invoiceNumber = invoiceNumber;
     if (invoiceDate !== undefined) updateData.invoiceDate = new Date(invoiceDate);
-    if (dueDate !== undefined) updateData.dueDate = new Date(dueDate);
+    if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null;
+    if (validUntil !== undefined) updateData.validUntil = validUntil ? new Date(validUntil) : null;
     if (templateId !== undefined) updateData.templateId = templateId || null;
     if (customerId !== undefined) updateData.customerId = customerId;
     if (status !== undefined) updateData.status = status;

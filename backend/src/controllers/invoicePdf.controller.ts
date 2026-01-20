@@ -56,8 +56,12 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
     });
 
     // Set response headers
+    const filename = invoice.documentType === 'QUOTE' 
+      ? `Angebot_${invoice.invoiceNumber}.pdf`
+      : `Rechnung_${invoice.invoiceNumber}.pdf`;
+    
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="Rechnung_${invoice.invoiceNumber}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     // Pipe PDF to response
     doc.pipe(res);
@@ -185,19 +189,28 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
 
     // Invoice details (right side)
     const detailsX = 350;
+    const documentLabel = invoice.documentType === 'QUOTE' ? 'Angebot Nr.' : 'Rechnung Nr.';
+    const dateLabel = invoice.documentType === 'QUOTE' ? 'Angebotsdatum:' : 'Rechnungsdatum:';
+    
     doc.fontSize(10)
        .fillColor(primaryColor)
-       .text('Rechnung Nr.:', detailsX, customerY, { continued: true })
+       .text(documentLabel, detailsX, customerY, { continued: true })
        .font('Helvetica-Bold')
        .text(` ${invoice.invoiceNumber}`, { align: 'right' });
     
     doc.font('Helvetica')
        .fillColor('#000000')
-       .text('Rechnungsdatum:', detailsX, customerY + 15, { continued: true })
+       .text(dateLabel, detailsX, customerY + 15, { continued: true })
        .text(` ${new Date(invoice.invoiceDate).toLocaleDateString('de-CH')}`, { align: 'right' });
     
-    doc.text('Fällig am:', detailsX, customerY + 30, { continued: true })
-       .text(` ${new Date(invoice.dueDate).toLocaleDateString('de-CH')}`, { align: 'right' });
+    // For INVOICE: show dueDate, for QUOTE: show validUntil
+    if (invoice.documentType === 'QUOTE' && invoice.validUntil) {
+      doc.text('Gültig bis:', detailsX, customerY + 30, { continued: true })
+         .text(` ${new Date(invoice.validUntil).toLocaleDateString('de-CH')}`, { align: 'right' });
+    } else if (invoice.documentType === 'INVOICE' && invoice.dueDate) {
+      doc.text('Fällig am:', detailsX, customerY + 30, { continued: true })
+         .text(` ${new Date(invoice.dueDate).toLocaleDateString('de-CH')}`, { align: 'right' });
+    }
 
     if (invoice.customer.taxId) {
       doc.text('UID Kunde:', detailsX, customerY + 45, { continued: true })
@@ -206,10 +219,12 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
 
     // Invoice title
     const titleY = addressY + 30;
+    const documentTitle = invoice.documentType === 'QUOTE' ? 'ANGEBOT' : 'RECHNUNG';
+    
     doc.fontSize(16)
        .font('Helvetica-Bold')
        .fillColor(primaryColor)
-       .text('RECHNUNG', 50, titleY);
+       .text(documentTitle, 50, titleY);
     
     // Intro text from template
     if (template?.introText) {
@@ -345,10 +360,10 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
     
     doc.fillColor('#000000'); // Reset color
 
-    // Payment information
+    // Payment information (nur für Rechnungen, nicht für Angebote)
     currentY += 40;
     
-    if (template?.showPaymentInfo !== false) {
+    if (invoice.documentType === 'INVOICE' && template?.showPaymentInfo !== false) {
       doc.fontSize(10)
          .font('Helvetica-Bold')
          .text('Zahlungsinformationen:', 50, currentY);
@@ -367,13 +382,21 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
          .text(`Kontoinhaber: ${companyName}`, 50, currentY + 30);
       
       currentY += 45;
+    } else if (invoice.documentType === 'QUOTE') {
+      // Angebots-spezifischer Text
+      doc.fontSize(10)
+         .font('Helvetica')
+         .text('Wir freuen uns über Ihre Rückmeldung zu diesem Angebot.', 50, currentY);
+      currentY += 20;
     }
 
-    // QR code placeholder (Swiss QR-Bill)
-    currentY += 35;
-    if (currentY < 650) {
-      doc.fontSize(8)
-         .text('QR-Rechnung folgt separat', 50, currentY, { align: 'center' });
+    // QR code placeholder (nur für Rechnungen, Swiss QR-Bill)
+    if (invoice.documentType === 'INVOICE') {
+      currentY += 35;
+      if (currentY < 650) {
+        doc.fontSize(8)
+           .text('QR-Rechnung folgt separat', 50, currentY, { align: 'center' });
+      }
     }
 
     // Notes
