@@ -181,6 +181,12 @@ model User {
   updatedZeitmodelle Zeitmodell[] @relation("ZeitmodellUpdatedBy")
   zeitmodellAenderungen ZeitmodellAenderung[] @relation("ZeitmodellAenderungCreatedBy")
   
+  // E-Learning
+  enrollments     Enrollment[] @relation("UserEnrollments")
+  createdCourses  Course[] @relation("CourseCreatedBy")
+  updatedCourses  Course[] @relation("CourseUpdatedBy")
+  courseAssignments CourseAssignment[] @relation("CourseAssignmentsCreated")
+  
   @@index([userGroupId])
   @@map("users")
 }
@@ -2158,3 +2164,352 @@ model ZeitmodellAenderung {
   @@map("zeitmodell_aenderungen")
 }
 
+// ==================== E-LEARNING ====================
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CourseType {
+  MANDATORY      // Pflichtschulung
+  OPTIONAL       // Freiwillig
+  CERTIFICATION  // Mit Zertifikat
+  ONBOARDING     // Onboarding
+}
+
+enum EnrollmentStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  TEXT
+  FILL_BLANK
+}
+
+model Course {
+  id              String        @id @default(uuid())
+  title           String
+  description     String?       @db.Text
+  courseType      CourseType    @default(OPTIONAL)
+  status          CourseStatus  @default(DRAFT)
+  
+  // Kategorisierung
+  categoryId      String?
+  tags            String[]
+  
+  // Inhalte
+  thumbnailUrl    String?
+  duration        Int?          // Geschätzte Dauer in Minuten
+  level           String?       // Beginner, Intermediate, Advanced
+  
+  // Verfügbarkeit
+  publishedAt     DateTime?
+  validFrom       DateTime?
+  validUntil      DateTime?
+  
+  // Zertifizierung
+  certificateTemplateId String?
+  passingScore    Int           @default(80) // Prozent
+  maxAttempts     Int?          // null = unbegrenzt
+  
+  // Compliance & EHS
+  isComplianceCourse Boolean    @default(false)
+  ehsRelevant     Boolean       @default(false)
+  renewalMonths   Int?          // Wiederholungspflicht nach X Monaten
+  
+  // Zuordnung
+  createdById     String
+  updatedById     String
+  
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relationen
+  category        CourseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdBy       User          @relation("CourseCreatedBy", fields: [createdById], references: [id])
+  updatedBy       User          @relation("CourseUpdatedBy", fields: [updatedById], references: [id])
+  lessons         Lesson[]
+  enrollments     Enrollment[]
+  assignments     CourseAssignment[]
+  
+  @@index([categoryId])
+  @@index([courseType])
+  @@index([status])
+  @@index([isComplianceCourse])
+  @@map("courses")
+}
+
+model CourseCategory {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  icon        String?
+  color       String?
+  parentId    String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  parent      CourseCategory?  @relation("CourseCategoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    CourseCategory[] @relation("CourseCategoryTree")
+  courses     Course[]
+  
+  @@index([parentId])
+  @@map("course_categories")
+}
+
+model Lesson {
+  id              String    @id @default(uuid())
+  courseId        String
+  title           String
+  description     String?   @db.Text
+  order           Int       @default(0)
+  
+  // Inhaltstypen
+  contentType     String    // VIDEO, PDF, HTML, SCORM, QUIZ, EXTERNAL_LINK
+  content         String?   @db.Text // HTML Content oder URL
+  videoUrl        String?
+  duration        Int?      // Dauer in Sekunden
+  
+  // Dateianhänge
+  attachments     Json?     // Array von Media IDs
+  
+  // Fortschritt
+  isOptional      Boolean   @default(false)
+  completionCriteria String? // JSON: {type: 'time' | 'quiz' | 'both', minTime: 60, minScore: 80}
+  
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  course          Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress        LessonProgress[]
+  quiz            Quiz?
+  
+  @@index([courseId])
+  @@index([order])
+  @@map("lessons")
+}
+
+model Quiz {
+  id              String    @id @default(uuid())
+  lessonId        String    @unique
+  title           String
+  description     String?   @db.Text
+  timeLimit       Int?      // Zeitlimit in Minuten
+  shuffleQuestions Boolean  @default(false)
+  shuffleAnswers  Boolean   @default(false)
+  showResults     Boolean   @default(true)
+  passingScore    Int       @default(80)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  lesson          Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  questions       Question[]
+  attempts        QuizAttempt[]
+  
+  @@index([lessonId])
+  @@map("quizzes")
+}
+
+model Question {
+  id              String        @id @default(uuid())
+  quizId          String
+  questionText    String        @db.Text
+  questionType    QuestionType
+  points          Int           @default(1)
+  order           Int           @default(0)
+  explanation     String?       @db.Text // Erklärung zur richtigen Antwort
+  
+  // Für Fill-in-the-blank
+  caseSensitive   Boolean       @default(false)
+  
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  quiz            Quiz          @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers         Answer[]
+  responses       QuestionResponse[]
+  
+  @@index([quizId])
+  @@index([order])
+  @@map("questions")
+}
+
+model Answer {
+  id              String    @id @default(uuid())
+  questionId      String
+  answerText      String    @db.Text
+  isCorrect       Boolean   @default(false)
+  order           Int       @default(0)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  question        Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  @@index([questionId])
+  @@map("answers")
+}
+
+model Enrollment {
+  id              String            @id @default(uuid())
+  userId          String
+  courseId        String
+  status          EnrollmentStatus  @default(NOT_STARTED)
+  
+  // Termine
+  enrolledAt      DateTime          @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+  expiresAt       DateTime?         // Für Pflichtschulungen mit Ablauf
+  
+  // Fortschritt
+  progressPercent Int               @default(0)
+  score           Float?            // Durchschnittsscore aller Quizze
+  attempts        Int               @default(0)
+  
+  // Zertifikat
+  certificateIssued Boolean         @default(false)
+  certificateUrl  String?
+  certificateIssuedAt DateTime?
+  
+  // Assignment (wenn zugewiesen)
+  assignmentId    String?
+  
+  notes           String?           @db.Text
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  user            User              @relation("UserEnrollments", fields: [userId], references: [id], onDelete: Cascade)
+  course          Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  assignment      CourseAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  lessonProgress  LessonProgress[]
+  quizAttempts    QuizAttempt[]
+  
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id              String    @id @default(uuid())
+  enrollmentId    String
+  lessonId        String
+  
+  status          String    @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, COMPLETED
+  startedAt       DateTime?
+  completedAt     DateTime?
+  timeSpent       Int       @default(0) // Sekunden
+  
+  // Für Video/Content tracking
+  lastPosition    Int?      // Letzte Position in Sekunden
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  enrollment      Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lesson          Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  @@unique([enrollmentId, lessonId])
+  @@index([enrollmentId])
+  @@index([lessonId])
+  @@map("lesson_progress")
+}
+
+model QuizAttempt {
+  id              String    @id @default(uuid())
+  enrollmentId    String
+  quizId          String
+  attemptNumber   Int
+  
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  score           Float     @default(0)
+  passed          Boolean   @default(false)
+  timeSpent       Int?      // Sekunden
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  enrollment      Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  quiz            Quiz       @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  responses       QuestionResponse[]
+  
+  @@unique([enrollmentId, quizId, attemptNumber])
+  @@index([enrollmentId])
+  @@index([quizId])
+  @@map("quiz_attempts")
+}
+
+model QuestionResponse {
+  id              String      @id @default(uuid())
+  attemptId       String
+  questionId      String
+  
+  // Antwort
+  selectedAnswers Json?       // Array von Answer IDs für Multiple Choice
+  textResponse    String?     // Für Text/Fill-in Fragen
+  
+  isCorrect       Boolean     @default(false)
+  points          Int         @default(0)
+  
+  createdAt       DateTime    @default(now())
+  
+  attempt         QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question        Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@map("question_responses")
+}
+
+model CourseAssignment {
+  id              String    @id @default(uuid())
+  courseId        String
+  
+  // Zuweisung
+  assignedToUserIds String[] // Array von User IDs
+  assignedToGroupIds String[] // Array von UserGroup IDs
+  
+  // Termine
+  dueDate         DateTime?
+  reminderDays    Int[]     @default([7, 3, 1]) // Erinnerungen X Tage vorher
+  
+  // Ersteller
+  assignedById    String
+  assignedAt      DateTime  @default(now())
+  
+  notes           String?
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  course          Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  assignedBy      User      @relation("CourseAssignmentsCreated", fields: [assignedById], references: [id])
+  enrollments     Enrollment[]
+  
+  @@index([courseId])
+  @@index([assignedById])
+  @@index([dueDate])
+  @@map("course_assignments")
+}

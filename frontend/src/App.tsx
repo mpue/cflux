@@ -29,6 +29,9 @@ import OrdersPage from './pages/OrdersPage';
 import CostCentersPage from './pages/CostCentersPage';
 import ZeitmodelleVerwaltung from './pages/ZeitmodelleVerwaltung';
 import ProjectPlanningPage from './pages/ProjectPlanningPage';
+import ELearningPage from './pages/ELearningPage';
+import CourseEditorPage from './pages/CourseEditorPage';
+import CourseDetailPage from './pages/CourseDetailPage';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
@@ -251,6 +254,30 @@ function App() {
               element={
                 <PrivateRoute adminOnly allowModuleAccess>
                   <ProjectPlanningPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/elearning"
+              element={
+                <PrivateRoute>
+                  <ELearningPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/elearning/courses/:id/edit"
+              element={
+                <PrivateRoute adminOnly>
+                  <CourseEditorPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/elearning/courses/:id"
+              element={
+                <PrivateRoute>
+                  <CourseDetailPage />
                 </PrivateRoute>
               }
             />

@@ -21,3 +21,4 @@ export { default as UserPayrollHistory } from './UserPayrollHistory';
 export { DevicesTab } from './DevicesTab';
 export { TravelExpensesTab } from './TravelExpensesTab';
 export { OrdersTab } from './OrdersTab';
+export { default as ELearningManagementTab } from './ELearningManagementTab';

@@ -274,6 +274,12 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
               Medien
             </MenuItem>
           )}
+          {hasModuleAccess('elearning') && (
+            <MenuItem onClick={() => navigateTo('/elearning')}>
+              <Box component="span" sx={{ mr: 1 }}>📚</Box>
+              E-Learning
+            </MenuItem>
+          )}
           {(user?.role === 'ADMIN' || modules.length > 0) && (
             <>
               <Divider />

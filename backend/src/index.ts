@@ -42,6 +42,7 @@ import actionRoutes from './routes/action.routes';
 import projectReportsRoutes from './routes/projectReports.routes';
 import dashboardLayoutRoutes from './routes/dashboardLayout.routes';
 import zeitmodellRoutes from './routes/zeitmodell.routes';
+import elearningRoutes from './routes/elearning.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -112,6 +113,7 @@ app.use('/api/actions', actionRoutes);
 app.use('/api/project-reports', projectReportsRoutes);
 app.use('/api/dashboard-layout', dashboardLayoutRoutes);
 app.use('/api/zeitmodelle', zeitmodellRoutes);
+app.use('/api/elearning', elearningRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

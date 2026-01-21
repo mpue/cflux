@@ -185,6 +185,14 @@ async function seedModules() {
       route: '/project-planning',
       sortOrder: 21,
     },
+    {
+      name: 'E-Learning',
+      key: 'elearning',
+      description: 'Schulungsmanagement und Online-Kurse',
+      icon: 'school',
+      route: '/elearning',
+      sortOrder: 22,
+    },
   ];
 
   for (const module of modules) {

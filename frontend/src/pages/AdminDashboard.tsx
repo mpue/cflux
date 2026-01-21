@@ -40,7 +40,8 @@ import {
   RemindersTab,
   DevicesTab,
   TravelExpensesTab,
-  OrdersTab
+  OrdersTab,
+  ELearningManagementTab
 } from '../components/admin';
 import { TimeBookingsReport } from '../components/admin/TimeBookingsReport';
 import { UserTimeBookingsReport } from '../components/admin/UserTimeBookingsReport';
@@ -59,7 +60,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -152,7 +153,8 @@ const AdminDashboard: React.FC = () => {
       projectBudget: 'Projektbudget',
       projectReports: 'Projektberichte',
       projectPlanning: 'Projektplanung',
-      zeitmodelle: 'Zeitmodelle'
+      zeitmodelle: 'Zeitmodelle',
+      elearning: 'E-Learning'
     };
     return titles[tab] || tab;
   };
@@ -721,6 +723,13 @@ const AdminDashboard: React.FC = () => {
                       label="⚙️ Einstellungen"
                     />
                   )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('elearning')) && (
+                    <TabButton
+                      active={activeTab === 'elearning'}
+                      onClick={() => changeTab('elearning')}
+                      label="🎓 E-Learning"
+                    />
+                  )}
                   {user?.role === 'ADMIN' && (
                     <TabButton
                       active={activeTab === 'backup'}
@@ -745,6 +754,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'projectBudget' && <ProjectBudgetTab />}
             {activeTab === 'projectReports' && <ProjectReportsTab />}
             {activeTab === 'projectPlanning' && <ProjectPlanningTab onUpdate={loadData} />}
+            {activeTab === 'elearning' && <ELearningManagementTab onUpdate={loadData} />}
             {activeTab === 'customers' && <CustomersTab customers={customers} onUpdate={loadData} />}
             {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} onUpdate={loadData} />}
             {activeTab === 'orders' && <OrdersTab suppliers={suppliers} onUpdate={loadData} />}
