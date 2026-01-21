@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from './api';
 import {
   Reminder,
   CreateReminderDto,
@@ -9,15 +9,6 @@ import {
   ReminderStatus,
   ReminderLevel
 } from '../types/reminder.types';
-
-// Check if running in Electron and use injected backend URL
-const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
-const API_URL = electronBackendUrl || process.env.REACT_APP_API_URL || '';
-
-const getAuthHeader = () => {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
 
 export const reminderService = {
   // Alle Mahnungen abrufen
@@ -31,94 +22,60 @@ export const reminderService = {
     if (filters?.level) params.append('level', filters.level);
     if (filters?.customerId) params.append('customerId', filters.customerId);
     
-    const response = await axios.get(
-      `${API_URL}/api/reminders?${params.toString()}`,
-      { headers: getAuthHeader() }
-    );
+    const response = await api.get(`/reminders?${params.toString()}`);
     return response.data;
   },
 
   // Einzelne Mahnung abrufen
   getReminderById: async (id: string): Promise<Reminder> => {
-    const response = await axios.get(
-      `${API_URL}/api/reminders/${id}`,
-      { headers: getAuthHeader() }
-    );
+    const response = await api.get(`/reminders/${id}`);
     return response.data;
   },
 
   // Mahnungen für eine Rechnung abrufen
   getRemindersByInvoice: async (invoiceId: string): Promise<Reminder[]> => {
-    const response = await axios.get(
-      `${API_URL}/api/reminders/invoice/${invoiceId}`,
-      { headers: getAuthHeader() }
-    );
+    const response = await api.get(`/reminders/invoice/${invoiceId}`);
     return response.data;
   },
 
   // Neue Mahnung erstellen
   createReminder: async (data: CreateReminderDto): Promise<Reminder> => {
-    const response = await axios.post(
-      `${API_URL}/api/reminders`,
-      data,
-      { headers: getAuthHeader() }
-    );
+    const response = await api.post('/reminders', data);
     return response.data;
   },
 
   // Mahnung aktualisieren
   updateReminder: async (id: string, data: UpdateReminderDto): Promise<Reminder> => {
-    const response = await axios.put(
-      `${API_URL}/api/reminders/${id}`,
-      data,
-      { headers: getAuthHeader() }
-    );
+    const response = await api.put(`/reminders/${id}`, data);
     return response.data;
   },
 
   // Mahnung löschen
   deleteReminder: async (id: string): Promise<void> => {
-    await axios.delete(
-      `${API_URL}/api/reminders/${id}`,
-      { headers: getAuthHeader() }
-    );
+    await api.delete(`/reminders/${id}`);
   },
 
   // Mahnung versenden
   sendReminder: async (id: string, sentBy: string): Promise<Reminder> => {
-    const response = await axios.post(
-      `${API_URL}/api/reminders/${id}/send`,
-      { sentBy },
-      { headers: getAuthHeader() }
-    );
+    const response = await api.post(`/reminders/${id}/send`, { sentBy });
     return response.data;
   },
 
   // Mahnung als bezahlt markieren
   markReminderAsPaid: async (id: string): Promise<Reminder> => {
-    const response = await axios.post(
-      `${API_URL}/api/reminders/${id}/mark-paid`,
-      {},
-      { headers: getAuthHeader() }
-    );
+    const response = await api.post(`/reminders/${id}/mark-paid`, {});
     return response.data;
   },
 
   // Überfällige Rechnungen ermitteln
   getOverdueInvoices: async (): Promise<OverdueInvoice[]> => {
-    const response = await axios.get(
-      `${API_URL}/api/reminders/overdue-invoices`,
-      { headers: getAuthHeader() }
-    );
+    const response = await api.get('/reminders/overdue-invoices');
     return response.data;
   },
 
   // Mahneinstellungen abrufen
   getReminderSettings: async (): Promise<ReminderSettings> => {
-    const response = await axios.get(
-      `${API_URL}/api/reminders/settings/current`,
-      { headers: getAuthHeader() }
-    );
+    const response = await api.get('/reminders/settings/current');
     return response.data;
   },
 
@@ -127,32 +84,21 @@ export const reminderService = {
     id: string,
     data: Partial<ReminderSettings>
   ): Promise<ReminderSettings> => {
-    const response = await axios.put(
-      `${API_URL}/api/reminders/settings/${id}`,
-      data,
-      { headers: getAuthHeader() }
-    );
+    const response = await api.put(`/reminders/settings/${id}`, data);
     return response.data;
   },
 
   // Statistiken abrufen
   getReminderStats: async (): Promise<ReminderStats> => {
-    const response = await axios.get(
-      `${API_URL}/api/reminders/stats`,
-      { headers: getAuthHeader() }
-    );
+    const response = await api.get('/reminders/stats');
     return response.data;
   },
 
   // PDF herunterladen
   downloadReminderPdf: async (id: string): Promise<Blob> => {
-    const response = await axios.get(
-      `${API_URL}/api/reminders/${id}/pdf`,
-      {
-        headers: getAuthHeader(),
-        responseType: 'blob'
-      }
-    );
+    const response = await api.get(`/reminders/${id}/pdf`, {
+      responseType: 'blob'
+    });
     return response.data;
   }
 };

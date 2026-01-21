@@ -316,10 +316,13 @@ export const markReminderAsPaid = async (req: Request, res: Response) => {
 // Überfällige Rechnungen ermitteln (für automatische Mahnungen)
 export const getOverdueInvoices = async (req: Request, res: Response) => {
   try {
-    const settings = await prisma.reminderSettings.findFirst();
+    let settings = await prisma.reminderSettings.findFirst();
     
+    // Wenn keine Einstellungen vorhanden, Standard-Einstellungen erstellen
     if (!settings) {
-      return res.status(404).json({ error: 'Reminder settings not found' });
+      settings = await prisma.reminderSettings.create({
+        data: {}
+      });
     }
     
     const today = new Date();

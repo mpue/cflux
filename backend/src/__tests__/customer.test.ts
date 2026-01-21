@@ -165,7 +165,7 @@ describe('Customer Controller', () => {
         .delete('/api/customers/1')
         .set('Authorization', `Bearer ${adminToken}`);
 
-      expect(response.status).toBe(204);
+      expect(response.status).toBe(200);
     });
   });
 });

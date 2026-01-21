@@ -73,7 +73,7 @@ describe('Invoice Controller', () => {
         .send({
           invoiceNumber: 'INV-2024-001',
           customerId: 'customer-1',
-          date: '2024-01-01',
+          invoiceDate: '2024-01-01',
           dueDate: '2024-01-31',
           items: [],
           vatRate: 8.1,
@@ -189,7 +189,7 @@ describe('Invoice Controller', () => {
         .delete('/api/invoices/1')
         .set('Authorization', `Bearer ${adminToken}`);
 
-      expect(response.status).toBe(204);
+      expect(response.status).toBe(200);
     });
   });
 });

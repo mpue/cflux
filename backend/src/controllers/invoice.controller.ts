@@ -114,7 +114,7 @@ export const createInvoice = async (req: AuthRequest, res: Response) => {
       validUntil,
       customerId,
       templateId,
-      status = InvoiceStatus.DRAFT,
+      status = 'DRAFT',
       notes,
       items = [],
     } = req.body;

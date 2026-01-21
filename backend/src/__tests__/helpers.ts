@@ -61,3 +61,15 @@ export const mockRequireAdmin = (req: Request, res: Response, next: NextFunction
   }
   next();
 };
+
+// Mock requireModuleAccess middleware - always allows access in tests
+export const mockRequireModuleAccess = (moduleKey: string, action: string) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    // In tests, grant access if user is authenticated
+    if (req.user) {
+      next();
+    } else {
+      res.status(401).json({ error: 'Not authenticated' });
+    }
+  };
+};

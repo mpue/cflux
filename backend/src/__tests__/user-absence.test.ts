@@ -33,7 +33,7 @@ describe('User Controller', () => {
 
       (prisma.user.findMany as jest.Mock).mockResolvedValue(mockUsers);
 
-      const token = generateTestToken('user-1', 'USER');
+      const token = generateTestToken('user-1', 'test@example.com', 'USER');
       const response = await request(app)
         .get('/api/users/list')
         .set('Authorization', `Bearer ${token}`);
@@ -61,7 +61,7 @@ describe('User Controller', () => {
 
       (prisma.user.findMany as jest.Mock).mockResolvedValue(mockUsers);
 
-      const token = generateTestToken('user-1', 'USER');
+      const token = generateTestToken('user-1', 'test@example.com', 'USER');
       const response = await request(app)
         .get('/api/users/list')
         .set('Authorization', `Bearer ${token}`);
@@ -97,7 +97,7 @@ describe('User Controller', () => {
 
       (prisma.user.findMany as jest.Mock).mockResolvedValue(mockUsers);
 
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .get('/api/users')
         .set('Authorization', `Bearer ${token}`);
@@ -119,7 +119,7 @@ describe('User Controller', () => {
 
       (prisma.user.update as jest.Mock).mockResolvedValue(updatedUser);
 
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .put('/api/users/user-1')
         .set('Authorization', `Bearer ${token}`)
@@ -137,7 +137,7 @@ describe('User Controller', () => {
     it('should delete user', async () => {
       (prisma.user.delete as jest.Mock).mockResolvedValue({ id: 'user-1' });
 
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .delete('/api/users/user-1')
         .set('Authorization', `Bearer ${token}`);
@@ -169,7 +169,7 @@ describe('Absence Controller', () => {
 
       (prisma.absenceRequest.create as jest.Mock).mockResolvedValue(createdAbsence);
 
-      const token = generateTestToken('user-1', 'USER');
+      const token = generateTestToken('user-1', 'test@example.com', 'USER');
       const response = await request(app)
         .post('/api/absences')
         .set('Authorization', `Bearer ${token}`)
@@ -202,7 +202,7 @@ describe('Absence Controller', () => {
 
       (prisma.absenceRequest.findMany as jest.Mock).mockResolvedValue(mockAbsences);
 
-      const token = generateTestToken('user-1', 'USER');
+      const token = generateTestToken('user-1', 'test@example.com', 'USER');
       const response = await request(app)
         .get('/api/absences/my-requests')
         .set('Authorization', `Bearer ${token}`);
@@ -242,7 +242,7 @@ describe('Absence Controller', () => {
         vacationDays: 25,
       });
 
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .put('/api/absences/absence-1/review')
         .set('Authorization', `Bearer ${token}`)
@@ -269,7 +269,7 @@ describe('Absence Controller', () => {
       (prisma.absenceRequest.findUnique as jest.Mock).mockResolvedValue(mockAbsence);
       (prisma.absenceRequest.update as jest.Mock).mockResolvedValue(rejectedAbsence);
 
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .put('/api/absences/absence-1/review')
         .set('Authorization', `Bearer ${token}`)
@@ -280,7 +280,7 @@ describe('Absence Controller', () => {
     });
 
     it('should return 400 for invalid status', async () => {
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .put('/api/absences/absence-1/review')
         .set('Authorization', `Bearer ${token}`)
@@ -301,7 +301,7 @@ describe('Absence Controller', () => {
       (prisma.absenceRequest.findUnique as jest.Mock).mockResolvedValue(mockAbsence);
       (prisma.absenceRequest.delete as jest.Mock).mockResolvedValue(mockAbsence);
 
-      const token = generateTestToken('user-1', 'USER');
+      const token = generateTestToken('user-1', 'test@example.com', 'USER');
       const response = await request(app)
         .delete('/api/absences/absence-1')
         .set('Authorization', `Bearer ${token}`);
@@ -318,7 +318,7 @@ describe('Absence Controller', () => {
 
       (prisma.absenceRequest.findUnique as jest.Mock).mockResolvedValue(mockAbsence);
 
-      const token = generateTestToken('user-1', 'USER');
+      const token = generateTestToken('user-1', 'test@example.com', 'USER');
       const response = await request(app)
         .delete('/api/absences/absence-1')
         .set('Authorization', `Bearer ${token}`);

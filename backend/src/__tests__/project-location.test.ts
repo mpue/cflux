@@ -32,7 +32,7 @@ describe('Project Controller', () => {
 
       (prisma.project.findMany as jest.Mock).mockResolvedValue(mockProjects);
 
-      const token = generateTestToken('user-1', 'USER');
+      const token = generateTestToken('user-1', 'test@example.com', 'USER');
       const response = await request(app)
         .get('/api/projects')
         .set('Authorization', `Bearer ${token}`);
@@ -60,7 +60,7 @@ describe('Project Controller', () => {
 
       (prisma.project.create as jest.Mock).mockResolvedValue(createdProject);
 
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .post('/api/projects')
         .set('Authorization', `Bearer ${token}`)
@@ -71,7 +71,7 @@ describe('Project Controller', () => {
     });
 
     it('should return 400 if name is missing', async () => {
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .post('/api/projects')
         .set('Authorization', `Bearer ${token}`)
@@ -92,7 +92,7 @@ describe('Project Controller', () => {
 
       (prisma.project.update as jest.Mock).mockResolvedValue(updatedProject);
 
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .put('/api/projects/project-1')
         .set('Authorization', `Bearer ${token}`)
@@ -112,7 +112,7 @@ describe('Project Controller', () => {
     it('should delete project (admin only)', async () => {
       (prisma.project.delete as jest.Mock).mockResolvedValue({ id: 'project-1' });
 
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .delete('/api/projects/project-1')
         .set('Authorization', `Bearer ${token}`);
@@ -143,7 +143,7 @@ describe('Location Controller', () => {
 
       (prisma.location.findMany as jest.Mock).mockResolvedValue(mockLocations);
 
-      const token = generateTestToken('user-1', 'USER');
+      const token = generateTestToken('user-1', 'test@example.com', 'USER');
       const response = await request(app)
         .get('/api/locations/active')
         .set('Authorization', `Bearer ${token}`);
@@ -172,7 +172,7 @@ describe('Location Controller', () => {
 
       (prisma.location.create as jest.Mock).mockResolvedValue(createdLocation);
 
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .post('/api/locations')
         .set('Authorization', `Bearer ${token}`)
@@ -184,7 +184,7 @@ describe('Location Controller', () => {
     });
 
     it('should return 400 if name is missing', async () => {
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .post('/api/locations')
         .set('Authorization', `Bearer ${token}`)
@@ -200,7 +200,7 @@ describe('Location Controller', () => {
       (prisma.timeEntry.count as jest.Mock).mockResolvedValue(0);
       (prisma.location.delete as jest.Mock).mockResolvedValue({ id: 'location-1' });
 
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .delete('/api/locations/location-1')
         .set('Authorization', `Bearer ${token}`);
@@ -212,7 +212,7 @@ describe('Location Controller', () => {
     it('should return 400 if location has associated time entries', async () => {
       (prisma.timeEntry.count as jest.Mock).mockResolvedValue(5);
 
-      const token = generateTestToken('admin-1', 'ADMIN');
+      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
         .delete('/api/locations/location-1')
         .set('Authorization', `Bearer ${token}`);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/logo.png';
 import { useModules } from '../contexts/ModuleContext';
@@ -64,7 +64,9 @@ const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { hasModuleAccess } = useModules();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<TabType>('users');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') as TabType | null;
+  const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl || 'users');
   const [users, setUsers] = useState<User[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -98,6 +100,66 @@ const AdminDashboard: React.FC = () => {
       return newSet;
     });
   };
+
+  // Funktion zum Wechseln des Tabs mit URL-Update
+  const changeTab = (tab: TabType) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
+
+  // Synchronisiere activeTab mit URL
+  useEffect(() => {
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  // Tab-Namen Mapping für den Titel
+  const getTabTitle = (tab: TabType): string => {
+    const titles: Record<TabType, string> = {
+      users: 'Benutzer',
+      userGroups: 'Benutzergruppen',
+      projects: 'Projekte',
+      locations: 'Standorte',
+      timeEntries: 'Zeiteinträge',
+      absences: 'Abwesenheiten',
+      vacationPlanner: 'Urlaubsplaner',
+      holidays: 'Feiertage',
+      invoices: 'Rechnungen',
+      invoiceTemplates: 'Rechnungsvorlagen',
+      articles: 'Artikel',
+      articleGroups: 'Artikelgruppen',
+      customers: 'Kunden',
+      suppliers: 'Lieferanten',
+      reports: 'Berichte',
+      compliance: 'Compliance',
+      devices: 'Geräte',
+      inventory: 'Inventar',
+      workflows: 'Workflows',
+      settings: 'Einstellungen',
+      travelExpenses: 'Reisespesen',
+      orders: 'Bestellungen',
+      reminders: 'Mahnungen',
+      timeBookings: 'Zeitbuchungen',
+      userTimeBookings: 'Benutzer-Zeitbuchungen',
+      backup: 'Backup',
+      modules: 'Module',
+      modulePermissions: 'Modulberechtigungen',
+      workflowActions: 'Workflow-Aktionen',
+      payroll: 'Lohnabrechnung',
+      costCenters: 'Kostenstellen',
+      projectBudget: 'Projektbudget',
+      projectReports: 'Projektberichte',
+      zeitmodelle: 'Zeitmodelle'
+    };
+    return titles[tab] || tab;
+  };
+
+  // Update Browser-Titel bei Tab-Wechsel
+  useEffect(() => {
+    const tabTitle = getTabTitle(activeTab);
+    document.title = `${tabTitle} - Admin Panel`;
+  }, [activeTab]);
 
   // Sicherheitsprüfung: Nur Admins oder Benutzer mit Modulzugriff
   useEffect(() => {
@@ -289,7 +351,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="admin-dashboard">
       <AppNavbar 
-        title={user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'} 
+        title={`${user?.role === 'ADMIN' ? 'Admin Panel' : 'Verwaltung'} - ${getTabTitle(activeTab)}`} 
         currentTime={currentTime}
         onLogout={handleLogout}
         showLogo={true}
@@ -316,28 +378,28 @@ const AdminDashboard: React.FC = () => {
                   {(user?.role === 'ADMIN' || hasModuleAccess('users')) && (
                     <TabButton
                       active={activeTab === 'users'}
-                      onClick={() => setActiveTab('users')}
+                      onClick={() => changeTab('users')}
                       label="👥 Benutzer"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('user_groups')) && (
                     <TabButton
                       active={activeTab === 'userGroups'}
-                      onClick={() => setActiveTab('userGroups')}
+                      onClick={() => changeTab('userGroups')}
                       label="👨‍👩‍👧‍👦 Gruppen"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('projects')) && (
                     <TabButton
                       active={activeTab === 'projects'}
-                      onClick={() => setActiveTab('projects')}
+                      onClick={() => changeTab('projects')}
                       label="📁 Projekte"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('locations')) && (
                     <TabButton
                       active={activeTab === 'locations'}
-                      onClick={() => setActiveTab('locations')}
+                      onClick={() => changeTab('locations')}
                       label="📍 Standorte"
                     />
                   )}
@@ -362,28 +424,28 @@ const AdminDashboard: React.FC = () => {
                   {(user?.role === 'ADMIN' || hasModuleAccess('time_tracking')) && (
                     <TabButton
                       active={activeTab === 'timeEntries'}
-                      onClick={() => setActiveTab('timeEntries')}
+                      onClick={() => changeTab('timeEntries')}
                       label="⏱️ Zeiteinträge"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('absences')) && (
                     <TabButton
                       active={activeTab === 'absences'}
-                      onClick={() => setActiveTab('absences')}
+                      onClick={() => changeTab('absences')}
                       label="🏖️ Abwesenheiten"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('absences')) && (
                     <TabButton
                       active={activeTab === 'vacationPlanner'}
-                      onClick={() => setActiveTab('vacationPlanner')}
+                      onClick={() => changeTab('vacationPlanner')}
                       label="🗓️ Urlaubsplaner"
                     />
                   )}
                   {user?.role === 'ADMIN' && (
                     <TabButton
                       active={activeTab === 'holidays'}
-                      onClick={() => setActiveTab('holidays')}
+                      onClick={() => changeTab('holidays')}
                       label="🎄 Feiertage"
                     />
                   )}
@@ -408,42 +470,42 @@ const AdminDashboard: React.FC = () => {
                   {(user?.role === 'ADMIN' || hasModuleAccess('invoices')) && (
                     <TabButton
                       active={activeTab === 'invoices'}
-                      onClick={() => setActiveTab('invoices')}
+                      onClick={() => changeTab('invoices')}
                       label="📄 Rechnungen"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('invoices')) && (
                     <TabButton
                       active={activeTab === 'invoiceTemplates'}
-                      onClick={() => setActiveTab('invoiceTemplates')}
+                      onClick={() => changeTab('invoiceTemplates')}
                       label="📋 Vorlagen"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('reminders')) && (
                     <TabButton
                       active={activeTab === 'reminders'}
-                      onClick={() => setActiveTab('reminders')}
+                      onClick={() => changeTab('reminders')}
                       label="💰 Mahnwesen"
                     />
                   )}
                   {user?.role === 'ADMIN' && (
                     <TabButton
                       active={activeTab === 'travelExpenses'}
-                      onClick={() => setActiveTab('travelExpenses')}
+                      onClick={() => changeTab('travelExpenses')}
                       label="✈️ Reisekosten"
                     />
                   )}
                   {user?.role === 'ADMIN' && (
                     <TabButton
                       active={activeTab === 'payroll'}
-                      onClick={() => setActiveTab('payroll')}
+                      onClick={() => changeTab('payroll')}
                       label="💵 Lohnabrechnung"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('zeitmodelle')) && (
                     <TabButton
                       active={activeTab === 'zeitmodelle'}
-                      onClick={() => setActiveTab('zeitmodelle')}
+                      onClick={() => changeTab('zeitmodelle')}
                       label="🕒 Zeitmodelle"
                     />
                   )}
@@ -468,70 +530,70 @@ const AdminDashboard: React.FC = () => {
                   {(user?.role === 'ADMIN' || hasModuleAccess('customers')) && (
                     <TabButton
                       active={activeTab === 'customers'}
-                      onClick={() => setActiveTab('customers')}
+                      onClick={() => changeTab('customers')}
                       label="🤝 Kunden"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('suppliers')) && (
                     <TabButton
                       active={activeTab === 'suppliers'}
-                      onClick={() => setActiveTab('suppliers')}
+                      onClick={() => changeTab('suppliers')}
                       label="🚚 Lieferanten"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('orders')) && (
                     <TabButton
                       active={activeTab === 'orders'}
-                      onClick={() => setActiveTab('orders')}
+                      onClick={() => changeTab('orders')}
                       label="📦 Bestellungen"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (
                     <TabButton
                       active={activeTab === 'articleGroups'}
-                      onClick={() => setActiveTab('articleGroups')}
+                      onClick={() => changeTab('articleGroups')}
                       label="📦 Artikelgruppen"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (
                     <TabButton
                       active={activeTab === 'articles'}
-                      onClick={() => setActiveTab('articles')}
+                      onClick={() => changeTab('articles')}
                       label="🏷️ Artikel"
                     />
                   )}
                   {user?.role === 'ADMIN' && (
                     <TabButton
                       active={activeTab === 'devices'}
-                      onClick={() => setActiveTab('devices')}
+                      onClick={() => changeTab('devices')}
                       label="💻 Geräte"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('cost_centers')) && (
                     <TabButton
                       active={activeTab === 'costCenters'}
-                      onClick={() => setActiveTab('costCenters')}
+                      onClick={() => changeTab('costCenters')}
                       label="💰 Kostenstellen"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('inventory')) && (
                     <TabButton
                       active={activeTab === 'inventory'}
-                      onClick={() => setActiveTab('inventory')}
+                      onClick={() => changeTab('inventory')}
                       label="📦 Lagerbestand"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('project_budget')) && (
                     <TabButton
                       active={activeTab === 'projectBudget'}
-                      onClick={() => setActiveTab('projectBudget')}
+                      onClick={() => changeTab('projectBudget')}
                       label="💼 Projekt-Budget"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('project_reports')) && (
                     <TabButton
                       active={activeTab === 'projectReports'}
-                      onClick={() => setActiveTab('projectReports')}
+                      onClick={() => changeTab('projectReports')}
                       label="📊 Projekt-Reports"
                     />
                   )}
@@ -556,28 +618,28 @@ const AdminDashboard: React.FC = () => {
                   {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
                     <TabButton
                       active={activeTab === 'reports'}
-                      onClick={() => setActiveTab('reports')}
+                      onClick={() => changeTab('reports')}
                       label="📊 Analytics"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
                     <TabButton
                       active={activeTab === 'timeBookings'}
-                      onClick={() => setActiveTab('timeBookings')}
+                      onClick={() => changeTab('timeBookings')}
                       label="📋 Stunden (Alle)"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
                     <TabButton
                       active={activeTab === 'userTimeBookings'}
-                      onClick={() => setActiveTab('userTimeBookings')}
+                      onClick={() => changeTab('userTimeBookings')}
                       label="👤 Stunden (User)"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('compliance')) && (
                     <TabButton
                       active={activeTab === 'compliance'}
-                      onClick={() => setActiveTab('compliance')}
+                      onClick={() => changeTab('compliance')}
                       label="🇨🇭 Compliance"
                     />
                   )}
@@ -602,40 +664,40 @@ const AdminDashboard: React.FC = () => {
                   {(user?.role === 'ADMIN' || hasModuleAccess('workflows')) && (
                     <TabButton
                       active={activeTab === 'workflows'}
-                      onClick={() => setActiveTab('workflows')}
+                      onClick={() => changeTab('workflows')}
                       label="🔄 Workflows"
                     />
                   )}
                   {user?.role === 'ADMIN' && (
                     <TabButton                      active={activeTab === 'workflowActions'}
-                      onClick={() => setActiveTab('workflowActions')}
+                      onClick={() => changeTab('workflowActions')}
                       label="⚡ Workflow Actions"
                     />
                   )}
                   {user?.role === 'ADMIN' && (
                     <TabButton                      active={activeTab === 'modules'}
-                      onClick={() => setActiveTab('modules')}
+                      onClick={() => changeTab('modules')}
                       label="🧩 Module"
                     />
                   )}
                   {user?.role === 'ADMIN' && (
                     <TabButton
                       active={activeTab === 'modulePermissions'}
-                      onClick={() => setActiveTab('modulePermissions')}
+                      onClick={() => changeTab('modulePermissions')}
                       label="🔐 Berechtigungen"
                     />
                   )}
                   {user?.role === 'ADMIN' && (
                     <TabButton
                       active={activeTab === 'settings'}
-                      onClick={() => setActiveTab('settings')}
+                      onClick={() => changeTab('settings')}
                       label="⚙️ Einstellungen"
                     />
                   )}
                   {user?.role === 'ADMIN' && (
                     <TabButton
                       active={activeTab === 'backup'}
-                      onClick={() => setActiveTab('backup')}
+                      onClick={() => changeTab('backup')}
                       label="💾 Backup"
                     />
                   )}

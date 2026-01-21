@@ -13,6 +13,7 @@ interface InvoicesTabProps {
 const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles, onUpdate }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [initialDocumentType, setInitialDocumentType] = useState<'INVOICE' | 'QUOTE'>('INVOICE');
   const [showPreview, setShowPreview] = useState(false);
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,6 +67,7 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
             className="btn btn-primary"
             onClick={() => {
               setEditingInvoice(null);
+              setInitialDocumentType('INVOICE');
               setShowModal(true);
             }}
           >
@@ -74,7 +76,8 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
           <button
             className="btn btn-secondary"
             onClick={() => {
-              setEditingInvoice({ documentType: 'QUOTE' } as Invoice);
+              setEditingInvoice(null);
+              setInitialDocumentType('QUOTE');
               setShowModal(true);
             }}
           >
@@ -281,6 +284,7 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
       {showModal && (
         <InvoiceModal
           invoice={editingInvoice}
+          initialDocumentType={initialDocumentType}
           customers={customers}
           articles={articles}
           onClose={() => {
@@ -305,13 +309,14 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
 
 const InvoiceModal: React.FC<{
   invoice: Invoice | null;
+  initialDocumentType?: 'INVOICE' | 'QUOTE';
   customers: Customer[];
   articles: Article[];
   onClose: () => void;
   onSave: (data: any) => Promise<void>;
-}> = ({ invoice, customers, articles, onClose, onSave }) => {
+}> = ({ invoice, initialDocumentType = 'INVOICE', customers, articles, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    documentType: invoice?.documentType || 'INVOICE',
+    documentType: invoice?.documentType || initialDocumentType,
     invoiceNumber: invoice?.invoiceNumber || '',
     invoiceDate: invoice?.invoiceDate ? invoice.invoiceDate.split('T')[0] : new Date().toISOString().split('T')[0],
     dueDate: invoice?.dueDate ? invoice.dueDate.split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],

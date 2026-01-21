@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">9.83% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/122</span>
+                <span class='fraction'>12/122</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">1.53% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/65</span>
+                <span class='fraction'>1/65</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">5.55% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/18</span>
+                <span class='fraction'>1/18</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">10.43% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/115</span>
+                <span class='fraction'>12/115</span>
             </div>
         
             
@@ -799,10 +799,10 @@
 <a name='L734'></a><a href='#L734'>734</a>
 <a name='L735'></a><a href='#L735'>735</a>
 <a name='L736'></a><a href='#L736'>736</a>
-<a name='L737'></a><a href='#L737'>737</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<a name='L737'></a><a href='#L737'>737</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -830,7 +830,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1072,14 +1072,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1173,12 +1173,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1535,10 +1535,10 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { PrismaClient, ActionCategory, ActionTriggerTiming } from '@prisma/client';</span>
-<span class="cstat-no" title="statement not covered" >import { workflowService } from './workflow.service';</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { PrismaClient, ActionCategory, ActionTriggerTiming } from '@prisma/client';
+import { workflowService } from './workflow.service';
 &nbsp;
-const prisma = <span class="cstat-no" title="statement not covered" >new PrismaClient();</span>
+const prisma = new PrismaClient();
 &nbsp;
 interface SystemActionData {
   actionKey: string;
@@ -1566,7 +1566,7 @@ interface ActionContext {
   [key: string]: any; // Allow any additional fields for action-specific context
 }
 &nbsp;
-export const <span class="cstat-no" title="statement not covered" >actionService = {</span>
+export const actionService = {
   // ========== SYSTEM ACTIONS ==========
   
   /**
@@ -1803,19 +1803,19 @@ export const <span class="cstat-no" title="statement not covered" >actionService
    * @param timing - Wann wird getriggert (BEFORE, AFTER, INSTEAD)
    * @returns Array von gestarteten Workflow-Instanzen
    */
-<span class="fstat-no" title="function not covered" >  async </span>triggerAction(
+  async triggerAction(
     actionKey: string,
     context: ActionContext,
-    timing: ActionTriggerTiming = <span class="branch-0 cbranch-no" title="branch not covered" >'AFTER'</span>
+    timing: ActionTriggerTiming = 'AFTER'
   ) {
-    const startTime = <span class="cstat-no" title="statement not covered" >Date.now();</span>
-    const triggeredWorkflows: string[] = <span class="cstat-no" title="statement not covered" >[];</span>
+    const startTime = Date.now();
+    const triggeredWorkflows: string[] = [];
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    try {</span>
-<span class="cstat-no" title="statement not covered" >      console.log(`[ActionService] Triggering action: ${actionKey} (timing: ${timing})`);</span>
+    try {
+      console.log(`[ActionService] Triggering action: ${actionKey} (timing: ${timing})`);
 &nbsp;
       // Prüfen ob Action existiert
-      const action = <span class="cstat-no" title="statement not covered" >await prisma.systemAction.findUnique({</span>
+      const action = await prisma.systemAction.findUnique({
         where: { actionKey },
       });
 &nbsp;
@@ -1909,12 +1909,12 @@ export const <span class="cstat-no" title="statement not covered" >actionService
         executionTime,
       };
     } catch (error: any) {
-      const executionTime = <span class="cstat-no" title="statement not covered" >Date.now() - startTime;</span>
+      const executionTime = Date.now() - startTime;
 &nbsp;
-<span class="cstat-no" title="statement not covered" >      console.error(`[ActionService] Error triggering action ${actionKey}:`, error);</span>
+      console.error(`[ActionService] Error triggering action ${actionKey}:`, error);
 &nbsp;
       // Fehler loggen
-<span class="cstat-no" title="statement not covered" >      await prisma.actionLog.create({</span>
+      await prisma.actionLog.create({
         data: {
           actionKey,
           userId: context.userId,
@@ -2278,7 +2278,7 @@ export const <span class="cstat-no" title="statement not covered" >actionService
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-20T17:22:11.965Z
+                at 2026-01-20T21:48:07.359Z
             </div>
         <script src="../prettify.js"></script>
         <script>

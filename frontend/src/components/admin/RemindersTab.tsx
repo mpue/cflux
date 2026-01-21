@@ -23,9 +23,11 @@ export const RemindersTab: React.FC<RemindersTabProps> = ({
   stats,
   onUpdate
 }) => {
-  const [view, setView] = useState<'overview' | 'reminders' | 'overdue'>('overview');
+  const [view, setView] = useState<'overview' | 'reminders' | 'overdue' | 'settings'>('overview');
   const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState<any>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-CH', {
@@ -170,9 +172,38 @@ export const RemindersTab: React.FC<RemindersTabProps> = ({
     }
   };
 
+  const loadSettings = async () => {
+    try {
+      const data = await reminderService.getReminderSettings();
+      setSettings(data);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      alert('Fehler beim Laden der Einstellungen');
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    if (!settings) return;
+    
+    try {
+      setSavingSettings(true);
+      await reminderService.updateReminderSettings(settings.id, settings);
+      alert('Einstellungen erfolgreich gespeichert');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      alert('Fehler beim Speichern der Einstellungen');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleSettingsChange = (field: string, value: any) => {
+    setSettings({ ...settings, [field]: value });
+  };
+
   return (
     <div>
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <button
           className={`btn ${view === 'overview' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => setView('overview')}
@@ -190,6 +221,15 @@ export const RemindersTab: React.FC<RemindersTabProps> = ({
           onClick={() => setView('overdue')}
         >
           Überfällige Rechnungen ({overdueInvoices.length})
+        </button>
+        <button
+          className={`btn ${view === 'settings' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => {
+            setView('settings');
+            if (!settings) loadSettings();
+          }}
+        >
+          ⚙️ Einstellungen
         </button>
       </div>
 
@@ -427,6 +467,209 @@ export const RemindersTab: React.FC<RemindersTabProps> = ({
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {view === 'settings' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ margin: 0 }}>Mahneinstellungen</h2>
+            <button
+              className="btn btn-primary"
+              onClick={handleSaveSettings}
+              disabled={savingSettings || !settings}
+            >
+              {savingSettings ? 'Speichern...' : '💾 Speichern'}
+            </button>
+          </div>
+
+          {!settings ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
+              Lade Einstellungen...
+            </div>
+          ) : (
+            <div style={{ maxWidth: '800px' }}>
+              <div style={{ background: '#f7fafc', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
+                <h3 style={{ marginTop: 0 }}>Mahnfristen (Tage nach Fälligkeit)</h3>
+                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '15px' }}>
+                  Definiert, nach wie vielen Tagen Überfälligkeit eine Mahnung versendet werden soll.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>1. Mahnung</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={settings.firstReminderDays}
+                      onChange={(e) => handleSettingsChange('firstReminderDays', parseInt(e.target.value))}
+                      min="1"
+                    />
+                    <small style={{ color: '#6b7280' }}>Tage</small>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>2. Mahnung</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={settings.secondReminderDays}
+                      onChange={(e) => handleSettingsChange('secondReminderDays', parseInt(e.target.value))}
+                      min="1"
+                    />
+                    <small style={{ color: '#6b7280' }}>Tage</small>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>3. Mahnung</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={settings.finalReminderDays}
+                      onChange={(e) => handleSettingsChange('finalReminderDays', parseInt(e.target.value))}
+                      min="1"
+                    />
+                    <small style={{ color: '#6b7280' }}>Tage</small>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: '#f7fafc', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
+                <h3 style={{ marginTop: 0 }}>Mahngebühren (CHF)</h3>
+                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '15px' }}>
+                  Gebühren, die zusätzlich zum Rechnungsbetrag berechnet werden.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>1. Mahnung</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={settings.firstReminderFee}
+                      onChange={(e) => handleSettingsChange('firstReminderFee', parseFloat(e.target.value))}
+                      min="0"
+                      step="0.50"
+                    />
+                    <small style={{ color: '#6b7280' }}>CHF</small>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>2. Mahnung</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={settings.secondReminderFee}
+                      onChange={(e) => handleSettingsChange('secondReminderFee', parseFloat(e.target.value))}
+                      min="0"
+                      step="0.50"
+                    />
+                    <small style={{ color: '#6b7280' }}>CHF</small>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>3. Mahnung</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={settings.finalReminderFee}
+                      onChange={(e) => handleSettingsChange('finalReminderFee', parseFloat(e.target.value))}
+                      min="0"
+                      step="0.50"
+                    />
+                    <small style={{ color: '#6b7280' }}>CHF</small>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: '#f7fafc', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
+                <h3 style={{ marginTop: 0 }}>Zahlungsfristen ab Mahndatum (Tage)</h3>
+                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '15px' }}>
+                  Frist, innerhalb der nach Mahnungserhalt gezahlt werden muss.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>1. Mahnung</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={settings.firstReminderPaymentDays}
+                      onChange={(e) => handleSettingsChange('firstReminderPaymentDays', parseInt(e.target.value))}
+                      min="1"
+                    />
+                    <small style={{ color: '#6b7280' }}>Tage</small>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>2. Mahnung</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={settings.secondReminderPaymentDays}
+                      onChange={(e) => handleSettingsChange('secondReminderPaymentDays', parseInt(e.target.value))}
+                      min="1"
+                    />
+                    <small style={{ color: '#6b7280' }}>Tage</small>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>3. Mahnung</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={settings.finalReminderPaymentDays}
+                      onChange={(e) => handleSettingsChange('finalReminderPaymentDays', parseInt(e.target.value))}
+                      min="1"
+                    />
+                    <small style={{ color: '#6b7280' }}>Tage</small>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: '#f7fafc', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
+                <h3 style={{ marginTop: 0 }}>Verzugszins</h3>
+                <div style={{ maxWidth: '300px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Zinssatz pro Jahr</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={settings.defaultInterestRate}
+                    onChange={(e) => handleSettingsChange('defaultInterestRate', parseFloat(e.target.value))}
+                    min="0"
+                    max="20"
+                    step="0.1"
+                  />
+                  <small style={{ color: '#6b7280' }}>% (z.B. 5.0 für 5%)</small>
+                </div>
+              </div>
+
+              <div style={{ background: '#f7fafc', padding: '20px', borderRadius: '8px' }}>
+                <h3 style={{ marginTop: 0 }}>Automatisierung</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={settings.autoSendReminders}
+                      onChange={(e) => handleSettingsChange('autoSendReminders', e.target.checked)}
+                      style={{ marginRight: '10px' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: '500' }}>Mahnungen automatisch versenden</div>
+                      <small style={{ color: '#6b7280' }}>Mahnungen werden automatisch per E-Mail versendet</small>
+                    </div>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={settings.autoEscalate}
+                      onChange={(e) => handleSettingsChange('autoEscalate', e.target.checked)}
+                      style={{ marginRight: '10px' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: '500' }}>Automatisch eskalieren</div>
+                      <small style={{ color: '#6b7280' }}>Nächste Mahnstufe wird automatisch erstellt</small>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ marginTop: '20px', padding: '15px', background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: '6px' }}>
+                <strong>💡 Hinweis:</strong> Die Einstellungen gelten für alle zukünftigen Mahnungen. Bereits erstellte Mahnungen werden nicht rückwirkend angepasst.
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
