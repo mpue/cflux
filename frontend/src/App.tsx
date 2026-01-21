@@ -28,6 +28,7 @@ import { MediaPageWrapper } from './pages/MediaPageWrapper';
 import OrdersPage from './pages/OrdersPage';
 import CostCentersPage from './pages/CostCentersPage';
 import ZeitmodelleVerwaltung from './pages/ZeitmodelleVerwaltung';
+import ProjectPlanningPage from './pages/ProjectPlanningPage';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
@@ -242,6 +243,14 @@ function App() {
               element={
                 <PrivateRoute adminOnly allowModuleAccess>
                   <ZeitmodelleVerwaltung />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/project-planning"
+              element={
+                <PrivateRoute adminOnly allowModuleAccess>
+                  <ProjectPlanningPage />
                 </PrivateRoute>
               }
             />

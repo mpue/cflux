@@ -12,6 +12,15 @@ export interface DocumentNode {
   deletedAt: string | null;
   createdById: string;
   updatedById: string;
+  approvalStatus: 'DRAFT' | 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'PUBLISHED' | 'ARCHIVED';
+  workflowInstanceId?: string | null;
+  submittedForApprovalAt?: string | null;
+  approvedAt?: string | null;
+  approvedById?: string | null;
+  rejectedAt?: string | null;
+  rejectedById?: string | null;
+  rejectionReason?: string | null;
+  publishedAt?: string | null;
   createdBy: {
     id: string;
     firstName: string;
@@ -23,6 +32,23 @@ export interface DocumentNode {
     firstName: string;
     lastName: string;
     email: string;
+  };
+  approvedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  rejectedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  userPermissions?: {
+    canRead: boolean;
+    canWrite: boolean;
+    canAdmin: boolean;
   };
   children?: DocumentNode[];
 }

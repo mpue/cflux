@@ -156,6 +156,9 @@ model User {
   receivedMessages Message[] @relation("ReceivedMessages")
   createdDocumentNodes DocumentNode[] @relation("DocumentNodeCreator")
   updatedDocumentNodes DocumentNode[] @relation("DocumentNodeUpdater")
+  assignedApprovalDocumentNodes DocumentNode[] @relation("DocumentNodeAssignedApprover")
+  approvedDocumentNodes DocumentNode[] @relation("DocumentNodeApprover")
+  rejectedDocumentNodes DocumentNode[] @relation("DocumentNodeRejecter")
   documentVersions DocumentVersion[] @relation("DocumentVersionCreator")
   uploadedMedia   Media[] @relation("MediaUploadedBy")
   createdAttachments DocumentNodeAttachment[] @relation("AttachmentCreator")
@@ -1459,6 +1462,15 @@ enum DocumentNodeType {
   LINK
 }
 
+enum DocumentApprovalStatus {
+  DRAFT           // Entwurf
+  PENDING_REVIEW  // Wartet auf Freigabe
+  APPROVED        // Freigegeben
+  REJECTED        // Abgelehnt
+  PUBLISHED       // Veröffentlicht
+  ARCHIVED        // Archiviert
+}
+
 // Intranet Document Tree Models
 model DocumentNode {
   id            String              @id @default(uuid())
@@ -1474,6 +1486,19 @@ model DocumentNode {
   isActive      Boolean             @default(true)
   tags          Json?
   metadata      Json?
+  
+  // Freigabe-Workflow
+  approvalStatus DocumentApprovalStatus @default(DRAFT)
+  workflowInstanceId String?          // Aktive Workflow-Instanz
+  assignedApproverId String?          // Wem zur Freigabe zugewiesen
+  submittedForApprovalAt DateTime?    // Wann zur Freigabe eingereicht
+  approvedAt    DateTime?             // Wann freigegeben
+  approvedById  String?               // Wer freigegeben hat
+  rejectedAt    DateTime?             // Wann abgelehnt
+  rejectedById  String?               // Wer abgelehnt hat
+  rejectionReason String?             // Grund für Ablehnung
+  publishedAt   DateTime?             // Wann veröffentlicht
+  
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
   deletedAt     DateTime?
@@ -1484,6 +1509,9 @@ model DocumentNode {
   children          DocumentNode[]            @relation("DocumentNodeTree")
   createdBy         User                      @relation("DocumentNodeCreator", fields: [createdById], references: [id])
   updatedBy         User                      @relation("DocumentNodeUpdater", fields: [updatedById], references: [id])
+  assignedApprover  User?                     @relation("DocumentNodeAssignedApprover", fields: [assignedApproverId], references: [id])
+  approvedBy        User?                     @relation("DocumentNodeApprover", fields: [approvedById], references: [id])
+  rejectedBy        User?                     @relation("DocumentNodeRejecter", fields: [rejectedById], references: [id])
   versions          DocumentVersion[]
   nodeType          DocumentNodeTypeRegistry? @relation(fields: [nodeTypeKey], references: [typeKey])
   groupPermissions  DocumentNodeGroupPermission[]
@@ -1494,6 +1522,11 @@ model DocumentNode {
   @@index([order])
   @@index([nodeTypeKey])
   @@index([slug])
+  @@index([approvalStatus])
+  @@index([workflowInstanceId])
+  @@index([assignedApproverId])
+  @@index([approvedById])
+  @@index([rejectedById])
   @@map("document_nodes")
 }
 

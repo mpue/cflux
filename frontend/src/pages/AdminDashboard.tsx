@@ -50,6 +50,7 @@ import CostCentersTab from '../components/tabs/CostCentersTab';
 import InventoryTab from '../components/tabs/InventoryTab';
 import ProjectBudgetTab from '../components/tabs/ProjectBudgetTab';
 import ProjectReportsTab from '../components/tabs/ProjectReportsTab';
+import ProjectPlanningTab from '../components/tabs/ProjectPlanningTab';
 import SystemSettingsTab from '../components/admin/SystemSettingsTab';
 import ModulesPage from './ModulesPage';
 import ModulePermissionsPage from './ModulePermissionsPage';
@@ -58,7 +59,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'zeitmodelle';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -150,6 +151,7 @@ const AdminDashboard: React.FC = () => {
       costCenters: 'Kostenstellen',
       projectBudget: 'Projektbudget',
       projectReports: 'Projektberichte',
+      projectPlanning: 'Projektplanung',
       zeitmodelle: 'Zeitmodelle'
     };
     return titles[tab] || tab;
@@ -389,13 +391,6 @@ const AdminDashboard: React.FC = () => {
                       label="👨‍👩‍👧‍👦 Gruppen"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('projects')) && (
-                    <TabButton
-                      active={activeTab === 'projects'}
-                      onClick={() => changeTab('projects')}
-                      label="📁 Projekte"
-                    />
-                  )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('locations')) && (
                     <TabButton
                       active={activeTab === 'locations'}
@@ -583,6 +578,31 @@ const AdminDashboard: React.FC = () => {
                       label="📦 Lagerbestand"
                     />
                   )}
+                </>
+              )}
+            </div>
+
+            {/* Projektmanagement */}
+            <div className="tab-group">
+              <div 
+                className="tab-group-label" 
+                onClick={() => toggleGroup('projects')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+              >
+                <span style={{ marginRight: '6px' }}>
+                  {collapsedGroups.has('projects') ? '▶' : '▼'}
+                </span>
+                Projektmanagement
+              </div>
+              {!collapsedGroups.has('projects') && (
+                <>
+                  {(user?.role === 'ADMIN' || hasModuleAccess('projects')) && (
+                    <TabButton
+                      active={activeTab === 'projects'}
+                      onClick={() => changeTab('projects')}
+                      label="📁 Projekte"
+                    />
+                  )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('project_budget')) && (
                     <TabButton
                       active={activeTab === 'projectBudget'}
@@ -595,6 +615,13 @@ const AdminDashboard: React.FC = () => {
                       active={activeTab === 'projectReports'}
                       onClick={() => changeTab('projectReports')}
                       label="📊 Projekt-Reports"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('project_planning')) && (
+                    <TabButton
+                      active={activeTab === 'projectPlanning'}
+                      onClick={() => changeTab('projectPlanning')}
+                      label="📅 Projektplanung"
                     />
                   )}
                 </>
@@ -717,6 +744,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'inventory' && <InventoryTab onUpdate={loadData} />}
             {activeTab === 'projectBudget' && <ProjectBudgetTab />}
             {activeTab === 'projectReports' && <ProjectReportsTab />}
+            {activeTab === 'projectPlanning' && <ProjectPlanningTab onUpdate={loadData} />}
             {activeTab === 'customers' && <CustomersTab customers={customers} onUpdate={loadData} />}
             {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} onUpdate={loadData} />}
             {activeTab === 'orders' && <OrdersTab suppliers={suppliers} onUpdate={loadData} />}

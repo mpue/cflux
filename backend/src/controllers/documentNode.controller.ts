@@ -101,6 +101,22 @@ export const getDocumentTree = async (req: AuthRequest, res: Response) => {
             lastName: true,
             email: true
           }
+        },
+        approvedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        rejectedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
         }
       },
       orderBy: { order: 'asc' }
@@ -171,6 +187,22 @@ export const getDocumentNodeById = async (req: AuthRequest, res: Response) => {
             lastName: true,
             email: true
           }
+        },
+        approvedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        rejectedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
         }
       }
     });
@@ -179,7 +211,18 @@ export const getDocumentNodeById = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Document not found' });
     }
 
-    res.json(node);
+    // Get user's permission level for this node
+    const hasWriteAccess = await hasNodeAccess(userId, id, 'WRITE');
+    const hasAdminAccess = await hasNodeAccess(userId, id, 'ADMIN');
+
+    res.json({
+      ...node,
+      userPermissions: {
+        canRead: true, // Already checked above
+        canWrite: hasWriteAccess,
+        canAdmin: hasAdminAccess
+      }
+    });
   } catch (error) {
     console.error('Get document node error:', error);
     res.status(500).json({ error: 'Failed to get document node' });
@@ -318,7 +361,8 @@ export const createDocumentNode = async (req: AuthRequest, res: Response) => {
         content: content || '',
         order: nodeOrder,
         createdById: userId,
-        updatedById: userId
+        updatedById: userId,
+        approvalStatus: 'DRAFT' // All new documents start as DRAFT
       },
       include: {
         createdBy: {
@@ -902,5 +946,481 @@ export const setGroupPermissions = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Set group permissions error:', error);
     res.status(500).json({ error: 'Failed to set group permissions' });
+  }
+};
+
+/**
+ * Submit a document for approval
+ */
+export const submitDocumentForApproval = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { approverUserId } = req.body;
+    const userId = req.user!.id;
+
+    if (!approverUserId) {
+      return res.status(400).json({ error: 'Genehmiger muss ausgewählt werden' });
+    }
+
+    // Check if user has write permission on the document
+    const hasAccess = await hasNodeAccess(userId, id, 'WRITE');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to submit this document' });
+    }
+
+    // Get the document
+    const document = await prisma.documentNode.findUnique({
+      where: { id }
+    });
+
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    if (document.approvalStatus !== 'DRAFT') {
+      return res.status(400).json({ error: 'Only draft documents can be submitted for approval' });
+    }
+
+    // Verify approver exists and has admin rights
+    const approver = await prisma.user.findUnique({
+      where: { id: approverUserId }
+    });
+
+    if (!approver || !approver.isActive) {
+      return res.status(400).json({ error: 'Invalid approver user' })  }
+
+    // Update document status
+    const updatedDocument = await prisma.documentNode.update({
+      where: { id },
+      data: {
+        approvalStatus: 'PENDING_REVIEW',
+        submittedForApprovalAt: new Date(),
+        assignedApproverId: approverUserId
+      },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        approvedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        rejectedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    // Trigger workflow action
+    await actionService.triggerAction('intranet.document.submitted', {
+      documentId: document.id,
+      documentTitle: document.title,
+      documentType: document.type,
+      submittedBy: userId,
+      submittedAt: new Date().toISOString()
+    });
+
+    res.json(updatedDocument);
+  } catch (error) {
+    console.error('Submit document for approval error:', error);
+    res.status(500).json({ error: 'Failed to submit document for approval' });
+  }
+};
+
+/**
+ * Approve a document
+ */
+export const approveDocument = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    // Check if user has admin permission on the document
+    const hasAccess = await hasNodeAccess(userId, id, 'ADMIN');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to approve this document' });
+    }
+
+    // Get the document
+    const document = await prisma.documentNode.findUnique({
+      where: { id }
+    });
+
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    if (document.approvalStatus !== 'PENDING_REVIEW') {
+      return res.status(400).json({ error: 'Only documents pending review can be approved' });
+    }
+
+    // Update document status
+    const updatedDocument = await prisma.documentNode.update({
+      where: { id },
+      data: {
+        approvalStatus: 'APPROVED',
+        approvedAt: new Date(),
+        approvedById: userId,
+        rejectedAt: null,
+        rejectedById: null,
+        rejectionReason: null
+      },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        approvedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        rejectedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    // Trigger workflow action
+    await actionService.triggerAction('intranet.document.approved', {
+      documentId: document.id,
+      documentTitle: document.title,
+      documentType: document.type,
+      approvedBy: userId,
+      approvedAt: new Date().toISOString()
+    });
+
+    res.json(updatedDocument);
+  } catch (error) {
+    console.error('Approve document error:', error);
+    res.status(500).json({ error: 'Failed to approve document' });
+  }
+};
+
+/**
+ * Reject a document
+ */
+export const rejectDocument = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const userId = req.user!.id;
+
+    if (!reason) {
+      return res.status(400).json({ error: 'Rejection reason is required' });
+    }
+
+    // Check if user has admin permission on the document
+    const hasAccess = await hasNodeAccess(userId, id, 'ADMIN');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to reject this document' });
+    }
+
+    // Get the document
+    const document = await prisma.documentNode.findUnique({
+      where: { id }
+    });
+
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    if (document.approvalStatus !== 'PENDING_REVIEW') {
+      return res.status(400).json({ error: 'Only documents pending review can be rejected' });
+    }
+
+    // Update document status
+    const updatedDocument = await prisma.documentNode.update({
+      where: { id },
+      data: {
+        approvalStatus: 'REJECTED',
+        rejectedAt: new Date(),
+        rejectedById: userId,
+        rejectionReason: reason,
+        approvedAt: null,
+        approvedById: null
+      },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        approvedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        rejectedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    // Trigger workflow action
+    await actionService.triggerAction('intranet.document.rejected', {
+      documentId: document.id,
+      documentTitle: document.title,
+      documentType: document.type,
+      rejectedBy: userId,
+      rejectedAt: new Date().toISOString(),
+      rejectionReason: reason
+    });
+
+    res.json(updatedDocument);
+  } catch (error) {
+    console.error('Reject document error:', error);
+    res.status(500).json({ error: 'Failed to reject document' });
+  }
+};
+
+/**
+ * Publish a document
+ */
+export const publishDocument = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    // Check if user has admin permission on the document
+    const hasAccess = await hasNodeAccess(userId, id, 'ADMIN');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to publish this document' });
+    }
+
+    // Get the document
+    const document = await prisma.documentNode.findUnique({
+      where: { id }
+    });
+
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    if (document.approvalStatus !== 'APPROVED') {
+      return res.status(400).json({ error: 'Only approved documents can be published' });
+    }
+
+    // Update document status
+    const updatedDocument = await prisma.documentNode.update({
+      where: { id },
+      data: {
+        approvalStatus: 'PUBLISHED',
+        publishedAt: new Date()
+      },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        approvedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        rejectedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    // Trigger workflow action
+    await actionService.triggerAction('intranet.document.published', {
+      documentId: document.id,
+      documentTitle: document.title,
+      documentType: document.type,
+      publishedAt: new Date().toISOString()
+    });
+
+    res.json(updatedDocument);
+  } catch (error) {
+    console.error('Publish document error:', error);
+    res.status(500).json({ error: 'Failed to publish document' });
+  }
+};
+
+/**
+ * Return a document to draft status
+ */
+export const returnDocumentToDraft = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    // Check if user has write permission on the document
+    const hasAccess = await hasNodeAccess(userId, id, 'WRITE');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to modify this document' });
+    }
+
+    // Get the document
+    const document = await prisma.documentNode.findUnique({
+      where: { id }
+    });
+
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    if (document.approvalStatus !== 'REJECTED' && document.approvalStatus !== 'PENDING_REVIEW') {
+      return res.status(400).json({ error: 'Only rejected or pending documents can be returned to draft' });
+    }
+
+    // Update document status
+    const updatedDocument = await prisma.documentNode.update({
+      where: { id },
+      data: {
+        approvalStatus: 'DRAFT',
+        submittedForApprovalAt: null,
+        approvedAt: null,
+        approvedById: null,
+        rejectedAt: null,
+        rejectedById: null,
+        rejectionReason: null,
+        publishedAt: null
+      },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        approvedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        rejectedBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    res.json(updatedDocument);
+  } catch (error) {
+    console.error('Return document to draft error:', error);
+    res.status(500).json({ error: 'Failed to return document to draft' });
+  }
+};
+
+/**
+ * Get pending approval documents (for current user as approver)
+ */
+export const getPendingApprovals = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+
+    // Get documents assigned to this user for approval
+    const documents = await prisma.documentNode.findMany({
+      where: {
+        approvalStatus: 'PENDING_REVIEW',
+        assignedApproverId: userId,
+        deletedAt: null
+      },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        assignedApprover: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      },
+      orderBy: {
+        submittedForApprovalAt: 'asc'
+      }
+    });
+
+    // Format response similar to workflow instances
+    const formattedDocuments = documents.map(doc => ({
+      document: {
+        id: doc.id,
+        title: doc.title,
+        type: doc.type,
+        approvalStatus: doc.approvalStatus,
+        createdBy: doc.createdBy
+      },
+      workflowInstance: {
+        id: doc.workflowInstanceId || doc.id,
+        createdAt: doc.submittedForApprovalAt || doc.createdAt
+      },
+      assignedStep: {
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days default
+      }
+    }));
+
+    res.json(formattedDocuments);
+  } catch (error) {
+    console.error('Get pending approvals error:', error);
+    res.status(500).json({ error: 'Failed to get pending approvals' });
   }
 };

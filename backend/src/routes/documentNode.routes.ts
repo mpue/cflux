@@ -54,6 +54,7 @@ router.use(authenticate);
 // Search routes (must be before :id routes)
 router.get('/search', documentNodeSearchController.searchIntranet);
 router.get('/search/suggestions', documentNodeSearchController.getSearchSuggestions);
+router.get('/pending-approvals', documentNodeController.getPendingApprovals);
 
 // Public routes (all authenticated users can read)
 router.get('/tree', documentNodeController.getDocumentTree);
@@ -78,6 +79,13 @@ router.post('/:id/restore/:versionId', documentNodeController.restoreVersion);
 // Group permissions
 router.get('/:id/permissions', documentNodeController.getGroupPermissions);
 router.put('/:id/permissions', documentNodeController.setGroupPermissions);
+
+// Approval workflow routes
+router.post('/:id/submit', documentNodeController.submitDocumentForApproval);
+router.post('/:id/approve', documentNodeController.approveDocument);
+router.post('/:id/reject', documentNodeController.rejectDocument);
+router.post('/:id/publish', documentNodeController.publishDocument);
+router.post('/:id/return-to-draft', documentNodeController.returnDocumentToDraft);
 
 // Attachment routes
 router.get('/:nodeId/attachments', documentNodeAttachmentController.getNodeAttachments);

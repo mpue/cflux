@@ -26,6 +26,9 @@ import {
   CardMedia,
   CardContent,
   CardActions,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import {
   AttachFile as AttachFileIcon,
@@ -38,6 +41,7 @@ import {
   Info as InfoIcon,
   Image as ImageIcon,
   Visibility as VisibilityIcon,
+  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import documentNodeAttachmentService, {
   DocumentNodeAttachment,
@@ -90,6 +94,9 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
   // Image viewer
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
+
+  // Accordion expanded state
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     loadAttachments();
@@ -303,21 +310,25 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
   }
 
   return (
-    <Box sx={{ mt: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AttachFileIcon /> Anhänge ({attachments.length})
+    <Accordion expanded={expanded} onChange={(e, isExpanded) => setExpanded(isExpanded)}>
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Typography sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AttachFileIcon /> <strong>Anhänge ({attachments.length})</strong>
         </Typography>
-        {canEdit && (
-          <Button
-            variant="contained"
-            startIcon={<UploadIcon />}
-            onClick={handleUploadClick}
-          >
-            Anhang hinzufügen
-          </Button>
-        )}
-      </Box>
+      </AccordionSummary>
+      <AccordionDetails>
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            {canEdit && (
+              <Button
+                variant="contained"
+                startIcon={<UploadIcon />}
+                onClick={handleUploadClick}
+              >
+                Anhang hinzufügen
+              </Button>
+            )}
+          </Box>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
@@ -684,7 +695,9 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
           <Button onClick={() => setVersionDialogOpen(false)}>Schließen</Button>
         </DialogActions>
       </Dialog>
-    </Box>
+        </Box>
+      </AccordionDetails>
+    </Accordion>
   );
 };
 

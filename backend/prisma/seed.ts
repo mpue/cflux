@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import * as dotenv from 'dotenv';
 const seedModulesModule = require('./seedModules');
 const seedZeitmodelleModule = require('./seedZeitmodelle');
+const seedIntranetActionsModule = require('./seedIntranetActions');
 import { actionService } from '../src/services/action.service';
 
 // Load environment variables from .env file
@@ -50,6 +51,13 @@ async function main() {
   } catch (error) {
     console.error('❌ Error seeding system actions:', error);
     // Continue with seeding even if actions fail
+  }
+
+  // 0.6 Intranet Actions seeden
+  if (typeof seedIntranetActionsModule.seedIntranetActions === 'function') {
+    await seedIntranetActionsModule.seedIntranetActions();
+  } else {
+    console.log('⚠️ seedIntranetActions not available, skipping Intranet actions seeding');
   }
 
   // 1. Admin User (falls noch nicht vorhanden)

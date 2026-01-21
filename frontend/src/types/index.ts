@@ -67,6 +67,9 @@ export interface Project {
   isActive: boolean;
   status?: ProjectStatus;
   defaultHourlyRate?: number;
+  startDate?: string;
+  endDate?: string;
+  progress?: number;
   createdAt: string;
   updatedAt: string;
   customer?: Customer;

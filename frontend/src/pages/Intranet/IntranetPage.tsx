@@ -42,6 +42,7 @@ import DocumentVersionHistory from './DocumentVersionHistory';
 import GroupPermissionsDialog from './GroupPermissionsDialog';
 import DocumentNodeAttachments from '../../components/DocumentNodeAttachments';
 import IntranetSearch from '../../components/IntranetSearch';
+import DocumentApprovalPanel from '../../components/intranet/DocumentApprovalPanel';
 
 interface IntranetPageProps { }
 
@@ -559,6 +560,29 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
                       onSave={handleDocumentSave}
                       canEdit={canEditIntranet}
                     />
+                    
+                    {/* Approval Panel */}
+                    <Box sx={{ mt: 2, mb: 2 }}>
+                      <DocumentApprovalPanel
+                        documentId={currentNode.id}
+                        currentStatus={currentNode.approvalStatus || 'DRAFT'}
+                        submittedAt={currentNode.submittedForApprovalAt}
+                        approvedAt={currentNode.approvedAt}
+                        approvedBy={currentNode.approvedBy}
+                        rejectedAt={currentNode.rejectedAt}
+                        rejectedBy={currentNode.rejectedBy}
+                        rejectionReason={currentNode.rejectionReason}
+                        publishedAt={currentNode.publishedAt}
+                        onStatusChange={async () => {
+                          // Reload the document to get updated status
+                          const updated = await documentNodeService.getById(currentNode.id);
+                          setCurrentNode(updated);
+                        }}
+                        canSubmit={canEditIntranet}
+                        canApprove={currentNode.userPermissions?.canAdmin || isAdmin}
+                        canPublish={currentNode.userPermissions?.canAdmin || isAdmin}
+                      />
+                    </Box>
                     
                     {/* Attachments Section */}
                     <Box sx={{ mt: 2, mb: 2 }}>

@@ -520,7 +520,6 @@ const Dashboard: React.FC = () => {
                 return (
                   <div key={widget.id}>
                     <PendingApprovalsWidget 
-                      pendingApprovalsCount={pendingApprovalsCount}
                       onRemove={() => removeWidget(widget.id)}
                     />
                   </div>
