@@ -194,6 +194,38 @@ function seedModules() {
                             route: '/cost-centers',
                             sortOrder: 17,
                         },
+                        {
+                            name: 'Lagerbestand',
+                            key: 'inventory',
+                            description: 'Lagerverwaltung und Bestandsübersicht',
+                            icon: 'warehouse',
+                            route: '/inventory',
+                            sortOrder: 18,
+                        },
+                        {
+                            name: 'Projekt-Budget',
+                            key: 'project_budget',
+                            description: 'Projektbudget-Planung und -Überwachung',
+                            icon: 'account_balance_wallet',
+                            route: '/project-budget',
+                            sortOrder: 19,
+                        },
+                        {
+                            name: 'Projekt-Reports',
+                            key: 'project_reports',
+                            description: 'Umfassende Projekt-Berichte und Analysen',
+                            icon: 'assessment',
+                            route: '/project-reports',
+                            sortOrder: 20,
+                        },
+                        {
+                            name: 'Projektplanung',
+                            key: 'project_planning',
+                            description: 'Grafischer Gantt-Chart Editor für Projektplanung',
+                            icon: 'timeline',
+                            route: '/project-planning',
+                            sortOrder: 21,
+                        },
                     ];
                     _i = 0, modules_1 = modules;
                     _a.label = 1;

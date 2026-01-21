@@ -76,18 +76,23 @@ export const createProject = async (req: AuthRequest, res: Response) => {
 export const updateProject = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, isActive, status, customerId, defaultHourlyRate } = req.body;
+    const { name, description, isActive, status, customerId, defaultHourlyRate, startDate, endDate, progress } = req.body;
+
+    const updateData: any = {};
+    
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (status !== undefined) updateData.status = status;
+    if (customerId !== undefined) updateData.customerId = customerId || null;
+    if (defaultHourlyRate !== undefined) updateData.defaultHourlyRate = defaultHourlyRate ? parseFloat(defaultHourlyRate) : null;
+    if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
+    if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
+    if (progress !== undefined) updateData.progress = progress !== null ? parseInt(progress.toString()) : 0;
 
     const project = await prisma.project.update({
       where: { id },
-      data: {
-        name,
-        description,
-        isActive,
-        ...(status && { status }),
-        customerId: customerId || null,
-        defaultHourlyRate: defaultHourlyRate ? parseFloat(defaultHourlyRate) : null
-      }
+      data: updateData
     });
 
     res.json(project);

@@ -177,6 +177,14 @@ async function seedModules() {
       route: '/project-reports',
       sortOrder: 20,
     },
+    {
+      name: 'Projektplanung',
+      key: 'project_planning',
+      description: 'Grafischer Gantt-Chart Editor für Projektplanung',
+      icon: 'timeline',
+      route: '/project-planning',
+      sortOrder: 21,
+    },
   ];
 
   for (const module of modules) {

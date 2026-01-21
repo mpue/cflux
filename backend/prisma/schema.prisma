@@ -398,6 +398,9 @@ model Project {
   isActive    Boolean      @default(true)
   status      ProjectStatus @default(PLANNING)
   defaultHourlyRate Float?   // Default-Stundensatz für dieses Projekt (CHF/h)
+  startDate   DateTime?    // Geplantes Startdatum für Gantt-Chart
+  endDate     DateTime?    // Geplantes Enddatum für Gantt-Chart
+  progress    Int          @default(0) // Fortschritt in Prozent (0-100)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
