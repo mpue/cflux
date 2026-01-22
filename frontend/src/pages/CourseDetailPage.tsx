@@ -75,9 +75,12 @@ interface Lesson {
 interface Enrollment {
   id: string;
   status: string;
-  progress: number;
+  progressPercent: number;
   completedAt?: string;
   lessonProgress: LessonProgress[];
+  certificateIssued: boolean;
+  certificateUrl?: string;
+  certificateIssuedAt?: string;
 }
 
 interface LessonProgress {
@@ -225,6 +228,26 @@ const CourseDetailPage: React.FC = () => {
     ) || false;
   };
 
+  const getEmbedUrl = (url: string): string => {
+    if (!url) return url;
+
+    // YouTube URL conversion
+    const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const match = url.match(youtubeRegex);
+    if (match) {
+      return `https://www.youtube.com/embed/${match[1]}`;
+    }
+
+    // Vimeo URL conversion
+    const vimeoRegex = /(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/;
+    const vimeoMatch = url.match(vimeoRegex);
+    if (vimeoMatch) {
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    }
+
+    return url;
+  };
+
   const getContentIcon = (type: string) => {
     switch (type) {
       case 'VIDEO':
@@ -252,13 +275,15 @@ const CourseDetailPage: React.FC = () => {
             {selectedLesson.videoUrl ? (
               <Box
                 component="iframe"
-                src={selectedLesson.videoUrl}
+                src={getEmbedUrl(selectedLesson.videoUrl)}
                 sx={{
                   width: '100%',
                   height: '400px',
                   border: 'none',
                   borderRadius: 1,
                 }}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
               />
             ) : (
               <Alert severity="info">Video-URL nicht verfügbar</Alert>
@@ -438,14 +463,25 @@ const CourseDetailPage: React.FC = () => {
                         />
                         <Box sx={{ minWidth: 200 }}>
                           <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Fortschritt: {Math.round(enrollment.progress)}%
+                            Fortschritt: {Math.round(enrollment.progressPercent || 0)}%
                           </Typography>
                           <LinearProgress
                             variant="determinate"
-                            value={enrollment.progress}
+                            value={enrollment.progressPercent || 0}
                             sx={{ height: 8, borderRadius: 4 }}
                           />
                         </Box>
+                        {enrollment.status === 'COMPLETED' && enrollment.certificateIssued && (
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<CompleteIcon />}
+                            sx={{ mt: 1 }}
+                            onClick={() => window.open(enrollment.certificateUrl, '_blank')}
+                          >
+                            Zertifikat herunterladen
+                          </Button>
+                        )}
                       </Box>
                     )}
                   </Box>

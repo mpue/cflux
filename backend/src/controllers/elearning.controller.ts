@@ -403,7 +403,12 @@ export async function submitQuizAttempt(req: Request, res: Response) {
     const { id } = req.params;
     const { responses } = req.body;
     const attempt = await elearningService.submitQuizAttempt(id, responses);
-    res.json(attempt);
+    
+    // Return attempt and responses in expected format
+    res.json({
+      attempt: attempt,
+      responses: attempt.responses || []
+    });
   } catch (error: any) {
     console.error('Error submitting quiz attempt:', error);
     res.status(500).json({ error: 'Failed to submit quiz attempt', details: error.message });
@@ -470,6 +475,49 @@ export async function getCourseAssignments(req: Request, res: Response) {
   } catch (error: any) {
     console.error('Error fetching course assignments:', error);
     res.status(500).json({ error: 'Failed to fetch course assignments', details: error.message });
+  }
+}
+
+export async function getMyAssignments(req: Request, res: Response) {
+  try {
+    const userId = (req as any).user.id;
+    const assignments = await elearningService.getMyAssignments(userId);
+    res.json(assignments);
+  } catch (error: any) {
+    console.error('Error fetching my assignments:', error);
+    res.status(500).json({ error: 'Failed to fetch my assignments', details: error.message });
+  }
+}
+
+export async function getAllAssignments(req: Request, res: Response) {
+  try {
+    const assignments = await elearningService.getAllAssignments();
+    res.json(assignments);
+  } catch (error: any) {
+    console.error('Error fetching all assignments:', error);
+    res.status(500).json({ error: 'Failed to fetch all assignments', details: error.message });
+  }
+}
+
+export async function updateCourseAssignment(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const assignment = await elearningService.updateCourseAssignment(id, req.body);
+    res.json(assignment);
+  } catch (error: any) {
+    console.error('Error updating course assignment:', error);
+    res.status(500).json({ error: 'Failed to update course assignment', details: error.message });
+  }
+}
+
+export async function deleteCourseAssignment(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    await elearningService.deleteCourseAssignment(id);
+    res.json({ message: 'Assignment deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting course assignment:', error);
+    res.status(500).json({ error: 'Failed to delete course assignment', details: error.message });
   }
 }
 
@@ -564,4 +612,160 @@ export async function completLesson(req: Request, res: Response) {
     res.status(500).json({ error: 'Failed to complete lesson', details: error.message });
   }
 }
+
+// ==================== CERTIFICATES ====================
+
+export async function getCertificate(req: Request, res: Response) {
+  try {
+    const { enrollmentId } = req.params;
+    const certificate = await elearningService.getCertificate(enrollmentId);
+
+    if (!certificate) {
+      return res.status(404).json({ error: 'Certificate not found' });
+    }
+
+    res.json(certificate);
+  } catch (error: any) {
+    console.error('Error fetching certificate:', error);
+    res.status(500).json({ error: 'Failed to fetch certificate', details: error.message });
+  }
+}
+
+export async function downloadCertificate(req: Request, res: Response) {
+  try {
+    const { enrollmentId } = req.params;
+    const path = require('path');
+    const fs = require('fs');
+    
+    const enrollment = await elearningService.getCertificate(enrollmentId);
+    if (!enrollment || !enrollment.certificateIssued) {
+      return res.status(404).json({ error: 'Certificate not found or not issued yet' });
+    }
+
+    // Certificate directory
+    const certificatesDir = path.join(process.cwd(), 'uploads', 'certificates');
+    
+    // Check if directory exists
+    if (!fs.existsSync(certificatesDir)) {
+      return res.status(404).json({ error: 'Certificates directory not found' });
+    }
+    
+    // Find certificate file for this enrollment (search by course and user ID)
+    const files = fs.readdirSync(certificatesDir);
+    const courseIdPrefix = enrollment.course.id.slice(0, 8).toUpperCase();
+    const userIdPrefix = enrollment.user.id.slice(0, 8).toUpperCase();
+    const certificateFile = files.find((f: string) => 
+      f.includes(courseIdPrefix) && f.includes(userIdPrefix) && f.endsWith('.pdf')
+    );
+    
+    if (!certificateFile) {
+      // Try to generate certificate if it doesn't exist
+      console.log('Certificate file not found, generating new one...');
+      await elearningService.generateCertificate(enrollmentId);
+      
+      // Re-read directory
+      const newFiles = fs.readdirSync(certificatesDir);
+      const newCertificateFile = newFiles.find((f: string) => 
+        f.includes(courseIdPrefix) && f.includes(userIdPrefix) && f.endsWith('.pdf')
+      );
+      
+      if (!newCertificateFile) {
+        return res.status(500).json({ error: 'Failed to generate certificate' });
+      }
+      
+      const certificatePath = path.join(certificatesDir, newCertificateFile);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="Zertifikat - ${enrollment.course.title} - ${enrollment.user.firstName} ${enrollment.user.lastName}.pdf"`);
+      
+      const fileStream = fs.createReadStream(certificatePath);
+      fileStream.pipe(res);
+      return;
+    }
+
+    const certificatePath = path.join(certificatesDir, certificateFile);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Zertifikat - ${enrollment.course.title} - ${enrollment.user.firstName} ${enrollment.user.lastName}.pdf"`);
+    
+    const fileStream = fs.createReadStream(certificatePath);
+    fileStream.pipe(res);
+  } catch (error: any) {
+    console.error('Error downloading certificate:', error);
+    res.status(500).json({ error: 'Failed to download certificate', details: error.message });
+  }
+}
+
+export async function generateCertificate(req: Request, res: Response) {
+  try {
+    const { enrollmentId } = req.params;
+    const result = await elearningService.generateCertificate(enrollmentId);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Error generating certificate:', error);
+    res.status(500).json({ error: 'Failed to generate certificate', details: error.message });
+  }
+}
+
+export async function getAllCertificates(req: Request, res: Response) {
+  try {
+    const certificates = await elearningService.getAllCertificates();
+    res.json(certificates);
+  } catch (error: any) {
+    console.error('Error fetching certificates:', error);
+    res.status(500).json({ error: 'Failed to fetch certificates', details: error.message });
+  }
+}
+
+// ==================== IMPORT/EXPORT ====================
+
+export async function exportCourse(req: Request, res: Response) {
+  try {
+    const courseId = req.params.id;
+    const courseData = await elearningService.exportCourse(courseId);
+    
+    // Set headers for file download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="course-${courseId}-${Date.now()}.json"`);
+    res.json(courseData);
+  } catch (error: any) {
+    console.error('Error exporting course:', error);
+    res.status(500).json({ error: 'Failed to export course', details: error.message });
+  }
+}
+
+export async function importCourse(req: Request, res: Response) {
+  try {
+    const courseData = req.body;
+    const userId = (req as any).user.id;
+    
+    const newCourse = await elearningService.importCourse(courseData, userId);
+    res.status(201).json(newCourse);
+  } catch (error: any) {
+    console.error('Error importing course:', error);
+    res.status(500).json({ error: 'Failed to import course', details: error.message });
+  }
+}
+
+// ==================== ADMIN ANALYTICS ====================
+
+export async function getAdminAnalytics(req: Request, res: Response) {
+  try {
+    const analytics = await elearningService.getAdminAnalytics();
+    res.json(analytics);
+  } catch (error: any) {
+    console.error('Error fetching admin analytics:', error);
+    res.status(500).json({ error: 'Failed to fetch analytics', details: error.message });
+  }
+}
+
+export async function getComplianceReport(req: Request, res: Response) {
+  try {
+    const report = await elearningService.getComplianceReport();
+    res.json(report);
+  } catch (error: any) {
+    console.error('Error fetching compliance report:', error);
+    res.status(500).json({ error: 'Failed to fetch compliance report', details: error.message });
+  }
+}
+
 

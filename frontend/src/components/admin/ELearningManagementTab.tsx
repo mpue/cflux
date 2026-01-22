@@ -21,6 +21,8 @@ import {
   Grid,
   TextField,
   MenuItem,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -29,8 +31,15 @@ import {
   Visibility as ViewIcon,
   Archive as ArchiveIcon,
   Publish as PublishIcon,
+  School as SchoolIcon,
+  Assignment as AssignmentIcon,
+  Analytics as AnalyticsIcon,
+  Download as DownloadIcon,
+  Upload as UploadIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import CourseAssignmentManager from '../elearning/CourseAssignmentManager';
+import AnalyticsReports from '../elearning/AnalyticsReports';
 import api from '../../services/api';
 
 interface Course {
@@ -69,6 +78,10 @@ const ELearningManagementTab: React.FC<ELearningManagementTabProps> = ({ onUpdat
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<number>(0);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     loadCourses();
@@ -116,6 +129,58 @@ const ELearningManagementTab: React.FC<ELearningManagementTabProps> = ({ onUpdat
     } catch (err: any) {
       console.error('Error updating course status:', err);
       setError(err.response?.data?.error || 'Fehler beim Aktualisieren des Status');
+    }
+  };
+
+  const handleExportCourse = async (courseId: string, courseTitle: string) => {
+    try {
+      const response = await api.get(`/elearning/courses/${courseId}/export`, {
+        responseType: 'blob',
+      });
+
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const filename = `kurs-${courseTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}.json`;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Error exporting course:', err);
+      setError('Fehler beim Exportieren des Kurses');
+    }
+  };
+
+  const handleImportCourse = async () => {
+    if (!importFile) {
+      setError('Bitte wählen Sie eine Datei aus');
+      return;
+    }
+
+    try {
+      setImporting(true);
+      setError(null);
+
+      // Read file content
+      const fileContent = await importFile.text();
+      const courseData = JSON.parse(fileContent);
+
+      // Import course
+      const response = await api.post('/elearning/courses/import', courseData);
+
+      setImportDialogOpen(false);
+      setImportFile(null);
+      loadCourses();
+      
+      alert(`Kurs "${response.data.title}" erfolgreich importiert!`);
+    } catch (err: any) {
+      console.error('Error importing course:', err);
+      setError(err.response?.data?.error || 'Fehler beim Importieren des Kurses. Bitte überprüfen Sie die Datei.');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -168,13 +233,24 @@ const ELearningManagementTab: React.FC<ELearningManagementTabProps> = ({ onUpdat
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5">E-Learning Verwaltung</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/elearning/courses/new/edit')}
-        >
-          Neuer Kurs
-        </Button>
+        {activeTab === 0 && (
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/elearning/courses/new/edit')}
+            >
+              Neuer Kurs
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<UploadIcon />}
+              onClick={() => setImportDialogOpen(true)}
+            >
+              Kurs importieren
+            </Button>
+          </Box>
+        )}
       </Box>
 
       {error && (
@@ -182,6 +258,19 @@ const ELearningManagementTab: React.FC<ELearningManagementTabProps> = ({ onUpdat
           {error}
         </Alert>
       )}
+
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
+          <Tab label="Kurse" icon={<SchoolIcon />} iconPosition="start" />
+          <Tab label="Zuweisungen" icon={<AssignmentIcon />} iconPosition="start" />
+          <Tab label="Analytics & Reports" icon={<AnalyticsIcon />} iconPosition="start" />
+        </Tabs>
+      </Box>
+
+      {/* Courses Tab */}
+      {activeTab === 0 && (
+        <>
 
       {/* Filter */}
       <Card sx={{ mb: 3 }}>
@@ -298,6 +387,14 @@ const ELearningManagementTab: React.FC<ELearningManagementTabProps> = ({ onUpdat
                 </TableCell>
                 <TableCell align="right">
                   <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+                    <IconButton
+                      size="small"
+                      color="info"
+                      onClick={() => handleExportCourse(course.id, course.title)}
+                      title="Kurs exportieren"
+                    >
+                      <DownloadIcon fontSize="small" />
+                    </IconButton>
                     {course.status === 'DRAFT' && (
                       <IconButton
                         size="small"
@@ -376,6 +473,63 @@ const ELearningManagementTab: React.FC<ELearningManagementTabProps> = ({ onUpdat
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Import Dialog */}
+      <Dialog open={importDialogOpen} onClose={() => !importing && setImportDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Kurs importieren</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Wählen Sie eine Kurs-Exportdatei (.json) aus, um einen Kurs zu importieren.
+            Der Kurs wird als Entwurf importiert.
+          </Typography>
+          
+          <input
+            type="file"
+            accept=".json,application/json"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setImportFile(file);
+                setError(null);
+              }
+            }}
+            style={{ marginBottom: 16 }}
+          />
+
+          {importFile && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              Ausgewählte Datei: {importFile.name}
+            </Alert>
+          )}
+
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setImportDialogOpen(false)} disabled={importing}>
+            Abbrechen
+          </Button>
+          <Button 
+            onClick={handleImportCourse} 
+            variant="contained" 
+            disabled={!importFile || importing}
+          >
+            {importing ? 'Importiere...' : 'Importieren'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+        </>
+      )}
+
+      {/* Assignments Tab */}
+      {activeTab === 1 && <CourseAssignmentManager />}
+  {/* Analytics & Reports Tab */}
+      {activeTab === 2 && <AnalyticsReports />}
+
+    
     </Box>
   );
 };

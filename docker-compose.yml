@@ -49,6 +49,7 @@ services:
       - timetracking-network
     volumes:
       - ./backend/prisma:/app/prisma
+      - backend_uploads:/app/uploads
 
   # Frontend
   frontend:
@@ -75,4 +76,6 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  backend_uploads:
     driver: local

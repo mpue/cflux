@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -49,8 +49,7 @@ interface Quiz {
   maxAttempts?: number;
   randomizeQuestions: boolean;
   randomizeAnswers: boolean;
-  showCorrectAnswers: boolean;
-  allowReview: boolean;
+  showResults: boolean;
   questions: Question[];
 }
 
@@ -93,6 +92,7 @@ const QuizTaker: React.FC<QuizTakerProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
 
   // Timer effect
   useEffect(() => {
@@ -107,8 +107,11 @@ const QuizTaker: React.FC<QuizTakerProps> = ({
 
   // Load quiz and start attempt
   useEffect(() => {
+    if (hasLoadedRef.current) return;
+    hasLoadedRef.current = true;
     loadQuiz();
-  }, [quizId, enrollmentId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadQuiz = async () => {
     try {
@@ -157,10 +160,18 @@ const QuizTaker: React.FC<QuizTakerProps> = ({
         quizId,
         enrollmentId,
       });
+      
+      console.log('Quiz attempt response:', attemptResponse);
+      
+      if (!attemptResponse.data || !attemptResponse.data.id) {
+        throw new Error('Invalid response from server when creating quiz attempt');
+      }
+      
       setAttempt(attemptResponse.data);
     } catch (err: any) {
       console.error('Error loading quiz:', err);
-      setError(err.response?.data?.error || 'Failed to load quiz');
+      console.error('Error details:', err.response);
+      setError(err.response?.data?.error || err.message || 'Failed to load quiz');
     } finally {
       setLoading(false);
     }
@@ -241,11 +252,15 @@ const QuizTaker: React.FC<QuizTakerProps> = ({
         }
       );
 
+      console.log('Quiz submitted successfully:', resultResponse.data);
       setResult(resultResponse.data);
+      console.log('Result state set:', resultResponse.data);
       
-      if (onComplete) {
-        onComplete(resultResponse.data.attempt);
-      }
+      // Don't call onComplete immediately - wait for user to click "Back to Course"
+      // if (onComplete) {
+      //   console.log('Calling onComplete...');
+      //   onComplete(resultResponse.data.attempt);
+      // }
     } catch (err: any) {
       console.error('Error submitting quiz:', err);
       setError(err.response?.data?.error || 'Failed to submit quiz');
@@ -386,7 +401,7 @@ const QuizTaker: React.FC<QuizTakerProps> = ({
           </Grid>
         </Paper>
 
-        {quiz.showCorrectAnswers && quiz.allowReview && (
+        {quiz.showResults && (
           <Box sx={{ mb: 3 }}>
             <Typography variant="h6" gutterBottom>
               Review Answers
@@ -467,22 +482,18 @@ const QuizTaker: React.FC<QuizTakerProps> = ({
                           {response?.textResponse || '(No answer provided)'}
                         </Typography>
                       </Paper>
-                      {quiz.showCorrectAnswers && (
-                        <>
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Correct Answer(s):
-                          </Typography>
-                          <Paper sx={{ p: 2, bgcolor: 'success.light' }}>
-                            {question.answers
-                              .filter((a) => a.isCorrect)
-                              .map((a) => (
-                                <Typography key={a.id} variant="body1">
-                                  {a.answerText}
-                                </Typography>
-                              ))}
-                          </Paper>
-                        </>
-                      )}
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        Correct Answer(s):
+                      </Typography>
+                      <Paper sx={{ p: 2, bgcolor: 'success.light' }}>
+                        {question.answers
+                          .filter((a) => a.isCorrect)
+                          .map((a) => (
+                            <Typography key={a.id} variant="body1">
+                              {a.answerText}
+                            </Typography>
+                          ))}
+                      </Paper>
                     </Box>
                   )}
 
@@ -508,7 +519,16 @@ const QuizTaker: React.FC<QuizTakerProps> = ({
               </Button>
             )}
           {onCancel && (
-            <Button variant="outlined" onClick={onCancel}>
+            <Button 
+              variant="outlined" 
+              onClick={() => {
+                // Call onComplete before going back
+                if (onComplete) {
+                  onComplete(completedAttempt);
+                }
+                onCancel();
+              }}
+            >
               Back to Course
             </Button>
           )}

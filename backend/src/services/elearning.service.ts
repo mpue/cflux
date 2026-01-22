@@ -1,4 +1,7 @@
 import { PrismaClient, CourseStatus, CourseType, EnrollmentStatus, QuestionType } from '@prisma/client';
+import PDFDocument from 'pdfkit';
+import fs from 'fs';
+import path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -910,6 +913,115 @@ export async function getCourseAssignments(courseId: string) {
   });
 }
 
+export async function getMyAssignments(userId: string) {
+  // Get user's group IDs
+  const userGroups = await prisma.userGroupMembership.findMany({
+    where: { userId },
+    select: { userGroupId: true },
+  });
+  const groupIds = userGroups.map(ug => ug.userGroupId);
+
+  // Find assignments where user or their groups are assigned
+  const assignments = await prisma.courseAssignment.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { assignedToUserIds: { has: userId } },
+        { assignedToGroupIds: { hasSome: groupIds } },
+      ],
+    },
+    include: {
+      course: {
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          duration: true,
+          category: {
+            select: {
+              name: true,
+              color: true,
+            },
+          },
+        },
+      },
+      assignedBy: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+      enrollments: {
+        where: { userId },
+        select: {
+          id: true,
+          status: true,
+          progressPercent: true,
+          completedAt: true,
+        },
+      },
+    },
+    orderBy: [
+      { dueDate: 'asc' },
+      { assignedAt: 'desc' },
+    ],
+  });
+
+  return assignments;
+}
+
+export async function getAllAssignments() {
+  return prisma.courseAssignment.findMany({
+    where: {
+      isActive: true,
+    },
+    include: {
+      course: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+      assignedBy: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      _count: {
+        select: {
+          enrollments: true,
+        },
+      },
+    },
+    orderBy: { assignedAt: 'desc' },
+  });
+}
+
+export async function updateCourseAssignment(
+  assignmentId: string,
+  data: {
+    assignedToUserIds?: string[];
+    assignedToGroupIds?: string[];
+    dueDate?: Date;
+    reminderDays?: number[];
+    notes?: string;
+  }
+) {
+  return prisma.courseAssignment.update({
+    where: { id: assignmentId },
+    data,
+  });
+}
+
+export async function deleteCourseAssignment(assignmentId: string) {
+  return prisma.courseAssignment.update({
+    where: { id: assignmentId },
+    data: { isActive: false },
+  });
+}
+
 // ==================== ANALYTICS ====================
 
 export async function getCourseAnalytics(courseId: string) {
@@ -1034,5 +1146,681 @@ export async function calculateAndUpdateEnrollmentProgress(enrollmentId: string)
     status: isCompleted ? EnrollmentStatus.COMPLETED : EnrollmentStatus.IN_PROGRESS,
     completedAt: isCompleted && !enrollment.completedAt ? new Date() : undefined,
   });
+
+  // Auto-generate certificate for completed enrollments
+  if (isCompleted && !enrollment.certificateIssued) {
+    await generateCertificate(enrollmentId);
+  }
 }
 
+// ==================== CERTIFICATES ====================
+
+export async function generateCertificate(enrollmentId: string) {
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { id: enrollmentId },
+    include: {
+      user: true,
+      course: true,
+    },
+  });
+
+  if (!enrollment || enrollment.status !== EnrollmentStatus.COMPLETED) {
+    throw new Error('Enrollment not completed');
+  }
+
+  // Create certificates directory if it doesn't exist
+  const certificatesDir = path.join(process.cwd(), 'uploads', 'certificates');
+  if (!fs.existsSync(certificatesDir)) {
+    fs.mkdirSync(certificatesDir, { recursive: true });
+  }
+
+  // Generate certificate filename
+  const certificateId = `CERT-${enrollment.courseId.slice(0, 8).toUpperCase()}-${enrollment.userId.slice(0, 8).toUpperCase()}-${Date.now()}`;
+  const certificateFileName = `${certificateId}.pdf`;
+  const certificatePath = path.join(certificatesDir, certificateFileName);
+  const certificateUrl = `/api/elearning/certificates/${enrollmentId}/download`;
+
+  // Create PDF document
+  const doc = new PDFDocument({
+    size: 'A4',
+    layout: 'landscape',
+    margin: 50,
+  });
+
+  // Pipe to file
+  const stream = fs.createWriteStream(certificatePath);
+  doc.pipe(stream);
+
+  // Design certificate
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
+
+  // Border
+  doc.rect(30, 30, pageWidth - 60, pageHeight - 60)
+    .lineWidth(3)
+    .stroke('#2196f3');
+
+  doc.rect(40, 40, pageWidth - 80, pageHeight - 80)
+    .lineWidth(1)
+    .stroke('#2196f3');
+
+  // Title
+  doc.fontSize(48)
+    .font('Helvetica-Bold')
+    .fillColor('#2196f3')
+    .text('ZERTIFIKAT', 0, 100, {
+      align: 'center',
+      width: pageWidth,
+    });
+
+  // Subtitle
+  doc.fontSize(16)
+    .font('Helvetica')
+    .fillColor('#666')
+    .text('wird hiermit verliehen an', 0, 170, {
+      align: 'center',
+      width: pageWidth,
+    });
+
+  // User name
+  doc.fontSize(36)
+    .font('Helvetica-Bold')
+    .fillColor('#000')
+    .text(`${enrollment.user.firstName} ${enrollment.user.lastName}`, 0, 210, {
+      align: 'center',
+      width: pageWidth,
+    });
+
+  // Course completion text
+  doc.fontSize(16)
+    .font('Helvetica')
+    .fillColor('#666')
+    .text('für die erfolgreiche Absolvierung des Kurses', 0, 270, {
+      align: 'center',
+      width: pageWidth,
+    });
+
+  // Course name
+  doc.fontSize(24)
+    .font('Helvetica-Bold')
+    .fillColor('#2196f3')
+    .text(enrollment.course.title, 0, 310, {
+      align: 'center',
+      width: pageWidth,
+    });
+
+  // Completion date
+  const completionDate = enrollment.completedAt ? new Date(enrollment.completedAt).toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }) : new Date().toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  doc.fontSize(14)
+    .font('Helvetica')
+    .fillColor('#666')
+    .text(`Abgeschlossen am ${completionDate}`, 0, 380, {
+      align: 'center',
+      width: pageWidth,
+    });
+
+  // Score if available
+  if (enrollment.score) {
+    doc.fontSize(14)
+      .fillColor('#666')
+      .text(`Erreichte Punktzahl: ${Math.round(enrollment.score)}%`, 0, 410, {
+        align: 'center',
+        width: pageWidth,
+      });
+  }
+
+  // Certificate ID at bottom
+  doc.fontSize(10)
+    .fillColor('#999')
+    .text(`Zertifikat-ID: ${certificateId}`, 0, pageHeight - 80, {
+      align: 'center',
+      width: pageWidth,
+    });
+
+  // Signature line (placeholder for future template editor)
+  const signatureY = pageHeight - 130;
+  doc.moveTo(pageWidth / 2 - 150, signatureY)
+    .lineTo(pageWidth / 2 + 150, signatureY)
+    .stroke('#ccc');
+
+  doc.fontSize(10)
+    .fillColor('#666')
+    .text('Unterschrift', 0, signatureY + 10, {
+      align: 'center',
+      width: pageWidth,
+    });
+
+  // Finalize PDF
+  doc.end();
+
+  // Wait for the PDF to be written
+  await new Promise<void>((resolve, reject) => {
+    stream.on('finish', () => resolve());
+    stream.on('error', reject);
+  });
+
+  // Update enrollment with certificate info
+  await prisma.enrollment.update({
+    where: { id: enrollmentId },
+    data: {
+      certificateIssued: true,
+      certificateUrl,
+      certificateIssuedAt: new Date(),
+    },
+  });
+
+  return {
+    certificateUrl,
+    certificatePath,
+    certificateFileName,
+  };
+}
+
+export async function getCertificate(enrollmentId: string) {
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { id: enrollmentId },
+    include: {
+      user: true,
+      course: true,
+    },
+  });
+
+  if (!enrollment) {
+    return null;
+  }
+
+  return {
+    certificateUrl: enrollment.certificateUrl,
+    certificateIssuedAt: enrollment.certificateIssuedAt,
+    certificateIssued: enrollment.certificateIssued,
+    user: enrollment.user,
+    course: enrollment.course,
+  };
+}
+
+export async function getAllCertificates() {
+  const enrollments = await prisma.enrollment.findMany({
+    where: {
+      certificateIssued: true,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+      course: {
+        select: {
+          id: true,
+          title: true,
+          courseType: true,
+        },
+      },
+    },
+    orderBy: {
+      certificateIssuedAt: 'desc',
+    },
+  });
+
+  return enrollments.map(e => ({
+    enrollmentId: e.id,
+    certificateUrl: e.certificateUrl,
+    certificateIssuedAt: e.certificateIssuedAt,
+    completedAt: e.completedAt,
+    score: e.score,
+    user: e.user,
+    course: e.course,
+  }));
+}
+
+// ==================== ADMIN ANALYTICS ====================
+
+export async function getAdminAnalytics() {
+  // Overall statistics
+  const [totalCourses, totalEnrollments, activeUsers, completedEnrollments] = await Promise.all([
+    prisma.course.count({ where: { isActive: true } }),
+    prisma.enrollment.count(),
+    prisma.enrollment.groupBy({
+      by: ['userId'],
+      _count: true,
+    }).then(result => result.length),
+    prisma.enrollment.count({ where: { status: EnrollmentStatus.COMPLETED } }),
+  ]);
+
+  // Enrollment status breakdown
+  const enrollmentsByStatus = await prisma.enrollment.groupBy({
+    by: ['status'],
+    _count: true,
+  });
+
+  // Course completion rates
+  const courses = await prisma.course.findMany({
+    where: { isActive: true },
+    select: {
+      id: true,
+      title: true,
+      courseType: true,
+      _count: {
+        select: {
+          enrollments: true,
+        },
+      },
+    },
+  });
+
+  const coursesWithRates = await Promise.all(
+    courses.map(async (course) => {
+      const completedCount = await prisma.enrollment.count({
+        where: {
+          courseId: course.id,
+          status: EnrollmentStatus.COMPLETED,
+        },
+      });
+
+      const totalEnrollments = course._count.enrollments;
+      const completionRate = totalEnrollments > 0 ? (completedCount / totalEnrollments) * 100 : 0;
+
+      return {
+        id: course.id,
+        title: course.title,
+        courseType: course.courseType,
+        totalEnrollments,
+        completedCount,
+        completionRate: Math.round(completionRate * 10) / 10,
+      };
+    })
+  );
+
+  // Recent completions
+  const recentCompletions = await prisma.enrollment.findMany({
+    where: {
+      status: EnrollmentStatus.COMPLETED,
+      completedAt: { not: null },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+      course: {
+        select: {
+          id: true,
+          title: true,
+          courseType: true,
+        },
+      },
+    },
+    orderBy: { completedAt: 'desc' },
+    take: 20,
+  });
+
+  // Quiz performance
+  const quizAttempts = await prisma.quizAttempt.groupBy({
+    by: ['passed'],
+    _count: true,
+    _avg: {
+      score: true,
+    },
+  });
+
+  const totalQuizAttempts = quizAttempts.reduce((sum, item) => sum + item._count, 0);
+  const passedAttempts = quizAttempts.find(item => item.passed)?._count || 0;
+  const passRate = totalQuizAttempts > 0 ? (passedAttempts / totalQuizAttempts) * 100 : 0;
+
+  return {
+    overview: {
+      totalCourses,
+      totalEnrollments,
+      activeUsers,
+      completedEnrollments,
+      completionRate: totalEnrollments > 0 ? (completedEnrollments / totalEnrollments) * 100 : 0,
+    },
+    enrollmentsByStatus: enrollmentsByStatus.map(item => ({
+      status: item.status,
+      count: item._count,
+    })),
+    coursesWithRates: coursesWithRates.sort((a, b) => b.completionRate - a.completionRate),
+    recentCompletions,
+    quizPerformance: {
+      totalAttempts: totalQuizAttempts,
+      passedAttempts,
+      failedAttempts: totalQuizAttempts - passedAttempts,
+      passRate: Math.round(passRate * 10) / 10,
+      averageScore: quizAttempts.reduce((sum, item) => sum + (item._avg.score || 0) * item._count, 0) / totalQuizAttempts || 0,
+    },
+  };
+}
+
+export async function getComplianceReport() {
+  // Get all mandatory and compliance courses
+  const complianceCourses = await prisma.course.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { courseType: 'MANDATORY' },
+        { isComplianceCourse: true },
+      ],
+    },
+    include: {
+      enrollments: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      },
+      assignments: {
+        include: {
+          assignedBy: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Get all users who should have completed these courses
+  const allUsers = await prisma.user.count({
+    where: { isActive: true },
+  });
+
+  const complianceData = complianceCourses.map((course: any) => {
+    const enrolledUsers = course.enrollments.length;
+    const completedUsers = course.enrollments.filter((e: any) => e.status === EnrollmentStatus.COMPLETED).length;
+    const inProgressUsers = course.enrollments.filter((e: any) => e.status === EnrollmentStatus.IN_PROGRESS).length;
+    const overdueUsers = course.enrollments.filter((e: any) => 
+      e.expiresAt && e.expiresAt < new Date() && e.status !== EnrollmentStatus.COMPLETED
+    ).length;
+
+    const usersNotEnrolled = allUsers - enrolledUsers;
+
+    return {
+      courseId: course.id,
+      courseTitle: course.title,
+      courseType: course.courseType,
+      isComplianceCourse: course.isComplianceCourse,
+      totalUsers: allUsers,
+      enrolledUsers,
+      completedUsers,
+      inProgressUsers,
+      usersNotEnrolled,
+      overdueUsers,
+      complianceRate: allUsers > 0 ? (completedUsers / allUsers) * 100 : 0,
+      enrollments: course.enrollments.map((e: any) => ({
+        userId: e.user.id,
+        userName: `${e.user.firstName} ${e.user.lastName}`,
+        email: e.user.email,
+        status: e.status,
+        progressPercent: e.progressPercent,
+        enrolledAt: e.enrolledAt,
+        completedAt: e.completedAt,
+        expiresAt: e.expiresAt,
+        isOverdue: e.expiresAt ? e.expiresAt < new Date() && e.status !== EnrollmentStatus.COMPLETED : false,
+      })),
+    };
+  });
+
+  return {
+    totalComplianceCourses: complianceCourses.length,
+    totalUsers: allUsers,
+    courses: complianceData,
+    overallComplianceRate: complianceData.reduce((sum, c) => sum + c.complianceRate, 0) / complianceData.length || 0,
+  };
+}
+
+// ==================== IMPORT/EXPORT ====================
+
+export async function exportCourse(courseId: string) {
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    include: {
+      category: true,
+      lessons: {
+        include: {
+          quiz: {
+            include: {
+              questions: {
+                include: {
+                  answers: true
+                },
+                orderBy: { order: 'asc' }
+              }
+            }
+          }
+        },
+        orderBy: { order: 'asc' }
+      }
+    }
+  });
+
+  if (!course) {
+    throw new Error('Course not found');
+  }
+
+  // Create export data structure
+  const exportData = {
+    exportVersion: '1.0',
+    exportedAt: new Date().toISOString(),
+    course: {
+      title: course.title,
+      description: course.description,
+      courseType: course.courseType,
+      status: course.status,
+      tags: course.tags,
+      thumbnailUrl: course.thumbnailUrl,
+      duration: course.duration,
+      level: course.level,
+      passingScore: course.passingScore,
+      maxAttempts: course.maxAttempts,
+      isComplianceCourse: course.isComplianceCourse,
+      ehsRelevant: course.ehsRelevant,
+      renewalMonths: course.renewalMonths,
+      category: course.category ? {
+        name: course.category.name,
+        description: course.category.description
+      } : null,
+      lessons: course.lessons.map(lesson => ({
+        title: lesson.title,
+        description: lesson.description,
+        order: lesson.order,
+        contentType: lesson.contentType,
+        content: lesson.content,
+        videoUrl: lesson.videoUrl,
+        duration: lesson.duration,
+        isOptional: lesson.isOptional,
+        completionCriteria: lesson.completionCriteria,
+        attachments: lesson.attachments,
+        quiz: lesson.quiz ? {
+          title: lesson.quiz.title,
+          description: lesson.quiz.description,
+          timeLimit: lesson.quiz.timeLimit,
+          shuffleQuestions: lesson.quiz.shuffleQuestions,
+          shuffleAnswers: lesson.quiz.shuffleAnswers,
+          showResults: lesson.quiz.showResults,
+          passingScore: lesson.quiz.passingScore,
+          questions: lesson.quiz.questions.map(question => ({
+            questionText: question.questionText,
+            questionType: question.questionType,
+            points: question.points,
+            order: question.order,
+            explanation: question.explanation,
+            caseSensitive: question.caseSensitive,
+            answers: question.answers.map(answer => ({
+              answerText: answer.answerText,
+              isCorrect: answer.isCorrect,
+              order: answer.order
+            }))
+          }))
+        } : null
+      }))
+    }
+  };
+
+  return exportData;
+}
+
+export async function importCourse(courseData: any, userId: string) {
+  // Validate export version
+  if (!courseData.exportVersion || courseData.exportVersion !== '1.0') {
+    throw new Error('Invalid or unsupported export format');
+  }
+
+  const data = courseData.course;
+
+  // Check if category exists or create it
+  let categoryId = null;
+  if (data.category) {
+    const existingCategory = await prisma.courseCategory.findFirst({
+      where: { name: data.category.name }
+    });
+
+    if (existingCategory) {
+      categoryId = existingCategory.id;
+    } else {
+      const newCategory = await prisma.courseCategory.create({
+        data: {
+          name: data.category.name,
+          description: data.category.description
+        }
+      });
+      categoryId = newCategory.id;
+    }
+  }
+
+  // Create course
+  const newCourse = await prisma.course.create({
+    data: {
+      title: data.title,
+      description: data.description,
+      courseType: data.courseType,
+      status: 'DRAFT', // Always import as draft for safety
+      categoryId: categoryId,
+      tags: data.tags || [],
+      thumbnailUrl: data.thumbnailUrl,
+      duration: data.duration,
+      level: data.level,
+      passingScore: data.passingScore,
+      maxAttempts: data.maxAttempts,
+      isComplianceCourse: data.isComplianceCourse,
+      ehsRelevant: data.ehsRelevant,
+      renewalMonths: data.renewalMonths,
+      createdById: userId,
+      updatedById: userId
+    }
+  });
+
+  // Create lessons
+  for (const lessonData of data.lessons) {
+    const newLesson = await prisma.lesson.create({
+      data: {
+        courseId: newCourse.id,
+        title: lessonData.title,
+        description: lessonData.description,
+        order: lessonData.order,
+        contentType: lessonData.contentType,
+        content: lessonData.content,
+        videoUrl: lessonData.videoUrl,
+        duration: lessonData.duration,
+        isOptional: lessonData.isOptional,
+        completionCriteria: lessonData.completionCriteria,
+        attachments: lessonData.attachments
+      }
+    });
+
+    // Create quiz if exists
+    if (lessonData.quiz) {
+      const newQuiz = await prisma.quiz.create({
+        data: {
+          lessonId: newLesson.id,
+          title: lessonData.quiz.title,
+          description: lessonData.quiz.description,
+          timeLimit: lessonData.quiz.timeLimit,
+          shuffleQuestions: lessonData.quiz.shuffleQuestions,
+          shuffleAnswers: lessonData.quiz.shuffleAnswers,
+          showResults: lessonData.quiz.showResults,
+          passingScore: lessonData.quiz.passingScore
+        }
+      });
+
+      // Create questions
+      for (const questionData of lessonData.quiz.questions) {
+        const newQuestion = await prisma.question.create({
+          data: {
+            quizId: newQuiz.id,
+            questionText: questionData.questionText,
+            questionType: questionData.questionType,
+            points: questionData.points,
+            order: questionData.order,
+            explanation: questionData.explanation,
+            caseSensitive: questionData.caseSensitive
+          }
+        });
+
+        // Create answers
+        for (const answerData of questionData.answers) {
+          await prisma.answer.create({
+            data: {
+              questionId: newQuestion.id,
+              answerText: answerData.answerText,
+              isCorrect: answerData.isCorrect,
+              order: answerData.order
+            }
+          });
+        }
+      }
+    }
+  }
+
+  // Return the created course with all relations
+  return prisma.course.findUnique({
+    where: { id: newCourse.id },
+    include: {
+      category: true,
+      lessons: {
+        include: {
+          quiz: {
+            include: {
+              questions: {
+                include: {
+                  answers: true
+                }
+              }
+            }
+          }
+        }
+      },
+      createdBy: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true
+        }
+      }
+    }
+  });
+}

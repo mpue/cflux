@@ -12,16 +12,20 @@ import {
   MenuItem,
   CircularProgress,
   Alert,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import {
   School as SchoolIcon,
   Assessment as AssessmentIcon,
   WorkspacePremium as CertificateIcon,
   TrendingUp as TrendingUpIcon,
+  Assignment as AssignmentIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppNavbar from '../components/AppNavbar';
+import MyAssignedCourses from '../components/elearning/MyAssignedCourses';
 import api from '../services/api';
 
 interface Course {
@@ -65,6 +69,7 @@ const ELearningPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<number>(0);
 
   useEffect(() => {
     fetchData();
@@ -221,18 +226,29 @@ const ELearningPage: React.FC = () => {
         </Grid>
       )}
 
-      {/* Filters */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                fullWidth
-                select
-                label="Status"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
+          <Tab label="Alle Kurse" icon={<SchoolIcon />} iconPosition="start" />
+          <Tab label="Meine Zuweisungen" icon={<AssignmentIcon />} iconPosition="start" />
+        </Tabs>
+      </Box>
+
+      {/* Tab Content */}
+      {activeTab === 0 && (
+        <>
+          {/* Filters */}
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    fullWidth
+                    select
+                    label="Status"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
                 <MenuItem value="">Alle</MenuItem>
                 <MenuItem value="PUBLISHED">Veröffentlicht</MenuItem>
                 <MenuItem value="DRAFT">Entwurf</MenuItem>
@@ -365,7 +381,13 @@ const ELearningPage: React.FC = () => {
           </CardContent>
         </Card>
       )}
-      </Container>
+        </>
+      )}
+
+      {/* Assigned Courses Tab */}
+      {activeTab === 1 && <MyAssignedCourses />}
+
+    </Container>
     </>
   );
 };

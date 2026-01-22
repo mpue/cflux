@@ -366,6 +366,34 @@ router.post(
   elearningController.createCourseAssignment
 );
 
+router.get(
+  '/assignments',
+  authenticate,
+  requireModuleAccess('elearning', 'canView'),
+  elearningController.getAllAssignments
+);
+
+router.get(
+  '/assignments/my',
+  authenticate,
+  requireModuleAccess('elearning', 'canView'),
+  elearningController.getMyAssignments
+);
+
+router.put(
+  '/assignments/:id',
+  authenticate,
+  requireModuleAccess('elearning', 'canEdit'),
+  elearningController.updateCourseAssignment
+);
+
+router.delete(
+  '/assignments/:id',
+  authenticate,
+  requireModuleAccess('elearning', 'canDelete'),
+  elearningController.deleteCourseAssignment
+);
+
 // ==================== ANALYTICS ====================
 
 router.get(
@@ -380,6 +408,63 @@ router.get(
   authenticate,
   requireModuleAccess('elearning', 'canView'),
   elearningController.getUserLearningStats
+);
+
+router.get(
+  '/analytics/admin',
+  authenticate,
+  requireModuleAccess('elearning', 'canView'),
+  elearningController.getAdminAnalytics
+);
+
+router.get(
+  '/analytics/compliance',
+  authenticate,
+  requireModuleAccess('elearning', 'canView'),
+  elearningController.getComplianceReport
+);
+
+// ==================== CERTIFICATES ====================
+
+router.get(
+  '/certificates',
+  authenticate,
+  requireModuleAccess('elearning', 'canView'),
+  elearningController.getAllCertificates
+);
+
+router.get(
+  '/certificates/:enrollmentId',
+  authenticate,
+  elearningController.getCertificate
+);
+
+router.get(
+  '/certificates/:enrollmentId/download',
+  authenticate,
+  elearningController.downloadCertificate
+);
+
+router.post(
+  '/certificates/:enrollmentId/generate',
+  authenticate,
+  elearningController.generateCertificate
+);
+
+// ==================== IMPORT/EXPORT ====================
+
+router.get(
+  '/courses/:id/export',
+  authenticate,
+  requireModuleAccess('elearning', 'canView'),
+  elearningController.exportCourse
+);
+
+router.post(
+  '/courses/import',
+  authenticate,
+  requireModuleAccess('elearning', 'canCreate'),
+  elearningController.importCourse
 );
 
 export default router;
