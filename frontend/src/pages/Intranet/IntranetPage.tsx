@@ -31,9 +31,12 @@ import {
   Delete as DeleteIcon,
   History as HistoryIcon,
   FolderOpen as FolderOpenIcon,
+  Folder as FolderClosedIcon,
   NavigateNext as NavigateNextIcon,
   Upload as UploadIcon,
   Group as GroupIcon,
+  ExpandMore as ExpandMoreIcon,
+  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import AppNavbar from '../../components/AppNavbar';
 import documentNodeService, { DocumentNode, CreateDocumentNodeData } from '../../services/documentNode.service';
@@ -56,6 +59,9 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
+  
+  // Track expanded/collapsed folders
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   // Splitter state
   const [leftWidth, setLeftWidth] = useState(300);
@@ -331,40 +337,87 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
     setMenuNode(null);
   };
 
+  // Toggle folder expansion
+  const toggleFolder = (folderId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setExpandedFolders((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
+      } else {
+        newSet.add(folderId);
+      }
+      return newSet;
+    });
+  };
+
   // Render tree recursively
   const renderTree = (nodes: DocumentNode[], level: number = 0) => {
-    return nodes.map((node) => (
-      <Box key={node.id} sx={{ ml: level * 2 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            p: 1,
-            cursor: 'pointer',
-            borderRadius: 1,
-            '&:hover': {
-              bgcolor: 'action.hover',
-            },
-            bgcolor: currentNode?.id === node.id ? 'action.selected' : 'transparent',
-          }}
-          onClick={() => handleNodeClick(node)}
-        >
-          {node.type === 'FOLDER' ? (
-            <FolderOpenIcon sx={{ mr: 1, color: 'warning.main' }} />
-          ) : (
-            <DocumentIcon sx={{ mr: 1, color: 'primary.main' }} />
-          )}
-          <Typography sx={{ flexGrow: 1 }}>{node.title}</Typography>
-          <IconButton
-            size="small"
-            onClick={(e) => handleOpenMenu(e, node)}
+    return nodes.map((node) => {
+      const isFolder = node.type === 'FOLDER';
+      const hasChildren = node.children && node.children.length > 0;
+      const isExpanded = expandedFolders.has(node.id);
+
+      return (
+        <Box key={node.id} sx={{ ml: level * 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              p: 1,
+              cursor: 'pointer',
+              borderRadius: 1,
+              '&:hover': {
+                bgcolor: 'action.hover',
+              },
+              bgcolor: currentNode?.id === node.id ? 'action.selected' : 'transparent',
+            }}
           >
-            <MoreVertIcon fontSize="small" />
-          </IconButton>
+            {/* Expand/Collapse Icon for folders with children */}
+            {isFolder && hasChildren ? (
+              <IconButton
+                size="small"
+                onClick={(e) => toggleFolder(node.id, e)}
+                sx={{ mr: 0.5, padding: 0.5 }}
+              >
+                {isExpanded ? (
+                  <ExpandMoreIcon fontSize="small" />
+                ) : (
+                  <ChevronRightIcon fontSize="small" />
+                )}
+              </IconButton>
+            ) : (
+              <Box sx={{ width: 28, mr: 0.5 }} /> // Spacer for alignment
+            )}
+
+            {/* Folder or Document Icon */}
+            <Box onClick={() => handleNodeClick(node)} sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+              {isFolder ? (
+                isExpanded ? (
+                  <FolderOpenIcon sx={{ mr: 1, color: 'warning.main' }} />
+                ) : (
+                  <FolderClosedIcon sx={{ mr: 1, color: 'warning.main' }} />
+                )
+              ) : (
+                <DocumentIcon sx={{ mr: 1, color: 'primary.main' }} />
+              )}
+              <Typography sx={{ flexGrow: 1 }}>{node.title}</Typography>
+            </Box>
+
+            {/* Menu Icon */}
+            <IconButton
+              size="small"
+              onClick={(e) => handleOpenMenu(e, node)}
+            >
+              <MoreVertIcon fontSize="small" />
+            </IconButton>
+          </Box>
+
+          {/* Children (only show if folder is expanded) */}
+          {isFolder && hasChildren && isExpanded && node.children && renderTree(node.children, level + 1)}
         </Box>
-        {node.children && node.children.length > 0 && renderTree(node.children, level + 1)}
-      </Box>
-    ));
+      );
+    });
   };
 
   // Handle document save

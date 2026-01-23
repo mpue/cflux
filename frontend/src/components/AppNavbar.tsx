@@ -98,6 +98,22 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
     setAnchorEl(null);
   };
 
+  const hasAnyAdminModule = (): boolean => {
+    // Liste der Module, die als "Admin/Verwaltungs"-Module gelten
+    // E-Learning und Dashboard zählen NICHT dazu
+    const adminModules = [
+      'users', 'user_groups', 'locations', 'departments',
+      'time_tracking', 'absences', 'projects', 'invoices',
+      'customers', 'suppliers', 'orders', 'articles',
+      'inventory', 'devices', 'cost_centers', 'reminders',
+      'zeitmodelle', 'incidents', 'media', 'intranet'
+    ];
+    
+    return modules.some(module => 
+      adminModules.includes(module.key) && module.permissions?.canView
+    );
+  };
+
   const handleMoreMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setMoreMenuAnchor(event.currentTarget);
   };
@@ -280,7 +296,7 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
               E-Learning
             </MenuItem>
           )}
-          {(user?.role === 'ADMIN' || modules.length > 0) && (
+          {(user?.role === 'ADMIN' || hasAnyAdminModule()) && (
             <>
               <Divider />
               <MenuItem onClick={() => navigateTo('/admin')}>

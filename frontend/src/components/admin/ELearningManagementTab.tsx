@@ -40,6 +40,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import CourseAssignmentManager from '../elearning/CourseAssignmentManager';
 import AnalyticsReports from '../elearning/AnalyticsReports';
+import CourseEditorContent from '../elearning/CourseEditorContent';
 import api from '../../services/api';
 
 interface Course {
@@ -82,6 +83,8 @@ const ELearningManagementTab: React.FC<ELearningManagementTabProps> = ({ onUpdat
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [editorDialogOpen, setEditorDialogOpen] = useState(false);
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCourses();
@@ -238,7 +241,10 @@ const ELearningManagementTab: React.FC<ELearningManagementTabProps> = ({ onUpdat
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => navigate('/elearning/courses/new/edit')}
+              onClick={() => {
+                setEditingCourseId('new');
+                setEditorDialogOpen(true);
+              }}
             >
               Neuer Kurs
             </Button>
@@ -418,7 +424,10 @@ const ELearningManagementTab: React.FC<ELearningManagementTabProps> = ({ onUpdat
                     <IconButton
                       size="small"
                       color="primary"
-                      onClick={() => navigate(`/elearning/courses/${course.id}/edit`)}
+                      onClick={() => {
+                        setEditingCourseId(course.id);
+                        setEditorDialogOpen(true);
+                      }}
                       title="Bearbeiten"
                     >
                       <EditIcon fontSize="small" />
@@ -526,10 +535,49 @@ const ELearningManagementTab: React.FC<ELearningManagementTabProps> = ({ onUpdat
 
       {/* Assignments Tab */}
       {activeTab === 1 && <CourseAssignmentManager />}
-  {/* Analytics & Reports Tab */}
+      
+      {/* Analytics & Reports Tab */}
       {activeTab === 2 && <AnalyticsReports />}
 
-    
+      {/* Course Editor Dialog */}
+      <Dialog
+        open={editorDialogOpen}
+        onClose={() => {
+          setEditorDialogOpen(false);
+          setEditingCourseId(null);
+        }}
+        maxWidth="xl"
+        fullWidth
+        PaperProps={{
+          sx: { height: '90vh' }
+        }}
+      >
+        <DialogTitle>
+          {editingCourseId === 'new' ? 'Neuer Kurs' : 'Kurs bearbeiten'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <CourseEditorContent 
+              courseId={editingCourseId || undefined}
+              onSaveSuccess={() => {
+                loadCourses();
+              }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setEditorDialogOpen(false);
+              setEditingCourseId(null);
+              loadCourses();
+              loadCourses(); // Refresh list after editing
+            }}
+          >
+            Schließen
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

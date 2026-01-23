@@ -139,63 +139,50 @@ export const moduleService = {
       ? user.userGroupMemberships.map(m => m.userGroup.id)
       : [];
 
-    // First, add all public modules (those without ANY group access restrictions in the entire system)
-    for (const module of allActiveModules) {
-      if (module.groupAccess.length === 0) {
-        // Public module - no restrictions at all, accessible to everyone
-        moduleMap.set(module.id, {
-          ...module,
-          permissions: {
-            canView: true,
-            canCreate: true,
-            canEdit: true,
-            canDelete: true,
-          },
-        });
-      }
+    // Wenn User keine Gruppen hat, hat er keinen Zugriff
+    if (userGroupIds.length === 0) {
+      return [];
     }
 
-    // Then, add restricted modules (those with group access restrictions)
-    // Only add if the user belongs to one of the allowed groups
-    if (userGroupIds.length > 0) {
-      for (const module of allActiveModules) {
-        if (module.groupAccess.length > 0) {
-          // This is a restricted module - check if user's groups have access
-          for (const access of module.groupAccess) {
-            if (!access.userGroup.isActive || !access.canView) {
-              continue;
-            }
+    // Add modules where user's groups have access
+    for (const module of allActiveModules) {
+      // Nur Module mit Gruppenzugriff prüfen
+      if (module.groupAccess.length > 0) {
+        // This is a restricted module - check if user's groups have access
+        for (const access of module.groupAccess) {
+          if (!access.userGroup.isActive || !access.canView) {
+            continue;
+          }
 
-            // Check if this access entry is for one of the user's groups
-            if (!userGroupIds.includes(access.userGroup.id)) {
-              continue;
-            }
+          // Check if this access entry is for one of the user's groups
+          if (!userGroupIds.includes(access.userGroup.id)) {
+            continue;
+          }
 
-            const moduleId = module.id;
-            const existingModule = moduleMap.get(moduleId);
+          const moduleId = module.id;
+          const existingModule = moduleMap.get(moduleId);
 
-            if (!existingModule) {
-              // Add new module with its permissions
-              moduleMap.set(moduleId, {
-                ...module,
-                permissions: {
-                  canView: access.canView,
-                  canCreate: access.canCreate,
-                  canEdit: access.canEdit,
-                  canDelete: access.canDelete,
-                },
-              });
-            } else {
-              // Module already exists (from another group) - merge permissions (most permissive wins)
-              existingModule.permissions.canView =
-                existingModule.permissions.canView || access.canView;
-              existingModule.permissions.canCreate =
-                existingModule.permissions.canCreate || access.canCreate;
-              existingModule.permissions.canEdit =
-                existingModule.permissions.canEdit || access.canEdit;
-              existingModule.permissions.canDelete =
-                existingModule.permissions.canDelete || access.canDelete;
-            }
+          if (!existingModule) {
+            // Add new module with its permissions
+            moduleMap.set(moduleId, {
+              ...module,
+              permissions: {
+                canView: access.canView,
+                canCreate: access.canCreate,
+                canEdit: access.canEdit,
+                canDelete: access.canDelete,
+              },
+            });
+          } else {
+            // Module already exists (from another group) - merge permissions (most permissive wins)
+            existingModule.permissions.canView =
+              existingModule.permissions.canView || access.canView;
+            existingModule.permissions.canCreate =
+              existingModule.permissions.canCreate || access.canCreate;
+            existingModule.permissions.canEdit =
+              existingModule.permissions.canEdit || access.canEdit;
+            existingModule.permissions.canDelete =
+              existingModule.permissions.canDelete || access.canDelete;
           }
         }
       }

@@ -151,7 +151,7 @@ export const searchIntranet = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Search query is required' });
     }
 
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to search intranet' });
     }
@@ -364,7 +364,7 @@ export const getSearchSuggestions = async (req: AuthRequest, res: Response) => {
       return res.json([]);
     }
 
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to search intranet' });
     }
@@ -403,3 +403,4 @@ export const getSearchSuggestions = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to get suggestions' });
   }
 };
+

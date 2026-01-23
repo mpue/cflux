@@ -74,7 +74,7 @@ export const getDocumentTree = async (req: AuthRequest, res: Response) => {
     const userId = req.user!.id;
 
     // Check if user has INTRANET_READ permission
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
@@ -151,7 +151,7 @@ export const getDocumentNodeById = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.id;
 
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
@@ -237,7 +237,7 @@ export const getDocumentContent = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.id;
 
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
@@ -278,7 +278,7 @@ export const getBreadcrumb = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.id;
 
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
@@ -320,7 +320,7 @@ export const createDocumentNode = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
 
-    const hasWritePermission = await checkModulePermission(userId, 'INTRANET', 'WRITE');
+    const hasWritePermission = await checkModulePermission(userId, 'intranet', 'WRITE');
     if (!hasWritePermission) {
       return res.status(403).json({ error: 'No permission to create intranet documents' });
     }
@@ -427,7 +427,7 @@ export const updateDocumentNode = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.id;
 
-    const hasWritePermission = await checkModulePermission(userId, 'INTRANET', 'WRITE');
+    const hasWritePermission = await checkModulePermission(userId, 'intranet', 'WRITE');
     if (!hasWritePermission) {
       return res.status(403).json({ error: 'No permission to update intranet documents' });
     }
@@ -539,7 +539,7 @@ export const deleteDocumentNode = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.id;
 
-    const hasWritePermission = await checkModulePermission(userId, 'INTRANET', 'WRITE');
+    const hasWritePermission = await checkModulePermission(userId, 'intranet', 'WRITE');
     if (!hasWritePermission) {
       return res.status(403).json({ error: 'No permission to delete intranet documents' });
     }
@@ -600,7 +600,7 @@ export const moveDocumentNode = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.id;
 
-    const hasWritePermission = await checkModulePermission(userId, 'INTRANET', 'WRITE');
+    const hasWritePermission = await checkModulePermission(userId, 'intranet', 'WRITE');
     if (!hasWritePermission) {
       return res.status(403).json({ error: 'No permission to move intranet documents' });
     }
@@ -702,7 +702,7 @@ export const getVersionHistory = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.id;
 
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
@@ -749,7 +749,7 @@ export const getVersionContent = async (req: AuthRequest, res: Response) => {
     const { id, versionId } = req.params;
     const userId = req.user!.id;
 
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
@@ -790,7 +790,7 @@ export const restoreVersion = async (req: AuthRequest, res: Response) => {
     const { id, versionId } = req.params;
     const userId = req.user!.id;
 
-    const hasWritePermission = await checkModulePermission(userId, 'INTRANET', 'WRITE');
+    const hasWritePermission = await checkModulePermission(userId, 'intranet', 'WRITE');
     if (!hasWritePermission) {
       return res.status(403).json({ error: 'No permission to restore intranet document versions' });
     }
@@ -867,7 +867,7 @@ export const getGroupPermissions = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.id;
 
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
@@ -900,7 +900,7 @@ export const setGroupPermissions = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const userId = req.user!.id;
 
-    const hasWritePermission = await checkModulePermission(userId, 'INTRANET', 'WRITE');
+    const hasWritePermission = await checkModulePermission(userId, 'intranet', 'WRITE');
     if (!hasWritePermission) {
       return res.status(403).json({ error: 'No permission to manage intranet permissions' });
     }
@@ -1424,3 +1424,4 @@ export const getPendingApprovals = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to get pending approvals' });
   }
 };
+

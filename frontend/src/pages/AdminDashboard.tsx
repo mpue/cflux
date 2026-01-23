@@ -171,10 +171,24 @@ const AdminDashboard: React.FC = () => {
       navigate('/login');
       return;
     }
-    // Zusätzliche Sicherheitsebene - prüfe ob der User überhaupt Zugriff haben sollte
-    if (user.role !== 'ADMIN' && !hasModuleAccess('users') && !hasModuleAccess('projects')) {
-      alert('Sie haben keine Berechtigung für diesen Bereich.');
-      navigate('/');
+    
+    // Prüfe ob User Admin ist oder mindestens ein Admin-Modul hat
+    if (user.role !== 'ADMIN') {
+      const adminModules = [
+        'users', 'user_groups', 'locations', 'departments',
+        'time_tracking', 'absences', 'projects', 'invoices',
+        'customers', 'suppliers', 'orders', 'articles',
+        'inventory', 'devices', 'cost_centers', 'reminders',
+        'zeitmodelle', 'incidents', 'media', 'intranet'
+      ];
+      
+      const hasAnyAdminAccess = adminModules.some(moduleKey => hasModuleAccess(moduleKey));
+      
+      if (!hasAnyAdminAccess) {
+        alert('Sie haben keine Berechtigung für diesen Bereich.');
+        navigate('/');
+        return;
+      }
     }
   }, [user, navigate, hasModuleAccess]);
 

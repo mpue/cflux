@@ -51,7 +51,7 @@ export const getNodeAttachments = async (req: AuthRequest, res: Response) => {
     const { nodeId } = req.params;
     const userId = req.user!.id;
 
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
@@ -118,7 +118,7 @@ export const uploadAttachment = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const hasWritePermission = await checkModulePermission(userId, 'INTRANET', 'WRITE');
+    const hasWritePermission = await checkModulePermission(userId, 'intranet', 'WRITE');
     if (!hasWritePermission) {
       return res.status(403).json({ error: 'No permission to upload attachments' });
     }
@@ -223,7 +223,7 @@ export const updateAttachment = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const hasWritePermission = await checkModulePermission(userId, 'INTRANET', 'WRITE');
+    const hasWritePermission = await checkModulePermission(userId, 'intranet', 'WRITE');
     if (!hasWritePermission) {
       fs.unlinkSync(file.path);
       return res.status(403).json({ error: 'No permission to update attachments' });
@@ -338,7 +338,7 @@ export const deleteAttachment = async (req: AuthRequest, res: Response) => {
     const { attachmentId } = req.params;
     const userId = req.user!.id;
 
-    const hasWritePermission = await checkModulePermission(userId, 'INTRANET', 'WRITE');
+    const hasWritePermission = await checkModulePermission(userId, 'intranet', 'WRITE');
     if (!hasWritePermission) {
       return res.status(403).json({ error: 'No permission to delete attachments' });
     }
@@ -387,7 +387,7 @@ export const downloadAttachment = async (req: AuthRequest, res: Response) => {
     const { attachmentId } = req.params;
     const userId = req.user!.id;
 
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
@@ -426,7 +426,7 @@ export const getAttachmentVersions = async (req: AuthRequest, res: Response) => 
     const { attachmentId } = req.params;
     const userId = req.user!.id;
 
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
@@ -475,7 +475,7 @@ export const downloadAttachmentVersion = async (req: AuthRequest, res: Response)
     const { versionId } = req.params;
     const userId = req.user!.id;
 
-    const hasReadPermission = await checkModulePermission(userId, 'INTRANET', 'READ');
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
@@ -520,7 +520,7 @@ export const updateAttachmentMetadata = async (req: AuthRequest, res: Response) 
     const userId = req.user!.id;
     const { description } = req.body;
 
-    const hasWritePermission = await checkModulePermission(userId, 'INTRANET', 'WRITE');
+    const hasWritePermission = await checkModulePermission(userId, 'intranet', 'WRITE');
     if (!hasWritePermission) {
       return res.status(403).json({ error: 'No permission to update attachments' });
     }
@@ -577,3 +577,4 @@ export const updateAttachmentMetadata = async (req: AuthRequest, res: Response) 
     res.status(500).json({ error: 'Failed to update attachment metadata' });
   }
 };
+
