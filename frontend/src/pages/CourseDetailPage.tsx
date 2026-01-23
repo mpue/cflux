@@ -139,6 +139,29 @@ const CourseDetailPage: React.FC = () => {
     }
   };
 
+  const handleDownloadCertificate = async () => {
+    if (!enrollment) return;
+
+    try {
+      const response = await api.get(`/elearning/certificates/${enrollment.id}/download`, {
+        responseType: 'blob',
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Zertifikat - ${course?.title || 'Kurs'}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Error downloading certificate:', err);
+      setError('Fehler beim Herunterladen des Zertifikats');
+    }
+  };
+
   const handleEnroll = async () => {
     try {
       setLoading(true);
@@ -526,7 +549,7 @@ const CourseDetailPage: React.FC = () => {
                             size="small"
                             startIcon={<CompleteIcon />}
                             sx={{ mt: 1 }}
-                            onClick={() => window.open(enrollment.certificateUrl, '_blank')}
+                            onClick={handleDownloadCertificate}
                           >
                             Zertifikat herunterladen
                           </Button>
