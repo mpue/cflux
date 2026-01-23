@@ -2,8 +2,43 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { requireModuleAccess } from '../middleware/moduleAccess';
 import * as elearningController from '../controllers/elearning.controller';
+import {
+  uploadThumbnail,
+  uploadContentImage,
+  uploadCourseThumbnail,
+  uploadLessonContentImage,
+  deleteElearningUpload,
+} from '../controllers/elearning-upload.controller';
 
 const router = Router();
+
+// ==================== UPLOADS ====================
+
+// Upload course thumbnail
+router.post(
+  '/upload/thumbnail',
+  authenticate,
+  requireModuleAccess('elearning', 'canCreate'),
+  uploadThumbnail.single('thumbnail'),
+  uploadCourseThumbnail
+);
+
+// Upload lesson content image
+router.post(
+  '/upload/content-image',
+  authenticate,
+  requireModuleAccess('elearning', 'canCreate'),
+  uploadContentImage.single('image'),
+  uploadLessonContentImage
+);
+
+// Delete uploaded file
+router.delete(
+  '/upload/:type/:filename',
+  authenticate,
+  requireModuleAccess('elearning', 'canDelete'),
+  deleteElearningUpload
+);
 
 // ==================== COURSES ====================
 

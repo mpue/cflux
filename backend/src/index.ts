@@ -71,6 +71,9 @@ app.use(express.json({ limit: '10mb' }));
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads/course-thumbnails', express.static(path.join(__dirname, '../uploads/course-thumbnails')));
+app.use('/uploads/course-content', express.static(path.join(__dirname, '../uploads/course-content')));
+app.use('/uploads/certificates', express.static(path.join(__dirname, '../uploads/certificates')));
 
 // Routes
 app.use('/api/auth', authRoutes);

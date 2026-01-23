@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Button,
@@ -20,6 +20,7 @@ import {
   ListItemSecondaryAction,
   Chip,
   Divider,
+  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -33,8 +34,10 @@ import {
   Link as LinkIcon,
   ArrowUpward as UpIcon,
   ArrowDownward as DownIcon,
+  Image as ImageIcon,
+  CloudUpload as UploadIcon,
 } from '@mui/icons-material';
-import api from '../../services/api';
+import api, { getBackendURL } from '../../services/api';
 
 interface Lesson {
   id: string;
@@ -69,6 +72,8 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
   const [videoUrl, setVideoUrl] = useState('');
   const [duration, setDuration] = useState<number | ''>('');
   const [isOptional, setIsOptional] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadLessons();
@@ -198,6 +203,59 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
     } catch (err: any) {
       console.error('Error reordering lessons:', err);
       loadLessons(); // Reload on error
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Bitte wählen Sie eine Bilddatei aus');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Das Bild darf maximal 10MB groß sein');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+      setError(null);
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await api.post('/elearning/upload/content-image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      // Insert image URL at cursor position in content
+      const imageUrl = response.data.url;
+      const fullImageUrl = `${getBackendURL()}${imageUrl}`;
+      const imageMarkdown = `<img src="${fullImageUrl}" alt="Bild" style="max-width: 100%; height: auto;" />`;
+      
+      // Insert at cursor or append
+      const textarea = document.querySelector('textarea[label="HTML-Inhalt"]') as HTMLTextAreaElement;
+      if (textarea) {
+        const startPos = textarea.selectionStart;
+        const endPos = textarea.selectionEnd;
+        const newContent = content.substring(0, startPos) + imageMarkdown + content.substring(endPos);
+        setContent(newContent);
+      } else {
+        setContent(content + '\n' + imageMarkdown);
+      }
+    } catch (err: any) {
+      console.error('Error uploading image:', err);
+      setError(err.response?.data?.error || 'Fehler beim Hochladen des Bildes');
+    } finally {
+      setUploadingImage(false);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
     }
   };
 
@@ -391,19 +449,52 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
 
             {(contentType === 'HTML' || contentType === 'EXTERNAL_LINK') && (
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={6}
-                  label={contentType === 'HTML' ? 'HTML-Inhalt' : 'Link-URL'}
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder={
-                    contentType === 'HTML'
-                      ? '<p>Inhalt hier eingeben...</p>'
-                      : 'https://...'
-                  }
-                />
+                <Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="body2" color="textSecondary">
+                      {contentType === 'HTML' ? 'HTML-Inhalt' : 'Link-URL'}
+                    </Typography>
+                    {contentType === 'HTML' && (
+                      <>
+                        <input
+                          ref={imageInputRef}
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={handleImageUpload}
+                        />
+                        <Tooltip title="Bild hochladen und einfügen">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={uploadingImage ? <UploadIcon /> : <ImageIcon />}
+                            onClick={() => imageInputRef.current?.click()}
+                            disabled={uploadingImage}
+                          >
+                            Bild einfügen
+                          </Button>
+                        </Tooltip>
+                      </>
+                    )}
+                  </Box>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={8}
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder={
+                      contentType === 'HTML'
+                        ? '<p>Inhalt hier eingeben...</p>\n\nSie können auch Bilder hochladen und einfügen.'
+                        : 'https://...'
+                    }
+                  />
+                  {contentType === 'HTML' && (
+                    <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
+                      Tipp: HTML-Tags werden unterstützt. Bilder können über den Button hochgeladen werden.
+                    </Typography>
+                  )}
+                </Box>
               </Grid>
             )}
 

@@ -20,7 +20,25 @@ const getBaseURL = () => {
 // Export function to get backend URL for static resources
 export const getBackendURL = () => {
   const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
-  return electronBackendUrl || process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:3001';
+  
+  // If we have an electron URL, use it
+  if (electronBackendUrl) {
+    return electronBackendUrl;
+  }
+  
+  // If REACT_APP_API_URL is set, extract base URL without /api
+  if (process.env.REACT_APP_API_URL && process.env.REACT_APP_API_URL !== '/api') {
+    return process.env.REACT_APP_API_URL.replace('/api', '');
+  }
+  
+  // Default: try to determine from window location
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname } = window.location;
+    // Frontend runs on 3002, backend on 3001
+    return `${protocol}//${hostname}:3001`;
+  }
+  
+  return 'http://localhost:3001';
 };
 
 // Normalize upload URLs to always point to the correct backend

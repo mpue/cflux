@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Container,
   Card,
@@ -17,13 +17,16 @@ import {
   Autocomplete,
   Tabs,
   Tab,
+  IconButton,
+  CardMedia,
 } from '@mui/material';
+import { CloudUpload as UploadIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppNavbar from '../components/AppNavbar';
 import LessonEditor from '../components/elearning/LessonEditor';
 import QuizBuilder from '../components/elearning/QuizBuilder';
-import api from '../services/api';
+import api, { getBackendURL } from '../services/api';
 
 interface Category {
   id: string;
@@ -57,6 +60,8 @@ const CourseEditorPage: React.FC = () => {
   const [isComplianceCourse, setIsComplianceCourse] = useState(false);
   const [ehsRelevant, setEhsRelevant] = useState(false);
   const [renewalMonths, setRenewalMonths] = useState<number | ''>('');
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadCategories();
@@ -154,6 +159,63 @@ const CourseEditorPage: React.FC = () => {
       setError(err.response?.data?.error || 'Fehler beim Speichern des Kurses');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleThumbnailUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Bitte wählen Sie eine Bilddatei aus');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Das Bild darf maximal 5MB groß sein');
+      return;
+    }
+
+    try {
+      setUploadingThumbnail(true);
+      setError(null);
+
+      const formData = new FormData();
+      formData.append('thumbnail', file);
+
+      const response = await api.post('/elearning/upload/thumbnail', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setThumbnailUrl(response.data.url);
+    } catch (err: any) {
+      console.error('Error uploading thumbnail:', err);
+      setError(err.response?.data?.error || 'Fehler beim Hochladen des Thumbnails');
+    } finally {
+      setUploadingThumbnail(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDeleteThumbnail = async () => {
+    if (!thumbnailUrl) return;
+
+    try {
+      const filename = thumbnailUrl.split('/').pop();
+      if (filename && filename.startsWith('thumbnail-')) {
+        await api.delete(`/elearning/upload/thumbnail/${filename}`);
+      }
+      setThumbnailUrl('');
+    } catch (err: any) {
+      console.error('Error deleting thumbnail:', err);
+      // Don't show error to user, just clear the URL
+      setThumbnailUrl('');
     }
   };
 
@@ -367,13 +429,63 @@ const CourseEditorPage: React.FC = () => {
                 </Grid>
 
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Thumbnail-URL"
-                    value={thumbnailUrl}
-                    onChange={(e) => setThumbnailUrl(e.target.value)}
-                    placeholder="https://..."
-                  />
+                  <Box>
+                    <Typography variant="body2" color="textSecondary" gutterBottom>
+                      Kurs-Thumbnail
+                    </Typography>
+                    
+                    {thumbnailUrl && (
+                      <Box sx={{ mb: 2, position: 'relative', maxWidth: 400 }}>
+                        <CardMedia
+                          component="img"
+                          image={thumbnailUrl.startsWith('http') ? thumbnailUrl : `${getBackendURL()}${thumbnailUrl}`}
+                          alt="Kurs-Thumbnail"
+                          sx={{ 
+                            borderRadius: 1, 
+                            maxHeight: 200,
+                            objectFit: 'cover',
+                            border: '1px solid',
+                            borderColor: 'divider'
+                          }}
+                        />
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={handleDeleteThumbnail}
+                          sx={{ 
+                            position: 'absolute', 
+                            top: 8, 
+                            right: 8,
+                            backgroundColor: 'background.paper',
+                            '&:hover': { backgroundColor: 'error.light' }
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    )}
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleThumbnailUpload}
+                    />
+                    
+                    <Button
+                      variant="outlined"
+                      startIcon={uploadingThumbnail ? <CircularProgress size={20} /> : <UploadIcon />}
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingThumbnail}
+                    >
+                      {thumbnailUrl ? 'Thumbnail ändern' : 'Thumbnail hochladen'}
+                    </Button>
+                    
+                    <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
+                      Empfohlene Größe: 800x450px (16:9). Max. 5MB. Formate: JPG, PNG, GIF, WebP, SVG
+                    </Typography>
+                  </Box>
                 </Grid>
 
                 {/* Compliance & EHS */}

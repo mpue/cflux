@@ -26,7 +26,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppNavbar from '../components/AppNavbar';
 import MyAssignedCourses from '../components/elearning/MyAssignedCourses';
-import api from '../services/api';
+import api, { getBackendURL } from '../services/api';
 
 interface Course {
   id: string;
@@ -296,7 +296,7 @@ const ELearningPage: React.FC = () => {
               {course.thumbnailUrl && (
                 <Box
                   component="img"
-                  src={course.thumbnailUrl}
+                  src={course.thumbnailUrl.startsWith('http') ? course.thumbnailUrl : `${getBackendURL()}${course.thumbnailUrl}`}
                   alt={course.title}
                   sx={{
                     height: 180,
