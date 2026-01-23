@@ -294,7 +294,56 @@ const CourseDetailPage: React.FC = () => {
       case 'HTML':
         return (
           <Box
-            sx={{ p: 2 }}
+            sx={{ 
+              p: 2,
+              '& p': {
+                marginBottom: 2,
+                lineHeight: 1.6,
+              },
+              '& h1, & h2, & h3, & h4, & h5, & h6': {
+                marginTop: 3,
+                marginBottom: 2,
+                lineHeight: 1.4,
+              },
+              '& ul, & ol': {
+                marginBottom: 2,
+                paddingLeft: 3,
+              },
+              '& li': {
+                marginBottom: 1,
+                lineHeight: 1.6,
+              },
+              '& blockquote': {
+                marginLeft: 2,
+                marginRight: 2,
+                marginBottom: 2,
+                paddingLeft: 2,
+                borderLeft: '4px solid',
+                borderColor: 'divider',
+              },
+              '& pre': {
+                marginBottom: 2,
+                padding: 2,
+                backgroundColor: 'grey.100',
+                borderRadius: 1,
+                overflow: 'auto',
+              },
+              '& img': {
+                maxWidth: '100%',
+                height: 'auto',
+                marginBottom: 2,
+              },
+              '& table': {
+                marginBottom: 2,
+                borderCollapse: 'collapse',
+                width: '100%',
+              },
+              '& th, & td': {
+                border: '1px solid',
+                borderColor: 'divider',
+                padding: 1,
+              },
+            }}
             dangerouslySetInnerHTML={{ __html: selectedLesson.content || '<p>Kein Inhalt</p>' }}
           />
         );
