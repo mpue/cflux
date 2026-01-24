@@ -47,22 +47,41 @@ router.post('/register', applicantController.registerApplicant);
 // Verify email (public)
 router.get('/verify/:token', applicantController.verifyEmail);
 
+// Login for applicants (public - simplified auth)
+router.post('/login', applicantController.loginApplicant);
+
+// Get single applicant by ID (public - for applicant portal)
+router.get('/:id', applicantController.getApplicantById);
+
+// Manual email verification (admin only)
+router.post(
+  '/:id/verify-manual',
+  authenticate,
+  requireModuleAccess('onboarding', 'canEdit'),
+  applicantController.verifyEmailManual
+);
+
+// Upload document (public for applicants self-service)
+router.post(
+  '/:id/documents',
+  upload.single('file'),
+  applicantController.uploadDocument
+);
+
+// Delete document (public for applicants self-service)
+router.delete(
+  '/:applicantId/documents/:documentId',
+  applicantController.deleteApplicantDocument
+);
+
 // ==================== APPLICANTS (HR Access) ====================
 
-// Get all applicants
+// Get all applicants (HR only)
 router.get(
-  '/applicants',
+  '/admin/applicants',
   authenticate,
   requireModuleAccess('onboarding', 'canView'),
   applicantController.getAllApplicants
-);
-
-// Get single applicant
-router.get(
-  '/applicants/:id',
-  authenticate,
-  requireModuleAccess('onboarding', 'canView'),
-  applicantController.getApplicantById
 );
 
 // Update applicant status
@@ -73,38 +92,7 @@ router.patch(
   applicantController.updateApplicantStatus
 );
 
-// ==================== DOCUMENTS ====================
-
-// Upload document (public for applicants, authenticated for HR)
-router.post(
-  '/applicants/:id/documents',
-  upload.single('file'),
-  applicantController.uploadDocument
-);
-
-// Get applicant documents
-router.get(
-  '/applicants/:id/documents',
-  authenticate,
-  requireModuleAccess('onboarding', 'canView'),
-  applicantController.getApplicantDocuments
-);
-
-// Delete document
-router.delete(
-  '/documents/:documentId',
-  authenticate,
-  requireModuleAccess('onboarding', 'canDelete'),
-  applicantController.deleteDocument
-);
-
-// Check required documents
-router.get(
-  '/applicants/:id/documents/check',
-  applicantController.checkRequiredDocuments
-);
-
-// ==================== INTERVIEWS ====================
+// ==================== INTERVIEWS (HR Access) ====================
 
 // Schedule interview
 router.post(

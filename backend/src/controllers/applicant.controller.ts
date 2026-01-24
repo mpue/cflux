@@ -25,6 +25,48 @@ export async function verifyEmail(req: Request, res: Response) {
   }
 }
 
+export async function verifyEmailManual(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const applicant = await applicantService.verifyApplicantEmailManual(id);
+    res.json({ message: 'Email manuell verifiziert', applicant });
+  } catch (error: any) {
+    console.error('Error manually verifying email:', error);
+    res.status(500).json({ error: 'Manual verification failed', details: error.message });
+  }
+}
+
+export async function loginApplicant(req: Request, res: Response) {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'E-Mail-Adresse erforderlich' });
+    }
+
+    const applicant = await applicantService.getApplicantByEmail(email);
+    
+    if (!applicant) {
+      return res.status(404).json({ error: 'Bewerber nicht gefunden' });
+    }
+
+    if (!applicant.emailVerified) {
+      return res.status(403).json({ error: 'E-Mail-Adresse noch nicht verifiziert' });
+    }
+
+    res.json({
+      id: applicant.id,
+      email: applicant.email,
+      firstName: applicant.firstName,
+      lastName: applicant.lastName,
+      status: applicant.status,
+    });
+  } catch (error: any) {
+    console.error('Error logging in applicant:', error);
+    res.status(500).json({ error: 'Anmeldung fehlgeschlagen', details: error.message });
+  }
+}
+
 export async function getAllApplicants(req: Request, res: Response) {
   try {
     const { status, position } = req.query;
@@ -77,12 +119,13 @@ export async function uploadDocument(req: Request, res: Response) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { applicantId, documentType } = req.body;
+    const { id } = req.params;  // applicantId from URL
+    const { documentType } = req.body;
 
     const document = await applicantService.uploadApplicantDocument({
-      applicantId,
+      applicantId: id,
       documentType,
-      fileName: req.file.originalname,
+      fileName: req.file.filename,
       filePath: req.file.path,
       fileSize: req.file.size,
       mimeType: req.file.mimetype,
@@ -109,6 +152,24 @@ export async function getApplicantDocuments(req: Request, res: Response) {
 export async function deleteDocument(req: Request, res: Response) {
   try {
     const { documentId } = req.params;
+    await applicantService.deleteApplicantDocument(documentId);
+    res.json({ message: 'Document deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting document:', error);
+    res.status(500).json({ error: 'Failed to delete document', details: error.message });
+  }
+}
+
+export async function deleteApplicantDocument(req: Request, res: Response) {
+  try {
+    const { applicantId, documentId } = req.params;
+    
+    // Verify document belongs to applicant
+    const document = await applicantService.getDocumentById(documentId);
+    if (!document || document.applicantId !== applicantId) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    
     await applicantService.deleteApplicantDocument(documentId);
     res.json({ message: 'Document deleted successfully' });
   } catch (error: any) {

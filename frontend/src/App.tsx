@@ -34,6 +34,11 @@ import CourseEditorPage from './pages/CourseEditorPage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import ApplicantsPage from './pages/ApplicantsPage';
 import OnboardingDashboardPage from './pages/OnboardingDashboardPage';
+import ApplicantRegisterPage from './pages/ApplicantRegisterPage';
+import ApplicantLoginPage from './pages/ApplicantLoginPage';
+import ApplicantVerifyEmailPage from './pages/ApplicantVerifyEmailPage';
+import ApplicantPortalPage from './pages/ApplicantPortalPage';
+import LandingPage from './pages/LandingPage';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
@@ -73,8 +78,17 @@ function App() {
         <ModuleProvider>
           <Router>
             <Routes>
+              {/* Public Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              
+              {/* Applicant Public Routes */}
+              <Route path="/applicant/register" element={<ApplicantRegisterPage />} />
+              <Route path="/applicant/login" element={<ApplicantLoginPage />} />
+              <Route path="/applicant/verify-email" element={<ApplicantVerifyEmailPage />} />
+              <Route path="/applicant/portal" element={<ApplicantPortalPage />} />
+              
+              {/* Protected Routes */}
             <Route
               path="/dashboard"
               element={
@@ -299,7 +313,9 @@ function App() {
                 </PrivateRoute>
               }
             />
-            <Route path="/" element={<Navigate to="/dashboard" />} />
+            {/* Root Route - Landing Page */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Router>
       </ModuleProvider>

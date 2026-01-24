@@ -61,7 +61,15 @@ export async function verifyApplicantEmail(token: string) {
     },
   });
 }
-
+export async function verifyApplicantEmailManual(applicantId: string) {
+  return prisma.applicant.update({
+    where: { id: applicantId },
+    data: {
+      emailVerified: true,
+      verificationToken: null,
+    },
+  });
+}
 export async function getAllApplicants(filters?: {
   status?: ApplicantStatus;
   position?: string;
@@ -118,6 +126,20 @@ export async function getApplicantById(applicantId: string) {
   });
 }
 
+export async function getApplicantByEmail(email: string) {
+  return prisma.applicant.findUnique({
+    where: { email },
+    include: {
+      documents: {
+        orderBy: { uploadedAt: 'desc' },
+      },
+      interviews: {
+        orderBy: { scheduledAt: 'desc' },
+      },
+    },
+  });
+}
+
 export async function updateApplicantStatus(applicantId: string, status: ApplicantStatus) {
   const applicant = await prisma.applicant.update({
     where: { id: applicantId },
@@ -154,6 +176,12 @@ export async function getApplicantDocuments(applicantId: string) {
 
 export async function deleteApplicantDocument(documentId: string) {
   return prisma.applicantDocument.delete({
+    where: { id: documentId },
+  });
+}
+
+export async function getDocumentById(documentId: string) {
+  return prisma.applicantDocument.findUnique({
     where: { id: documentId },
   });
 }
