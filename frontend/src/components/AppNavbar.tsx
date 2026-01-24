@@ -296,6 +296,12 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
               E-Learning
             </MenuItem>
           )}
+          {hasModuleAccess('onboarding') && (
+            <MenuItem onClick={() => navigateTo('/admin/onboarding')}>
+              <Box component="span" sx={{ mr: 1 }}>👤</Box>
+              Onboarding
+            </MenuItem>
+          )}
           {(user?.role === 'ADMIN' || hasAnyAdminModule()) && (
             <>
               <Divider />

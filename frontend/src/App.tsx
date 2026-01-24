@@ -32,6 +32,8 @@ import ProjectPlanningPage from './pages/ProjectPlanningPage';
 import ELearningPage from './pages/ELearningPage';
 import CourseEditorPage from './pages/CourseEditorPage';
 import CourseDetailPage from './pages/CourseDetailPage';
+import ApplicantsPage from './pages/ApplicantsPage';
+import OnboardingDashboardPage from './pages/OnboardingDashboardPage';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
@@ -278,6 +280,22 @@ function App() {
               element={
                 <PrivateRoute>
                   <CourseDetailPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/onboarding"
+              element={
+                <PrivateRoute adminOnly>
+                  <OnboardingDashboardPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/onboarding/applicants"
+              element={
+                <PrivateRoute adminOnly>
+                  <ApplicantsPage />
                 </PrivateRoute>
               }
             />

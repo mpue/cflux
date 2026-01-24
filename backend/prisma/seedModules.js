@@ -226,6 +226,22 @@ function seedModules() {
                             route: '/project-planning',
                             sortOrder: 21,
                         },
+                        {
+                            name: 'E-Learning',
+                            key: 'elearning',
+                            description: 'Schulungsmanagement und Online-Kurse',
+                            icon: 'school',
+                            route: '/elearning',
+                            sortOrder: 22,
+                        },
+                        {
+                            name: 'Onboarding',
+                            key: 'onboarding',
+                            description: 'Bewerberverwaltung und Mitarbeiter-Onboarding',
+                            icon: 'person_add',
+                            route: '/onboarding',
+                            sortOrder: 23,
+                        },
                     ];
                     _i = 0, modules_1 = modules;
                     _a.label = 1;

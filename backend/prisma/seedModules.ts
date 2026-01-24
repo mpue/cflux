@@ -193,6 +193,14 @@ async function seedModules() {
       route: '/elearning',
       sortOrder: 22,
     },
+    {
+      name: 'Onboarding',
+      key: 'onboarding',
+      description: 'Bewerberverwaltung und Mitarbeiter-Onboarding',
+      icon: 'person_add',
+      route: '/onboarding',
+      sortOrder: 23,
+    },
   ];
 
   for (const module of modules) {

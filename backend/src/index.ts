@@ -43,6 +43,9 @@ import projectReportsRoutes from './routes/projectReports.routes';
 import dashboardLayoutRoutes from './routes/dashboardLayout.routes';
 import zeitmodellRoutes from './routes/zeitmodell.routes';
 import elearningRoutes from './routes/elearning.routes';
+import applicantRoutes from './routes/applicant.routes';
+import onboardingRoutes from './routes/onboarding.routes';
+import equipmentTrainingRoutes from './routes/equipment-training.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -74,6 +77,9 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/uploads/course-thumbnails', express.static(path.join(__dirname, '../uploads/course-thumbnails')));
 app.use('/uploads/course-content', express.static(path.join(__dirname, '../uploads/course-content')));
 app.use('/uploads/certificates', express.static(path.join(__dirname, '../uploads/certificates')));
+app.use('/uploads/applicant-documents', express.static(path.join(__dirname, '../uploads/applicant-documents')));
+app.use('/uploads/employee-documents', express.static(path.join(__dirname, '../uploads/employee-documents')));
+app.use('/uploads/handover-protocols', express.static(path.join(__dirname, '../uploads/handover-protocols')));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -117,6 +123,9 @@ app.use('/api/project-reports', projectReportsRoutes);
 app.use('/api/dashboard-layout', dashboardLayoutRoutes);
 app.use('/api/zeitmodelle', zeitmodellRoutes);
 app.use('/api/elearning', elearningRoutes);
+app.use('/api/applicants', applicantRoutes);
+app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/equipment-training', equipmentTrainingRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

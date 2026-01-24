@@ -12,7 +12,8 @@ export type WidgetType =
   | 'notes'
   | 'weather'
   | 'payroll'
-  | 'bauhaus-clock';
+  | 'bauhaus-clock'
+  | 'onboarding';
 
 export interface DashboardWidget {
   id: string;
@@ -170,5 +171,15 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     minH: 2,
     defaultW: 3,
     defaultH: 3,
+  },
+  {
+    id: 'onboarding',
+    type: 'onboarding',
+    title: '👤 Mein Onboarding',
+    isVisible: false,
+    minW: 4,
+    minH: 3,
+    defaultW: 6,
+    defaultH: 4,
   },
 ];

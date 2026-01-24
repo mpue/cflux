@@ -35,6 +35,7 @@ import {
   WidgetSettingsModal,
   AddWidgetModal,
 } from '../components/DashboardWidgets';
+import OnboardingWidget from '../components/DashboardWidgets/OnboardingWidget';
 import '../components/DashboardWidgets/DashboardWidgets.css';
 import '../App.css';
 
@@ -567,6 +568,13 @@ const Dashboard: React.FC = () => {
                 return (
                   <div key={widget.id}>
                     <BauhausClockWidget onRemove={() => removeWidget(widget.id)} />
+                  </div>
+                );
+              
+              case 'onboarding':
+                return (
+                  <div key={widget.id}>
+                    <OnboardingWidget employeeId={user?.id} />
                   </div>
                 );
               

@@ -187,6 +187,16 @@ model User {
   updatedCourses  Course[] @relation("CourseUpdatedBy")
   courseAssignments CourseAssignment[] @relation("CourseAssignmentsCreated")
   
+  // Onboarding
+  employeeProfile Employee?
+  supervisedEmployees Employee[] @relation("SupervisedEmployees")
+  applicantNotes  ApplicantNote[]
+  uploadedEmployeeDocuments EmployeeDocument[]
+  assignedOnboardingTasks OnboardingTask[] @relation("AssignedOnboardingTasks")
+  completedOnboardingTasks OnboardingTask[] @relation("CompletedOnboardingTasks")
+  trainingSessions TrainingSession[]
+  equipmentAssignments EquipmentAssignment[]
+  
   @@index([userGroupId])
   @@map("users")
 }
@@ -582,6 +592,18 @@ model ComplianceSettings {
 enum DocumentType {
   INVOICE   // Rechnung
   QUOTE     // Angebot/Offerte
+}
+
+enum OnboardingDocumentType {
+  CV
+  CERTIFICATE
+  COVER_LETTER
+  CONTRACT
+  PRIVACY_POLICY
+  IT_GUIDELINES
+  NDA
+  CONFIDENTIALITY
+  OTHER
 }
 
 enum InvoiceStatus {
@@ -2512,4 +2534,412 @@ model CourseAssignment {
   @@index([assignedById])
   @@index([dueDate])
   @@map("course_assignments")
+}
+
+// ============================================
+// ONBOARDING MODULE (Kapitel 1-3)
+// ============================================
+
+enum ApplicantStatus {
+  NEW
+  IN_REVIEW
+  INTERVIEW_SCHEDULED
+  OFFER
+  HIRED
+  REJECTED
+}
+
+enum DocumentStatus {
+  PENDING
+  UPLOADED
+  SIGNED
+  ARCHIVED
+}
+
+enum InterviewType {
+  PHONE
+  VIDEO_CALL
+  IN_PERSON
+  ASSESSMENT
+  TRIAL_WORK
+}
+
+enum OnboardingTaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+}
+
+enum EquipmentCondition {
+  NEW
+  GOOD
+  FAIR
+  DAMAGED
+}
+
+enum TrainingStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// 1. Pre-Onboarding: Bewerberverwaltung
+model Applicant {
+  id                  String            @id @default(uuid())
+  email               String            @unique
+  firstName           String
+  lastName            String
+  phone               String
+  position            String
+  
+  emailVerified       Boolean           @default(false)
+  verificationToken   String?           @unique
+  
+  status              ApplicantStatus   @default(NEW)
+  appliedAt           DateTime          @default(now())
+  
+  // Wird zu Employee bei Einstellung
+  employeeId          String?           @unique
+  
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  
+  employee            Employee?         @relation(fields: [employeeId], references: [id])
+  documents           ApplicantDocument[]
+  interviews          ApplicantInterview[]
+  notes               ApplicantNote[]
+  
+  @@index([email])
+  @@index([status])
+  @@index([appliedAt])
+  @@map("applicants")
+}
+
+model ApplicantDocument {
+  id              String          @id @default(uuid())
+  applicantId     String
+  
+  documentType    OnboardingDocumentType
+  fileName        String
+  filePath        String
+  fileSize        Int             // in bytes
+  mimeType        String
+  
+  version         Int             @default(1)
+  uploadedAt      DateTime        @default(now())
+  
+  applicant       Applicant       @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  
+  @@index([applicantId])
+  @@index([documentType])
+  @@map("applicant_documents")
+}
+
+model ApplicantInterview {
+  id              String          @id @default(uuid())
+  applicantId     String
+  
+  interviewType   InterviewType
+  scheduledAt     DateTime
+  duration        Int             // in minutes
+  location        String?         // Address or meeting link
+  meetingLink     String?
+  
+  // Teilnehmer
+  interviewerIds  String[]        // Array of User IDs
+  
+  // Dokumentation
+  notes           String?
+  rating          Int?            // 1-5
+  recommendation  String?
+  
+  // Erinnerungen
+  reminderSent    Boolean         @default(false)
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  applicant       Applicant       @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  
+  @@index([applicantId])
+  @@index([scheduledAt])
+  @@map("applicant_interviews")
+}
+
+model ApplicantNote {
+  id              String          @id @default(uuid())
+  applicantId     String
+  authorId        String
+  
+  content         String
+  isInternal      Boolean         @default(true) // Nicht für Bewerber sichtbar
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  applicant       Applicant       @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  author          User            @relation(fields: [authorId], references: [id])
+  
+  @@index([applicantId])
+  @@index([authorId])
+  @@map("applicant_notes")
+}
+
+// 2. Main Onboarding: Mitarbeiterdaten
+model Employee {
+  id                  String            @id @default(uuid())
+  userId              String?           @unique
+  
+  // Personalien (aus Bewerbung übernehmen)
+  firstName           String
+  lastName            String
+  email               String            @unique
+  phone               String?
+  
+  // Adresse
+  street              String?
+  city                String?
+  postalCode          String?
+  country             String?           @default("DE")
+  
+  // Bankverbindung
+  bankName            String?
+  iban                String?
+  bic                 String?
+  
+  // Steuer & Soziales
+  taxId               String?
+  taxClass            String?
+  religion            String?
+  socialSecurityNumber String?
+  healthInsurance     String?
+  
+  // Notfallkontakt
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  emergencyContactRelation String?
+  
+  // Arbeitsverhältnis
+  department          String?
+  position            String?
+  supervisorId        String?
+  startDate           DateTime?
+  probationEndDate    DateTime?
+  
+  // Gehalt (verschlüsselt)
+  salaryEncrypted     String?
+  
+  isActive            Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  
+  user                User?             @relation(fields: [userId], references: [id])
+  supervisor          User?             @relation("SupervisedEmployees", fields: [supervisorId], references: [id])
+  applicant           Applicant?
+  documents           EmployeeDocument[]
+  tasks               OnboardingTask[]
+  equipmentAssignments EquipmentAssignment[]
+  trainingCompletions TrainingCompletion[]
+  
+  @@index([email])
+  @@index([userId])
+  @@index([supervisorId])
+  @@index([startDate])
+  @@map("employees")
+}
+
+model EmployeeDocument {
+  id              String          @id @default(uuid())
+  employeeId      String
+  
+  documentType    OnboardingDocumentType
+  fileName        String
+  filePath        String
+  fileSize        Int
+  mimeType        String
+  
+  status          DocumentStatus  @default(PENDING)
+  signedAt        DateTime?
+  version         Int             @default(1)
+  
+  uploadedAt      DateTime        @default(now())
+  uploadedById    String
+  
+  employee        Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  uploadedBy      User            @relation(fields: [uploadedById], references: [id])
+  
+  @@index([employeeId])
+  @@index([documentType])
+  @@index([status])
+  @@map("employee_documents")
+}
+
+model OnboardingTask {
+  id              String              @id @default(uuid())
+  employeeId      String
+  
+  title           String
+  description     String?
+  category        String              // DOCUMENT, REGISTRATION, IT_SETUP, TRAINING, EQUIPMENT
+  
+  assignedToId    String?
+  dueDate         DateTime?
+  
+  status          OnboardingTaskStatus @default(NOT_STARTED)
+  completedAt     DateTime?
+  completedById   String?
+  
+  // Referenzen
+  referenceNumber String?
+  notes           String?
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  employee        Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  assignedTo      User?               @relation("AssignedOnboardingTasks", fields: [assignedToId], references: [id])
+  completedBy     User?               @relation("CompletedOnboardingTasks", fields: [completedById], references: [id])
+  
+  @@index([employeeId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("onboarding_tasks")
+}
+
+// 3. Post-Onboarding: Schulungen
+model TrainingCatalog {
+  id                  String            @id @default(uuid())
+  
+  title               String
+  description         String?
+  type                String            // COMPANY_INTRO, PRODUCT, COMPLIANCE, SOFTWARE, SAFETY, TECHNICAL
+  
+  // Automatische Zuweisung
+  autoAssignForPositions String[]       // Array of position names
+  daysAfterStart      Int?              // Tage nach Startdatum
+  
+  // Wiederholung
+  isRecurring         Boolean           @default(false)
+  recurringMonths     Int?              // Alle X Monate wiederholen
+  
+  isActive            Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  
+  trainingSessions    TrainingSession[]
+  
+  @@index([isActive])
+  @@map("training_catalog")
+}
+
+model TrainingSession {
+  id              String            @id @default(uuid())
+  catalogId       String
+  
+  scheduledAt     DateTime
+  duration        Int               // in minutes
+  location        String?
+  meetingLink     String?
+  
+  trainerId       String
+  maxParticipants Int?
+  
+  status          TrainingStatus    @default(PLANNED)
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  catalog         TrainingCatalog   @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  trainer         User              @relation(fields: [trainerId], references: [id])
+  completions     TrainingCompletion[]
+  
+  @@index([catalogId])
+  @@index([trainerId])
+  @@index([scheduledAt])
+  @@index([status])
+  @@map("training_sessions")
+}
+
+model TrainingCompletion {
+  id              String            @id @default(uuid())
+  sessionId       String
+  employeeId      String
+  
+  attended        Boolean           @default(false)
+  completedAt     DateTime?
+  certificatePath String?
+  
+  // Nächste Wiederholung (bei recurring)
+  nextDueDate     DateTime?
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  session         TrainingSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  employee        Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  @@unique([sessionId, employeeId])
+  @@index([sessionId])
+  @@index([employeeId])
+  @@map("training_completions")
+}
+
+// 3. Post-Onboarding: Equipment
+model Equipment {
+  id              String            @id @default(uuid())
+  
+  name            String
+  category        String            // HARDWARE, ACCESS_CARD, KEY, VEHICLE, CLOTHING
+  description     String?
+  
+  inventoryNumber String?           @unique
+  serialNumber    String?
+  
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  assignments     EquipmentAssignment[]
+  
+  @@index([category])
+  @@index([inventoryNumber])
+  @@map("equipment")
+}
+
+model EquipmentAssignment {
+  id              String              @id @default(uuid())
+  equipmentId     String
+  employeeId      String
+  
+  assignedAt      DateTime            @default(now())
+  assignedById    String
+  
+  condition       EquipmentCondition  @default(GOOD)
+  notes           String?
+  
+  // Rückgabe
+  returnedAt      DateTime?
+  returnCondition EquipmentCondition?
+  returnNotes     String?
+  
+  // Unterschriften (Pfade zu Dokumenten)
+  signatureEmployeePath String?
+  signatureResponsiblePath String?
+  handoverProtocolPath String?
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  equipment       Equipment           @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  employee        Employee            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  assignedBy      User                @relation(fields: [assignedById], references: [id])
+  
+  @@index([equipmentId])
+  @@index([employeeId])
+  @@index([assignedById])
+  @@index([assignedAt])
+  @@map("equipment_assignments")
 }
