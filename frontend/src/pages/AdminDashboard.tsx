@@ -92,6 +92,7 @@ const AdminDashboard: React.FC = () => {
   const [travelExpenses, setTravelExpenses] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [searchFilter, setSearchFilter] = useState<string>('');
 
   const toggleGroup = (groupName: string) => {
     setCollapsedGroups(prev => {
@@ -109,6 +110,24 @@ const AdminDashboard: React.FC = () => {
   const changeTab = (tab: TabType) => {
     setActiveTab(tab);
     setSearchParams({ tab });
+  };
+
+  // Filterfunktion für Tabs und Gruppen
+  const matchesSearch = (text: string): boolean => {
+    if (!searchFilter) return true;
+    return text.toLowerCase().includes(searchFilter.toLowerCase());
+  };
+
+  const shouldShowGroup = (groupName: string, itemLabels: string[]): { show: boolean; showAll: boolean } => {
+    if (!searchFilter) return { show: true, showAll: true };
+    
+    // Prüfe ob Gruppenname matched
+    const groupMatched = matchesSearch(groupName);
+    if (groupMatched) return { show: true, showAll: true };
+    
+    // Prüfe ob mindestens ein Item matched
+    const itemMatched = itemLabels.some(label => matchesSearch(label));
+    return { show: itemMatched, showAll: false };
   };
 
   // Synchronisiere activeTab mit URL
@@ -382,8 +401,34 @@ const AdminDashboard: React.FC = () => {
 
       <div className="admin-container">
         <div className="admin-card">
-          <div className="tab-navigation">
+          {/* Left sidebar with search and navigation */}
+          <div style={{ display: 'flex', flexDirection: 'column', width: '280px', flexShrink: 0, background: 'var(--bg-secondary)' }}>
+            {/* Search Filter */}
+            <div style={{ padding: '16px 16px 12px 16px', borderBottom: '1px solid var(--border-color)' }}>
+              <input
+                type="text"
+                placeholder="Nach Kategorie oder Modul suchen..."
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  fontSize: '14px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  outline: 'none',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#10b981'}
+                onBlur={(e) => e.target.style.borderColor = '#ddd'}
+              />
+            </div>
+
+            <div className="tab-navigation">
             {/* Benutzerverwaltung */}
+            {(() => {
+              const groupCheck = shouldShowGroup('Benutzer Teams', ['Benutzer', 'Gruppen', 'Standorte']);
+              return groupCheck.show && (
             <div className="tab-group">
               <div 
                 className="tab-group-label" 
@@ -397,21 +442,21 @@ const AdminDashboard: React.FC = () => {
               </div>
               {!collapsedGroups.has('users') && (
                 <>
-                  {(user?.role === 'ADMIN' || hasModuleAccess('users')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('users')) && (groupCheck.showAll || matchesSearch('Benutzer')) && (
                     <TabButton
                       active={activeTab === 'users'}
                       onClick={() => changeTab('users')}
                       label="👥 Benutzer"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('user_groups')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('user_groups')) && (groupCheck.showAll || matchesSearch('Gruppen')) && (
                     <TabButton
                       active={activeTab === 'userGroups'}
                       onClick={() => changeTab('userGroups')}
                       label="👨‍👩‍👧‍👦 Gruppen"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('locations')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('locations')) && (groupCheck.showAll || matchesSearch('Standorte')) && (
                     <TabButton
                       active={activeTab === 'locations'}
                       onClick={() => changeTab('locations')}
@@ -421,8 +466,12 @@ const AdminDashboard: React.FC = () => {
                 </>
               )}
             </div>
+            );})()}
 
             {/* Zeiterfassung & Abwesenheit */}
+            {(() => {
+              const groupCheck = shouldShowGroup('Zeit Abwesenheit', ['Zeiteinträge', 'Abwesenheiten', 'Urlaubsplaner', 'Feiertage']);
+              return groupCheck.show && (
             <div className="tab-group">
               <div 
                 className="tab-group-label" 
@@ -436,28 +485,28 @@ const AdminDashboard: React.FC = () => {
               </div>
               {!collapsedGroups.has('time') && (
                 <>
-                  {(user?.role === 'ADMIN' || hasModuleAccess('time_tracking')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('time_tracking')) && (groupCheck.showAll || matchesSearch('Zeiteinträge')) && (
                     <TabButton
                       active={activeTab === 'timeEntries'}
                       onClick={() => changeTab('timeEntries')}
                       label="⏱️ Zeiteinträge"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('absences')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('absences')) && (groupCheck.showAll || matchesSearch('Abwesenheiten')) && (
                     <TabButton
                       active={activeTab === 'absences'}
                       onClick={() => changeTab('absences')}
                       label="🏖️ Abwesenheiten"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('absences')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('absences')) && (groupCheck.showAll || matchesSearch('Urlaubsplaner')) && (
                     <TabButton
                       active={activeTab === 'vacationPlanner'}
                       onClick={() => changeTab('vacationPlanner')}
                       label="🗓️ Urlaubsplaner"
                     />
                   )}
-                  {user?.role === 'ADMIN' && (
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Feiertage')) && (
                     <TabButton
                       active={activeTab === 'holidays'}
                       onClick={() => changeTab('holidays')}
@@ -467,8 +516,12 @@ const AdminDashboard: React.FC = () => {
                 </>
               )}
             </div>
+            );})()}
 
             {/* Finanzen & Rechnungen */}
+            {(() => {
+              const groupCheck = shouldShowGroup('Finanzen', ['Rechnungen', 'Vorlagen', 'Mahnwesen', 'Reisekosten', 'Lohnabrechnung', 'Zeitmodelle']);
+              return groupCheck.show && (
             <div className="tab-group">
               <div 
                 className="tab-group-label" 
@@ -482,42 +535,42 @@ const AdminDashboard: React.FC = () => {
               </div>
               {!collapsedGroups.has('finance') && (
                 <>
-                  {(user?.role === 'ADMIN' || hasModuleAccess('invoices')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('invoices')) && (groupCheck.showAll || matchesSearch('Rechnungen')) && (
                     <TabButton
                       active={activeTab === 'invoices'}
                       onClick={() => changeTab('invoices')}
                       label="📄 Rechnungen"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('invoices')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('invoices')) && (groupCheck.showAll || matchesSearch('Vorlagen')) && (
                     <TabButton
                       active={activeTab === 'invoiceTemplates'}
                       onClick={() => changeTab('invoiceTemplates')}
                       label="📋 Vorlagen"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('reminders')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('reminders')) && (groupCheck.showAll || matchesSearch('Mahnwesen')) && (
                     <TabButton
                       active={activeTab === 'reminders'}
                       onClick={() => changeTab('reminders')}
                       label="💰 Mahnwesen"
                     />
                   )}
-                  {user?.role === 'ADMIN' && (
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Reisekosten')) && (
                     <TabButton
                       active={activeTab === 'travelExpenses'}
                       onClick={() => changeTab('travelExpenses')}
                       label="✈️ Reisekosten"
                     />
                   )}
-                  {user?.role === 'ADMIN' && (
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Lohnabrechnung')) && (
                     <TabButton
                       active={activeTab === 'payroll'}
                       onClick={() => changeTab('payroll')}
                       label="💵 Lohnabrechnung"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('zeitmodelle')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('zeitmodelle')) && (groupCheck.showAll || matchesSearch('Zeitmodelle')) && (
                     <TabButton
                       active={activeTab === 'zeitmodelle'}
                       onClick={() => changeTab('zeitmodelle')}
@@ -527,8 +580,12 @@ const AdminDashboard: React.FC = () => {
                 </>
               )}
             </div>
+            );})()}
 
             {/* Stammdaten */}
+            {(() => {
+              const groupCheck = shouldShowGroup('Stammdaten', ['Kunden', 'Lieferanten', 'Bestellungen', 'Artikelgruppen', 'Artikel', 'Geräte', 'Kostenstellen', 'Lagerbestand', 'Inventar']);
+              return groupCheck.show && (
             <div className="tab-group">
               <div 
                 className="tab-group-label" 
@@ -542,56 +599,56 @@ const AdminDashboard: React.FC = () => {
               </div>
               {!collapsedGroups.has('master') && (
                 <>
-                  {(user?.role === 'ADMIN' || hasModuleAccess('customers')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('customers')) && (groupCheck.showAll || matchesSearch('Kunden')) && (
                     <TabButton
                       active={activeTab === 'customers'}
                       onClick={() => changeTab('customers')}
                       label="🤝 Kunden"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('suppliers')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('suppliers')) && (groupCheck.showAll || matchesSearch('Lieferanten')) && (
                     <TabButton
                       active={activeTab === 'suppliers'}
                       onClick={() => changeTab('suppliers')}
                       label="🚚 Lieferanten"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('orders')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('orders')) && (groupCheck.showAll || matchesSearch('Bestellungen')) && (
                     <TabButton
                       active={activeTab === 'orders'}
                       onClick={() => changeTab('orders')}
                       label="📦 Bestellungen"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (groupCheck.showAll || matchesSearch('Artikelgruppen')) && (
                     <TabButton
                       active={activeTab === 'articleGroups'}
                       onClick={() => changeTab('articleGroups')}
                       label="📦 Artikelgruppen"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('articles')) && (groupCheck.showAll || matchesSearch('Artikel')) && (
                     <TabButton
                       active={activeTab === 'articles'}
                       onClick={() => changeTab('articles')}
                       label="🏷️ Artikel"
                     />
                   )}
-                  {user?.role === 'ADMIN' && (
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Geräte')) && (
                     <TabButton
                       active={activeTab === 'devices'}
                       onClick={() => changeTab('devices')}
                       label="💻 Geräte"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('cost_centers')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('cost_centers')) && (groupCheck.showAll || matchesSearch('Kostenstellen')) && (
                     <TabButton
                       active={activeTab === 'costCenters'}
                       onClick={() => changeTab('costCenters')}
                       label="💰 Kostenstellen"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('inventory')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('inventory')) && (groupCheck.showAll || matchesSearch('Lagerbestand Inventar')) && (
                     <TabButton
                       active={activeTab === 'inventory'}
                       onClick={() => changeTab('inventory')}
@@ -601,8 +658,12 @@ const AdminDashboard: React.FC = () => {
                 </>
               )}
             </div>
+            );})()}
 
             {/* Projektmanagement */}
+            {(() => {
+              const groupCheck = shouldShowGroup('Projektmanagement Projekt', ['Projekte', 'Budget', 'Reports', 'Planung']);
+              return groupCheck.show && (
             <div className="tab-group">
               <div 
                 className="tab-group-label" 
@@ -616,28 +677,28 @@ const AdminDashboard: React.FC = () => {
               </div>
               {!collapsedGroups.has('projects') && (
                 <>
-                  {(user?.role === 'ADMIN' || hasModuleAccess('projects')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('projects')) && (groupCheck.showAll || matchesSearch('Projekte')) && (
                     <TabButton
                       active={activeTab === 'projects'}
                       onClick={() => changeTab('projects')}
                       label="📁 Projekte"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('project_budget')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('project_budget')) && (groupCheck.showAll || matchesSearch('Projekt Budget')) && (
                     <TabButton
                       active={activeTab === 'projectBudget'}
                       onClick={() => changeTab('projectBudget')}
                       label="💼 Projekt-Budget"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('project_reports')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('project_reports')) && (groupCheck.showAll || matchesSearch('Projekt Reports')) && (
                     <TabButton
                       active={activeTab === 'projectReports'}
                       onClick={() => changeTab('projectReports')}
                       label="📊 Projekt-Reports"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('project_planning')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('project_planning')) && (groupCheck.showAll || matchesSearch('Projektplanung')) && (
                     <TabButton
                       active={activeTab === 'projectPlanning'}
                       onClick={() => changeTab('projectPlanning')}
@@ -647,8 +708,12 @@ const AdminDashboard: React.FC = () => {
                 </>
               )}
             </div>
+            );})()}
 
             {/* Reports & Auswertungen */}
+            {(() => {
+              const groupCheck = shouldShowGroup('Reports Auswertungen', ['Analytics', 'Stunden', 'Compliance']);
+              return groupCheck.show && (
             <div className="tab-group">
               <div 
                 className="tab-group-label" 
@@ -662,28 +727,28 @@ const AdminDashboard: React.FC = () => {
               </div>
               {!collapsedGroups.has('reports') && (
                 <>
-                  {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (groupCheck.showAll || matchesSearch('Analytics')) && (
                     <TabButton
                       active={activeTab === 'reports'}
                       onClick={() => changeTab('reports')}
                       label="📊 Analytics"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (groupCheck.showAll || matchesSearch('Stunden Alle')) && (
                     <TabButton
                       active={activeTab === 'timeBookings'}
                       onClick={() => changeTab('timeBookings')}
                       label="📋 Stunden (Alle)"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (groupCheck.showAll || matchesSearch('Stunden User')) && (
                     <TabButton
                       active={activeTab === 'userTimeBookings'}
                       onClick={() => changeTab('userTimeBookings')}
                       label="👤 Stunden (User)"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('compliance')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('compliance')) && (groupCheck.showAll || matchesSearch('Compliance')) && (
                     <TabButton
                       active={activeTab === 'compliance'}
                       onClick={() => changeTab('compliance')}
@@ -693,8 +758,12 @@ const AdminDashboard: React.FC = () => {
                 </>
               )}
             </div>
+            );})()}
 
             {/* System & Konfiguration */}
+            {(() => {
+              const groupCheck = shouldShowGroup('System Konfiguration', ['Workflows', 'Module', 'Berechtigungen', 'Einstellungen', 'E-Learning', 'Onboarding', 'Bewerber', 'Backup']);
+              return groupCheck.show && (
             <div className="tab-group">
               <div 
                 className="tab-group-label" 
@@ -708,61 +777,61 @@ const AdminDashboard: React.FC = () => {
               </div>
               {!collapsedGroups.has('system') && (
                 <>
-                  {(user?.role === 'ADMIN' || hasModuleAccess('workflows')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('workflows')) && (groupCheck.showAll || matchesSearch('Workflows')) && (
                     <TabButton
                       active={activeTab === 'workflows'}
                       onClick={() => changeTab('workflows')}
                       label="🔄 Workflows"
                     />
                   )}
-                  {user?.role === 'ADMIN' && (
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Workflow Actions')) && (
                     <TabButton                      active={activeTab === 'workflowActions'}
                       onClick={() => changeTab('workflowActions')}
                       label="⚡ Workflow Actions"
                     />
                   )}
-                  {user?.role === 'ADMIN' && (
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Module')) && (
                     <TabButton                      active={activeTab === 'modules'}
                       onClick={() => changeTab('modules')}
                       label="🧩 Module"
                     />
                   )}
-                  {user?.role === 'ADMIN' && (
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Berechtigungen')) && (
                     <TabButton
                       active={activeTab === 'modulePermissions'}
                       onClick={() => changeTab('modulePermissions')}
                       label="🔐 Berechtigungen"
                     />
                   )}
-                  {user?.role === 'ADMIN' && (
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Einstellungen')) && (
                     <TabButton
                       active={activeTab === 'settings'}
                       onClick={() => changeTab('settings')}
                       label="⚙️ Einstellungen"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('elearning')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('elearning')) && (groupCheck.showAll || matchesSearch('E-Learning')) && (
                     <TabButton
                       active={activeTab === 'elearning'}
                       onClick={() => changeTab('elearning')}
                       label="🎓 E-Learning"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('onboarding')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('onboarding')) && (groupCheck.showAll || matchesSearch('Onboarding')) && (
                     <TabButton
                       active={activeTab === 'onboarding'}
                       onClick={() => changeTab('onboarding')}
                       label="👤 Onboarding"
                     />
                   )}
-                  {(user?.role === 'ADMIN' || hasModuleAccess('onboarding')) && (
+                  {(user?.role === 'ADMIN' || hasModuleAccess('onboarding')) && (groupCheck.showAll || matchesSearch('Bewerber')) && (
                     <TabButton
                       active={activeTab === 'applicants'}
                       onClick={() => changeTab('applicants')}
                       label="📋 Bewerber"
                     />
                   )}
-                  {user?.role === 'ADMIN' && (
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Backup')) && (
                     <TabButton
                       active={activeTab === 'backup'}
                       onClick={() => changeTab('backup')}
@@ -772,6 +841,8 @@ const AdminDashboard: React.FC = () => {
                 </>
               )}
             </div>
+            );})()}
+          </div>
           </div>
 
           <div className="tab-content">

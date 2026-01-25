@@ -65,9 +65,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  flex-shrink: 0;
-  width: 280px;
-  background: var(--bg-secondary);
+  flex: 1;
   scrollbar-width: thin;
   scrollbar-color: var(--border-color) transparent;
 }
