@@ -84,7 +84,7 @@ router.get(
 
 // Get applicant documents (HR only)
 router.get(
-  '/applicants/:id/documents',
+  '/:id/documents',
   authenticate,
   requireModuleAccess('onboarding', 'canView'),
   applicantController.getApplicantDocuments
@@ -102,7 +102,7 @@ router.get(
 
 // Update applicant status
 router.patch(
-  '/applicants/:id/status',
+  '/:id/status',
   authenticate,
   requireModuleAccess('onboarding', 'canEdit'),
   applicantController.updateApplicantStatus
@@ -120,7 +120,7 @@ router.post(
 
 // Get applicant interviews
 router.get(
-  '/applicants/:id/interviews',
+  '/:id/interviews',
   authenticate,
   requireModuleAccess('onboarding', 'canView'),
   applicantController.getApplicantInterviews
@@ -138,7 +138,7 @@ router.patch(
 
 // Add note to applicant
 router.post(
-  '/applicants/:id/notes',
+  '/:id/notes',
   authenticate,
   requireModuleAccess('onboarding', 'canCreate'),
   applicantController.addNote
@@ -146,7 +146,7 @@ router.post(
 
 // Get applicant notes
 router.get(
-  '/applicants/:id/notes',
+  '/:id/notes',
   authenticate,
   requireModuleAccess('onboarding', 'canView'),
   applicantController.getApplicantNotes

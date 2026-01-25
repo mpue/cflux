@@ -39,6 +39,7 @@ import OnboardingDashboardPage from './pages/OnboardingDashboardPage';
 import ApplicantRegisterPage from './pages/ApplicantRegisterPage';
 import ApplicantLoginPage from './pages/ApplicantLoginPage';
 import ApplicantVerifyEmailPage from './pages/ApplicantVerifyEmailPage';
+import ApplicantVerifyPage from './pages/ApplicantVerifyPage';
 import ApplicantPortalPage from './pages/ApplicantPortalPage';
 import LandingPage from './pages/LandingPage';
 import './App.css';
@@ -90,6 +91,7 @@ function App() {
               <Route path="/applicant/register" element={<ApplicantRegisterPage />} />
               <Route path="/applicant/login" element={<ApplicantLoginPage />} />
               <Route path="/applicant/verify-email" element={<ApplicantVerifyEmailPage />} />
+              <Route path="/applicant/verify" element={<ApplicantVerifyPage />} />
               <Route path="/applicant/portal" element={<ApplicantPortalPage />} />
               
               {/* Protected Routes */}

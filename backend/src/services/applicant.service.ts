@@ -1,6 +1,7 @@
 import { PrismaClient, ApplicantStatus, InterviewType, OnboardingDocumentType } from '@prisma/client';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
+import { emailService } from './email.service';
+import { systemSettingsService } from './systemSettings.service';
 
 const prisma = new PrismaClient();
 
@@ -38,8 +39,14 @@ export async function registerApplicant(data: {
     },
   });
 
-  // TODO: Send verification email
-  // await sendVerificationEmail(applicant.email, verificationToken);
+  // Send verification email
+  try {
+    await sendVerificationEmail(applicant.email, applicant.firstName, verificationToken);
+    console.log(`✅ Verification email sent to ${applicant.email}`);
+  } catch (error) {
+    console.error('Failed to send verification email:', error);
+    // Don't fail the registration if email fails
+  }
 
   return applicant;
 }
@@ -144,10 +151,21 @@ export async function updateApplicantStatus(applicantId: string, status: Applica
   const applicant = await prisma.applicant.update({
     where: { id: applicantId },
     data: { status },
+    include: { interviews: true },
   });
 
-  // TODO: Send notification email to applicant
-  // await sendStatusUpdateEmail(applicant.email, status);
+  // Send notification email to applicant
+  try {
+    await sendStatusUpdateEmail(
+      applicant.email,
+      applicant.firstName,
+      status,
+      applicant.position
+    );
+    console.log(`✅ Status update email sent to ${applicant.email} (${status})`);
+  } catch (error) {
+    console.error('Failed to send status update email:', error);
+  }
 
   return applicant;
 }
@@ -212,10 +230,36 @@ export async function scheduleInterview(data: {
   location?: string;
   meetingLink?: string;
   interviewerIds: string[];
+  notes?: string;
 }) {
   const interview = await prisma.applicantInterview.create({
     data,
+    include: {
+      applicant: true,
+    },
   });
+
+  // Update applicant status to INTERVIEW_SCHEDULED
+  await prisma.applicant.update({
+    where: { id: data.applicantId },
+    data: { status: ApplicantStatus.INTERVIEW_SCHEDULED },
+  });
+
+  // Send interview invitation email to applicant
+  try {
+    await sendInterviewInvitationEmail(
+      interview.applicant.email,
+      interview.applicant.firstName,
+      interview.applicant.position,
+      data.interviewType,
+      data.scheduledAt,
+      data.location || data.meetingLink,
+      data.notes
+    );
+    console.log(`✅ Interview invitation sent to ${interview.applicant.email}`);
+  } catch (error) {
+    console.error('Failed to send interview invitation:', error);
+  }
 
   // TODO: Send calendar invitations to interviewers
   // await sendCalendarInvitations(interview);
@@ -327,5 +371,283 @@ export async function getApplicantNotes(applicantId: string, includeInternal: bo
 export async function deleteApplicantNote(noteId: string) {
   return prisma.applicantNote.delete({
     where: { id: noteId },
+  });
+}
+
+// ==================== EMAIL NOTIFICATIONS ====================
+
+async function sendVerificationEmail(email: string, firstName: string, token: string) {
+  const settings = await systemSettingsService.getSettings();
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3002';
+  const verifyUrl = `${frontendUrl}/#/applicant/verify?token=${token}`;
+  const companyName = settings.companyName || 'CFlux';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .button { display: inline-block; background: linear-gradient(to right, #10b981, #0ea5e9); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin: 0;">Willkommen bei ${companyName}!</h1>
+        </div>
+        <div class="content">
+          <p>Hallo ${firstName},</p>
+          <p>vielen Dank für Ihre Bewerbung bei ${companyName}!</p>
+          <p>Bitte bestätigen Sie Ihre E-Mail-Adresse, indem Sie auf den folgenden Button klicken:</p>
+          <div style="text-align: center;">
+            <a href="${verifyUrl}" class="button">E-Mail bestätigen</a>
+          </div>
+          <p>Oder kopieren Sie diesen Link in Ihren Browser:</p>
+          <p style="word-break: break-all; background: white; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 14px;">
+            ${verifyUrl}
+          </p>
+          <p>Nach der Bestätigung können Sie Ihre Bewerbungsunterlagen hochladen und den Status Ihrer Bewerbung verfolgen.</p>
+        </div>
+        <div class="footer">
+          <p>&copy; ${new Date().getFullYear()} ${companyName}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+Willkommen bei ${companyName}!
+
+Hallo ${firstName},
+
+vielen Dank für Ihre Bewerbung bei ${companyName}!
+
+Bitte bestätigen Sie Ihre E-Mail-Adresse über diesen Link:
+${verifyUrl}
+
+Nach der Bestätigung können Sie Ihre Bewerbungsunterlagen hochladen und den Status Ihrer Bewerbung verfolgen.
+
+Mit freundlichen Grüßen,
+Ihr ${companyName} Team
+  `.trim();
+
+  return emailService.sendEmail({
+    to: email,
+    subject: `${companyName} - E-Mail bestätigen`,
+    html,
+    text,
+  });
+}
+
+async function sendStatusUpdateEmail(
+  email: string,
+  firstName: string,
+  status: ApplicantStatus,
+  position: string
+) {
+  const settings = await systemSettingsService.getSettings();
+  const companyName = settings.companyName || 'CFlux';
+
+  const statusMessages: Record<ApplicantStatus, { title: string; message: string }> = {
+    NEW: {
+      title: 'Bewerbung eingegangen',
+      message: 'Wir haben Ihre Bewerbung erhalten und werden sie in Kürze prüfen.',
+    },
+    IN_REVIEW: {
+      title: 'Bewerbung in Prüfung',
+      message: 'Ihre Bewerbung wird derzeit von unserem Team geprüft.',
+    },
+    INTERVIEW_SCHEDULED: {
+      title: 'Vorstellungsgespräch geplant',
+      message: 'Wir freuen uns, Sie zu einem Vorstellungsgespräch einzuladen! Details finden Sie in Ihrem Bewerberportal.',
+    },
+    OFFER: {
+      title: 'Vertragsangebot',
+      message: 'Herzlichen Glückwunsch! Wir möchten Ihnen gerne ein Vertragsangebot unterbreiten.',
+    },
+    HIRED: {
+      title: 'Einstellung bestätigt',
+      message: 'Herzlich Willkommen im Team! Weitere Informationen zum Onboarding folgen in Kürze.',
+    },
+    REJECTED: {
+      title: 'Absage',
+      message: 'Vielen Dank für Ihr Interesse. Leider müssen wir Ihnen mitteilen, dass wir uns für andere Kandidaten entschieden haben.',
+    },
+  };
+
+  const statusInfo = statusMessages[status];
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: 600; margin: 10px 0; }
+        .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin: 0;">${statusInfo.title}</h1>
+        </div>
+        <div class="content">
+          <p>Hallo ${firstName},</p>
+          <p><strong>Ihre Bewerbung als ${position}</strong></p>
+          <p>${statusInfo.message}</p>
+          ${status === 'INTERVIEW_SCHEDULED' ? `
+            <p>Sie können alle Details in Ihrem Bewerberportal einsehen:</p>
+            <div style="text-align: center; margin: 20px 0;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:3002'}/#/applicant/login" 
+                 style="display: inline-block; background: linear-gradient(to right, #10b981, #0ea5e9); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                Zum Bewerberportal
+              </a>
+            </div>
+          ` : ''}
+          <p>Bei Fragen stehen wir Ihnen gerne zur Verfügung.</p>
+        </div>
+        <div class="footer">
+          <p>&copy; ${new Date().getFullYear()} ${companyName}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+${statusInfo.title}
+
+Hallo ${firstName},
+
+Ihre Bewerbung als ${position}
+
+${statusInfo.message}
+
+${status === 'INTERVIEW_SCHEDULED' ? `Sie können alle Details in Ihrem Bewerberportal einsehen: ${process.env.FRONTEND_URL || 'http://localhost:3002'}/#/applicant/login` : ''}
+
+Bei Fragen stehen wir Ihnen gerne zur Verfügung.
+
+Mit freundlichen Grüßen,
+Ihr ${companyName} Team
+  `.trim();
+
+  return emailService.sendEmail({
+    to: email,
+    subject: `${companyName} - ${statusInfo.title}`,
+    html,
+    text,
+  });
+}
+
+async function sendInterviewInvitationEmail(
+  email: string,
+  firstName: string,
+  position: string,
+  interviewType: InterviewType,
+  scheduledAt: Date,
+  location?: string,
+  notes?: string
+) {
+  const settings = await systemSettingsService.getSettings();
+  const companyName = settings.companyName || 'CFlux';
+
+  const typeLabels: Record<InterviewType, string> = {
+    PHONE: 'Telefoninterview',
+    VIDEO_CALL: 'Videointerview',
+    IN_PERSON: 'Persönliches Gespräch',
+    ASSESSMENT: 'Assessment',
+    TRIAL_WORK: 'Probearbeit',
+  };
+
+  const formattedDate = new Intl.DateTimeFormat('de-CH', {
+    dateStyle: 'full',
+    timeStyle: 'short',
+  }).format(scheduledAt);
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        .info-box { background: white; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
+        .button { display: inline-block; background: linear-gradient(to right, #10b981, #0ea5e9); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1 style="margin: 0;">🎉 Einladung zum Vorstellungsgespräch</h1>
+        </div>
+        <div class="content">
+          <p>Hallo ${firstName},</p>
+          <p>wir freuen uns, Sie zu einem <strong>${typeLabels[interviewType]}</strong> für die Position <strong>${position}</strong> einzuladen!</p>
+          
+          <div class="info-box">
+            <h3 style="margin-top: 0;">📅 Termin-Details</h3>
+            <p><strong>Datum & Zeit:</strong> ${formattedDate}</p>
+            <p><strong>Art:</strong> ${typeLabels[interviewType]}</p>
+            ${location ? `<p><strong>Ort/Link:</strong> ${location}</p>` : ''}
+            ${notes ? `<p><strong>Hinweise:</strong> ${notes}</p>` : ''}
+          </div>
+
+          <p>Bitte bestätigen Sie den Termin über Ihr Bewerberportal:</p>
+          <div style="text-align: center;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:3002'}/#/applicant/login" class="button">
+              Zum Bewerberportal
+            </a>
+          </div>
+
+          <p>Wir freuen uns auf das Gespräch mit Ihnen!</p>
+        </div>
+        <div class="footer">
+          <p>&copy; ${new Date().getFullYear()} ${companyName}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const text = `
+🎉 Einladung zum Vorstellungsgespräch
+
+Hallo ${firstName},
+
+wir freuen uns, Sie zu einem ${typeLabels[interviewType]} für die Position ${position} einzuladen!
+
+📅 Termin-Details:
+Datum & Zeit: ${formattedDate}
+Art: ${typeLabels[interviewType]}
+${location ? `Ort/Link: ${location}` : ''}
+${notes ? `Hinweise: ${notes}` : ''}
+
+Bitte bestätigen Sie den Termin über Ihr Bewerberportal:
+${process.env.FRONTEND_URL || 'http://localhost:3002'}/#/applicant/login
+
+Wir freuen uns auf das Gespräch mit Ihnen!
+
+Mit freundlichen Grüßen,
+Ihr ${companyName} Team
+  `.trim();
+
+  return emailService.sendEmail({
+    to: email,
+    subject: `${companyName} - Einladung zum Vorstellungsgespräch`,
+    html,
+    text,
   });
 }

@@ -127,7 +127,7 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
 
   const handleStatusChange = async (applicantId: string, newStatus: string) => {
     try {
-      await api.patch(`/applicants/admin/applicants/${applicantId}/status`, { status: newStatus });
+      await api.patch(`/applicants/${applicantId}/status`, { status: newStatus });
       loadApplicants();
       if (onUpdate) onUpdate();
     } catch (err: any) {
@@ -158,7 +158,7 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
   const handleViewDocuments = async (applicant: Applicant) => {
     setSelectedApplicant(applicant);
     try {
-      const response = await api.get(`/applicants/applicants/${applicant.id}/documents`);
+      const response = await api.get(`/applicants/${applicant.id}/documents`);
       setApplicantDocuments(response.data);
       setDocumentsDialogOpen(true);
     } catch (err: any) {

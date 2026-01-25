@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -15,12 +15,23 @@ import {
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
+interface PublicSettings {
+  companyName?: string;
+  companyLogo?: string;
+  companyAddress?: string;
+  companyPhone?: string;
+  companyEmail?: string;
+  companyWebsite?: string;
+}
+
 const ApplicantRegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [settings, setSettings] = useState<PublicSettings>({});
+  const [loadingSettings, setLoadingSettings] = useState(true);
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -31,6 +42,20 @@ const ApplicantRegisterPage: React.FC = () => {
   });
 
   const steps = ['Persönliche Daten', 'Bestätigung'];
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await api.get('/system-settings/public');
+        setSettings(response.data);
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+      } finally {
+        setLoadingSettings(false);
+      }
+    };
+    loadSettings();
+  }, []);
 
   const validateEmail = (email: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -106,32 +131,52 @@ const ApplicantRegisterPage: React.FC = () => {
   return (
     <Container maxWidth="md" sx={{ mt: 8, mb: 4 }}>
       <Paper sx={{ p: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
-          🎯 Bewerbung bei CFlux
-        </Typography>
-        <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4 }}>
-          Starten Sie Ihre Karriere bei uns! Füllen Sie das Formular aus und laden Sie Ihre Bewerbungsunterlagen hoch.
-        </Typography>
+        {loadingSettings ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <>
+            {settings.companyLogo && (
+              <Box sx={{ textAlign: 'center', mb: 2 }}>
+                <img
+                  src={settings.companyLogo}
+                  alt={settings.companyName || 'Company Logo'}
+                  style={{
+                    maxWidth: '200px',
+                    maxHeight: '100px',
+                    objectFit: 'contain',
+                  }}
+                />
+              </Box>
+            )}
 
-        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+            <Typography variant="h4" component="h1" gutterBottom align="center">
+              🎯 Bewerbung bei {settings.companyName || 'CFlux'}
+            </Typography>
+            <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4 }}>
+              Starten Sie Ihre Karriere bei {settings.companyName || 'uns'}! Füllen Sie das Formular aus und laden Sie Ihre Bewerbungsunterlagen hoch.
+            </Typography>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
+            <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+              {steps.map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
 
-        {success && (
-          <Alert severity="success" sx={{ mb: 3 }}>
-            ✅ Bewerbung erfolgreich eingereicht! Sie erhalten eine Bestätigungs-E-Mail.
-          </Alert>
-        )}
+            {error && (
+              <Alert severity="error" sx={{ mb: 3 }}>
+                {error}
+              </Alert>
+            )}
+
+            {success && (
+              <Alert severity="success" sx={{ mb: 3 }}>
+                ✅ Bewerbung erfolgreich eingereicht! Sie erhalten eine Bestätigungs-E-Mail.
+              </Alert>
+            )}
 
         {activeStep === 0 && (
           <Box>
@@ -242,6 +287,8 @@ const ApplicantRegisterPage: React.FC = () => {
             </Button>
           </Typography>
         </Box>
+          </>
+        )}
       </Paper>
     </Container>
   );

@@ -42,19 +42,19 @@ export const applicantService = {
 
   // Get all applicants
   getAll: async (filters?: { status?: ApplicantStatus; position?: string }): Promise<Applicant[]> => {
-    const response = await api.get('/applicants/applicants', { params: filters });
+    const response = await api.get('/applicants/admin/applicants', { params: filters });
     return response.data;
   },
 
   // Get single applicant
   getById: async (id: string): Promise<Applicant> => {
-    const response = await api.get(`/applicants/applicants/${id}`);
+    const response = await api.get(`/applicants/${id}`);
     return response.data;
   },
 
   // Update applicant status
   updateStatus: async (id: string, status: ApplicantStatus): Promise<Applicant> => {
-    const response = await api.patch(`/applicants/applicants/${id}/status`, { status });
+    const response = await api.patch(`/applicants/${id}/status`, { status });
     return response.data;
   },
 
@@ -65,7 +65,7 @@ export const applicantService = {
     formData.append('applicantId', applicantId);
     formData.append('documentType', documentType);
 
-    const response = await api.post(`/applicants/applicants/${applicantId}/documents`, formData, {
+    const response = await api.post(`/applicants/${applicantId}/documents`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
@@ -73,7 +73,7 @@ export const applicantService = {
 
   // Get applicant documents
   getDocuments: async (id: string): Promise<ApplicantDocument[]> => {
-    const response = await api.get(`/applicants/applicants/${id}/documents`);
+    const response = await api.get(`/applicants/${id}/documents`);
     return response.data;
   },
 
@@ -84,7 +84,7 @@ export const applicantService = {
 
   // Check required documents
   checkRequiredDocuments: async (id: string): Promise<{ allUploaded: boolean; missing: string[]; uploaded: string[] }> => {
-    const response = await api.get(`/applicants/applicants/${id}/documents/check`);
+    const response = await api.get(`/applicants/${id}/documents/check`);
     return response.data;
   },
 
@@ -96,7 +96,7 @@ export const applicantService = {
 
   // Get applicant interviews
   getInterviews: async (id: string): Promise<ApplicantInterview[]> => {
-    const response = await api.get(`/applicants/applicants/${id}/interviews`);
+    const response = await api.get(`/applicants/${id}/interviews`);
     return response.data;
   },
 
@@ -108,13 +108,13 @@ export const applicantService = {
 
   // Add note
   addNote: async (applicantId: string, content: string, isInternal: boolean = true): Promise<ApplicantNote> => {
-    const response = await api.post(`/applicants/applicants/${applicantId}/notes`, { content, isInternal });
+    const response = await api.post(`/applicants/${applicantId}/notes`, { content, isInternal });
     return response.data;
   },
 
   // Get notes
   getNotes: async (id: string, includeInternal: boolean = true): Promise<ApplicantNote[]> => {
-    const response = await api.get(`/applicants/applicants/${id}/notes`, { params: { includeInternal } });
+    const response = await api.get(`/applicants/${id}/notes`, { params: { includeInternal } });
     return response.data;
   },
 
