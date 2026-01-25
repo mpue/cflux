@@ -1,8 +1,8 @@
 # cflux - Zeiterfassungssystem
 ## Vollständige Dokumentation
 
-Version 1.0  
-Stand: Januar 2025
+Version 2.0  
+Stand: Januar 2026
 
 ---
 
@@ -14,6 +14,17 @@ Stand: Januar 2025
 4. [Installation](#installation)
 5. [Konfiguration](#konfiguration)
 6. [Module und Features](#module-und-features)
+   - [Zeiterfassung](#1-zeiterfassung)
+   - [Projektverwaltung](#2-projektverwaltung)
+   - [Urlaubsverwaltung](#3-urlaubsverwaltung)
+   - [Abwesenheitsmanagement](#4-abwesenheitsmanagement)
+   - [Reporting & Analytics](#5-reporting--analytics)
+   - [Benutzerverwaltung](#6-benutzerverwaltung)
+   - [Rechnungsstellung](#7-rechnungsstellung)
+   - [Bewerbung und Onboarding](#8-bewerbung-und-onboarding)
+   - [E-Learning Plattform](#9-e-learning-plattform)
+   - [Internes Nachrichten-System](#10-internes-nachrichten-system)
+   - [Weitere Module](#11-weitere-module)
 7. [Sicherheit](#sicherheit)
 8. [Deployment](#deployment)
 9. [Troubleshooting](#troubleshooting)
@@ -26,37 +37,58 @@ Stand: Januar 2025
 
 cflux ist ein vollständiges Enterprise Resource Planning (ERP) System mit Fokus auf Zeiterfassung, Projektmanagement und Personalverwaltung. Das System wurde speziell für den Schweizer Markt entwickelt und erfüllt alle relevanten gesetzlichen Anforderungen.
 
+**Neuerungen in Version 2.0:**
+- 🆕 Bewerber-Portal mit Onboarding-Prozess
+- 🆕 E-Learning-Plattform mit Kursen, Quizzes und Zertifikaten
+- 🆕 Internes Nachrichten-System für sichere Kommunikation
+- 🆕 Erweiterte Workflow-Engine mit visueller Editor
+- 🆕 Incident Management (EHS) für Arbeitssicherheit
+- 🆕 Modulbasiertes Berechtigungssystem
+- 🆕 Zeitmodelle mit Gleitzeit und Kernarbeitszeiten
+- 🆕 Erweiterte Compliance-Prüfungen (ArG/ArGV 1)
+
 ### Hauptmerkmale
 
 - ✅ **Zeiterfassung**: Ein-/Ausstempeln mit Projektbuchung
 - ✅ **Projektmanagement**: Verwaltung von Projekten und Zuordnung zu Mitarbeitern
 - ✅ **Urlaubsverwaltung**: Antragstellung und Genehmigungsprozesse
 - ✅ **Abwesenheitsmanagement**: Krankheit, persönliche Gründe, etc.
+- ✅ **Bewerber-Portal & Onboarding**: Bewerbungsprozess und Dokumentenmanagement
+- ✅ **E-Learning-Plattform**: Kurse, Lektionen, Quizzes und Zertifikate
+- ✅ **Internes Nachrichten-System**: Sichere interne Kommunikation
 - ✅ **Reporting**: Umfassende Reports und Statistiken
 - ✅ **Benutzerverwaltung**: Rollenbasierte Zugriffskontrolle
 - ✅ **Rechnungsstellung**: Integriertes Invoicing-System
 - ✅ **Schweizer Compliance**: OR-konform, Mehrwertsteuer-ready
+
+![Dashboard Übersicht](../web/kickstart/dashboard.png)
 
 ### Technologie-Stack
 
 **Backend:**
 - Node.js 18+ / TypeScript 5.x
 - Express.js Framework
-- PostgreSQL 14+ Datenbank
-- Prisma ORM
+- PostgreSQL 16+ Datenbank
+- Prisma ORM v5.x
 - JWT Authentication
 - bcrypt Password Hashing
+- Multer für Datei-Uploads
+- express-validator für Input-Validierung
 
 **Frontend:**
 - React 18 / TypeScript
-- React Router v6
+- React Router v6 (HashRouter für Electron)
 - Axios HTTP Client
-- Modern CSS3
+- Material-UI Components
+- Modern CSS3 / Flexbox / Grid
+- Chart.js für Statistiken
 
 **DevOps:**
 - Docker & Docker Compose
 - GitHub Actions CI/CD
 - Nginx Reverse Proxy
+- PostgreSQL Docker Container
+- Multi-Stage Docker Builds
 
 ---
 
@@ -107,6 +139,30 @@ Das System basiert auf folgenden Hauptentitäten:
 - Positionen
 - Mehrwertsteuer (MWST)
 - Status: Draft, Sent, Paid
+
+**Applicant (Bewerber)**
+- Basisdaten: Vorname, Nachname, E-Mail, Telefon
+- Position (Stelle)
+- Status: NEW, IN_REVIEW, INTERVIEW, OFFER, HIRED, REJECTED
+- E-Mail-Verifizierung
+- Dokumente (CV, Anschreiben, Zeugnisse)
+- Interview-Termine
+- Notizen (HR-intern)
+
+**Course (E-Learning-Kurs)**
+- Kursdetails: Titel, Beschreibung, Kategorie
+- Lektionen mit Inhalten
+- Quizzes mit Fragen und Antworten
+- Veröffentlichungsstatus
+- Fortschrittsverfolgung
+- Zertifikate bei Abschluss
+
+**Message (Nachricht)**
+- Sender und Empfänger
+- Betreff und Inhalt
+- Zeitstempel
+- Gelesen/Ungelesen Status
+- Ordner: Posteingang, Gesendet, Papierkorb
 
 ### Authentifizierung
 
@@ -329,6 +385,8 @@ certbot --nginx -d zeiterfassung.example.com
 
 ### 1. Zeiterfassung
 
+![Zeiterfassung](../web/kickstart/timemanagement.png)
+
 **Funktionen:**
 - Ein-/Ausstempeln per Button-Click
 - Automatische Zeitberechnung
@@ -350,17 +408,29 @@ certbot --nginx -d zeiterfassung.example.com
 
 ### 2. Projektverwaltung
 
+![Projektverwaltung](../web/kickstart/projekte.png)
+
+![Projekt-Reports](../web/kickstart/project_reports_overview.png)
+
+![Projekt-Zeitauswertung](../web/kickstart/project_time_reports.png)
+
+![Projekt-Budgetplanung](../web/kickstart/project_budget_planning.png)
+
 **Funktionen:**
 - Projekte anlegen, bearbeiten, archivieren
 - Mitarbeiter zu Projekten zuweisen
 - Projektstatus (Aktiv/Inaktiv)
 - Projektbasierte Zeitauswertung
+- Budget-Planung und -Überwachung
+- Projekt-Reports mit Zeitanalysen
 
 **Zugriffsrechte:**
 - USER: Sieht nur zugewiesene Projekte
 - ADMIN: Vollzugriff auf alle Projekte
 
 ### 3. Urlaubsverwaltung
+
+![Urlaubsverwaltung](../web/kickstart/urlaubsplaner.png)
 
 **Funktionen:**
 - Urlaubsanträge stellen
@@ -378,6 +448,8 @@ certbot --nginx -d zeiterfassung.example.com
 
 ### 4. Abwesenheitsmanagement
 
+![Abwesenheiten](../web/kickstart/abwesenheit.png)
+
 **Typen:**
 - Urlaub
 - Krankheit
@@ -393,6 +465,12 @@ certbot --nginx -d zeiterfassung.example.com
 - Kalenderintegration
 
 ### 5. Reporting & Analytics
+
+![Reporting Übersicht](../web/kickstart/reporting.png)
+
+![Mitarbeiter-Reports](../web/kickstart/reporting_mitarbeiter.png)
+
+![Stunden-Reports](../web/kickstart/reporting_stunden.png)
 
 **Standard Reports:**
 - Persönliche Arbeitszeitübersicht
@@ -417,12 +495,20 @@ certbot --nginx -d zeiterfassung.example.com
 
 ### 6. Benutzerverwaltung
 
+![Benutzerverwaltung](../web/kickstart/benutzerverwaltung.png)
+
+![Benutzergruppen](../web/kickstart/benutzergruppen.png)
+
+![Berechtigungen](../web/kickstart/berechtigungen.png)
+
 **Admin-Funktionen:**
 - Benutzer anlegen/bearbeiten/löschen
 - Rollenänderungen (USER ↔ ADMIN)
 - Urlaubskontingent festlegen
 - Benutzer deaktivieren (Soft Delete)
 - Passwort zurücksetzen
+- Benutzergruppen verwalten
+- Modulbasierte Berechtigungen zuweisen
 
 **Benutzer-Selbstverwaltung:**
 - Profil bearbeiten
@@ -431,17 +517,280 @@ certbot --nginx -d zeiterfassung.example.com
 
 ### 7. Rechnungsstellung
 
+![Rechnungen](../web/kickstart/rechnungen.png)
+
+![Rechnung bearbeiten](../web/kickstart/rechnung_bearbeiten.png)
+
+![Rechnung Vorschau](../web/kickstart/rechnung_vorschau.png)
+
+![Rechnungsvorlage](../web/kickstart/rechnungsvorlage.png)
+
 **Funktionen:**
 - Rechnungen erstellen und versenden
 - Mehrwertsteuer (MWST) Berechnung
 - Rechnungspositionen mit Zeitbuchungen verknüpfen
 - Zahlungsstatus-Tracking
 - PDF-Export mit QR-Rechnung (Schweiz)
+- Rechnungsvorlagen anpassen
 
 **Swiss QR Code Integration:**
 - Automatische QR-Code Generierung
 - IBAN/Referenznummer
 - Compliance mit Swiss Payment Standards
+
+### 8. Bewerbung und Onboarding
+
+![Onboarding Portal](../web/kickstart/onboarding.png)
+
+**Bewerber-Portal:**
+- Öffentliches Registrierungsformular
+- E-Mail-Verifizierung
+- Persönliches Dashboard für Bewerber
+- Dokumenten-Upload (CV, Anschreiben, Zeugnisse)
+- Bewerbungsstatus-Tracking
+- Interview-Terminübersicht
+
+**HR-Verwaltung (Admin):**
+- Alle Bewerbungen im Überblick
+- Status-Management (Neu, In Bearbeitung, Interview, Zusage, Absage)
+- Manuelle E-Mail-Verifizierung
+- Statistiken und Filter-Funktionen
+- Notizen zu Bewerbern
+- Interview-Planung
+
+**Workflows:**
+1. Bewerber registriert sich auf der Landing Page
+2. E-Mail-Verifizierung wird versendet (oder manuell bestätigt)
+3. Bewerber lädt Dokumente hoch (CV, Anschreiben, etc.)
+4. HR-Team überprüft Bewerbung und setzt Status
+5. Interview-Termine werden geplant
+6. Entscheidung: Zusage oder Absage
+7. Bei Zusage: Überführung in regulären User-Account
+
+**API-Endpunkte:**
+- `POST /api/applicants/register` - Registrierung
+- `POST /api/applicants/login` - Login mit E-Mail
+- `GET /api/applicants/:id` - Bewerber-Daten
+- `POST /api/applicants/:id/documents` - Dokument hochladen
+- `DELETE /api/applicants/:id/documents/:docId` - Dokument löschen
+- `GET /api/applicants/admin/applicants` - Alle Bewerbungen (Admin)
+- `PUT /api/applicants/:id/status` - Status ändern (Admin)
+- `POST /api/applicants/:id/verify-manual` - E-Mail manuell verifizieren (Admin)
+
+### 9. E-Learning Plattform
+
+![E-Learning Dashboard](../web/kickstart/elearning.png)
+
+![Kursliste](../web/kickstart/course_list.png)
+
+![Kurs-Dashboard](../web/kickstart/course_dashboard.png)
+
+![Benutzer-Kurs](../web/kickstart/user_course.png)
+
+**Kurs-Management:**
+- Kurse erstellen und strukturieren
+- Lektionen mit Rich-Text-Inhalten
+- Medien-Uploads (Videos, PDFs, Bilder)
+- Kategorisierung und Tags
+- Veröffentlichungsstatus (Draft/Published)
+- Fortschrittsverfolgung
+
+**Quiz-System:**
+- Multiple-Choice-Fragen
+- Automatische Auswertung
+- Mindestpunktzahl konfigurierbar
+- Mehrfache Versuche erlauben
+- Sofortiges Feedback
+
+**Zertifikate:**
+- Automatische Zertifikatsgenerierung bei Kursabschluss
+- PDF-Download
+- QR-Code zur Verifikation
+- Gültigkeitsdauer (optional)
+
+**Benutzer-Features:**
+- Kurskatalog durchsuchen
+- Kurse buchen/starten
+- Lektionen durcharbeiten
+- Quizzes absolvieren
+- Fortschritt verfolgen
+- Zertifikate herunterladen
+
+**Admin-Features:**
+- Kurse und Lektionen verwalten
+- Fragen und Antworten pflegen
+- Nutzer-Fortschritte überwachen
+- Statistiken und Reports
+- Zertifikate verwalten
+
+**API-Endpunkte:**
+- `GET /api/elearning/courses` - Alle Kurse
+- `GET /api/elearning/courses/:id` - Kurs-Details
+- `POST /api/elearning/courses` - Kurs erstellen (Admin)
+- `GET /api/elearning/courses/:id/lessons` - Lektionen
+- `POST /api/elearning/enrollments` - Kurs buchen
+- `GET /api/elearning/my-courses` - Meine Kurse
+- `POST /api/elearning/progress` - Fortschritt speichern
+- `GET /api/elearning/quizzes/:id` - Quiz abrufen
+- `POST /api/elearning/quiz-attempts` - Quiz absolvieren
+- `GET /api/elearning/certificates/:id` - Zertifikat abrufen
+
+### 10. Internes Nachrichten-System
+
+![Nachrichten-System](../web/kickstart/nachrichten.png)
+
+**Funktionen:**
+- Interne Nachrichten zwischen Mitarbeitern
+- Posteingang, Gesendet, Papierkorb
+- Ungelesene Nachrichten-Zähler
+- Nachrichten verfassen mit Rich-Text-Editor
+- Empfänger-Auswahl aus Benutzerliste
+- Nachrichten löschen (Soft Delete)
+- Nachrichten wiederherstellen
+
+**Ordner-Struktur:**
+- **Posteingang**: Empfangene Nachrichten
+- **Gesendet**: Gesendete Nachrichten
+- **Papierkorb**: Gelöschte Nachrichten
+
+**Features:**
+- Real-time Benachrichtigungen (Badge mit Anzahl ungelesener Nachrichten)
+- Markieren als gelesen/ungelesen
+- Datum und Uhrzeit-Anzeige
+- Betreff und Nachrichtenvorschau
+- Volltext-Nachrichten anzeigen
+
+**API-Endpunkte:**
+- `GET /api/messages` - Alle Nachrichten (Posteingang)
+- `GET /api/messages/sent` - Gesendete Nachrichten
+- `GET /api/messages/trash` - Papierkorb
+- `GET /api/messages/unread-count` - Anzahl ungelesene Nachrichten
+- `GET /api/messages/:id` - Nachricht abrufen
+- `POST /api/messages` - Nachricht senden
+- `PUT /api/messages/:id/read` - Als gelesen markieren
+- `DELETE /api/messages/:id` - In Papierkorb verschieben
+- `PUT /api/messages/:id/restore` - Aus Papierkorb wiederherstellen
+
+### 11. Weitere Module
+
+**Intranet & Dokumentenmanagement:**
+
+![Intranet](../web/kickstart/intranet.png)
+
+- Hierarchische Dokumentenstruktur
+- Versionierung von Dokumenten
+- Zugriffsrechte pro Benutzergruppe
+- Volltextsuche
+- Favoriten und Tags
+
+**Compliance & Arbeitszeitregelungen:**
+
+![Compliance](../web/kickstart/compliance.png)
+
+- Schweizer Arbeitsgesetz (ArG) Compliance
+- Automatische Prüfung von Verstößen
+- Überstunden-Tracking
+- Maximalarbeitszeit-Kontrolle
+- Pause-Pflichten
+
+**Zeitmodelle:**
+
+![Zeitmodelle](../web/kickstart/timemodels.png)
+
+![Zeitmodell anlegen](../web/kickstart/zeitmodell_anlegen.png)
+
+![Zeitmodell zuweisen](../web/kickstart/timemodel_assign.png)
+
+- Flexible Arbeitszeitmodelle
+- Gleitzeit, Teilzeit, Vollzeit
+- Kernarbeitszeiten definieren
+- Überstundenregelungen
+- Zeitmodelle Benutzern zuweisen
+
+**Stammdaten:**
+
+![Kunden](../web/kickstart/stammdaten_kunden.png)
+
+![Lieferanten](../web/kickstart/stammdaten_lieferanten.png)
+
+![Artikel](../web/kickstart/stammdaten_artikel.png)
+
+![Artikelgruppen](../web/kickstart/stammdaten_artikelgruppen.png)
+
+- Kunden- und Lieferantenverwaltung
+- Artikelstammdaten
+- Artikelgruppen
+- Preislisten
+- Kontaktpersonen
+
+**Lohnabrechnung:**
+
+![Lohnabrechnung](../web/kickstart/lohnabrechnung.png)
+
+- Lohnbuchhaltung
+- Automatische Berechnung aus Zeitdaten
+- Sozialversicherungen (AHV, ALV, BVG)
+- Lohnausweise
+- Export für Treuhand
+
+**Reisekosten:**
+
+![Reisekosten](../web/kickstart/reisekosten.png)
+
+- Reisekostenabrechnungen erstellen
+- Belege hochladen
+- Genehmigungsprozess
+- Erstattungsmanagement
+- Export für Buchhaltung
+
+**Feiertage & Standorte:**
+
+![Feiertage](../web/kickstart/feiertage.png)
+
+![Standorte](../web/kickstart/standorte.png)
+
+- Kantonale Feiertage verwalten
+- Standortverwaltung
+- Standort-spezifische Feiertage
+- Automatische Feiertagserkennung
+
+**Workflows & Genehmigungen:**
+
+![Workflow Editor](../web/kickstart/workflow_editot.png)
+
+![Workflow Triggers](../web/kickstart/workflow_triggers.png)
+
+![Genehmigungen](../web/kickstart/genehmigungen.png)
+
+- Workflow-Designer
+- Mehrstufige Genehmigungsprozesse
+- Automatische Trigger
+- E-Mail-Benachrichtigungen
+- Eskalationen bei Zeitüberschreitung
+
+**Incident Management (EHS):**
+
+![Incidents](../web/kickstart/incidents.png)
+
+- Sicherheitsvorfälle dokumentieren
+- Root Cause Analysis
+- Maßnahmenverfolgung
+- Compliance mit Arbeitssicherheit
+- Statistiken und Reports
+
+**System-Einstellungen & Module:**
+
+![System-Einstellungen](../web/kickstart/system_einstellungen.png)
+
+![Module](../web/kickstart/module.png)
+
+![Backup & Restore](../web/kickstart/backup_restore.png)
+
+- Modulbasierte Berechtigungen
+- System-Konfiguration
+- Backup & Restore Funktionen
+- Datenbank-Wartung
+- Audit-Logs
 
 ---
 

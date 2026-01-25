@@ -1,56 +1,127 @@
 # cflux Benutzerhandbuch
 
 **Für Mitarbeiter**  
-Version 1.0 - Januar 2025
+Version 2.0 - Januar 2026
 
 ---
 
 ## Inhaltsverzeichnis
 
 1. [Erste Schritte](#erste-schritte)
-2. [Zeiterfassung](#zeiterfassung)
-3. [Urlaubsverwaltung](#urlaubsverwaltung)
-4. [Abwesenheiten](#abwesenheiten)
-5. [Mein Profil](#mein-profil)
-6. [Berichte und Übersichten](#berichte-und-übersichten)
-7. [Häufige Fragen](#häufige-fragen)
+2. [Bewerbung und Onboarding](#bewerbung-und-onboarding)
+3. [Zeiterfassung](#zeiterfassung)
+4. [Urlaubsverwaltung](#urlaubsverwaltung)
+5. [Abwesenheiten](#abwesenheiten)
+6. [Nachrichten](#nachrichten)
+7. [E-Learning](#e-learning)
+8. [Mein Profil](#mein-profil)
+9. [Berichte und Übersichten](#berichte-und-übersichten)
+10. [Häufige Fragen](#häufige-fragen)
 
 ---
 
 ## Erste Schritte
 
-### Registrierung
+### Startseite - Landing Page
 
-1. Öffnen Sie die cflux-Webseite in Ihrem Browser
-2. Klicken Sie auf **"Registrieren"**
-3. Geben Sie Ihre Daten ein:
-   - E-Mail-Adresse (wird als Benutzername verwendet)
-   - Vorname und Nachname
-   - Passwort (mindestens 8 Zeichen)
-4. Klicken Sie auf **"Registrieren"**
+Wenn Sie cflux zum ersten Mal öffnen, sehen Sie die Landing Page mit zwei Optionen:
 
-⚠️ **Hinweis:** Nach der Registrierung müssen Sie warten, bis ein Administrator Ihnen Projekte zuweist und Ihre Urlaubstage festlegt.
+![Landing Page](../web/kickstart/dashboard.png)
 
-### Anmeldung
+**Für Bewerber:**
+- 🎯 **Jetzt bewerben** - Neue Bewerbung einreichen
+- 🔐 **Bewerber-Login** - Zugang zum Bewerber-Portal
+
+**Für Mitarbeiter:**
+- 💼 **Mitarbeiter-Login** - Zugang zum Zeiterfassungssystem
+
+### Anmeldung für Mitarbeiter
 
 1. Öffnen Sie cflux in Ihrem Browser
-2. Geben Sie Ihre E-Mail-Adresse und Ihr Passwort ein
-3. Klicken Sie auf **"Anmelden"**
+2. Klicken Sie auf **"Mitarbeiter-Login"**
+3. Geben Sie Ihre E-Mail-Adresse und Ihr Passwort ein
+4. Klicken Sie auf **"Anmelden"**
 
 **Passwort vergessen?**  
 Wenden Sie sich an Ihren Administrator.
 
-### Startseite
+### Dashboard nach Anmeldung
 
-Nach der Anmeldung sehen Sie:
+Nach der Anmeldung sehen Sie Ihr persönliches Dashboard:
+
+![Dashboard](../web/kickstart/dashboard.png)
+
+**Dashboard-Übersicht:**
 - **Aktueller Status**: Ob Sie eingestempelt sind oder nicht
 - **Heutige Arbeitszeit**: Bereits geleistete Stunden
 - **Schnellaktionen**: Ein-/Ausstempeln, Urlaub beantragen
 - **Übersicht**: Letzte Zeiteinträge und anstehende Termine
+- **Nachrichten**: Neue Nachrichten vom System oder Kollegen
+- **E-Learning**: Ihre zugewiesenen Kurse
+
+---
+
+## Bewerbung und Onboarding
+
+### 🎯 Für Bewerber: Online-Bewerbung
+
+Sie möchten sich bei uns bewerben? So geht's:
+
+![Onboarding Portal](../web/kickstart/onboarding.png)
+
+**Schritt 1: Registrierung**
+
+1. Klicken Sie auf der Startseite auf **"Jetzt bewerben"**
+2. Füllen Sie das Bewerbungsformular aus:
+   - Vorname und Nachname
+   - E-Mail-Adresse
+   - Telefonnummer
+   - Gewünschte Position
+3. Klicken Sie auf **"Bewerbung absenden"**
+
+✅ **Sie erhalten eine Bestätigungs-E-Mail!**
+
+**Schritt 2: E-Mail verifizieren**
+
+1. Öffnen Sie die E-Mail von cflux
+2. Klicken Sie auf den Bestätigungslink
+3. Ihre E-Mail-Adresse ist nun verifiziert
+
+**Schritt 3: Dokumente hochladen**
+
+1. Melden Sie sich im **Bewerber-Portal** an (mit Ihrer E-Mail)
+2. Laden Sie folgende Dokumente hoch:
+   - ✅ **Lebenslauf** (CV)
+   - ✅ **Anschreiben** (Cover Letter)
+   - ✅ **Zeugnisse** (Certificates)
+   - Weitere Dokumente (optional)
+
+**Was Sie im Bewerber-Portal sehen:**
+- 📊 **Fortschrittsbalke**: Zeigt an, welche Dokumente noch fehlen
+- 📋 **Bewerbungsstatus**: Neu, In Prüfung, Gespräch geplant, Angebot, etc.
+- 📅 **Vorstellungstermine**: Wenn ein Interview geplant ist
+- 📄 **Ihre Dokumente**: Übersicht aller hochgeladenen Dateien
+
+💡 **Tipp:** Der Fortschrittsbalken zeigt 100%, wenn Sie CV, Anschreiben und mindestens ein Zeugnis hochgeladen haben.
+
+### Vom Bewerber zum Mitarbeiter
+
+**Wenn Sie eingestellt werden:**
+
+1. Sie erhalten eine Benachrichtigung über Ihre Einstellung
+2. Ihr Bewerber-Account wird zu einem Mitarbeiter-Account konvertiert
+3. Sie erhalten neue Login-Daten für das Mitarbeiter-Portal
+4. Sie werden automatisch zu relevanten Projekten zugewiesen
 
 ---
 
 ## Zeiterfassung
+
+### Zeiterfassungs-Dashboard
+
+Das Herzstück von cflux ist die Zeiterfassung:
+
+![Time Management](../web/kickstart/timemanagement.png)
 
 ### Einstempeln
 
@@ -138,7 +209,19 @@ Keine Sorge! Wenden Sie sich an Ihren Administrator. Nur Administratoren können
 **Was der Admin korrigieren kann:**
 - Vergessenes Ausstempeln nachtragen
 - Falsche Projektbuchung ändern
-- Arbeitszeiten anpassen
+- Arbeitszeplaner
+
+Der integrierte Urlaubsplaner zeigt Ihnen eine Kalenderansicht aller Urlaube:
+
+![Urlaubsplaner](../web/kickstart/urlaubsplaner.png)
+
+**Features des Urlaubsplaners:**
+- 📅 Monatsansicht aller Mitarbeiter-Urlaube
+- 🎨 Farbcodierung nach Status (geplant, genehmigt, abgelehnt)
+- 👥 Team-Übersicht: Sehen wer wann abwesend ist
+- 📊 Verfügbarkeits-Check vor Urlaubsantrag
+
+### Urlaubsiten anpassen
 
 ---
 
@@ -203,7 +286,13 @@ Verbleibend:            17 Tage
 
 **Jahresplanung:**
 - Nutzen Sie Ihren Jahresurlaub rechtzeitig
-- Resturlaub verfällt am Ende des Jahres (je nach Unternehmensrichtlinie)
+- Resbwesenheitsverwaltung
+
+Zentrale Übersicht aller Ihrer Abwesenheiten:
+
+![Abwesenheiten](../web/kickstart/abwesenheit.png)
+
+### Aturlaub verfällt am Ende des Jahres (je nach Unternehmensrichtlinie)
 - Planen Sie um Feiertage herum für maximale Freizeit
 
 **Dokumentation:**
@@ -272,6 +361,89 @@ Ab dem 3. Krankheitstag ist in vielen Unternehmen ein Arztzeugnis erforderlich. 
 
 ---
 
+## Nachrichten
+
+### Nachrichten-System
+
+cflux verfügt über ein integriertes Nachrichten-System für die interne Kommunikation:
+
+![Nachrichten](../web/kickstart/nachrichten.png)
+
+**Funktionen:**
+- 📨 **Posteingang**: Empfangene Nachrichten
+- 📤 **Gesendet**: Ihre gesendeten Nachrichten
+- 🗑️ **Papierkorb**: Gelöschte Nachrichten
+- ✍️ **Neue Nachricht**: Nachricht an Kollegen senden
+
+### Nachricht senden
+
+**So senden Sie eine Nachricht:**
+
+1. Klicken Sie auf **"Neue Nachricht"**
+2. Wählen Sie den Empfänger aus der Liste
+3. Geben Sie einen Betreff ein
+4. Verfassen Sie Ihre Nachricht
+5. Klicken Sie auf **"Senden"**
+
+**Nachrichten-Typen:**
+- 👤 **Benutzernachricht**: Persönliche Nachricht an Kollegen
+- 🔔 **Systemnachricht**: Automatische Benachrichtigungen (z.B. Urlaubsgenehmigung)
+- 📋 **Workflow-Nachricht**: Nachrichten aus Genehmigungsprozessen
+
+---
+
+## E-Learning
+
+### E-Learning-Portal
+
+cflux bietet ein integriertes E-Learning-System für Weiterbildung:
+
+![E-Learning Dashboard](../web/kickstart/elearning.png)
+
+### Kurse ansehen
+
+**Ihre Kurs-Übersicht:**
+
+![Kursliste](../web/kickstart/courcde_list.png)
+
+**Für jeden Kurs sehen Sie:**
+- 📚 Kurstitel und Beschreibung
+- ⏱️ Geschätzte Dauer
+- 📊 Fortschritt (0%, 50%, 100%)
+- 🎯 Status (Nicht begonnen, In Bearbeitung, Abgeschlossen)
+- ⭐ Bewertung (nach Abschluss)
+
+### Kurs starten
+
+**So bearbeiten Sie einen Kurs:**
+
+![Kurs-Dashboard](../web/kickstart/course_dashboard.png)
+
+1. Klicken Sie auf einen zugewiesenen Kurs
+2. Navigieren Sie durch die Lektionen
+3. Bearbeiten Sie die Inhalte:
+   - 📖 Text-Lektionen lesen
+   - 🎥 Videos ansehen
+   - 📝 Quiz absolvieren
+   - 📄 Dokumente herunterladen
+
+![Benutzer-Kursansicht](../web/kickstart/user_course.png)
+
+### Quiz und Zertifikate
+
+**Nach Abschluss eines Kurses:**
+- ✅ Absolvieren Sie das Abschluss-Quiz
+- 🎓 Erhalten Sie ein Zertifikat (automatisch generiert)
+- ⭐ Bewerten Sie den Kurs
+- 📊 Ihr Fortschritt wird automatisch gespeichert
+
+**Quiz-Anforderungen:**
+- Mindestpunktzahl für Bestehen: 80%
+- Unbegrenzte Wiederholungen möglich
+- Sofortige Auswertung nach Abschluss
+
+---
+
 ## Mein Profil
 
 ### Profil bearbeiten
@@ -309,9 +481,17 @@ So aktualisieren Sie Ihr Profil:
 
 ## Berichte und Übersichten
 
+### Reporting-Dashboard
+
+Umfassende Reports über Ihre Arbeitszeit:
+
+![Reporting-Dashboard](../web/kickstart/reporting.png)
+
 ### Persönliche Statistiken
 
 **Übersicht aufrufen:**
+
+![Mitarbeiter-Reports](../web/kickstart/reoorting_mitarbeiter.png)
 
 1. Navigieren Sie zu **"Meine Reports"** oder **"Dashboard"**
 2. Wählen Sie den Zeitraum:
@@ -319,6 +499,10 @@ So aktualisieren Sie Ihr Profil:
    - Diese Woche
    - Dieser Monat
    - Benutzerdefiniert
+
+**Stunden-Reports:**
+
+![Stunden-Reporting](../web/kickstart/reporting_stunden.png)
 
 **Was Sie sehen:**
 
@@ -454,6 +638,35 @@ A: Ein guter Mittelweg:
 - Kurze, aussagekräftige Beschreibungen
 - Ehrliche Zeiterfassung
 
+### Onboarding / Bewerbung
+
+**F: Wie lange dauert der Bewerbungsprozess?**  
+A: Nach Einreichung Ihrer Bewerbung:
+- Automatische Bestätigung sofort
+- Erste Rückmeldung innerhalb von 1 Woche
+- Vorstellungsgespräch bei Interesse
+- Entscheidung innerhalb von 2-4 Wochen
+
+**F: Kann ich meine Bewerbung nach dem Absenden noch bearbeiten?**  
+A: Sie können im Bewerber-Portal jederzeit weitere Dokumente hochladen oder bestehende ersetzen. Änderungen an Ihren Stammdaten (Name, E-Mail, Telefon) können nur durch das HR-Team vorgenommen werden.
+
+**F: Was passiert mit meinen Bewerbungsunterlagen, wenn ich nicht eingestellt werde?**  
+A: Ihre Daten werden gemäß DSGVO für 6 Monate aufbewahrt und dann automatisch gelöscht. Sie können jederzeit die sofortige Löschung beantragen.
+
+**F: Kann ich mich auf mehrere Positionen gleichzeitig bewerben?**  
+A: Ja, geben Sie bei der Bewerbung einfach alle interessanten Positionen an oder reichen Sie separate Bewerbungen ein.
+
+### E-Learning
+
+**F: Sind E-Learning-Kurse verpflichtend?**  
+A: Ja, zugewiesene Kurse müssen innerhalb der vorgegebenen Frist abgeschlossen werden. Die Kurse zählen als Arbeitszeit.
+
+**F: Was passiert, wenn ich einen Kurs nicht bestehe?**  
+A: Sie können das Quiz beliebig oft wiederholen. Zusätzlich können Sie Ihren Vorgesetzten um Unterstützung bitten.
+
+**F: Werden abgeschlossene Kurse in meinem Profil gespeichert?**  
+A: Ja, alle absolvierten Kurse und Zertifikate werden dauerhaft in Ihrem Mitarbeiterprofil hinterlegt und können für Jahresgespräche oder Bewerbungen exportiert werden.
+
 ---
 
 ## Kontakt & Support
@@ -490,6 +703,13 @@ A: Ein guter Mittelweg:
 | **Abwesenheit** | Jede Nicht-Arbeitszeit (Urlaub, Krankheit, etc.) |
 | **Status** | Zustand eines Antrags (Ausstehend, Genehmigt, Abgelehnt) |
 | **Report** | Zusammenfassende Auswertung Ihrer Zeiten |
+| **Bewerber-Portal** | Separate Anwendung für Jobbewerber |
+| **Onboarding** | Prozess der Mitarbeiter-Integration |
+| **E-Learning** | Online-Schulungsplattform innerhalb cflux |
+| **Kurs** | Strukturierte Lerneinheit mit Lektionen und Quiz |
+| **Zertifikat** | Nachweis über abgeschlossenen Kurs |
+| **Workflow** | Automatisierter Genehmigungsprozess |
+| **Systemnachricht** | Automatische Benachrichtigung des Systems |
 
 ---
 
@@ -500,16 +720,28 @@ A: Ein guter Mittelweg:
 - `Alt+A` - Ausstempeln
 - `Alt+U` - Urlaub beantragen
 - `Alt+R` - Reports öffnen
+- `Alt+N` - Neue Nachricht
+- `Alt+L` - E-Learning öffnen
 
 **Mobile Nutzung:**
-- cflux ist mobilfreundlich gestaltet
+- cflux ist vollständig mobilfreundlich gestaltet
 - Zeiterfassung funktioniert auf Smartphone/Tablet
-- Responsive Design passt sich an Ihr Gerät an
+- Responsive Design passt sich automatisch an Ihr Gerät an
+- Progressive Web App (PWA) - kann wie eine App installiert werden
 
 **Browser-Empfehlungen:**
 - Chrome, Firefox, Safari, Edge (neueste Versionen)
 - JavaScript muss aktiviert sein
 - Cookies müssen erlaubt sein
+- Empfohlene Bildschirmauflösung: mindestens 1280x720px
+
+**Neue Features (2026):**
+- ✨ **Bewerber-Portal**: Vollständig digitalisierter Bewerbungsprozess
+- 🎓 **E-Learning**: Integrierte Schulungsplattform
+- 💬 **Nachrichten-System**: Interne Kommunikation
+- 📊 **Erweiterte Reports**: Detaillierte Analysen und Visualisierungen
+- 🔄 **Workflows**: Automatisierte Genehmigungsprozesse
+- 📱 **Mobile-First Design**: Optimiert für alle Geräte
 
 ---
 
