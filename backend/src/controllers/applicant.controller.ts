@@ -189,6 +189,23 @@ export async function checkRequiredDocuments(req: Request, res: Response) {
   }
 }
 
+export async function downloadDocument(req: Request, res: Response) {
+  try {
+    const { documentId } = req.params;
+    const document = await applicantService.getDocumentById(documentId);
+    
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Send file
+    res.download(document.filePath, document.fileName);
+  } catch (error: any) {
+    console.error('Error downloading document:', error);
+    res.status(500).json({ error: 'Failed to download document', details: error.message });
+  }
+}
+
 // ==================== INTERVIEWS ====================
 
 export async function scheduleInterview(req: Request, res: Response) {

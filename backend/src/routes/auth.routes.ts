@@ -34,4 +34,26 @@ router.post(
   authController.login
 );
 
+// Password reset routes (no authentication required)
+router.post(
+  '/request-password-reset',
+  [body('email').isEmail()],
+  authController.requestPasswordReset
+);
+
+router.post(
+  '/verify-reset-token',
+  [body('token').notEmpty()],
+  authController.verifyResetToken
+);
+
+router.post(
+  '/reset-password',
+  [
+    body('token').notEmpty(),
+    body('newPassword').isLength({ min: 6 })
+  ],
+  authController.resetPassword
+);
+
 export default router;

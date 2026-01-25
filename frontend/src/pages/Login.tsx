@@ -198,9 +198,8 @@ const Login: React.FC = () => {
           color: '#6b7280',
           marginTop: '24px'
         }}>
-          Noch kein Konto?{' '}
           <Link 
-            to="/register" 
+            to="/forgot-password" 
             style={{ 
               color: '#10b981', 
               fontWeight: '500',
@@ -209,7 +208,7 @@ const Login: React.FC = () => {
             onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
             onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
           >
-            Registrieren
+            Passwort vergessen?
           </Link>
         </p>
       </div>

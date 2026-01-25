@@ -23,6 +23,11 @@ import {
   Tabs,
   Tab,
   Badge,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Divider,
 } from '@mui/material';
 import { 
   Visibility, 
@@ -31,7 +36,17 @@ import {
   Email,
   Description,
   Event,
+  GetApp,
 } from '@mui/icons-material';
+
+interface ApplicantDocument {
+  id: string;
+  documentType: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedAt: string;
+}
 
 interface Applicant {
   id: string;
@@ -43,7 +58,7 @@ interface Applicant {
   status: string;
   emailVerified: boolean;
   appliedAt: string;
-  documents?: any[];
+  documents?: ApplicantDocument[];
   interviews?: any[];
   _count?: {
     documents: number;
@@ -64,6 +79,8 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
+  const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
+  const [applicantDocuments, setApplicantDocuments] = useState<ApplicantDocument[]>([]);
 
   useEffect(() => {
     loadApplicants();
@@ -136,6 +153,58 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
   const handleViewDetails = (applicant: Applicant) => {
     setSelectedApplicant(applicant);
     setDetailDialogOpen(true);
+  };
+
+  const handleViewDocuments = async (applicant: Applicant) => {
+    setSelectedApplicant(applicant);
+    try {
+      const response = await api.get(`/applicants/applicants/${applicant.id}/documents`);
+      setApplicantDocuments(response.data);
+      setDocumentsDialogOpen(true);
+    } catch (err: any) {
+      console.error('Error loading documents:', err);
+      setError('Fehler beim Laden der Dokumente');
+    }
+  };
+
+  const handleDownloadDocument = async (documentId: string, fileName: string) => {
+    try {
+      const response = await api.get(`/applicants/admin/documents/${documentId}/download`, {
+        responseType: 'blob',
+      });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Error downloading document:', err);
+      setError('Fehler beim Herunterladen des Dokuments');
+    }
+  };
+
+  const getDocumentTypeLabel = (type: string): string => {
+    const labels: Record<string, string> = {
+      CV: 'Lebenslauf',
+      COVER_LETTER: 'Anschreiben',
+      CERTIFICATE: 'Zeugnis',
+      ID_COPY: 'Ausweis-Kopie',
+      DIPLOMA: 'Diplom',
+      REFERENCE: 'Referenz',
+      OTHER: 'Sonstiges',
+    };
+    return labels[type] || type;
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   const getStatistics = () => {
@@ -268,7 +337,14 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
                   </TableCell>
                   <TableCell align="center">
                     <Badge badgeContent={applicant._count?.documents || 0} color="primary">
-                      <Description fontSize="small" />
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => handleViewDocuments(applicant)}
+                        title="Dokumente anzeigen"
+                      >
+                        <Description fontSize="small" />
+                      </IconButton>
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -439,6 +515,71 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
           <Button onClick={handleVerifyEmail} variant="contained" color="primary">
             Verifizieren
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Documents Dialog */}
+      <Dialog 
+        open={documentsDialogOpen} 
+        onClose={() => setDocumentsDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          📄 Dokumente: {selectedApplicant?.firstName} {selectedApplicant?.lastName}
+        </DialogTitle>
+        <DialogContent>
+          {applicantDocuments.length === 0 ? (
+            <Typography color="textSecondary" sx={{ py: 3, textAlign: 'center' }}>
+              Keine Dokumente hochgeladen
+            </Typography>
+          ) : (
+            <List>
+              {applicantDocuments.map((doc, index) => (
+                <React.Fragment key={doc.id}>
+                  {index > 0 && <Divider />}
+                  <ListItem>
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Description fontSize="small" color="primary" />
+                          <Typography variant="body1" component="span">
+                            {doc.fileName}
+                          </Typography>
+                        </Box>
+                      }
+                      secondary={
+                        <Box sx={{ mt: 0.5 }}>
+                          <Typography variant="caption" display="block">
+                            <strong>Typ:</strong> {getDocumentTypeLabel(doc.documentType)}
+                          </Typography>
+                          <Typography variant="caption" display="block">
+                            <strong>Größe:</strong> {formatFileSize(doc.fileSize)}
+                          </Typography>
+                          <Typography variant="caption" display="block">
+                            <strong>Hochgeladen:</strong> {new Date(doc.uploadedAt).toLocaleString('de-CH')}
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                    <ListItemSecondaryAction>
+                      <IconButton
+                        edge="end"
+                        color="primary"
+                        onClick={() => handleDownloadDocument(doc.id, doc.fileName)}
+                        title="Herunterladen"
+                      >
+                        <GetApp />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                </React.Fragment>
+              ))}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDocumentsDialogOpen(false)}>Schließen</Button>
         </DialogActions>
       </Dialog>
     </Box>

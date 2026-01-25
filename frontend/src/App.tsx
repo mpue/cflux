@@ -6,6 +6,8 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import ThemeToggle from './components/ThemeToggle';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/DashboardNew';
 import AdminDashboard from './pages/AdminDashboard';
 import VacationPlanner from './pages/VacationPlanner';
@@ -81,6 +83,8 @@ function App() {
               {/* Public Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               
               {/* Applicant Public Routes */}
               <Route path="/applicant/register" element={<ApplicantRegisterPage />} />

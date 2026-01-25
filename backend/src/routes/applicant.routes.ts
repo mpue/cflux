@@ -74,6 +74,22 @@ router.delete(
   applicantController.deleteApplicantDocument
 );
 
+// Download document (HR only)
+router.get(
+  '/admin/documents/:documentId/download',
+  authenticate,
+  requireModuleAccess('onboarding', 'canView'),
+  applicantController.downloadDocument
+);
+
+// Get applicant documents (HR only)
+router.get(
+  '/applicants/:id/documents',
+  authenticate,
+  requireModuleAccess('onboarding', 'canView'),
+  applicantController.getApplicantDocuments
+);
+
 // ==================== APPLICANTS (HR Access) ====================
 
 // Get all applicants (HR only)
