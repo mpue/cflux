@@ -353,6 +353,10 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
             </Box>
           </MenuItem>
           <Divider />
+          <MenuItem onClick={() => navigateTo('/profile')}>
+            <PersonIcon sx={{ mr: 1 }} />
+            Profil
+          </MenuItem>
           <MenuItem onClick={() => { toggleTheme(); handleMenuClose(); }}>
             {theme === 'light' ? (
               <DarkModeIcon sx={{ mr: 1 }} />

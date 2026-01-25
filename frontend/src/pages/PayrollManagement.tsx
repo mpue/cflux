@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-  Container,
-  Paper,
-  Typography,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -21,22 +11,20 @@ import {
   FormControl,
   InputLabel,
   Chip,
-  IconButton,
-  Box,
   Grid,
   Card,
   CardContent,
-  Alert
+  Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Typography,
+  Box
 } from '@mui/material';
-import {
-  Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  Calculate as CalculateIcon,
-  Check as CheckIcon,
-  Payment as PaymentIcon,
-  Visibility as VisibilityIcon
-} from '@mui/icons-material';
 import { PayrollPeriod, PayrollEntry, PayrollStatus } from '../types';
 import './PayrollManagement.css';
 
@@ -230,130 +218,117 @@ const PayrollManagement: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="xl" className="payroll-management">
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Lohnabrechnung
-        </Typography>
-        <Typography variant="body1" color="textSecondary">
-          Verwaltung der Lohnabrechnungen und Gehaltsperioden
-        </Typography>
-      </Box>
+    <div className="admin-container">
+      <div className="admin-header">
+        <h1>Lohnabrechnung</h1>
+      </div>
 
-      {error && (
-        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+      <div className="tab-content">
+        {error && (
+          <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
 
-      {success && (
-        <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>
-          {success}
-        </Alert>
-      )}
+        {success && (
+          <Alert severity="success" onClose={() => setSuccess(null)} sx={{ mb: 2 }}>
+            {success}
+          </Alert>
+        )}
 
-      <Box sx={{ mb: 3 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => setOpenDialog(true)}
-        >
-          Neue Lohnperiode
-        </Button>
-      </Box>
+        <div className="section-header">
+          <button className="button primary" onClick={() => setOpenDialog(true)}>
+            + Neue Lohnperiode
+          </button>
+        </div>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Periode</TableCell>
-              <TableCell>Jahr</TableCell>
-              <TableCell>Monat</TableCell>
-              <TableCell>Zeitraum</TableCell>
-              <TableCell>Typ</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Mitarbeiter</TableCell>
-              <TableCell align="right">Aktionen</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {periods.map((period) => (
-              <TableRow key={period.id}>
-                <TableCell>{period.name}</TableCell>
-                <TableCell>{period.year}</TableCell>
-                <TableCell>{period.month}</TableCell>
-                <TableCell>
-                  {formatDate(period.startDate)} - {formatDate(period.endDate)}
-                </TableCell>
-                <TableCell>{period.type}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={getStatusLabel(period.status)}
-                    color={getStatusColor(period.status)}
-                    size="small"
-                  />
-                </TableCell>
-                <TableCell>{period.payrollEntries?.length || 0}</TableCell>
-                <TableCell align="right">
-                  <IconButton
-                    size="small"
-                    onClick={() => handleViewDetails(period.id)}
-                    title="Details anzeigen"
-                  >
-                    <VisibilityIcon />
-                  </IconButton>
-                  
-                  {period.status === 'DRAFT' && (
-                    <IconButton
-                      size="small"
-                      onClick={() => handleCalculatePeriod(period.id)}
-                      title="Berechnen"
-                      color="primary"
-                    >
-                      <CalculateIcon />
-                    </IconButton>
-                  )}
-                  
-                  {period.status === 'CALCULATED' && (
-                    <IconButton
-                      size="small"
-                      onClick={() => handleUpdateStatus(period.id, 'APPROVED')}
-                      title="Genehmigen"
-                      color="success"
-                    >
-                      <CheckIcon />
-                    </IconButton>
-                  )}
-                  
-                  {period.status === 'APPROVED' && (
-                    <IconButton
-                      size="small"
-                      onClick={() => handleUpdateStatus(period.id, 'PAID')}
-                      title="Als bezahlt markieren"
-                      color="success"
-                    >
-                      <PaymentIcon />
-                    </IconButton>
-                  )}
-                  
-                  {period.status === 'DRAFT' && (
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeletePeriod(period.id)}
-                      title="Löschen"
-                      color="error"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Periode</th>
+                <th>Jahr</th>
+                <th>Monat</th>
+                <th>Zeitraum</th>
+                <th>Typ</th>
+                <th>Status</th>
+                <th>Mitarbeiter</th>
+                <th>Aktionen</th>
+              </tr>
+            </thead>
+            <tbody>
+              {periods.map((period) => (
+                <tr key={period.id}>
+                  <td><strong>{period.name}</strong></td>
+                  <td>{period.year}</td>
+                  <td>{period.month}</td>
+                  <td>
+                    {formatDate(period.startDate)} - {formatDate(period.endDate)}
+                  </td>
+                  <td>{period.type}</td>
+                  <td>
+                    <span className={`status-badge ${period.status.toLowerCase()}`}>
+                      {getStatusLabel(period.status)}
+                    </span>
+                  </td>
+                  <td>{period.payrollEntries?.length || 0}</td>
+                  <td>
+                    <div className="action-buttons">
+                      <button
+                        className="button small"
+                        onClick={() => handleViewDetails(period.id)}
+                        title="Details anzeigen"
+                      >
+                        Details
+                      </button>
+                      
+                      {period.status === 'DRAFT' && (
+                        <button
+                          className="button small primary"
+                          onClick={() => handleCalculatePeriod(period.id)}
+                          title="Berechnen"
+                        >
+                          Berechnen
+                        </button>
+                      )}
+                      
+                      {period.status === 'CALCULATED' && (
+                        <button
+                          className="button small success"
+                          onClick={() => handleUpdateStatus(period.id, 'APPROVED')}
+                          title="Genehmigen"
+                        >
+                          Genehmigen
+                        </button>
+                      )}
+                      
+                      {period.status === 'APPROVED' && (
+                        <button
+                          className="button small success"
+                          onClick={() => handleUpdateStatus(period.id, 'PAID')}
+                          title="Als bezahlt markieren"
+                        >
+                          Bezahlt
+                        </button>
+                      )}
+                      
+                      {period.status === 'DRAFT' && (
+                        <button
+                          className="button small danger"
+                          onClick={() => handleDeletePeriod(period.id)}
+                          title="Löschen"
+                        >
+                          Löschen
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
       {/* Dialog für neue Lohnperiode */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>Neue Lohnperiode erstellen</DialogTitle>
@@ -440,10 +415,12 @@ const PayrollManagement: React.FC = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Abbrechen</Button>
-          <Button onClick={handleCreatePeriod} variant="contained" color="primary">
+          <button className="button secondary" onClick={() => setOpenDialog(false)}>
+            Abbrechen
+          </button>
+          <button className="button primary" onClick={handleCreatePeriod}>
             Erstellen
-          </Button>
+          </button>
         </DialogActions>
       </Dialog>
 
@@ -556,10 +533,12 @@ const PayrollManagement: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDetailDialog(false)}>Schließen</Button>
+          <button className="button secondary" onClick={() => setOpenDetailDialog(false)}>
+            Schließen
+          </button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </div>
   );
 };
 

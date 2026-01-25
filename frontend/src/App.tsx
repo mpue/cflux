@@ -42,6 +42,7 @@ import ApplicantVerifyEmailPage from './pages/ApplicantVerifyEmailPage';
 import ApplicantVerifyPage from './pages/ApplicantVerifyPage';
 import ApplicantPortalPage from './pages/ApplicantPortalPage';
 import LandingPage from './pages/LandingPage';
+import UserProfile from './pages/UserProfile';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
@@ -100,6 +101,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute>
+                  <UserProfile />
                 </PrivateRoute>
               }
             />
