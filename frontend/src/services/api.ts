@@ -31,14 +31,9 @@ export const getBackendURL = () => {
     return process.env.REACT_APP_API_URL.replace('/api', '');
   }
   
-  // Default: try to determine from window location
-  if (typeof window !== 'undefined') {
-    const { protocol, hostname } = window.location;
-    // Frontend runs on 3002, backend on 3001
-    return `${protocol}//${hostname}:3001`;
-  }
-  
-  return 'http://localhost:3001';
+  // Default: Use empty string for relative URLs (let the proxy/nginx handle it)
+  // This ensures uploads work correctly through reverse proxy with SSL
+  return '';
 };
 
 // Normalize upload URLs to always point to the correct backend
