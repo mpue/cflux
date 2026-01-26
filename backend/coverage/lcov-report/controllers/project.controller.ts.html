@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">52.45% </span>
+                <span class="strong">56.25% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>32/61</span>
+                <span class='fraction'>45/80</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">75% </span>
+                <span class="strong">32% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>9/12</span>
+                <span class='fraction'>8/25</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">47.16% </span>
+                <span class="strong">55.55% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>25/53</span>
+                <span class='fraction'>35/63</span>
             </div>
         
             
@@ -222,7 +222,12 @@
 <a name='L157'></a><a href='#L157'>157</a>
 <a name='L158'></a><a href='#L158'>158</a>
 <a name='L159'></a><a href='#L159'>159</a>
-<a name='L160'></a><a href='#L160'>160</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -304,12 +309,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -459,18 +469,23 @@ export const createProject = async (req: AuthRequest, res: Response) =&gt; {
 export const updateProject = async (req: AuthRequest, res: Response) =&gt; {
   try {
     const { id } = req.params;
-    const { name, description, isActive, status, customerId, defaultHourlyRate } = req.body;
+    const { name, description, isActive, status, customerId, defaultHourlyRate, startDate, endDate, progress } = req.body;
+&nbsp;
+    const updateData: any = {};
+    
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (status !== undefined) <span class="cstat-no" title="statement not covered" >updateData.status = status;</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (customerId !== undefined) <span class="cstat-no" title="statement not covered" >updateData.customerId = customerId || null;</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (defaultHourlyRate !== undefined) <span class="cstat-no" title="statement not covered" >updateData.defaultHourlyRate = defaultHourlyRate ? parseFloat(defaultHourlyRate) : null;</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (startDate !== undefined) <span class="cstat-no" title="statement not covered" >updateData.startDate = startDate ? new Date(startDate) : null;</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (endDate !== undefined) <span class="cstat-no" title="statement not covered" >updateData.endDate = endDate ? new Date(endDate) : null;</span>
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (progress !== undefined) <span class="cstat-no" title="statement not covered" >updateData.progress = progress !== null ? parseInt(progress.toString()) : 0;</span>
 &nbsp;
     const project = await prisma.project.update({
       where: { id },
-      data: {
-        name,
-        description,
-        isActive,
-        ...(status &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >{ status })</span>,
-        customerId: customerId || null,
-        defaultHourlyRate: defaultHourlyRate ? <span class="branch-0 cbranch-no" title="branch not covered" >parseFloat(defaultHourlyRate) </span>: null
-      }
+      data: updateData
     });
 &nbsp;
     res.json(project);
@@ -547,7 +562,7 @@ export const unassignUserFromProject = <span class="fstat-no" title="function no
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-20T21:48:07.359Z
+                at 2026-01-26T14:37:45.574Z
             </div>
         <script src="../prettify.js"></script>
         <script>

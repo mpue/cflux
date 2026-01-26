@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '../api';
 import { reminderService } from '../reminder.service';
 import {
   Reminder,
@@ -11,26 +11,13 @@ import {
   ReminderLevel
 } from '../../types/reminder.types';
 
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
-
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {};
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => { store[key] = value; },
-    removeItem: (key: string) => { delete store[key]; },
-    clear: () => { store = {}; }
-  };
-})();
-
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+// Mock the api module
+jest.mock('../api');
+const mockedApi = api as jest.Mocked<typeof api>;
 
 describe('Reminder Service - Complete CRUD Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    localStorage.setItem('token', 'test-token-123');
   });
 
   // ============================================
@@ -60,14 +47,14 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockReminder });
+      mockedApi.post.mockResolvedValue({ data: mockReminder });
 
       const result = await reminderService.createReminder(reminderData);
 
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders'),
+      expect(mockedApi.post).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders'),
         reminderData,
-        expect.objectContaining({ headers: expect.any(Object) })
+        
       );
       expect(result).toEqual(mockReminder);
       expect(result.level).toBe('FIRST');
@@ -96,7 +83,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockReminder });
+      mockedApi.post.mockResolvedValue({ data: mockReminder });
 
       const result = await reminderService.createReminder(reminderData);
 
@@ -127,7 +114,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockReminder });
+      mockedApi.post.mockResolvedValue({ data: mockReminder });
 
       const result = await reminderService.createReminder(reminderData);
 
@@ -158,7 +145,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockReminder });
+      mockedApi.post.mockResolvedValue({ data: mockReminder });
 
       const result = await reminderService.createReminder(reminderData);
 
@@ -176,7 +163,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         totalAmount: 1025.00,
       };
 
-      mockedAxios.post.mockRejectedValue(new Error('Invoice not found'));
+      mockedApi.post.mockRejectedValue(new Error('Invoice not found'));
 
       await expect(reminderService.createReminder(reminderData))
         .rejects.toThrow('Invoice not found');
@@ -205,7 +192,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockReminder });
+      mockedApi.post.mockResolvedValue({ data: mockReminder });
 
       const result = await reminderService.createReminder(reminderData);
 
@@ -254,13 +241,13 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         },
       ];
 
-      mockedAxios.get.mockResolvedValue({ data: mockReminders });
+      mockedApi.get.mockResolvedValue({ data: mockReminders });
 
       const result = await reminderService.getAllReminders();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders?'),
-        expect.objectContaining({ headers: expect.any(Object) })
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders?'),
+        
       );
       expect(result).toEqual(mockReminders);
       expect(result).toHaveLength(2);
@@ -286,13 +273,13 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         },
       ];
 
-      mockedAxios.get.mockResolvedValue({ data: mockReminders });
+      mockedApi.get.mockResolvedValue({ data: mockReminders });
 
       const result = await reminderService.getAllReminders({ status: 'PENDING' as ReminderStatus });
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders?status=PENDING'),
-        expect.objectContaining({ headers: expect.any(Object) })
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders?status=PENDING'),
+        
       );
       expect(result[0].status).toBe('PENDING');
     });
@@ -317,13 +304,13 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         },
       ];
 
-      mockedAxios.get.mockResolvedValue({ data: mockReminders });
+      mockedApi.get.mockResolvedValue({ data: mockReminders });
 
       const result = await reminderService.getAllReminders({ level: 'FIRST' as ReminderLevel });
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders?level=FIRST'),
-        expect.objectContaining({ headers: expect.any(Object) })
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders?level=FIRST'),
+        
       );
       expect(result[0].level).toBe('FIRST');
     });
@@ -348,13 +335,13 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         },
       ];
 
-      mockedAxios.get.mockResolvedValue({ data: mockReminders });
+      mockedApi.get.mockResolvedValue({ data: mockReminders });
 
       const result = await reminderService.getAllReminders({ customerId: 'customer-123' });
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders?customerId=customer-123'),
-        expect.objectContaining({ headers: expect.any(Object) })
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders?customerId=customer-123'),
+        
       );
       expect(result[0].customerId).toBe('customer-123');
     });
@@ -379,7 +366,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         },
       ];
 
-      mockedAxios.get.mockResolvedValue({ data: mockReminders });
+      mockedApi.get.mockResolvedValue({ data: mockReminders });
 
       const result = await reminderService.getAllReminders({
         status: 'SENT' as ReminderStatus,
@@ -387,9 +374,9 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         customerId: 'customer-123',
       });
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders?status=SENT&level=SECOND&customerId=customer-123'),
-        expect.objectContaining({ headers: expect.any(Object) })
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders?status=SENT&level=SECOND&customerId=customer-123'),
+        
       );
       expect(result[0].status).toBe('SENT');
       expect(result[0].level).toBe('SECOND');
@@ -416,20 +403,20 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      mockedAxios.get.mockResolvedValue({ data: mockReminder });
+      mockedApi.get.mockResolvedValue({ data: mockReminder });
 
       const result = await reminderService.getReminderById('reminder-123');
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders/reminder-123'),
-        expect.objectContaining({ headers: expect.any(Object) })
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders/reminder-123'),
+        
       );
       expect(result).toEqual(mockReminder);
       expect(result.id).toBe('reminder-123');
     });
 
     it('should handle reminder not found', async () => {
-      mockedAxios.get.mockRejectedValue(new Error('Reminder not found'));
+      mockedApi.get.mockRejectedValue(new Error('Reminder not found'));
 
       await expect(reminderService.getReminderById('nonexistent-id'))
         .rejects.toThrow('Reminder not found');
@@ -473,13 +460,13 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         },
       ];
 
-      mockedAxios.get.mockResolvedValue({ data: mockReminders });
+      mockedApi.get.mockResolvedValue({ data: mockReminders });
 
       const result = await reminderService.getRemindersByInvoice('invoice-123');
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders/invoice/invoice-123'),
-        expect.objectContaining({ headers: expect.any(Object) })
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders/invoice/invoice-123'),
+        
       );
       expect(result).toHaveLength(2);
       expect(result[0].invoiceId).toBe('invoice-123');
@@ -513,13 +500,13 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         },
       ];
 
-      mockedAxios.get.mockResolvedValue({ data: mockOverdueInvoices });
+      mockedApi.get.mockResolvedValue({ data: mockOverdueInvoices });
 
       const result = await reminderService.getOverdueInvoices();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders/overdue-invoices'),
-        expect.objectContaining({ headers: expect.any(Object) })
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders/overdue-invoices'),
+        
       );
       expect(result).toEqual(mockOverdueInvoices);
       expect(result).toHaveLength(2);
@@ -542,13 +529,13 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      mockedAxios.get.mockResolvedValue({ data: mockSettings });
+      mockedApi.get.mockResolvedValue({ data: mockSettings });
 
       const result = await reminderService.getReminderSettings();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders/settings/current'),
-        expect.objectContaining({ headers: expect.any(Object) })
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders/settings/current'),
+        
       );
       expect(result).toEqual(mockSettings);
       expect(result.firstReminderDays).toBe(7);
@@ -572,13 +559,13 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         },
       };
 
-      mockedAxios.get.mockResolvedValue({ data: mockStats });
+      mockedApi.get.mockResolvedValue({ data: mockStats });
 
       const result = await reminderService.getReminderStats();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders/stats'),
-        expect.objectContaining({ headers: expect.any(Object) })
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders/stats'),
+        
       );
       expect(result).toEqual(mockStats);
       expect(result.totalReminders).toBe(45);
@@ -612,14 +599,14 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-02T10:00:00Z',
       };
 
-      mockedAxios.put.mockResolvedValue({ data: mockUpdatedReminder });
+      mockedApi.put.mockResolvedValue({ data: mockUpdatedReminder });
 
       const result = await reminderService.updateReminder('reminder-123', updateData);
 
-      expect(mockedAxios.put).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders/reminder-123'),
+      expect(mockedApi.put).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders/reminder-123'),
         updateData,
-        expect.objectContaining({ headers: expect.any(Object) })
+        
       );
       expect(result.message).toBe('Aktualisierte Mahnungsnachricht');
     });
@@ -646,7 +633,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-15T10:00:00Z',
       };
 
-      mockedAxios.put.mockResolvedValue({ data: mockUpdatedReminder });
+      mockedApi.put.mockResolvedValue({ data: mockUpdatedReminder });
 
       const result = await reminderService.updateReminder('reminder-123', updateData);
 
@@ -675,7 +662,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-02T10:00:00Z',
       };
 
-      mockedAxios.put.mockResolvedValue({ data: mockUpdatedReminder });
+      mockedApi.put.mockResolvedValue({ data: mockUpdatedReminder });
 
       const result = await reminderService.updateReminder('reminder-123', updateData);
 
@@ -705,7 +692,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-02T10:00:00Z',
       };
 
-      mockedAxios.put.mockResolvedValue({ data: mockUpdatedReminder });
+      mockedApi.put.mockResolvedValue({ data: mockUpdatedReminder });
 
       const result = await reminderService.updateReminder('reminder-123', updateData);
 
@@ -718,7 +705,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         message: 'New message',
       };
 
-      mockedAxios.put.mockRejectedValue(new Error('Reminder not found'));
+      mockedApi.put.mockRejectedValue(new Error('Reminder not found'));
 
       await expect(reminderService.updateReminder('nonexistent-id', updateData))
         .rejects.toThrow('Reminder not found');
@@ -747,14 +734,14 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-02T10:00:00Z',
       };
 
-      mockedAxios.put.mockResolvedValue({ data: mockUpdatedSettings });
+      mockedApi.put.mockResolvedValue({ data: mockUpdatedSettings });
 
       const result = await reminderService.updateReminderSettings('settings-1', updateData);
 
-      expect(mockedAxios.put).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders/settings/settings-1'),
+      expect(mockedApi.put).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders/settings/settings-1'),
         updateData,
-        expect.objectContaining({ headers: expect.any(Object) })
+        
       );
       expect(result.firstReminderDays).toBe(10);
       expect(result.autoSendReminders).toBe(true);
@@ -783,21 +770,21 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-15T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockSentReminder });
+      mockedApi.post.mockResolvedValue({ data: mockSentReminder });
 
       const result = await reminderService.sendReminder('reminder-123', 'user-123');
 
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders/reminder-123/send'),
+      expect(mockedApi.post).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders/reminder-123/send'),
         { sentBy: 'user-123' },
-        expect.objectContaining({ headers: expect.any(Object) })
+        
       );
       expect(result.status).toBe('SENT');
       expect(result.sentBy).toBe('user-123');
     });
 
     it('should handle send error', async () => {
-      mockedAxios.post.mockRejectedValue(new Error('Email service unavailable'));
+      mockedApi.post.mockRejectedValue(new Error('Email service unavailable'));
 
       await expect(reminderService.sendReminder('reminder-123', 'user-123'))
         .rejects.toThrow('Email service unavailable');
@@ -823,14 +810,14 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-20T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockPaidReminder });
+      mockedApi.post.mockResolvedValue({ data: mockPaidReminder });
 
       const result = await reminderService.markReminderAsPaid('reminder-123');
 
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders/reminder-123/mark-paid'),
+      expect(mockedApi.post).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders/reminder-123/mark-paid'),
         {},
-        expect.objectContaining({ headers: expect.any(Object) })
+        
       );
       expect(result.status).toBe('PAID');
       expect(result.paidDate).toBeDefined();
@@ -841,22 +828,19 @@ describe('Reminder Service - Complete CRUD Tests', () => {
     it('should download reminder PDF', async () => {
       const mockBlob = new Blob(['PDF content'], { type: 'application/pdf' });
 
-      mockedAxios.get.mockResolvedValue({ data: mockBlob });
+      mockedApi.get.mockResolvedValue({ data: mockBlob });
 
       const result = await reminderService.downloadReminderPdf('reminder-123');
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders/reminder-123/pdf'),
-        expect.objectContaining({
-          headers: expect.any(Object),
-          responseType: 'blob'
-        })
+      expect(mockedApi.get).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders/reminder-123/pdf'),
+        { responseType: 'blob' }
       );
       expect(result).toEqual(mockBlob);
     });
 
     it('should handle PDF download error', async () => {
-      mockedAxios.get.mockRejectedValue(new Error('PDF generation failed'));
+      mockedApi.get.mockRejectedValue(new Error('PDF generation failed'));
 
       await expect(reminderService.downloadReminderPdf('reminder-123'))
         .rejects.toThrow('PDF generation failed');
@@ -868,18 +852,18 @@ describe('Reminder Service - Complete CRUD Tests', () => {
   // ============================================
   describe('DELETE - deleteReminder', () => {
     it('should delete reminder successfully', async () => {
-      mockedAxios.delete.mockResolvedValue({});
+      mockedApi.delete.mockResolvedValue({});
 
       await reminderService.deleteReminder('reminder-123');
 
-      expect(mockedAxios.delete).toHaveBeenCalledWith(
-        expect.stringContaining('/api/reminders/reminder-123'),
-        expect.objectContaining({ headers: expect.any(Object) })
+      expect(mockedApi.delete).toHaveBeenCalledWith(
+        expect.stringContaining('/reminders/reminder-123'),
+        
       );
     });
 
     it('should handle delete error', async () => {
-      mockedAxios.delete.mockRejectedValue(new Error('Cannot delete sent reminder'));
+      mockedApi.delete.mockRejectedValue(new Error('Cannot delete sent reminder'));
 
       await expect(reminderService.deleteReminder('reminder-123'))
         .rejects.toThrow('Cannot delete sent reminder');
@@ -888,13 +872,13 @@ describe('Reminder Service - Complete CRUD Tests', () => {
     it('should delete multiple reminders', async () => {
       const reminderIds = ['reminder-1', 'reminder-2', 'reminder-3'];
 
-      mockedAxios.delete.mockResolvedValue({});
+      mockedApi.delete.mockResolvedValue({});
 
       for (const id of reminderIds) {
         await reminderService.deleteReminder(id);
       }
 
-      expect(mockedAxios.delete).toHaveBeenCalledTimes(3);
+      expect(mockedApi.delete).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -926,7 +910,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockFirstReminder });
+      mockedApi.post.mockResolvedValue({ data: mockFirstReminder });
       const firstReminder = await reminderService.createReminder(firstReminderData);
       expect(firstReminder.level).toBe('FIRST');
 
@@ -939,7 +923,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-15T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockSentFirst });
+      mockedApi.post.mockResolvedValue({ data: mockSentFirst });
       const sentFirst = await reminderService.sendReminder('reminder-first', 'user-123');
       expect(sentFirst.status).toBe('SENT');
 
@@ -966,12 +950,12 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-02-05T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockSecondReminder });
+      mockedApi.post.mockResolvedValue({ data: mockSecondReminder });
       const secondReminder = await reminderService.createReminder(secondReminderData);
       expect(secondReminder.level).toBe('SECOND');
 
       // GET all reminders for invoice
-      mockedAxios.get.mockResolvedValue({ data: [mockSentFirst, mockSecondReminder] });
+      mockedApi.get.mockResolvedValue({ data: [mockSentFirst, mockSecondReminder] });
       const allReminders = await reminderService.getRemindersByInvoice('invoice-123');
       expect(allReminders).toHaveLength(2);
     });
@@ -1003,7 +987,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockReminder });
+      mockedApi.post.mockResolvedValue({ data: mockReminder });
 
       const result = await reminderService.createReminder(reminderData);
 
@@ -1036,7 +1020,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockReminder });
+      mockedApi.post.mockResolvedValue({ data: mockReminder });
 
       const result = await reminderService.createReminder(reminderData);
 
@@ -1066,7 +1050,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockReminder });
+      mockedApi.post.mockResolvedValue({ data: mockReminder });
 
       const result = await reminderService.createReminder(reminderData);
 
@@ -1076,7 +1060,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
     });
 
     it('should handle empty reminders list', async () => {
-      mockedAxios.get.mockResolvedValue({ data: [] });
+      mockedApi.get.mockResolvedValue({ data: [] });
 
       const result = await reminderService.getAllReminders();
 
@@ -1106,7 +1090,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         updatedAt: '2026-01-01T10:00:00Z',
       };
 
-      mockedAxios.post.mockResolvedValue({ data: mockReminder });
+      mockedApi.post.mockResolvedValue({ data: mockReminder });
 
       const result = await reminderService.createReminder(reminderData);
 
@@ -1130,7 +1114,7 @@ describe('Reminder Service - Complete CRUD Tests', () => {
         },
       };
 
-      mockedAxios.get.mockResolvedValue({ data: mockStats });
+      mockedApi.get.mockResolvedValue({ data: mockStats });
 
       const result = await reminderService.getReminderStats();
 
@@ -1139,3 +1123,4 @@ describe('Reminder Service - Complete CRUD Tests', () => {
     });
   });
 });
+

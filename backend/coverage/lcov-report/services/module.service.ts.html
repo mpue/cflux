@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/78</span>
+                <span class='fraction'>0/76</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/43</span>
+                <span class='fraction'>0/42</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/76</span>
+                <span class='fraction'>0/74</span>
             </div>
         
             
@@ -451,20 +451,7 @@
 <a name='L386'></a><a href='#L386'>386</a>
 <a name='L387'></a><a href='#L387'>387</a>
 <a name='L388'></a><a href='#L388'>388</a>
-<a name='L389'></a><a href='#L389'>389</a>
-<a name='L390'></a><a href='#L390'>390</a>
-<a name='L391'></a><a href='#L391'>391</a>
-<a name='L392'></a><a href='#L392'>392</a>
-<a name='L393'></a><a href='#L393'>393</a>
-<a name='L394'></a><a href='#L394'>394</a>
-<a name='L395'></a><a href='#L395'>395</a>
-<a name='L396'></a><a href='#L396'>396</a>
-<a name='L397'></a><a href='#L397'>397</a>
-<a name='L398'></a><a href='#L398'>398</a>
-<a name='L399'></a><a href='#L399'>399</a>
-<a name='L400'></a><a href='#L400'>400</a>
-<a name='L401'></a><a href='#L401'>401</a>
-<a name='L402'></a><a href='#L402'>402</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L389'></a><a href='#L389'>389</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -609,22 +596,10 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -660,7 +635,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1006,63 +980,50 @@ export const <span class="cstat-no" title="statement not covered" >moduleService
       ? user.userGroupMemberships.map(<span class="fstat-no" title="function not covered" >m </span>=&gt; <span class="cstat-no" title="statement not covered" >m.userGroup.id)</span>
       : [];
 &nbsp;
-    // First, add all public modules (those without ANY group access restrictions in the entire system)
-<span class="cstat-no" title="statement not covered" >    for (const module of allActiveModules) {</span>
-<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (module.groupAccess.length === 0) {</span>
-        // Public module - no restrictions at all, accessible to everyone
-<span class="cstat-no" title="statement not covered" >        moduleMap.set(module.id, {</span>
-          ...module,
-          permissions: {
-            canView: true,
-            canCreate: true,
-            canEdit: true,
-            canDelete: true,
-          },
-        });
-      }
+    // Wenn User keine Gruppen hat, hat er keinen Zugriff
+<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (userGroupIds.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >      return [];</span>
     }
 &nbsp;
-    // Then, add restricted modules (those with group access restrictions)
-    // Only add if the user belongs to one of the allowed groups
-<span class="cstat-no" title="statement not covered" >    <span class="missing-if-branch" title="if path not taken" >I</span>if (userGroupIds.length &gt; 0) {</span>
-<span class="cstat-no" title="statement not covered" >      for (const module of allActiveModules) {</span>
-<span class="cstat-no" title="statement not covered" >        <span class="missing-if-branch" title="if path not taken" >I</span>if (module.groupAccess.length &gt; 0) {</span>
-          // This is a restricted module - check if user's groups have access
-<span class="cstat-no" title="statement not covered" >          for (const access of module.groupAccess) {</span>
-<span class="cstat-no" title="statement not covered" >            <span class="missing-if-branch" title="if path not taken" >I</span>if (!access.userGroup.isActive || !access.canView) {</span>
-<span class="cstat-no" title="statement not covered" >              continue;</span>
-            }
+    // Add modules where user's groups have access
+<span class="cstat-no" title="statement not covered" >    for (const module of allActiveModules) {</span>
+      // Nur Module mit Gruppenzugriff prüfen
+<span class="cstat-no" title="statement not covered" >      <span class="missing-if-branch" title="if path not taken" >I</span>if (module.groupAccess.length &gt; 0) {</span>
+        // This is a restricted module - check if user's groups have access
+<span class="cstat-no" title="statement not covered" >        for (const access of module.groupAccess) {</span>
+<span class="cstat-no" title="statement not covered" >          <span class="missing-if-branch" title="if path not taken" >I</span>if (!access.userGroup.isActive || !access.canView) {</span>
+<span class="cstat-no" title="statement not covered" >            continue;</span>
+          }
 &nbsp;
-            // Check if this access entry is for one of the user's groups
-<span class="cstat-no" title="statement not covered" >            <span class="missing-if-branch" title="if path not taken" >I</span>if (!userGroupIds.includes(access.userGroup.id)) {</span>
-<span class="cstat-no" title="statement not covered" >              continue;</span>
-            }
+          // Check if this access entry is for one of the user's groups
+<span class="cstat-no" title="statement not covered" >          <span class="missing-if-branch" title="if path not taken" >I</span>if (!userGroupIds.includes(access.userGroup.id)) {</span>
+<span class="cstat-no" title="statement not covered" >            continue;</span>
+          }
 &nbsp;
-            const moduleId = <span class="cstat-no" title="statement not covered" >module.id;</span>
-            const existingModule = <span class="cstat-no" title="statement not covered" >moduleMap.get(moduleId);</span>
+          const moduleId = <span class="cstat-no" title="statement not covered" >module.id;</span>
+          const existingModule = <span class="cstat-no" title="statement not covered" >moduleMap.get(moduleId);</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >            if (!existingModule) {</span>
-              // Add new module with its permissions
-<span class="cstat-no" title="statement not covered" >              moduleMap.set(moduleId, {</span>
-                ...module,
-                permissions: {
-                  canView: access.canView,
-                  canCreate: access.canCreate,
-                  canEdit: access.canEdit,
-                  canDelete: access.canDelete,
-                },
-              });
-            } else {
-              // Module already exists (from another group) - merge permissions (most permissive wins)
-<span class="cstat-no" title="statement not covered" >              existingModule.permissions.canView =</span>
-                existingModule.permissions.canView || access.canView;
-<span class="cstat-no" title="statement not covered" >              existingModule.permissions.canCreate =</span>
-                existingModule.permissions.canCreate || access.canCreate;
-<span class="cstat-no" title="statement not covered" >              existingModule.permissions.canEdit =</span>
-                existingModule.permissions.canEdit || access.canEdit;
-<span class="cstat-no" title="statement not covered" >              existingModule.permissions.canDelete =</span>
-                existingModule.permissions.canDelete || access.canDelete;
-            }
+<span class="cstat-no" title="statement not covered" >          if (!existingModule) {</span>
+            // Add new module with its permissions
+<span class="cstat-no" title="statement not covered" >            moduleMap.set(moduleId, {</span>
+              ...module,
+              permissions: {
+                canView: access.canView,
+                canCreate: access.canCreate,
+                canEdit: access.canEdit,
+                canDelete: access.canDelete,
+              },
+            });
+          } else {
+            // Module already exists (from another group) - merge permissions (most permissive wins)
+<span class="cstat-no" title="statement not covered" >            existingModule.permissions.canView =</span>
+              existingModule.permissions.canView || access.canView;
+<span class="cstat-no" title="statement not covered" >            existingModule.permissions.canCreate =</span>
+              existingModule.permissions.canCreate || access.canCreate;
+<span class="cstat-no" title="statement not covered" >            existingModule.permissions.canEdit =</span>
+              existingModule.permissions.canEdit || access.canEdit;
+<span class="cstat-no" title="statement not covered" >            existingModule.permissions.canDelete =</span>
+              existingModule.permissions.canDelete || access.canDelete;
           }
         }
       }
@@ -1273,7 +1234,7 @@ export const <span class="cstat-no" title="statement not covered" >checkModulePe
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-01-20T21:48:07.359Z
+                at 2026-01-26T14:37:45.574Z
             </div>
         <script src="../prettify.js"></script>
         <script>
