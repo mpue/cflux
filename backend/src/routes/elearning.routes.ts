@@ -32,11 +32,11 @@ router.post(
   uploadLessonContentImage
 );
 
-// Delete uploaded file
+// Delete uploaded file (thumbnail or content image)
 router.delete(
   '/upload/:type/:filename',
   authenticate,
-  requireModuleAccess('elearning', 'canDelete'),
+  requireModuleAccess('elearning', 'canEdit'),
   deleteElearningUpload
 );
 

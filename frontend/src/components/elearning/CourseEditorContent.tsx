@@ -200,9 +200,37 @@ const CourseEditorContent: React.FC<CourseEditorContentProps> = ({ courseId, onS
     if (!thumbnailUrl) return;
 
     try {
+      // Try to delete the file, but continue even if it fails
       const filename = thumbnailUrl.split('/').pop();
-      await api.delete(`/elearning/upload/course-thumbnails/${filename}`);
+      try {
+        await api.delete(`/elearning/upload/thumbnail/${filename}`);
+      } catch (fileErr) {
+        console.warn('File deletion failed (may already be deleted):', fileErr);
+        // Continue anyway to update database
+      }
+      
       setThumbnailUrl('');
+      
+      // Always update course in database to remove thumbnail reference
+      if (courseId && courseId !== 'new') {
+        await api.put(`/elearning/courses/${courseId}`, {
+          title,
+          description: description || undefined,
+          courseType,
+          categoryId: categoryId || undefined,
+          tags,
+          thumbnailUrl: null, // Set to null to remove reference
+          duration: duration || undefined,
+          level: level || undefined,
+          validFrom: validFrom ? new Date(validFrom).toISOString() : undefined,
+          validUntil: validUntil ? new Date(validUntil).toISOString() : undefined,
+          passingScore,
+          maxAttempts: maxAttempts || undefined,
+          isComplianceCourse,
+          ehsRelevant,
+          renewalMonths: renewalMonths || undefined,
+        });
+      }
     } catch (err: any) {
       console.error('Error deleting thumbnail:', err);
       setError(err.response?.data?.error || 'Fehler beim Löschen des Thumbnails');

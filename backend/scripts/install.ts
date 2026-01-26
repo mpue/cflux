@@ -26,7 +26,7 @@ async function install() {
     // Step 1: Seed modules
     console.log('1️⃣  Installing modules...');
     try {
-      execSync('node dist/prisma/seedModules.js', { 
+      execSync('node dist/scripts/seedModules.js', { 
         stdio: 'inherit',
         cwd: '/app'
       });

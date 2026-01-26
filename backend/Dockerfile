@@ -51,7 +51,7 @@ COPY tsconfig.json ./
 RUN npm install -D typescript @types/node
 
 # Compile setup scripts to JavaScript
-RUN npx tsc scripts/setup-admin.ts scripts/install.ts --outDir dist/scripts --module commonjs --esModuleInterop --skipLibCheck --resolveJsonModule
+RUN npx tsc scripts/setup-admin.ts scripts/install.ts scripts/seedModules.ts scripts/seedActions.ts --outDir dist/scripts --module commonjs --esModuleInterop --skipLibCheck --resolveJsonModule
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist
