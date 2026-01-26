@@ -48,10 +48,10 @@ COPY scripts ./scripts/
 COPY tsconfig.json ./
 
 # Install dependencies needed for setup scripts
-RUN npm install -D typescript @types/node
+RUN npm install -D typescript @types/node ts-node
 
-# Compile setup scripts to JavaScript
-RUN npx tsc scripts/setup-admin.ts scripts/install.ts scripts/seedModules.ts scripts/seedActions.ts --outDir dist/scripts --module commonjs --esModuleInterop --skipLibCheck --resolveJsonModule
+# Compile setup scripts to JavaScript (only scripts that don't depend on src/)
+RUN npx tsc scripts/setup-admin.ts scripts/install.ts --outDir dist/scripts --module commonjs --esModuleInterop --skipLibCheck --resolveJsonModule
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist

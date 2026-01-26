@@ -26,7 +26,7 @@ async function install() {
     // Step 1: Seed modules
     console.log('1️⃣  Installing modules...');
     try {
-      execSync('node dist/scripts/seedModules.js', { 
+      execSync('npx ts-node scripts/seedModules.ts', { 
         stdio: 'inherit',
         cwd: '/app'
       });
