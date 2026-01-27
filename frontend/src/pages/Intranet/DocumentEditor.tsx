@@ -19,12 +19,14 @@ import {
   ViewColumn as HybridIcon,
   Lock as LockIcon,
   LockOpen as LockOpenIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import { marked } from 'marked';
 import TurndownService from 'turndown';
 import { useAuth } from '../../contexts/AuthContext';
 import { DocumentNode } from '../../services/documentNode.service';
 import TipTapEditor from '../../components/TipTapEditor';
+import api from '../../services/api';
 
 type EditorMode = 'wysiwyg' | 'markdown' | 'hybrid';
 
@@ -118,6 +120,37 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
       console.error('Save error:', error);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      // Call backend API to generate PDF
+      const response = await api.get(`/intranet/${document.id}/export-pdf`, {
+        responseType: 'blob', // Important for binary data
+      });
+
+      // Create download link
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = window.document.createElement('a');
+      link.href = url;
+      
+      // Generate filename
+      const sanitizedTitle = document.title.replace(/[^a-z0-9äöüß]/gi, '_').toLowerCase();
+      const timestamp = new Date().toISOString().split('T')[0];
+      link.download = `${sanitizedTitle}_${timestamp}.pdf`;
+      
+      // Trigger download
+      window.document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      window.document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('PDF export error:', error);
+      alert('Fehler beim Exportieren der PDF-Datei');
     }
   };
 
@@ -249,6 +282,18 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
               Hybrid
             </ToggleButton>
           </ToggleButtonGroup>
+
+          {/* PDF Export Button */}
+          <Tooltip title="Als PDF exportieren">
+            <Button
+              variant="outlined"
+              startIcon={<PdfIcon />}
+              onClick={handleExportPDF}
+              size="small"
+            >
+              PDF
+            </Button>
+          </Tooltip>
           
           {/* Save Button */}
           <Button

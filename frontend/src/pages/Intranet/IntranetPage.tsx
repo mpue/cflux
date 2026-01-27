@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModules } from '../../contexts/ModuleContext';
 import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+  DragOverEvent,
+} from '@dnd-kit/core';
+import {
   Box,
   Paper,
   Typography,
@@ -23,10 +34,8 @@ import {
   Divider,
 } from '@mui/material';
 import {
-  Add as AddIcon,
   CreateNewFolder as FolderIcon,
   Description as DocumentIcon,
-  MoreVert as MoreVertIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   History as HistoryIcon,
@@ -35,8 +44,6 @@ import {
   NavigateNext as NavigateNextIcon,
   Upload as UploadIcon,
   Group as GroupIcon,
-  ExpandMore as ExpandMoreIcon,
-  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import AppNavbar from '../../components/AppNavbar';
 import documentNodeService, { DocumentNode, CreateDocumentNodeData } from '../../services/documentNode.service';
@@ -46,6 +53,7 @@ import GroupPermissionsDialog from './GroupPermissionsDialog';
 import DocumentNodeAttachments from '../../components/DocumentNodeAttachments';
 import IntranetSearch from '../../components/IntranetSearch';
 import DocumentApprovalPanel from '../../components/intranet/DocumentApprovalPanel';
+import DraggableTreeNode from '../../components/DraggableTreeNode';
 
 interface IntranetPageProps { }
 
@@ -97,6 +105,20 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuNode, setMenuNode] = useState<DocumentNode | null>(null);
+
+  // Drag and Drop states
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  const [draggedNode, setDraggedNode] = useState<DocumentNode | null>(null);
+
+  // Configure sensors for drag and drop (require minimum distance to avoid conflicts with clicks)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Minimum 8px movement to start dragging
+      },
+    })
+  );
 
   // Load document tree
   const loadTree = useCallback(async () => {
@@ -351,71 +373,128 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
     });
   };
 
+  // Helper function to find a node in the tree by ID
+  const findNodeById = (nodes: DocumentNode[], id: string): DocumentNode | null => {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      if (node.children) {
+        const found = findNodeById(node.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  // Drag and Drop Handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    setActiveId(active.id as string);
+    const node = findNodeById(tree, active.id as string);
+    setDraggedNode(node);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { over } = event;
+    setOverId(over?.id as string | null);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    setActiveId(null);
+    setOverId(null);
+    setDraggedNode(null);
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const draggedNodeId = active.id as string;
+    const targetNodeId = over.id as string;
+
+    const draggedNode = findNodeById(tree, draggedNodeId);
+    const targetNode = findNodeById(tree, targetNodeId);
+
+    if (!draggedNode || !targetNode) {
+      return;
+    }
+
+    // Prevent dropping a folder into itself or its children
+    if (draggedNode.type === 'FOLDER') {
+      let checkNode: DocumentNode | null = targetNode;
+      while (checkNode) {
+        if (checkNode.id === draggedNodeId) {
+          setError('Ordner kann nicht in sich selbst oder seine Unterordner verschoben werden');
+          return;
+        }
+        checkNode = checkNode.parentId ? findNodeById(tree, checkNode.parentId) : null;
+      }
+    }
+
+    try {
+      // Determine new parent: if target is a folder, move into it; otherwise, move to target's parent
+      let newParentId: string | null | undefined;
+      
+      if (targetNode.type === 'FOLDER') {
+        // Drop INTO the folder
+        newParentId = targetNodeId;
+      } else {
+        // Drop next to the document (same parent as target)
+        newParentId = targetNode.parentId;
+      }
+
+      // Call API to move the node
+      await documentNodeService.move(draggedNodeId, {
+        newParentId: newParentId === null ? undefined : newParentId,
+      });
+
+      // Reload tree to reflect changes
+      await loadTree();
+
+      // If the moved node was expanded, keep it expanded
+      if (expandedFolders.has(draggedNodeId)) {
+        setExpandedFolders((prev) => new Set([...prev, draggedNodeId]));
+      }
+
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Fehler beim Verschieben des Elements');
+      console.error('Move error:', err);
+    }
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
+    setOverId(null);
+    setDraggedNode(null);
+  };
+
   // Render tree recursively
-  const renderTree = (nodes: DocumentNode[], level: number = 0) => {
+  const renderTree = (nodes: DocumentNode[], level: number = 0): React.ReactNode => {
     return nodes.map((node) => {
       const isFolder = node.type === 'FOLDER';
       const hasChildren = node.children && node.children.length > 0;
       const isExpanded = expandedFolders.has(node.id);
+      const isSelected = currentNode?.id === node.id;
+      const isDraggedOver = overId === node.id;
 
       return (
-        <Box key={node.id} sx={{ ml: level * 2 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              p: 1,
-              cursor: 'pointer',
-              borderRadius: 1,
-              '&:hover': {
-                bgcolor: 'action.hover',
-              },
-              bgcolor: currentNode?.id === node.id ? 'action.selected' : 'transparent',
-            }}
-          >
-            {/* Expand/Collapse Icon for folders with children */}
-            {isFolder && hasChildren ? (
-              <IconButton
-                size="small"
-                onClick={(e) => toggleFolder(node.id, e)}
-                sx={{ mr: 0.5, padding: 0.5 }}
-              >
-                {isExpanded ? (
-                  <ExpandMoreIcon fontSize="small" />
-                ) : (
-                  <ChevronRightIcon fontSize="small" />
-                )}
-              </IconButton>
-            ) : (
-              <Box sx={{ width: 28, mr: 0.5 }} /> // Spacer for alignment
-            )}
-
-            {/* Folder or Document Icon */}
-            <Box onClick={() => handleNodeClick(node)} sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-              {isFolder ? (
-                isExpanded ? (
-                  <FolderOpenIcon sx={{ mr: 1, color: 'warning.main' }} />
-                ) : (
-                  <FolderClosedIcon sx={{ mr: 1, color: 'warning.main' }} />
-                )
-              ) : (
-                <DocumentIcon sx={{ mr: 1, color: 'primary.main' }} />
-              )}
-              <Typography sx={{ flexGrow: 1 }}>{node.title}</Typography>
-            </Box>
-
-            {/* Menu Icon */}
-            <IconButton
-              size="small"
-              onClick={(e) => handleOpenMenu(e, node)}
-            >
-              <MoreVertIcon fontSize="small" />
-            </IconButton>
-          </Box>
-
+        <React.Fragment key={node.id}>
+          <DraggableTreeNode
+            node={node}
+            level={level}
+            isExpanded={isExpanded}
+            isSelected={isSelected}
+            isDraggedOver={isDraggedOver}
+            onToggleFolder={(e) => toggleFolder(node.id, e)}
+            onNodeClick={() => handleNodeClick(node)}
+            onMenuClick={(e) => handleOpenMenu(e, node)}
+            canEdit={canEditIntranet}
+          />
+          
           {/* Children (only show if folder is expanded) */}
           {isFolder && hasChildren && isExpanded && node.children && renderTree(node.children, level + 1)}
-        </Box>
+        </React.Fragment>
       );
     });
   };
@@ -535,20 +614,59 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
         />
 
         <Box sx={{ display: 'flex', gap: 0, flexGrow: 1, position: 'relative', minHeight: 0 }}>
-          {/* Tree Navigation */}
-          <Paper sx={{ width: `${leftWidth}px`, p: 2, overflow: 'auto', flexShrink: 0 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              Navigation
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            {tree.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">
-                Noch keine Dokumente vorhanden
+          {/* Tree Navigation with Drag and Drop */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            <Paper sx={{ width: `${leftWidth}px`, p: 2, overflow: 'auto', flexShrink: 0 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Navigation
+                {canEditIntranet && (
+                  <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Drag & Drop zum Verschieben
+                  </Typography>
+                )}
               </Typography>
-            ) : (
-              renderTree(tree)
-            )}
-          </Paper>
+              <Divider sx={{ mb: 2 }} />
+              {tree.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  Noch keine Dokumente vorhanden
+                </Typography>
+              ) : (
+                renderTree(tree)
+              )}
+            </Paper>
+
+            {/* Drag Overlay - shows a preview while dragging */}
+            <DragOverlay dropAnimation={null}>
+              {activeId && draggedNode ? (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    p: 1,
+                    bgcolor: 'background.paper',
+                    borderRadius: 1,
+                    boxShadow: 3,
+                    cursor: 'grabbing',
+                    minWidth: 200,
+                  }}
+                >
+                  {draggedNode.type === 'FOLDER' ? (
+                    <FolderClosedIcon sx={{ mr: 1, color: 'warning.main' }} />
+                  ) : (
+                    <DocumentIcon sx={{ mr: 1, color: 'primary.main' }} />
+                  )}
+                  <Typography>{draggedNode.title}</Typography>
+                </Box>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
 
           {/* Resizable Splitter */}
           <Box

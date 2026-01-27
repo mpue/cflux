@@ -7,6 +7,7 @@ import * as documentNodeController from '../controllers/documentNode.controller'
 import * as documentImportController from '../controllers/documentImport.controller';
 import * as documentNodeAttachmentController from '../controllers/documentNodeAttachment.controller';
 import * as documentNodeSearchController from '../controllers/documentNodeSearch.controller';
+import * as documentNodePdfController from '../controllers/documentNodePdf.controller';
 
 const router = Router();
 
@@ -61,6 +62,9 @@ router.get('/tree', documentNodeController.getDocumentTree);
 router.get('/:id', documentNodeController.getDocumentNodeById);
 router.get('/:id/content', documentNodeController.getDocumentContent);
 router.get('/:id/breadcrumb', documentNodeController.getBreadcrumb);
+
+// PDF Export
+router.get('/:id/export-pdf', documentNodePdfController.exportDocumentToPDF);
 
 // Write routes (require INTRANET_WRITE permission)
 router.post('/', documentNodeController.createDocumentNode);
