@@ -12,8 +12,8 @@
         }
 
         :root {
-            --primary: #10b981;
-            --primary-hover: #059669;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
             --text-dark: #1e293b;
             --text-light: #64748b;
             --bg-light: #f8fafc;
@@ -119,130 +119,8 @@
         .hero {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 4rem 2rem 2rem;
+            padding: 6rem 2rem;
             text-align: center;
-        }
-
-        .hero-background {
-            width: 100%;
-            height: 600px;
-            position: relative;
-            margin: 0 auto 3rem;
-            overflow: visible;
-            perspective: 1200px;
-        }
-
-        .carousel-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transform-style: preserve-3d;
-        }
-
-        .carousel-track {
-            position: relative;
-            width: 600px;
-            height: 400px;
-            transform-style: preserve-3d;
-            animation: rotate3d 30s linear infinite;
-        }
-
-        @keyframes rotate3d {
-            from {
-                transform: rotateY(0deg);
-            }
-            to {
-                transform: rotateY(360deg);
-            }
-        }
-
-        @keyframes counterRotate1 {
-            from { transform: rotateY(0deg); }
-            to { transform: rotateY(-360deg); }
-        }
-
-        @keyframes counterRotate2 {
-            from { transform: rotateY(-72deg); }
-            to { transform: rotateY(-432deg); }
-        }
-
-        @keyframes counterRotate3 {
-            from { transform: rotateY(-144deg); }
-            to { transform: rotateY(-504deg); }
-        }
-
-        @keyframes counterRotate4 {
-            from { transform: rotateY(-216deg); }
-            to { transform: rotateY(-576deg); }
-        }
-
-        @keyframes counterRotate5 {
-            from { transform: rotateY(-288deg); }
-            to { transform: rotateY(-648deg); }
-        }
-
-        .carousel-track:hover {
-            animation-play-state: paused;
-        }
-
-        .carousel-slide {
-            position: absolute;
-            width: 600px;
-            left: 50%;
-            top: 50%;
-            margin-left: -300px;
-            margin-top: -200px;
-            transform-style: preserve-3d;
-        }
-
-        .carousel-slide:nth-child(1) {
-            transform: rotateY(0deg) translateZ(800px);
-        }
-        .carousel-slide:nth-child(1) img {
-            animation: counterRotate1 30s linear infinite;
-        }
-        
-        .carousel-slide:nth-child(2) {
-            transform: rotateY(72deg) translateZ(800px);
-        }
-        .carousel-slide:nth-child(2) img {
-            animation: counterRotate2 30s linear infinite;
-        }
-        
-        .carousel-slide:nth-child(3) {
-            transform: rotateY(144deg) translateZ(800px);
-        }
-        .carousel-slide:nth-child(3) img {
-            animation: counterRotate3 30s linear infinite;
-        }
-        
-        .carousel-slide:nth-child(4) {
-            transform: rotateY(216deg) translateZ(800px);
-        }
-        .carousel-slide:nth-child(4) img {
-            animation: counterRotate4 30s linear infinite;
-        }
-        
-        .carousel-slide:nth-child(5) {
-            transform: rotateY(288deg) translateZ(800px);
-        }
-        .carousel-slide:nth-child(5) img {
-            animation: counterRotate5 30s linear infinite;
-        }
-
-        .carousel-track:hover .carousel-slide img {
-            animation-play-state: paused;
-        }
-
-        .carousel-slide img {
-            width: 100%;
-            height: auto;
-            border-radius: 1rem;
-            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.4);
-            border: 3px solid var(--border);
         }
 
         .hero h1 {
@@ -699,28 +577,6 @@
             </div>
         </section>
 
-        <div class="hero-background">
-            <div class="carousel-container">
-                <div class="carousel-track">
-                    <div class="carousel-slide">
-                        <img src="time_recording.png" alt="Zeiterfassung">
-                    </div>
-                    <div class="carousel-slide">
-                        <img src="project_management.png" alt="Projektmanagement">
-                    </div>
-                    <div class="carousel-slide">
-                        <img src="invoice_management.png" alt="Rechnungsverwaltung">
-                    </div>
-                    <div class="carousel-slide">
-                        <img src="workflow_editor.png" alt="Workflow Editor">
-                    </div>
-                    <div class="carousel-slide">
-                        <img src="compliance_dashboard.png" alt="Compliance Dashboard">
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <section class="stats">
             <div class="stats-container">
                 <div class="stat-item">
@@ -1038,6 +894,18 @@
             <div class="screenshot-item">
                 <div class="screenshot-content">
                     <div class="screenshot-info">
+                        <h3>✏️ Benutzer bearbeiten</h3>
+                        <p>Detaillierte Bearbeitungsansicht für Benutzerprofile. Verwalte Stammdaten, Urlaubskontingente, Berechtigungen und weitere Einstellungen pro Benutzer.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="edit_user.png" alt="Benutzer bearbeiten" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
                         <h3>🧾 Rechnungsverwaltung</h3>
                         <p>Erstelle und verwalte Rechnungen direkt aus erfassten Arbeitszeiten. Professionelle Rechnungsstellung mit anpassbaren Vorlagen, Artikelverwaltung und automatischer Berechnung.</p>
                     </div>
@@ -1050,11 +918,47 @@
             <div class="screenshot-item">
                 <div class="screenshot-content">
                     <div class="screenshot-info">
+                        <h3>👁️ Rechnungsvorschau</h3>
+                        <p>Prüfe deine Rechnungen vor dem Versand in einer Live-Vorschau. Zeigt das finale Design mit allen Details – inklusive Logo, Farben und Layout. Direkt druckbar aus dem Browser.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="invoice_preview.png" alt="Rechnungsvorschau" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>🎨 Rechnungsvorlagen</h3>
+                        <p>Gestalte individuelle Rechnungsvorlagen mit visuellem Editor. Platziere dein Logo per Drag & Drop, wähle Farben und passe Texte an – mit Live-Vorschau.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="invoice_templates.png" alt="Rechnungsvorlagen Editor" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
                         <h3>📦 Artikelverwaltung</h3>
                         <p>Verwalte Artikel, Dienstleistungen und Produkte für deine Rechnungen. Organisiere sie in Gruppen, definiere Preise und MwSt-Sätze zentral.</p>
                     </div>
                     <div class="screenshot-image">
                         <img src="article_groups.png" alt="Artikel und Gruppen" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>✏️ Artikel bearbeiten</h3>
+                        <p>Detaillierte Bearbeitung von Artikeln mit Beschreibung, Preisgestaltung, MwSt-Sätzen und Gruppenzuordnung. Alle Änderungen wirken sich automatisch auf neue Rechnungen aus.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="edit_article.png" alt="Artikel bearbeiten" loading="lazy">
                     </div>
                 </div>
             </div>
@@ -1103,6 +1007,18 @@
                     </div>
                     <div class="screenshot-image">
                         <img src="incident_management.png" alt="Incident Management Übersicht" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>📝 Neuer Incident</h3>
+                        <p>Erstelle neue Incidents mit detaillierten Informationen. Erfasse Titel, Beschreibung, Typ, Priorität und Schweregrad. Weise direkt einen Verantwortlichen zu und definiere einen Fälligkeitstermin für eine effiziente Bearbeitung.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="new_incident.png" alt="Incident erstellen" loading="lazy">
                     </div>
                 </div>
             </div>
@@ -1170,6 +1086,66 @@
             <div class="screenshot-item">
                 <div class="screenshot-content">
                     <div class="screenshot-info">
+                        <h3>🛒 Bestellwesen</h3>
+                        <p>Digitaler Bestellprozess mit 8-stufigem Workflow: Entwurf → Angefordert → Genehmigt → Bestellt → Teilweise erhalten → Abgeschlossen. Automatische Bestellnummern, Lieferungsverfolgung und Teillieferungen werden unterstützt.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="orders_management.png" alt="Bestellwesen" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>📦 Lagerverwaltung</h3>
+                        <p>Verwalte Lagerbestände in Echtzeit mit Wareneingängen und -ausgängen. Definiere Mindestbestände und erhalte automatische Warnungen. Detaillierte Bestandshistorie für vollständige Nachvollziehbarkeit.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="inventory_management.png" alt="Lagerverwaltung" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>🏦 Kostenstellen</h3>
+                        <p>Strukturiere dein Unternehmen mit Kostenstellen. Weise Projekte, Zeitbuchungen und Ausgaben Kostenstellen zu. Erstelle detaillierte Kosten-Reports und Budget-Analysen pro Kostenstelle.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="cost_centers.png" alt="Kostenstellen" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>💰 Projekt-Budget</h3>
+                        <p>Plane und überwache Projektbudgets detailliert. Dashboard mit Budgetauslastung, geplante vs. tatsächliche Kosten und Warnsystem bei Budgetüberschreitung. Exportiere Budget-Reports für Stakeholder.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="project_budget.png" alt="Projekt-Budget" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>📊 Projekt-Reports</h3>
+                        <p>Umfassende Projekt-Auswertungen: Zeitauswertungen nach Mitarbeiter, Kostenanalysen, Fortschrittsberichte und Ressourcenauslastung. Filtere nach Zeitraum, exportiere als PDF oder Excel.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="project_reports.png" alt="Projekt-Reports" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
                         <h3>📅 Projektplanung mit Gantt</h3>
                         <p>Professioneller Gantt-Chart Editor für Projektplanung. Erstelle Aufgaben, Meilensteine und Abhängigkeiten visuell per Drag & Drop. Timeline-Ansicht mit Fortschrittsüberwachung und kritischem Pfad.</p>
                     </div>
@@ -1187,6 +1163,18 @@
                     </div>
                     <div class="screenshot-image">
                         <img src="elearning_courses.png" alt="E-Learning" loading="lazy">
+                    </div>
+                </div>
+            </div>
+
+            <div class="screenshot-item">
+                <div class="screenshot-content">
+                    <div class="screenshot-info">
+                        <h3>👤 Bewerbermanagement & Onboarding</h3>
+                        <p>Digitaler Bewerbungsprozess: Verwalte Stellenausschreibungen, Bewerbungen und Kandidaten. Onboarding-Checklisten für neue Mitarbeiter mit Aufgaben, Dokumenten und Schulungszuweisungen.</p>
+                    </div>
+                    <div class="screenshot-image">
+                        <img src="onboarding_applicants.png" alt="Bewerbermanagement" loading="lazy">
                     </div>
                 </div>
             </div>
@@ -1342,6 +1330,5 @@
             <p>© 2025 Matthias Püski. Alle Rechte vorbehalten.</p>
         </div>
     </footer>
-
 </body>
 </html>
