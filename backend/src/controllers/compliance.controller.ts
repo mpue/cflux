@@ -323,25 +323,30 @@ export const getOvertimeBalance = async (req: AuthRequest, res: Response) => {
     
     const targetYear = year ? parseInt(year as string) : new Date().getFullYear();
 
+    // Get employee profile for the user
+    const employeeProfile = await prisma.employee.findUnique({
+      where: { userId: targetUserId }
+    });
+
+    if (!employeeProfile) {
+      return res.status(404).json({ error: 'Employee profile not found' });
+    }
+
     let balance = await prisma.overtimeBalance.findUnique({
       where: {
-        userId_year: {
-          userId: targetUserId!,
+        employeeId_year: {
+          employeeId: employeeProfile.id,
           year: targetYear
         }
       },
       include: {
-        user: {
+        employee: {
           select: {
             firstName: true,
             lastName: true,
             email: true,
-            employeeProfile: {
-              select: {
-                weeklyHours: true,
-                contractHours: true
-              }
-            }
+            weeklyHours: true,
+            contractHours: true
           }
         }
       }
@@ -351,21 +356,17 @@ export const getOvertimeBalance = async (req: AuthRequest, res: Response) => {
     if (!balance) {
       balance = await prisma.overtimeBalance.create({
         data: {
-          userId: targetUserId!,
+          employeeId: employeeProfile.id,
           year: targetYear
         },
         include: {
-          user: {
+          employee: {
             select: {
               firstName: true,
               lastName: true,
               email: true,
-              employeeProfile: {
-                select: {
-                  weeklyHours: true,
-                  contractHours: true
-                }
-              }
+              weeklyHours: true,
+              contractHours: true
             }
           }
         }

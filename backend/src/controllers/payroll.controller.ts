@@ -249,16 +249,19 @@ export const recalculatePayrollPeriod = async (req: AuthRequest, res: Response) 
         }
       },
       include: {
-        employeeProfile: true,
-        salaryConfiguration: true,
-        timeEntries: {
-          where: {
-            clockIn: {
-              gte: period.startDate,
-              lte: period.endDate
+        employeeProfile: {
+          include: {
+            timeEntries: {
+              where: {
+                clockIn: {
+                  gte: period.startDate,
+                  lte: period.endDate
+                }
+              }
             }
           }
         },
+        salaryConfiguration: true,
         absenceRequests: {
           where: {
             status: 'APPROVED',
@@ -288,7 +291,7 @@ export const recalculatePayrollPeriod = async (req: AuthRequest, res: Response) 
       let sundayHours = 0;
       let holidayHours = 0;
 
-      user.timeEntries.forEach(entry => {
+      user.employeeProfile?.timeEntries?.forEach(entry => {
         if (!entry.clockOut) return;
         
         const hours = (new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime()) / (1000 * 60 * 60);
@@ -459,16 +462,19 @@ export const calculatePayrollForPeriod = async (req: AuthRequest, res: Response)
         }
       },
       include: {
-        employeeProfile: true,
-        salaryConfiguration: true,
-        timeEntries: {
-          where: {
-            clockIn: {
-              gte: period.startDate,
-              lte: period.endDate
+        employeeProfile: {
+          include: {
+            timeEntries: {
+              where: {
+                clockIn: {
+                  gte: period.startDate,
+                  lte: period.endDate
+                }
+              }
             }
           }
         },
+        salaryConfiguration: true,
         absenceRequests: {
           where: {
             status: 'APPROVED',
@@ -498,7 +504,7 @@ export const calculatePayrollForPeriod = async (req: AuthRequest, res: Response)
       let sundayHours = 0;
       let holidayHours = 0;
 
-      user.timeEntries.forEach(entry => {
+      user.employeeProfile?.timeEntries?.forEach(entry => {
         if (!entry.clockOut) return;
         
         const hours = (new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime()) / (1000 * 60 * 60);

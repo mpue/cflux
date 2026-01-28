@@ -231,7 +231,8 @@ export interface ProjectAssignment {
 
 export interface TimeEntry {
   id: string;
-  userId: string;
+  userId?: string; // DEPRECATED: For backwards compatibility
+  employeeId: string;
   projectId?: string;
   locationId?: string;
   clockIn: string;
@@ -244,7 +245,8 @@ export interface TimeEntry {
   updatedAt: string;
   project?: Project;
   location?: Location;
-  user?: User;
+  employee?: EmployeeProfile & { id: string; firstName: string; lastName: string; email: string; userId?: string };
+  user?: User; // DEPRECATED: For backwards compatibility
 }
 
 export interface AbsenceRequest {

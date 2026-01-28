@@ -6,16 +6,16 @@ const prisma = new PrismaClient();
 interface TimeEntryWithDuration {
   clockIn: Date;
   clockOut: Date | null;
-  userId: string;
+  employeeId: string;
 }
 
 // Prüfe Ruhezeit-Violations (min. 11h zwischen Arbeitstagen)
-export async function checkRestTimeViolation(userId: string, newClockIn: Date) {
+export async function checkRestTimeViolation(employeeId: string, newClockIn: Date) {
   try {
-    // Letzte TimeEntry des Users holen
+    // Letzte TimeEntry des Employees holen
     const lastEntry = await prisma.timeEntry.findFirst({
       where: {
-        userId,
+        employeeId,
         clockOut: { not: null }
       },
       orderBy: { clockOut: 'desc' }
@@ -27,10 +27,10 @@ export async function checkRestTimeViolation(userId: string, newClockIn: Date) {
     const restTimeHours = (newClockIn.getTime() - lastEntry.clockOut.getTime()) / (1000 * 60 * 60);
 
     if (restTimeHours < 11) {
-      console.log(`[COMPLIANCE] Creating REST_TIME violation for user ${userId}: ${restTimeHours.toFixed(1)}h rest time`);
+      console.log(`[COMPLIANCE] Creating REST_TIME violation for employee ${employeeId}: ${restTimeHours.toFixed(1)}h rest time`);
       const violation = await prisma.complianceViolation.create({
         data: {
-          userId,
+          employeeId,
           type: 'REST_TIME',
           severity: 'CRITICAL',
           date: newClockIn,
@@ -46,7 +46,7 @@ export async function checkRestTimeViolation(userId: string, newClockIn: Date) {
         await actionService.triggerAction('compliance.violation', {
           entityType: 'COMPLIANCE_VIOLATION',
           entityId: violation.id,
-          userId: userId,
+          employeeId: employeeId,
           violationType: violation.type,
           severity: violation.severity,
           description: violation.description,
@@ -62,21 +62,16 @@ export async function checkRestTimeViolation(userId: string, newClockIn: Date) {
 }
 
 // Prüfe wöchentliche Höchstarbeitszeit
-export async function checkWeeklyHoursViolation(userId: string, date: Date) {
+export async function checkWeeklyHoursViolation(employeeId: string, date: Date) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
       select: { 
-        employeeProfile: {
-          select: {
-            weeklyHours: true,
-            exemptFromTracking: true
-          }
-        }
+        weeklyHours: true,
+        exemptFromTracking: true
       }
     });
 
-    const employee = user?.employeeProfile;
     if (!employee || employee.exemptFromTracking) return;
 
     // Wochenstart (Montag) und -ende (Sonntag) berechnen
@@ -91,7 +86,7 @@ export async function checkWeeklyHoursViolation(userId: string, date: Date) {
     // Alle TimeEntries der Woche holen
     const entries = await prisma.timeEntry.findMany({
       where: {
-        userId,
+        employeeId,
         clockIn: { gte: weekStart, lte: weekEnd },
         clockOut: { not: null }
       }
@@ -111,17 +106,17 @@ export async function checkWeeklyHoursViolation(userId: string, date: Date) {
       // Prüfe ob bereits eine Violation für diese Woche existiert
       const existingViolation = await prisma.complianceViolation.findFirst({
         where: {
-          userId,
+          employeeId,
           type: 'MAX_WEEKLY_HOURS',
           date: { gte: weekStart, lte: weekEnd }
         }
       });
 
       if (!existingViolation) {
-        console.log(`[COMPLIANCE] Creating MAX_WEEKLY_HOURS violation for user ${userId}: ${totalHours.toFixed(1)}h of max ${employee.weeklyHours}h`);
+        console.log(`[COMPLIANCE] Creating MAX_WEEKLY_HOURS violation for employee ${employeeId}: ${totalHours.toFixed(1)}h of max ${employee.weeklyHours}h`);
         const violation = await prisma.complianceViolation.create({
           data: {
-            userId,
+            employeeId,
             type: 'MAX_WEEKLY_HOURS',
             severity: 'WARNING',
             date: weekEnd,
@@ -137,7 +132,7 @@ export async function checkWeeklyHoursViolation(userId: string, date: Date) {
           await actionService.triggerAction('compliance.violation', {
             entityType: 'COMPLIANCE_VIOLATION',
             entityId: violation.id,
-            userId: userId,
+            employeeId: employeeId,
             violationType: violation.type,
             severity: violation.severity,
             description: violation.description,
@@ -154,15 +149,15 @@ export async function checkWeeklyHoursViolation(userId: string, date: Date) {
 }
 
 // Prüfe tägliche Höchstarbeitszeit (12,5h)
-export async function checkDailyHoursViolation(userId: string, clockIn: Date, clockOut: Date) {
+export async function checkDailyHoursViolation(employeeId: string, clockIn: Date, clockOut: Date) {
   try {
     const duration = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
 
     if (duration > 12.5) {
-      console.log(`[COMPLIANCE] Creating MAX_DAILY_HOURS violation for user ${userId}: ${duration.toFixed(1)}h`);
+      console.log(`[COMPLIANCE] Creating MAX_DAILY_HOURS violation for employee ${employeeId}: ${duration.toFixed(1)}h`);
       const violation = await prisma.complianceViolation.create({
         data: {
-          userId,
+          employeeId,
           type: 'MAX_DAILY_HOURS',
           severity: 'CRITICAL',
           date: clockIn,
@@ -178,7 +173,7 @@ export async function checkDailyHoursViolation(userId: string, clockIn: Date, cl
         await actionService.triggerAction('compliance.violation', {
           entityType: 'COMPLIANCE_VIOLATION',
           entityId: violation.id,
-          userId: userId,
+          employeeId: employeeId,
           violationType: violation.type,
           severity: violation.severity,
           description: violation.description,
@@ -194,7 +189,7 @@ export async function checkDailyHoursViolation(userId: string, clockIn: Date, cl
 }
 
 // Prüfe fehlende Pausen (Art. 15 ArGV 1)
-export async function checkMissingPauseViolation(userId: string, clockIn: Date, clockOut: Date) {
+export async function checkMissingPauseViolation(employeeId: string, clockIn: Date, clockOut: Date) {
   try {
     // Gesamtarbeitszeit in Stunden berechnen
     const totalDuration = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
@@ -202,7 +197,7 @@ export async function checkMissingPauseViolation(userId: string, clockIn: Date, 
     // Tatsächliche Pausen aus TimeEntry holen
     const timeEntry = await prisma.timeEntry.findFirst({
       where: {
-        userId,
+        employeeId,
         clockIn,
         clockOut
       },
@@ -238,11 +233,11 @@ export async function checkMissingPauseViolation(userId: string, clockIn: Date, 
     if (requiredPauseMinutes > 0 && actualPauseMinutes < requiredPauseMinutes) {
       const missingMinutes = requiredPauseMinutes - actualPauseMinutes;
       
-      console.log(`[COMPLIANCE] Creating MISSING_PAUSE violation for user ${userId}: ${netWorkDuration.toFixed(1)}h work, ${actualPauseMinutes}min pause (required: ${requiredPauseMinutes}min)`);
+      console.log(`[COMPLIANCE] Creating MISSING_PAUSE violation for employee ${employeeId}: ${netWorkDuration.toFixed(1)}h work, ${actualPauseMinutes}min pause (required: ${requiredPauseMinutes}min)`);
       
       const violation = await prisma.complianceViolation.create({
         data: {
-          userId,
+          employeeId,
           type: 'MISSING_PAUSE',
           severity,
           date: clockIn,
@@ -259,7 +254,7 @@ export async function checkMissingPauseViolation(userId: string, clockIn: Date, 
         await actionService.triggerAction('compliance.violation', {
           entityType: 'COMPLIANCE_VIOLATION',
           entityId: violation.id,
-          userId: userId,
+          employeeId: employeeId,
           violationType: violation.type,
           severity: violation.severity,
           description: violation.description,
@@ -269,7 +264,7 @@ export async function checkMissingPauseViolation(userId: string, clockIn: Date, 
         console.error('[Action] Failed to trigger compliance.violation:', actionError);
       }
     } else if (requiredPauseMinutes > 0) {
-      console.log(`[COMPLIANCE] No MISSING_PAUSE violation for user ${userId}: ${actualPauseMinutes}min pause sufficient for ${netWorkDuration.toFixed(1)}h work`);
+      console.log(`[COMPLIANCE] No MISSING_PAUSE violation for employee ${employeeId}: ${actualPauseMinutes}min pause sufficient for ${netWorkDuration.toFixed(1)}h work`);
     }
   } catch (error) {
     console.error('Error checking missing pause violation:', error);
@@ -277,22 +272,17 @@ export async function checkMissingPauseViolation(userId: string, clockIn: Date, 
 }
 
 // Überstunden berechnen und in OvertimeBalance speichern
-export async function updateOvertimeBalance(userId: string, date: Date) {
+export async function updateOvertimeBalance(employeeId: string, date: Date) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
       select: { 
-        employeeProfile: {
-          select: {
-            weeklyHours: true,
-            contractHours: true,
-            exemptFromTracking: true
-          }
-        }
+        weeklyHours: true,
+        contractHours: true,
+        exemptFromTracking: true
       }
     });
 
-    const employee = user?.employeeProfile;
     if (!employee || employee.exemptFromTracking) return;
 
     const year = date.getFullYear();
@@ -309,7 +299,7 @@ export async function updateOvertimeBalance(userId: string, date: Date) {
     // Alle TimeEntries der Woche
     const entries = await prisma.timeEntry.findMany({
       where: {
-        userId,
+        employeeId,
         clockIn: { gte: weekStart, lte: weekEnd },
         clockOut: { not: null }
       }
@@ -344,8 +334,8 @@ export async function updateOvertimeBalance(userId: string, date: Date) {
     // Balance aktualisieren
     const balance = await prisma.overtimeBalance.upsert({
       where: {
-        userId_year: {
-          userId,
+        employeeId_year: {
+          employeeId,
           year
         }
       },
@@ -354,7 +344,7 @@ export async function updateOvertimeBalance(userId: string, date: Date) {
         extraTime: { increment: extraTime }
       },
       create: {
-        userId,
+        employeeId,
         year,
         regularOvertime,
         extraTime
@@ -366,7 +356,7 @@ export async function updateOvertimeBalance(userId: string, date: Date) {
     if (balance.extraTime > overtimeLimit) {
       const existingViolation = await prisma.complianceViolation.findFirst({
         where: {
-          userId,
+          employeeId,
           type: 'OVERTIME_LIMIT',
           date: { gte: new Date(year, 0, 1), lte: new Date(year, 11, 31) }
         }
@@ -375,7 +365,7 @@ export async function updateOvertimeBalance(userId: string, date: Date) {
       if (!existingViolation) {
         await prisma.complianceViolation.create({
           data: {
-            userId,
+            employeeId,
             type: 'OVERTIME_LIMIT',
             severity: 'CRITICAL',
             date: new Date(),

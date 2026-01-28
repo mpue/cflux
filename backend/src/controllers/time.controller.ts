@@ -12,15 +12,32 @@ import { actionService } from '../services/action.service';
 
 const prisma = new PrismaClient();
 
+// Helper function to get employeeId from userId
+async function getEmployeeId(userId: string): Promise<string> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { employeeProfile: true }
+  });
+  
+  if (!user?.employeeProfile) {
+    throw new Error('User does not have an employee profile');
+  }
+  
+  return user.employeeProfile.id;
+}
+
 export const clockIn = async (req: AuthRequest, res: Response) => {
   try {
     const { projectId, locationId, description } = req.body;
     const userId = req.user!.id;
+    
+    // Get employeeId from user
+    const employeeId = await getEmployeeId(userId);
 
-    // Check if user is already clocked in
+    // Check if employee is already clocked in
     const existingEntry = await prisma.timeEntry.findFirst({
       where: {
-        userId,
+        employeeId,
         status: 'CLOCKED_IN'
       }
     });
@@ -32,12 +49,12 @@ export const clockIn = async (req: AuthRequest, res: Response) => {
     const clockInTime = new Date();
 
     // Compliance Check: Ruhezeit
-    console.log(`[COMPLIANCE] Checking rest time for user ${userId} at clock-in`);
-    await checkRestTimeViolation(userId, clockInTime);
+    console.log(`[COMPLIANCE] Checking rest time for employee ${employeeId} at clock-in`);
+    await checkRestTimeViolation(employeeId, clockInTime);
 
     const timeEntry = await prisma.timeEntry.create({
       data: {
-        userId,
+        employeeId,
         projectId,
         locationId,
         clockIn: clockInTime,
@@ -46,7 +63,15 @@ export const clockIn = async (req: AuthRequest, res: Response) => {
       },
       include: {
         project: true,
-        location: true
+        location: true,
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
       }
     });
 
@@ -56,6 +81,7 @@ export const clockIn = async (req: AuthRequest, res: Response) => {
         entityType: 'TIMEENTRY',
         entityId: timeEntry.id,
         userId: userId,
+        employeeId: employeeId,
         startTime: clockInTime.toISOString(),
         projectId: projectId,
         locationId: locationId,
@@ -77,10 +103,13 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const { pauseMinutes } = req.body; // Pausen in Minuten
+    
+    // Get employeeId from user
+    const employeeId = await getEmployeeId(userId);
 
     const timeEntry = await prisma.timeEntry.findFirst({
       where: {
-        userId,
+        employeeId,
         status: 'CLOCKED_IN'
       }
     });
@@ -100,16 +129,24 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
       },
       include: {
         project: true,
-        location: true
+        location: true,
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
       }
     });
 
     // Compliance Checks nach Clock-Out
-    console.log(`[COMPLIANCE] Running compliance checks for user ${userId} after clock-out (pause: ${pauseMinutes || 0} min)`);
-    await checkDailyHoursViolation(userId, timeEntry.clockIn, clockOutTime);
-    await checkMissingPauseViolation(userId, timeEntry.clockIn, clockOutTime);
-    await checkWeeklyHoursViolation(userId, clockOutTime);
-    await updateOvertimeBalance(userId, clockOutTime);
+    console.log(`[COMPLIANCE] Running compliance checks for employee ${employeeId} after clock-out (pause: ${pauseMinutes || 0} min)`);
+    await checkDailyHoursViolation(employeeId, timeEntry.clockIn, clockOutTime);
+    await checkMissingPauseViolation(employeeId, timeEntry.clockIn, clockOutTime);
+    await checkWeeklyHoursViolation(employeeId, clockOutTime);
+    await updateOvertimeBalance(employeeId, clockOutTime);
     console.log(`[COMPLIANCE] Compliance checks completed`);
 
     // Budget-Update nach Clock-Out (async, blocking nicht erforderlich)
@@ -129,6 +166,7 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
         entityType: 'TIMEENTRY',
         entityId: updatedEntry.id,
         userId: userId,
+        employeeId: employeeId,
         startTime: timeEntry.clockIn.toISOString(),
         endTime: clockOutTime.toISOString(),
         duration: duration,
@@ -151,15 +189,24 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
 export const getCurrentTimeEntry = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
+    const employeeId = await getEmployeeId(userId);
 
     const timeEntry = await prisma.timeEntry.findFirst({
       where: {
-        userId,
+        employeeId,
         status: { in: ['CLOCKED_IN', 'ON_PAUSE'] }
       },
       include: {
         project: true,
-        location: true
+        location: true,
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
       }
     });
 
@@ -173,9 +220,10 @@ export const getCurrentTimeEntry = async (req: AuthRequest, res: Response) => {
 export const getMyTimeEntries = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
+    const employeeId = await getEmployeeId(userId);
     const { startDate, endDate } = req.query;
 
-    const where: any = { userId };
+    const where: any = { employeeId };
 
     if (startDate && endDate) {
       where.clockIn = {
@@ -188,7 +236,15 @@ export const getMyTimeEntries = async (req: AuthRequest, res: Response) => {
       where,
       include: {
         project: true,
-        location: true
+        location: true,
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
       },
       orderBy: { clockIn: 'desc' }
     });
@@ -205,7 +261,17 @@ export const getUserTimeEntries = async (req: AuthRequest, res: Response) => {
     const { userId } = req.params;
     const { startDate, endDate } = req.query;
 
-    const where: any = { userId };
+    // Get employee from userId
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { employeeProfile: true }
+    });
+
+    if (!user?.employeeProfile) {
+      return res.status(404).json({ error: 'User does not have an employee profile' });
+    }
+
+    const where: any = { employeeId: user.employeeProfile.id };
 
     if (startDate && endDate) {
       where.clockIn = {
@@ -218,7 +284,7 @@ export const getUserTimeEntries = async (req: AuthRequest, res: Response) => {
       where,
       include: {
         project: true,
-        user: {
+        employee: {
           select: {
             id: true,
             firstName: true,
@@ -242,10 +308,11 @@ export const updateMyTimeEntry = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { clockIn, clockOut, projectId, description } = req.body;
     const userId = req.user!.id;
+    const employeeId = await getEmployeeId(userId);
 
-    // Check if the time entry belongs to the user
+    // Check if the time entry belongs to the employee
     const existingEntry = await prisma.timeEntry.findFirst({
-      where: { id, userId }
+      where: { id, employeeId }
     });
 
     if (!existingEntry) {
@@ -267,7 +334,15 @@ export const updateMyTimeEntry = async (req: AuthRequest, res: Response) => {
         },
         include: {
           project: true,
-          location: true
+          location: true,
+          employee: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          }
         }
       });
       return res.json(timeEntry);
@@ -284,7 +359,15 @@ export const updateMyTimeEntry = async (req: AuthRequest, res: Response) => {
       },
       include: {
         project: true,
-        location: true
+        location: true,
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
       }
     });
 
@@ -299,10 +382,11 @@ export const deleteMyTimeEntry = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const userId = req.user!.id;
+    const employeeId = await getEmployeeId(userId);
 
-    // Check if the time entry belongs to the user
+    // Check if the time entry belongs to the employee
     const existingEntry = await prisma.timeEntry.findFirst({
-      where: { id, userId }
+      where: { id, employeeId }
     });
 
     if (!existingEntry) {
@@ -339,7 +423,7 @@ export const updateTimeEntry = async (req: AuthRequest, res: Response) => {
       },
       include: {
         project: true,
-        user: {
+        employee: {
           select: {
             id: true,
             firstName: true,
@@ -352,16 +436,16 @@ export const updateTimeEntry = async (req: AuthRequest, res: Response) => {
 
     // Compliance Checks ausführen wenn clockOut gesetzt ist
     if (clockOut && clockIn) {
-      const userId = timeEntry.userId;
+      const employeeId = timeEntry.employeeId;
       const clockInDate = new Date(clockIn);
       const clockOutDate = new Date(clockOut);
       
-      console.log(`[COMPLIANCE] Running compliance checks for user ${userId} after manual time entry update`);
+      console.log(`[COMPLIANCE] Running compliance checks for employee ${employeeId} after manual time entry update`);
       
-      await checkDailyHoursViolation(userId, clockInDate, clockOutDate);
-      await checkMissingPauseViolation(userId, clockInDate, clockOutDate);
-      await checkWeeklyHoursViolation(userId, clockOutDate);
-      await updateOvertimeBalance(userId, clockOutDate);
+      await checkDailyHoursViolation(employeeId, clockInDate, clockOutDate);
+      await checkMissingPauseViolation(employeeId, clockInDate, clockOutDate);
+      await checkWeeklyHoursViolation(employeeId, clockOutDate);
+      await updateOvertimeBalance(employeeId, clockOutDate);
       
       console.log(`[COMPLIANCE] Compliance checks completed for manual update`);
     }
@@ -389,10 +473,11 @@ export const deleteTimeEntry = async (req: AuthRequest, res: Response) => {
 export const startPause = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
+    const employeeId = await getEmployeeId(userId);
 
     const timeEntry = await prisma.timeEntry.findFirst({
       where: {
-        userId,
+        employeeId,
         status: 'CLOCKED_IN'
       }
     });
@@ -409,7 +494,15 @@ export const startPause = async (req: AuthRequest, res: Response) => {
       },
       include: {
         project: true,
-        location: true
+        location: true,
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
       }
     });
 
@@ -423,10 +516,11 @@ export const startPause = async (req: AuthRequest, res: Response) => {
 export const endPause = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
+    const employeeId = await getEmployeeId(userId);
 
     const timeEntry = await prisma.timeEntry.findFirst({
       where: {
-        userId,
+        employeeId,
         status: 'ON_PAUSE'
       }
     });
@@ -449,7 +543,15 @@ export const endPause = async (req: AuthRequest, res: Response) => {
       },
       include: {
         project: true,
-        location: true
+        location: true,
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
       }
     });
 
@@ -470,12 +572,13 @@ export const getLoggedInUsers = async (req: AuthRequest, res: Response) => {
         clockOut: null
       },
       include: {
-        user: {
+        employee: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
-            email: true
+            email: true,
+            userId: true
           }
         },
         project: {
@@ -497,10 +600,11 @@ export const getLoggedInUsers = async (req: AuthRequest, res: Response) => {
     });
 
     const formattedUsers = loggedInUsers.map(entry => ({
-      userId: entry.user.id,
-      firstName: entry.user.firstName,
-      lastName: entry.user.lastName,
-      email: entry.user.email,
+      userId: entry.employee.userId || entry.employee.id,  // Backward compatibility
+      employeeId: entry.employee.id,
+      firstName: entry.employee.firstName,
+      lastName: entry.employee.lastName,
+      email: entry.employee.email,
       status: entry.status,
       clockIn: entry.clockIn,
       project: entry.project,

@@ -103,11 +103,12 @@ model User {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  timeEntries   TimeEntry[]
+  // NOTE: timeEntries wurde zu Employee.timeEntries migriert
   absenceRequests AbsenceRequest[]
   projectAssignments ProjectAssignment[]
   overtimeBalances OvertimeBalance[]
   complianceViolations ComplianceViolation[]
+
   reportedIncidents Incident[] @relation("IncidentsReported")
   assignedIncidents Incident[] @relation("IncidentsAssigned")
   workflowApprovals WorkflowInstanceStep[]
@@ -435,8 +436,8 @@ model ProjectAssignment {
 
 model TimeEntry {
   id          String           @id @default(uuid())
-  userId      String
-  employeeId  String?          // NEW: Milestone 1 - Employee relation
+  userId      String?          // DEPRECATED: Use employeeId instead (for migration)
+  employeeId  String           // Primary relation to Employee
   projectId   String?
   locationId  String?
   costCenterId String?
@@ -449,15 +450,13 @@ model TimeEntry {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  employee Employee? @relation("EmployeeTimeEntries", fields: [employeeId], references: [id], onDelete: SetNull)
+  employee Employee  @relation("EmployeeTimeEntries", fields: [employeeId], references: [id], onDelete: Cascade)
   project  Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
   costCenter CostCenter? @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
   projectTimeAllocations ProjectTimeAllocation[]
 
-  @@index([userId, clockIn])
-  @@index([employeeId])
+  @@index([employeeId, clockIn])
   @@map("time_entries")
 }
 
@@ -515,8 +514,8 @@ model Holiday {
 
 model OvertimeBalance {
   id              String   @id @default(uuid())
-  userId          String
-  employeeId      String?  // NEW: Milestone 1 - Employee relation
+  userId          String?  // DEPRECATED - wird zu employeeId migriert
+  employeeId      String   // Migrated from userId
   year            Int
   regularOvertime Float    @default(0)  // Überstunden (über Vertrag, unter Höchstarbeitszeit)
   extraTime       Float    @default(0)  // Überzeit (über gesetzliche Höchstarbeitszeit)
@@ -525,18 +524,18 @@ model OvertimeBalance {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  employee Employee? @relation("EmployeeOvertime", fields: [employeeId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employee Employee @relation("EmployeeOvertime", fields: [employeeId], references: [id], onDelete: Cascade)
   
-  @@unique([userId, year])
+  @@unique([employeeId, year])
   @@index([employeeId])
   @@map("overtime_balances")
 }
 
 model ComplianceViolation {
   id              String             @id @default(uuid())
-  userId          String
-  employeeId      String?            // NEW: Milestone 1 - Employee relation
+  userId          String?            // DEPRECATED - wird zu employeeId migriert
+  employeeId      String             // Migrated from userId
   type            ViolationType
   severity        ViolationSeverity  @default(WARNING)
   date            DateTime
@@ -549,12 +548,11 @@ model ComplianceViolation {
   notes           String?
   createdAt       DateTime           @default(now())
   
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  employee Employee? @relation("EmployeeViolations", fields: [employeeId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employee Employee @relation("EmployeeViolations", fields: [employeeId], references: [id], onDelete: Cascade)
   
-  @@index([userId, date])
+  @@index([employeeId, date])
   @@index([resolved, severity])
-  @@index([employeeId])
   @@map("compliance_violations")
 }
 

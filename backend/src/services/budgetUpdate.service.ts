@@ -21,11 +21,12 @@ export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<vo
   const timeEntry = await prisma.timeEntry.findUnique({
     where: { id: timeEntryId },
     include: {
-      user: {
+      employee: {
         select: {
           id: true,
           firstName: true,
           lastName: true,
+          userId: true
         },
       },
     },
@@ -69,8 +70,13 @@ export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<vo
   let hourlyRate: number;
   try {
     // Verwende Clock-Out Zeit für Zeitmodell-Berechnung
+    const userId = timeEntry.employee.userId;
+    if (!userId) {
+      console.warn(`Employee ${timeEntry.employeeId} has no userId`);
+      return;
+    }
     hourlyRate = await getHourlyRateForUser(
-      timeEntry.userId, 
+      userId, 
       timeEntry.projectId,
       timeEntry.clockOut // Timestamp für Zeitmodell-Lookup
     );
@@ -92,8 +98,8 @@ export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<vo
     return; // Keine Stunden gebucht
   }
 
-  // 5. Budget-Position für User finden oder erstellen
-  const itemName = `${timeEntry.user.firstName} ${timeEntry.user.lastName}`;
+  // 5. Budget-Position für Employee finden oder erstellen
+  const itemName = `${timeEntry.employee.firstName} ${timeEntry.employee.lastName}`;
   
   let budgetItem = await prisma.projectBudgetItem.findFirst({
     where: {

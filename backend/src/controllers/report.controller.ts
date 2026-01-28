@@ -229,7 +229,7 @@ export const getProjectSummary = async (req: AuthRequest, res: Response) => {
     const entries = await prisma.timeEntry.findMany({
       where,
       include: {
-        user: {
+        employee: {
           select: {
             id: true,
             firstName: true,
@@ -244,15 +244,15 @@ export const getProjectSummary = async (req: AuthRequest, res: Response) => {
       return sum + calculateWorkHours(entry.clockIn, entry.clockOut);
     }, 0);
 
-    const byUser: Record<string, { user: any; hours: number }> = {};
+    const byUser: Record<string, { employee: any; hours: number }> = {};
     entries.forEach(entry => {
-      if (!byUser[entry.userId]) {
-        byUser[entry.userId] = {
-          user: entry.user,
+      if (!byUser[entry.employeeId]) {
+        byUser[entry.employeeId] = {
+          employee: entry.employee,
           hours: 0
         };
       }
-      byUser[entry.userId].hours += calculateWorkHours(entry.clockIn, entry.clockOut);
+      byUser[entry.employeeId].hours += calculateWorkHours(entry.clockIn, entry.clockOut);
     });
 
     res.json({
@@ -607,7 +607,7 @@ export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) =
     const entries = await prisma.timeEntry.findMany({
       where,
       include: {
-        user: {
+        employee: {
           select: {
             id: true,
             firstName: true,
@@ -652,8 +652,8 @@ export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) =
 
       return {
         id: entry.id,
-        userId: entry.userId,
-        user: entry.user,
+        employeeId: entry.employeeId,
+        employee: entry.employee,
         projectId: entry.projectId,
         project: entry.project,
         location: entry.location,
@@ -674,18 +674,18 @@ export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) =
     const totalHours = enrichedEntries.reduce((sum, entry) => sum + entry.netHours, 0);
     const totalEntries = enrichedEntries.length;
 
-    // Group by user
+    // Group by employee
     const byUser: Record<string, any> = {};
     enrichedEntries.forEach(entry => {
-      if (!byUser[entry.userId]) {
-        byUser[entry.userId] = {
-          user: entry.user,
+      if (!byUser[entry.employeeId]) {
+        byUser[entry.employeeId] = {
+          employee: entry.employee,
           totalHours: 0,
           entries: []
         };
       }
-      byUser[entry.userId].totalHours += entry.netHours;
-      byUser[entry.userId].entries.push(entry);
+      byUser[entry.employeeId].totalHours += entry.netHours;
+      byUser[entry.employeeId].entries.push(entry);
     });
 
     // Group by project

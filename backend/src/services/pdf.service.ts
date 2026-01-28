@@ -555,17 +555,13 @@ export const generateTimeBookingsReport = async (
   const entries = await prisma.timeEntry.findMany({
     where,
     include: {
-      user: {
+      employee: {
         select: {
           id: true,
           firstName: true,
           lastName: true,
           email: true,
-          employeeProfile: {
-            select: {
-              employeeNumber: true
-            }
-          }
+          employeeNumber: true
         }
       },
       project: true,
@@ -587,12 +583,12 @@ export const generateTimeBookingsReport = async (
   entries.forEach(entry => {
     const hours = calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
     
-    // By user
-    if (!byUser[entry.userId]) {
-      byUser[entry.userId] = { user: entry.user, hours: 0, entries: 0 };
+    // By employee
+    if (!byUser[entry.employeeId]) {
+      byUser[entry.employeeId] = { user: entry.employee, hours: 0, entries: 0 };
     }
-    byUser[entry.userId].hours += hours;
-    byUser[entry.userId].entries += 1;
+    byUser[entry.employeeId].hours += hours;
+    byUser[entry.employeeId].entries += 1;
 
     // By project
     if (entry.project) {
@@ -740,7 +736,7 @@ export const generateTimeBookingsReport = async (
     entries.forEach((entry) => {
       const yPos = doc.y;
       const hours = calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
-      const userName = `${entry.user.firstName} ${entry.user.lastName}`;
+      const userName = `${entry.employee.firstName} ${entry.employee.lastName}`;
       
       doc.text(formatDate(entry.clockIn), 50, yPos, { width: 55 });
       doc.text(userName, 110, yPos, { width: 100 });

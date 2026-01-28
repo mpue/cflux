@@ -10,11 +10,16 @@ export const getAllocationsForTimeEntry = async (req: AuthRequest, res: Response
     const { timeEntryId } = req.params;
     const userId = req.user!.id;
 
+    // Get user's employee profile
+    const employeeProfile = await prisma.employee.findUnique({
+      where: { userId }
+    });
+
     // Verify the time entry belongs to the user or user is admin
     const timeEntry = await prisma.timeEntry.findFirst({
       where: {
         id: timeEntryId,
-        ...(req.user!.role !== 'ADMIN' ? { userId } : {})
+        ...(req.user!.role !== 'ADMIN' && employeeProfile ? { employeeId: employeeProfile.id } : {})
       }
     });
 
@@ -50,11 +55,16 @@ export const setAllocationsForTimeEntry = async (req: AuthRequest, res: Response
     const { allocations } = req.body;
     const userId = req.user!.id;
 
+    // Get user's employee profile
+    const employeeProfile = await prisma.employee.findUnique({
+      where: { userId }
+    });
+
     // Verify the time entry belongs to the user or user is admin
     const timeEntry = await prisma.timeEntry.findFirst({
       where: {
         id: timeEntryId,
-        ...(req.user!.role !== 'ADMIN' ? { userId } : {})
+        ...(req.user!.role !== 'ADMIN' && employeeProfile ? { employeeId: employeeProfile.id } : {})
       },
       select: {
         id: true,
@@ -155,7 +165,7 @@ export const deleteAllocation = async (req: AuthRequest, res: Response) => {
       include: {
         timeEntry: {
           select: {
-            userId: true
+            employeeId: true
           }
         }
       }
@@ -165,7 +175,16 @@ export const deleteAllocation = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Allocation not found' });
     }
 
-    if (req.user!.role !== 'ADMIN' && allocation.timeEntry.userId !== userId) {
+    // Prüfe ob User Zugriff auf diesen TimeEntry hat (via employeeProfile)
+    const userEmployee = await prisma.employee.findUnique({
+      where: { userId }
+    });
+
+    if (!userEmployee) {
+      return res.status(403).json({ error: 'No employee profile found' });
+    }
+
+    if (req.user!.role !== 'ADMIN' && allocation.timeEntry.employeeId !== userEmployee.id) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -184,12 +203,18 @@ export const deleteAllocation = async (req: AuthRequest, res: Response) => {
 export const getProjectTimeStats = async (req: AuthRequest, res: Response) => {
   try {
     const { startDate, endDate, projectId } = req.query;
-    const userId = req.user!.role === 'ADMIN' ? undefined : req.user!.id;
+    const userId = req.user!.id;
 
     const where: any = {};
 
-    if (userId) {
-      where.timeEntry = { userId };
+    if (req.user!.role !== 'ADMIN') {
+      // Get user's employee profile
+      const employeeProfile = await prisma.employee.findUnique({
+        where: { userId }
+      });
+      if (employeeProfile) {
+        where.timeEntry = { employeeId: employeeProfile.id };
+      }
     }
 
     if (projectId) {
@@ -219,7 +244,7 @@ export const getProjectTimeStats = async (req: AuthRequest, res: Response) => {
           select: {
             id: true,
             clockIn: true,
-            user: {
+            employee: {
               select: {
                 id: true,
                 firstName: true,
@@ -248,7 +273,7 @@ export const getProjectTimeStats = async (req: AuthRequest, res: Response) => {
         hours: alloc.hours,
         description: alloc.description,
         date: alloc.timeEntry.clockIn,
-        user: alloc.timeEntry.user
+        employee: alloc.timeEntry.employee
       });
       return acc;
     }, {});

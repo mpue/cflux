@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cflux Rollout Timeline</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+                .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .logo {
+            width: 60px;
+            height: 60px;
+        }
+                h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        
+        .highlight-box {
+            background: #4a90e2;
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.2);
+        }
+        
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+        
+        .timeline-bar {
+            position: relative;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin: 40px 0 60px 0;
+        }
+        
+        .timeline-progress {
+            position: absolute;
+            height: 100%;
+            background: #4a90e2;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .month-markers {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding: 0 10px;
+        }
+        
+        .month-marker {
+            font-size: 0.9em;
+            color: #718096;
+            font-weight: 600;
+        }
+        
+        .phases {
+            display: grid;
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .phase {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 25px;
+            border-left: 6px solid #cbd5e0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0.6;
+        }
+        
+        .phase.active {
+            opacity: 1;
+            border-left-color: #4a90e2;
+            background: #edf2f7;
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+            transform: translateX(5px);
+        }
+        
+        .phase.completed {
+            border-left-color: #48bb78;
+        }
+        
+        .phase:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .phase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .phase-title {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #2d3748;
+        }
+        
+        .phase-timeline {
+            display: inline-block;
+            background: #4a90e2;
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        
+        .phase-content {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .benefits {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .benefit-tag {
+            background: #e8f4fd;
+            color: #4a90e2;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            border: 1px solid #4a90e2;
+        }
+        
+        .benefit-tag.frank {
+            background: #fef5e7;
+            color: #d68910;
+            border-color: #d68910;
+        }
+        
+        .benefit-tag.hr {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-color: #2e7d32;
+        }
+        
+        .benefit-tag.all {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-color: #1565c0;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin-top: 40px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid;
+        }
+        
+        .frank-color {
+            background: #fef5e7;
+            border-color: #d68910;
+        }
+        
+        .hr-color {
+            background: #e8f5e9;
+            border-color: #2e7d32;
+        }
+        
+        .all-color {
+            background: #e3f2fd;
+            border-color: #1565c0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .legend {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <svg class="logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#4a90e2;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#2c5aa0;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <circle cx="100" cy="100" r="90" fill="url(#logoGradient)"/>
+                <path d="M 70 80 Q 100 60 130 80" stroke="white" stroke-width="8" fill="none" stroke-linecap="round"/>
+                <circle cx="80" cy="110" r="5" fill="white"/>
+                <circle cx="120" cy="110" r="5" fill="white"/>
+                <path d="M 75 130 Q 100 145 125 130" stroke="white" stroke-width="6" fill="none" stroke-linecap="round"/>
+            </svg>
+            <h1>cflux Rollout Timeline</h1>
+        </div>
+        <p class="subtitle">Schrittweiser Rollout über 12 Monate - mit frühem Nutzen für alle Beteiligten</p>
+        
+        <div class="highlight-box">
+            Aquist DE profitiert bereits ab Monat 2-3 mit E-Learning/Onboarding & Dokumentenmanagement!
+        </div>
+        
+        <div class="timeline">
+            <div class="timeline-bar">
+                <div class="timeline-progress" id="progress"></div>
+            </div>
+            <div class="month-markers">
+                <span class="month-marker">Monat 1</span>
+                <span class="month-marker">Monat 3</span>
+                <span class="month-marker">Monat 6</span>
+                <span class="month-marker">Monat 9</span>
+                <span class="month-marker">Monat 12</span>
+            </div>
+        </div>
+        
+        <div class="phases" id="phases">
+            <div class="phase" data-month="1" data-end="2">
+                <div class="phase-header">
+                    <div class="phase-title">Phase 1: Zeiterfassung</div>
+                    <div class="phase-timeline">Monat 1-2</div>
+                </div>
+                <div class="phase-content">
+                    <strong>Testbetrieb</strong> mit ausgewählten Nutzern. Feedback sammeln und System optimieren. Schulungsmaterialien finalisieren.
+                </div>
+                <div class="benefits">
+                    <span class="benefit-tag all">Ausgewählte Testnutzer</span>
+                    <span class="benefit-tag">Zeiterfassung digital</span>
+                </div>
+            </div>
+            
+            <div class="phase" data-month="2" data-end="4">
+                <div class="phase-header">
+                    <div class="phase-title">Phase 2: E-Learning & Dokumentenmanagement</div>
+                    <div class="phase-timeline">Monat 2-4</div>
+                </div>
+                <div class="phase-content">
+                    <strong>Besonders relevant!</strong> Onboarding-Prozesse digitalisieren, zentrale Dokumentenverwaltung etablieren, Schulungsinhalte übertragen.
+                </div>
+                <div class="benefits">
+                    <span class="benefit-tag frank">Onboarding</span>
+                    <span class="benefit-tag frank">Schulungen</span>
+                    <span class="benefit-tag frank">Dokumente</span>
+                </div>
+            </div>
+            
+            <div class="phase" data-month="4" data-end="5">
+                <div class="phase-header">
+                    <div class="phase-title">Phase 3: Projektverwaltung</div>
+                    <div class="phase-timeline">Monat 4-5</div>
+                </div>
+                <div class="phase-content">
+                    Integration mit Zeiterfassung. Erweiterte Nutzerbasis. Projektplanung und -tracking.
+                </div>
+                <div class="benefits">
+                    <span class="benefit-tag all">Projektmanagement</span>
+                    <span class="benefit-tag all">Integration Zeiterfassung</span>
+                </div>
+            </div>
+            
+            <div class="phase" data-month="6" data-end="7">
+                <div class="phase-header">
+                    <div class="phase-title">Phase 4: Urlaubsplanung</div>
+                    <div class="phase-timeline">Monat 6-7</div>
+                </div>
+                <div class="phase-content">
+                    Anbindung an Zeiterfassung. HR-Workflows etablieren. Urlaubsanträge digitalisieren.
+                </div>
+                <div class="benefits">
+                    <span class="benefit-tag hr">HR: Urlaubsverwaltung</span>
+                    <span class="benefit-tag all">Urlaubsplanung</span>
+                </div>
+            </div>
+            
+            <div class="phase" data-month="8" data-end="9">
+                <div class="phase-header">
+                    <div class="phase-title">Phase 5: Rechnungsstellung</div>
+                    <div class="phase-timeline">Monat 8-9</div>
+                </div>
+                <div class="phase-content">
+                    Integration mit Projektverwaltung. Buchhaltungsprozesse migrieren. Automatisierte Rechnungserstellung.
+                </div>
+                <div class="benefits">
+                    <span class="benefit-tag all">Rechnungen</span>
+                    <span class="benefit-tag all">Buchhaltung</span>
+                </div>
+            </div>
+            
+            <div class="phase" data-month="10" data-end="12">
+                <div class="phase-header">
+                    <div class="phase-title">Phase 6: Komplettierung & Feinschliff</div>
+                    <div class="phase-timeline">Monat 10-12</div>
+                </div>
+                <div class="phase-content">
+                    Restliche Module aktivieren. Optimierung und Stabilisierung. Abschluss der Migration. System vollständig produktiv.
+                </div>
+                <div class="benefits">
+                    <span class="benefit-tag all">Alle Module aktiv</span>
+                    <span class="benefit-tag all">Vollständiger Rollout</span>
+                    <span class="benefit-tag all">System komplett</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color frank-color"></div>
+                <span><strong>Besonders für Aquist DE relevant</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color hr-color"></div>
+                <span><strong>HR / Personalwesen</strong></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color all-color"></div>
+                <span><strong>Alle Mitarbeiter</strong></span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const phases = document.querySelectorAll('.phase');
+        const progress = document.getElementById('progress');
+        
+        let currentPhase = 0;
+        
+        function updateTimeline() {
+            const phase = phases[currentPhase];
+            const endMonth = parseInt(phase.dataset.end);
+            const progressPercent = (endMonth / 12) * 100;
+            
+            progress.style.width = progressPercent + '%';
+            
+            phases.forEach((p, index) => {
+                p.classList.remove('active', 'completed');
+                if (index < currentPhase) {
+                    p.classList.add('completed');
+                } else if (index === currentPhase) {
+                    p.classList.add('active');
+                }
+            });
+        }
+        
+        phases.forEach((phase, index) => {
+            phase.addEventListener('click', () => {
+                currentPhase = index;
+                updateTimeline();
+            });
+        });
+        
+        // Auto-play animation
+        function autoPlay() {
+            updateTimeline();
+            currentPhase = (currentPhase + 1) % phases.length;
+            setTimeout(autoPlay, 3000);
+        }
+        
+        // Start with first phase active
+        updateTimeline();
+        
+        // Optional: Start auto-play after 2 seconds
+        setTimeout(autoPlay, 2000);
+    </script>
+</body>
+</html>

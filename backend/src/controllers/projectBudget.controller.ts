@@ -603,7 +603,7 @@ export const getBudgetTimeEntries = async (req: AuthRequest, res: Response) => {
         },
       },
       include: {
-        user: {
+        employee: {
           select: {
             id: true,
             firstName: true,

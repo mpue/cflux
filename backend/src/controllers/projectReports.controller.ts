@@ -100,7 +100,7 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
             clockIn: true,
             clockOut: true,
             pauseMinutes: true,
-            userId: true,
+            employeeId: true,
           },
         });
 
@@ -118,10 +118,10 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
 
             totalHours += hours;
 
-            if (!userHours[entry.userId]) {
-              userHours[entry.userId] = 0;
+            if (!userHours[entry.employeeId]) {
+              userHours[entry.employeeId] = 0;
             }
-            userHours[entry.userId] += hours;
+            userHours[entry.employeeId] += hours;
           }
         }
 
@@ -279,16 +279,12 @@ export const getTimeTrackingReport = async (req: AuthRequest, res: Response) => 
     const timeEntries = await prisma.timeEntry.findMany({
       where: whereClause,
       include: {
-        user: {
+        employee: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
-            employeeProfile: {
-              select: {
-                hourlyRate: true
-              }
-            }
+            hourlyRate: true
           },
         },
       },
@@ -311,9 +307,9 @@ export const getTimeTrackingReport = async (req: AuthRequest, res: Response) => 
       const workedMs = endTime - startTime - pauseMs;
       const hours = workedMs / (1000 * 60 * 60);
 
-      // Stundensatz ermitteln (User → Projekt → System)
-      // Nutze user.employeeProfile.hourlyRate falls vorhanden, sonst project.defaultHourlyRate, sonst 100 CHF als Fallback
-      let hourlyRate = entry.user.employeeProfile?.hourlyRate;
+      // Stundensatz ermitteln (Employee → Projekt → System)
+      // Nutze employee.hourlyRate falls vorhanden, sonst project.defaultHourlyRate, sonst 100 CHF als Fallback
+      let hourlyRate = entry.employee.hourlyRate;
       if (!hourlyRate || hourlyRate <= 0) {
         hourlyRate = project.defaultHourlyRate || 100;
       }
@@ -338,7 +334,7 @@ export const getTimeTrackingReport = async (req: AuthRequest, res: Response) => 
           break;
         case 'user':
         default:
-          groupKey = entry.userId;
+          groupKey = entry.employeeId;
           break;
       }
 
@@ -348,8 +344,8 @@ export const getTimeTrackingReport = async (req: AuthRequest, res: Response) => 
           hours: 0,
           cost: 0,
           entries: 0,
-          userName: groupBy === 'user' ? `${entry.user.firstName} ${entry.user.lastName}` : groupKey,
-          userId: groupBy === 'user' ? entry.userId : undefined,
+          userName: groupBy === 'user' ? `${entry.employee.firstName} ${entry.employee.lastName}` : groupKey,
+          employeeId: groupBy === 'user' ? entry.employeeId : undefined,
         };
       }
 
@@ -390,7 +386,7 @@ export const getTimeTrackingReport = async (req: AuthRequest, res: Response) => 
       entries: timeEntries.map((e) => ({
         id: e.id,
         date: e.clockIn.toISOString().split('T')[0],
-        user: `${e.user.firstName} ${e.user.lastName}`,
+        user: `${e.employee.firstName} ${e.employee.lastName}`,
         clockIn: e.clockIn,
         clockOut: e.clockOut,
         hours: e.clockOut
