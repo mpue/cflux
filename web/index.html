@@ -184,7 +184,51 @@
             to { transform: rotateY(-648deg); }
         }
 
+        @keyframes fadeDepth1 {
+            0% { opacity: 1; }      /* Front */
+            25% { opacity: 0.4; }   /* Right side */
+            50% { opacity: 0.1; }   /* Back */
+            75% { opacity: 0.4; }   /* Left side */
+            100% { opacity: 1; }    /* Front again */
+        }
+
+        @keyframes fadeDepth2 {
+            0% { opacity: 0.4; }
+            25% { opacity: 0.1; }
+            50% { opacity: 0.4; }
+            75% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
+        @keyframes fadeDepth3 {
+            0% { opacity: 0.1; }
+            25% { opacity: 0.4; }
+            50% { opacity: 1; }
+            75% { opacity: 0.4; }
+            100% { opacity: 0.1; }
+        }
+
+        @keyframes fadeDepth4 {
+            0% { opacity: 0.4; }
+            25% { opacity: 1; }
+            50% { opacity: 0.4; }
+            75% { opacity: 0.1; }
+            100% { opacity: 0.4; }
+        }
+
+        @keyframes fadeDepth5 {
+            0% { opacity: 1; }
+            25% { opacity: 0.4; }
+            50% { opacity: 0.1; }
+            75% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
         .carousel-track:hover {
+            animation-play-state: paused;
+        }
+
+        .carousel-track:hover .carousel-slide img {
             animation-play-state: paused;
         }
 
@@ -202,35 +246,35 @@
             transform: rotateY(0deg) translateZ(800px);
         }
         .carousel-slide:nth-child(1) img {
-            animation: counterRotate1 30s linear infinite;
+            animation: counterRotate1 30s linear infinite, fadeDepth1 30s linear infinite;
         }
         
         .carousel-slide:nth-child(2) {
             transform: rotateY(72deg) translateZ(800px);
         }
         .carousel-slide:nth-child(2) img {
-            animation: counterRotate2 30s linear infinite;
+            animation: counterRotate2 30s linear infinite, fadeDepth2 30s linear infinite;
         }
         
         .carousel-slide:nth-child(3) {
             transform: rotateY(144deg) translateZ(800px);
         }
         .carousel-slide:nth-child(3) img {
-            animation: counterRotate3 30s linear infinite;
+            animation: counterRotate3 30s linear infinite, fadeDepth3 30s linear infinite;
         }
         
         .carousel-slide:nth-child(4) {
             transform: rotateY(216deg) translateZ(800px);
         }
         .carousel-slide:nth-child(4) img {
-            animation: counterRotate4 30s linear infinite;
+            animation: counterRotate4 30s linear infinite, fadeDepth4 30s linear infinite;
         }
         
         .carousel-slide:nth-child(5) {
             transform: rotateY(288deg) translateZ(800px);
         }
         .carousel-slide:nth-child(5) img {
-            animation: counterRotate5 30s linear infinite;
+            animation: counterRotate5 30s linear infinite, fadeDepth5 30s linear infinite;
         }
 
         .carousel-track:hover .carousel-slide img {
