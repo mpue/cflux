@@ -46,12 +46,19 @@ export async function getHourlyRateForUser(
   // 2. Prüfe User-spezifischen Stundensatz
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { hourlyRate: true },
+    select: { 
+      employeeProfile: {
+        select: {
+          hourlyRate: true
+        }
+      }
+    },
   });
 
-  if (user?.hourlyRate && user.hourlyRate > 0) {
-    console.log(`[HOURLY_RATE] User-Stundensatz verwendet: ${user.hourlyRate} CHF/h`);
-    return user.hourlyRate;
+  const hourlyRate = user?.employeeProfile?.hourlyRate;
+  if (hourlyRate && hourlyRate > 0) {
+    console.log(`[HOURLY_RATE] User-Stundensatz verwendet: ${hourlyRate} CHF/h`);
+    return hourlyRate;
   }
 
   // 3. Prüfe Projekt-Default (falls Projekt angegeben)

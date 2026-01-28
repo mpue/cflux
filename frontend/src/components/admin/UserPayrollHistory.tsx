@@ -113,9 +113,9 @@ const UserPayrollHistory: React.FC<UserPayrollHistoryProps> = ({ open, onClose, 
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
         Gehaltsabrechnungen - {user.firstName} {user.lastName}
-        {user.employeeNumber && (
+        {(user.employeeProfile?.employeeNumber || user.employeeNumber) && (
           <Typography variant="caption" display="block" color="textSecondary">
-            Personalnummer: {user.employeeNumber}
+            Personalnummer: {user.employeeProfile?.employeeNumber || user.employeeNumber}
           </Typography>
         )}
       </DialogTitle>

@@ -18,31 +18,41 @@ export const getCurrentUser = async (req: AuthRequest, res: Response) => {
         role: true,
         isActive: true,
         requiresPasswordChange: true,
-        vacationDays: true,
-        dateOfBirth: true,
-        placeOfBirth: true,
-        nationality: true,
-        phone: true,
-        mobile: true,
-        street: true,
-        streetNumber: true,
-        zipCode: true,
-        city: true,
-        country: true,
-        employeeNumber: true,
-        entryDate: true,
-        exitDate: true,
-        iban: true,
-        bankName: true,
-        civilStatus: true,
-        religion: true,
-        ahvNumber: true,
-        isCrossBorderCommuter: true,
-        weeklyHours: true,
-        canton: true,
-        exemptFromTracking: true,
-        contractHours: true,
-        createdAt: true
+        createdAt: true,
+        employeeProfile: {
+          select: {
+            id: true,
+            dateOfBirth: true,
+            placeOfBirth: true,
+            nationality: true,
+            phone: true,
+            mobile: true,
+            street: true,
+            streetNumber: true,
+            zipCode: true,
+            postalCode: true,
+            city: true,
+            country: true,
+            employeeNumber: true,
+            startDate: true,
+            entryDate: true,
+            exitDate: true,
+            iban: true,
+            bankName: true,
+            civilStatus: true,
+            religion: true,
+            ahvNumber: true,
+            isCrossBorderCommuter: true,
+            weeklyHours: true,
+            canton: true,
+            exemptFromTracking: true,
+            contractHours: true,
+            hourlyRate: true,
+            vacationDays: true,
+            department: true,
+            position: true
+          }
+        }
       }
     });
 
@@ -92,30 +102,6 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
         lastName: true,
         role: true,
         isActive: true,
-        vacationDays: true,
-        dateOfBirth: true,
-        placeOfBirth: true,
-        nationality: true,
-        phone: true,
-        mobile: true,
-        street: true,
-        streetNumber: true,
-        zipCode: true,
-        city: true,
-        country: true,
-        employeeNumber: true,
-        entryDate: true,
-        exitDate: true,
-        iban: true,
-        bankName: true,
-        civilStatus: true,
-        religion: true,
-        ahvNumber: true,
-        isCrossBorderCommuter: true,
-        weeklyHours: true,
-        canton: true,
-        exemptFromTracking: true,
-        contractHours: true,
         createdAt: true,
         userGroupId: true,
         userGroupMemberships: {
@@ -129,6 +115,40 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
               },
             },
           },
+        },
+        employeeProfile: {
+          select: {
+            id: true,
+            dateOfBirth: true,
+            placeOfBirth: true,
+            nationality: true,
+            phone: true,
+            mobile: true,
+            street: true,
+            streetNumber: true,
+            zipCode: true,
+            postalCode: true,
+            city: true,
+            country: true,
+            employeeNumber: true,
+            startDate: true,
+            entryDate: true,
+            exitDate: true,
+            iban: true,
+            bankName: true,
+            civilStatus: true,
+            religion: true,
+            ahvNumber: true,
+            isCrossBorderCommuter: true,
+            weeklyHours: true,
+            canton: true,
+            exemptFromTracking: true,
+            contractHours: true,
+            hourlyRate: true,
+            vacationDays: true,
+            department: true,
+            position: true
+          }
         },
       },
       orderBy: { createdAt: 'desc' }
@@ -154,12 +174,24 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
         lastName: true,
         role: true,
         isActive: true,
-        vacationDays: true,
-        weeklyHours: true,
-        canton: true,
-        exemptFromTracking: true,
-        contractHours: true,
-        createdAt: true
+        createdAt: true,
+        employeeProfile: {
+          select: {
+            id: true,
+            vacationDays: true,
+            weeklyHours: true,
+            canton: true,
+            exemptFromTracking: true,
+            contractHours: true,
+            hourlyRate: true,
+            department: true,
+            position: true,
+            employeeNumber: true,
+            startDate: true,
+            entryDate: true,
+            exitDate: true
+          }
+        }
       }
     });
 
@@ -179,25 +211,56 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const updateData: any = { ...req.body };
     
-    // Passwort hashen falls vorhanden
-    if (updateData.password) {
-      updateData.password = await bcrypt.hash(updateData.password, 10);
+    // Separate user data from employee data
+    const employeeFields = [
+      'dateOfBirth', 'placeOfBirth', 'nationality', 'phone', 'mobile',
+      'street', 'streetNumber', 'zipCode', 'postalCode', 'city', 'country',
+      'employeeNumber', 'startDate', 'entryDate', 'exitDate', 'probationEndDate',
+      'iban', 'bankName', 'bic', 'civilStatus', 'religion',
+      'ahvNumber', 'healthInsurance', 'isCrossBorderCommuter', 'taxId', 'taxClass',
+      'socialSecurityNumber', 'emergencyContactName', 'emergencyContactPhone', 'emergencyContactRelation',
+      'department', 'position', 'supervisorId', 'salaryEncrypted',
+      'weeklyHours', 'contractHours', 'hourlyRate', 'canton', 'exemptFromTracking', 'vacationDays'
+    ];
+    
+    const employeeData: any = {};
+    const userData: any = {};
+    
+    // Split data into user and employee fields
+    for (const key in updateData) {
+      if (employeeFields.includes(key)) {
+        employeeData[key] = updateData[key];
+      } else {
+        userData[key] = updateData[key];
+      }
     }
     
-    // Datum-Strings in DateTime konvertieren
-    if (updateData.dateOfBirth) {
-      updateData.dateOfBirth = new Date(updateData.dateOfBirth);
+    // Passwort hashen falls vorhanden
+    if (userData.password) {
+      userData.password = await bcrypt.hash(userData.password, 10);
     }
-    if (updateData.entryDate) {
-      updateData.entryDate = new Date(updateData.entryDate);
+    
+    // Datum-Strings in DateTime konvertieren (Employee data)
+    if (employeeData.dateOfBirth) {
+      employeeData.dateOfBirth = new Date(employeeData.dateOfBirth);
     }
-    if (updateData.exitDate) {
-      updateData.exitDate = new Date(updateData.exitDate);
+    if (employeeData.entryDate) {
+      employeeData.entryDate = new Date(employeeData.entryDate);
+    }
+    if (employeeData.startDate) {
+      employeeData.startDate = new Date(employeeData.startDate);
+    }
+    if (employeeData.exitDate) {
+      employeeData.exitDate = new Date(employeeData.exitDate);
+    }
+    if (employeeData.probationEndDate) {
+      employeeData.probationEndDate = new Date(employeeData.probationEndDate);
     }
 
+    // Update user data
     const user = await prisma.user.update({
       where: { id },
-      data: updateData,
+      data: userData,
       select: {
         id: true,
         email: true,
@@ -205,31 +268,59 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
         lastName: true,
         role: true,
         isActive: true,
-        vacationDays: true,
-        dateOfBirth: true,
-        placeOfBirth: true,
-        nationality: true,
-        phone: true,
-        mobile: true,
-        street: true,
-        streetNumber: true,
-        zipCode: true,
-        city: true,
-        country: true,
-        employeeNumber: true,
-        entryDate: true,
-        exitDate: true,
-        iban: true,
-        bankName: true,
-        civilStatus: true,
-        religion: true,
-        ahvNumber: true,
-        isCrossBorderCommuter: true,
-        weeklyHours: true,
-        canton: true,
-        exemptFromTracking: true,
-        contractHours: true,
         createdAt: true
+      }
+    });
+
+    // Always sync firstName, lastName, email to employee profile
+    const existingEmployee = await prisma.employee.findUnique({
+      where: { userId: id }
+    });
+
+    // Prepare employee data with synced firstName, lastName, email
+    const employeeUpdateData: any = {};
+    
+    // Always sync basic fields if they changed
+    if (userData.firstName) employeeUpdateData.firstName = userData.firstName;
+    if (userData.lastName) employeeUpdateData.lastName = userData.lastName;
+    if (userData.email) employeeUpdateData.email = userData.email;
+    
+    // Add all employee-specific fields
+    Object.assign(employeeUpdateData, employeeData);
+
+    if (existingEmployee) {
+      // Update existing employee profile (only if there's data to update)
+      if (Object.keys(employeeUpdateData).length > 0) {
+        await prisma.employee.update({
+          where: { userId: id },
+          data: employeeUpdateData
+        });
+      }
+    } else {
+      // Create employee profile if it doesn't exist
+      await prisma.employee.create({
+        data: {
+          userId: id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          ...employeeData
+        }
+      });
+    }
+
+    // Fetch complete user with employee profile
+    const updatedUser = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        employeeProfile: true
       }
     });
 
@@ -250,7 +341,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       console.error('[Action] Failed to trigger user.updated:', actionError);
     }
 
-    res.json(user);
+    res.json(updatedUser);
   } catch (error) {
     console.error('Update user error:', error);
     res.status(500).json({ error: 'Failed to update user' });

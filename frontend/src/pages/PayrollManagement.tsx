@@ -144,6 +144,30 @@ const PayrollManagement: React.FC = () => {
     }
   };
 
+  const handleRecalculatePeriod = async (periodId: string) => {
+    if (!window.confirm('Möchten Sie diese Lohnperiode neu berechnen? Alle bestehenden Einträge werden gelöscht.')) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const response = await axios.post(`${API_URL}/payroll/periods/${periodId}/recalculate`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSuccess(`Lohnperiode erfolgreich neu berechnet (${response.data.entries?.length || 0} Einträge)`);
+      fetchPeriods();
+      // Falls Detail-Dialog offen ist, auch aktualisieren
+      if (openDetailDialog && selectedPeriod?.id === periodId) {
+        handleViewDetails(periodId);
+      }
+    } catch (err) {
+      setError('Fehler beim Neu-Berechnen der Lohnperiode');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleViewDetails = async (periodId: string) => {
     try {
       setLoading(true);
@@ -289,6 +313,16 @@ const PayrollManagement: React.FC = () => {
                           title="Berechnen"
                         >
                           Berechnen
+                        </button>
+                      )}
+                      
+                      {(period.status === 'CALCULATED' || period.status === 'APPROVED') && (
+                        <button
+                          className="button small warning"
+                          onClick={() => handleRecalculatePeriod(period.id)}
+                          title="Neu berechnen"
+                        >
+                          Neu berechnen
                         </button>
                       )}
                       
@@ -506,9 +540,9 @@ const PayrollManagement: React.FC = () => {
                       <TableRow key={entry.id}>
                         <TableCell>
                           {entry.user?.firstName} {entry.user?.lastName}
-                          {entry.user?.employeeNumber && (
+                          {(entry.user?.employeeProfile?.employeeNumber || entry.user?.employeeNumber) && (
                             <Typography variant="caption" display="block" color="textSecondary">
-                              Nr. {entry.user.employeeNumber}
+                              Nr. {entry.user?.employeeProfile?.employeeNumber || entry.user?.employeeNumber}
                             </Typography>
                           )}
                         </TableCell>
@@ -533,6 +567,16 @@ const PayrollManagement: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
+          {selectedPeriod && (selectedPeriod.status === 'CALCULATED' || selectedPeriod.status === 'APPROVED') && (
+            <button 
+              className="button warning" 
+              onClick={() => {
+                handleRecalculatePeriod(selectedPeriod.id);
+              }}
+            >
+              Neu berechnen
+            </button>
+          )}
           <button className="button secondary" onClick={() => setOpenDetailDialog(false)}>
             Schließen
           </button>

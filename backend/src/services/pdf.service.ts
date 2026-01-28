@@ -73,7 +73,17 @@ export const generateUserReport = async (
 ): Promise<Buffer> => {
   // Fetch all data
   const user = await prisma.user.findUnique({
-    where: { id: userId }
+    where: { id: userId },
+    include: {
+      employeeProfile: {
+        select: {
+          employeeNumber: true,
+          weeklyHours: true,
+          contractHours: true,
+          canton: true
+        }
+      }
+    }
   });
 
   if (!user) {
@@ -159,9 +169,10 @@ export const generateUserReport = async (
 
   // Compliance info
   let complianceInfo: ReportData['complianceInfo'];
-  if (user.weeklyHours) {
+  const weeklyHours = user.employeeProfile?.weeklyHours;
+  if (weeklyHours) {
     const weeks = Math.ceil((endDate.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000));
-    const expectedHours = user.weeklyHours * weeks;
+    const expectedHours = weeklyHours * weeks;
     
     // Calculate weekly breakdown
     const weeklyMap: Record<string, number> = {};
@@ -179,7 +190,7 @@ export const generateUserReport = async (
     const weeklyBreakdown = Object.entries(weeklyMap).map(([week, hours]) => ({
       week,
       hours,
-      compliant: user.weeklyHours ? hours <= user.weeklyHours * 1.1 : true // 10% tolerance
+      compliant: weeklyHours ? hours <= weeklyHours * 1.1 : true // 10% tolerance
     }));
 
     complianceInfo = {
@@ -198,10 +209,10 @@ export const generateUserReport = async (
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
-      employeeNumber: user.employeeNumber || undefined,
-      weeklyHours: user.weeklyHours || undefined,
-      contractHours: user.contractHours || undefined,
-      canton: user.canton || undefined
+      employeeNumber: user.employeeProfile?.employeeNumber || undefined,
+      weeklyHours: user.employeeProfile?.weeklyHours || undefined,
+      contractHours: user.employeeProfile?.contractHours || undefined,
+      canton: user.employeeProfile?.canton || undefined
     },
     period: { startDate, endDate },
     timeEntries,
@@ -550,7 +561,11 @@ export const generateTimeBookingsReport = async (
           firstName: true,
           lastName: true,
           email: true,
-          employeeNumber: true
+          employeeProfile: {
+            select: {
+              employeeNumber: true
+            }
+          }
         }
       },
       project: true,

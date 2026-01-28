@@ -37,30 +37,72 @@ export const register = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    // Datum-Strings in DateTime konvertieren
+    // Separate employee fields from user fields
+    const employeeFieldsList = [
+      'dateOfBirth', 'placeOfBirth', 'nationality', 'phone', 'mobile',
+      'street', 'streetNumber', 'zipCode', 'postalCode', 'city', 'country',
+      'employeeNumber', 'startDate', 'entryDate', 'exitDate', 'probationEndDate',
+      'iban', 'bankName', 'bic', 'civilStatus', 'religion',
+      'ahvNumber', 'healthInsurance', 'isCrossBorderCommuter', 'taxId', 'taxClass',
+      'socialSecurityNumber', 'emergencyContactName', 'emergencyContactPhone', 'emergencyContactRelation',
+      'department', 'position', 'supervisorId', 'salaryEncrypted',
+      'weeklyHours', 'contractHours', 'hourlyRate', 'canton', 'exemptFromTracking', 'vacationDays'
+    ];
+
+    const employeeData: any = {};
+    for (const field of employeeFieldsList) {
+      if (additionalFields[field] !== undefined) {
+        employeeData[field] = additionalFields[field];
+      }
+    }
+
+    // Add default vacationDays if provided
+    if (vacationDays !== undefined) {
+      employeeData.vacationDays = vacationDays;
+    } else {
+      employeeData.vacationDays = 30;
+    }
+
+    // Create user (without employee fields)
     const userData: any = {
       email,
       password: hashedPassword,
       firstName,
       lastName,
       role: assignedRole,
-      vacationDays: vacationDays !== undefined ? vacationDays : 30,
-      isActive: isActive !== undefined ? isActive : true,
-      ...additionalFields
+      isActive: isActive !== undefined ? isActive : true
     };
-    
-    if (userData.dateOfBirth) {
-      userData.dateOfBirth = new Date(userData.dateOfBirth);
-    }
-    if (userData.entryDate) {
-      userData.entryDate = new Date(userData.entryDate);
-    }
-    if (userData.exitDate) {
-      userData.exitDate = new Date(userData.exitDate);
-    }
 
     const user = await prisma.user.create({
       data: userData
+    });
+
+    // Convert date strings to Date objects for employee data
+    if (employeeData.dateOfBirth) {
+      employeeData.dateOfBirth = new Date(employeeData.dateOfBirth);
+    }
+    if (employeeData.entryDate) {
+      employeeData.entryDate = new Date(employeeData.entryDate);
+    }
+    if (employeeData.startDate) {
+      employeeData.startDate = new Date(employeeData.startDate);
+    }
+    if (employeeData.exitDate) {
+      employeeData.exitDate = new Date(employeeData.exitDate);
+    }
+    if (employeeData.probationEndDate) {
+      employeeData.probationEndDate = new Date(employeeData.probationEndDate);
+    }
+
+    // Create employee profile
+    await prisma.employee.create({
+      data: {
+        userId: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        ...employeeData
+      }
     });
 
     const jwtOptions: SignOptions = {
@@ -89,15 +131,33 @@ export const register = async (req: AuthRequest, res: Response) => {
       console.error('[Action] Failed to trigger user.created:', actionError);
     }
 
+    // Fetch employee profile for vacation days
+    const userWithProfile = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+        employeeProfile: {
+          select: {
+            vacationDays: true
+          }
+        }
+      }
+    });
+
     res.status(201).json({
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        vacationDays: user.vacationDays,
-        isActive: user.isActive
+        id: userWithProfile!.id,
+        email: userWithProfile!.email,
+        firstName: userWithProfile!.firstName,
+        lastName: userWithProfile!.lastName,
+        role: userWithProfile!.role,
+        vacationDays: userWithProfile!.employeeProfile?.vacationDays || 30,
+        isActive: userWithProfile!.isActive
       },
       token
     });

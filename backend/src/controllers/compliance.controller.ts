@@ -336,8 +336,12 @@ export const getOvertimeBalance = async (req: AuthRequest, res: Response) => {
             firstName: true,
             lastName: true,
             email: true,
-            weeklyHours: true,
-            contractHours: true
+            employeeProfile: {
+              select: {
+                weeklyHours: true,
+                contractHours: true
+              }
+            }
           }
         }
       }
@@ -356,8 +360,12 @@ export const getOvertimeBalance = async (req: AuthRequest, res: Response) => {
               firstName: true,
               lastName: true,
               email: true,
-              weeklyHours: true,
-              contractHours: true
+              employeeProfile: {
+                select: {
+                  weeklyHours: true,
+                  contractHours: true
+                }
+              }
             }
           }
         }

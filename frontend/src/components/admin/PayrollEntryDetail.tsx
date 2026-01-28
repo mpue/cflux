@@ -139,56 +139,66 @@ const PayrollEntryDetail: React.FC<PayrollEntryDetailProps> = ({ open, onClose, 
             <Grid item xs={6}>
               <Typography variant="body2" color="textSecondary">Personalnummer</Typography>
               <Typography variant="body1">
-                {entry.user?.employeeNumber || '-'}
+                {entry.user?.employeeProfile?.employeeNumber || entry.user?.employeeNumber || '-'}
               </Typography>
             </Grid>
             <Grid item xs={6}>
               <Typography variant="body2" color="textSecondary">Geburtsdatum</Typography>
               <Typography variant="body1">
-                {entry.user?.dateOfBirth ? formatDate(entry.user.dateOfBirth) : '-'}
+                {(() => {
+                  const dateOfBirth = entry.user?.employeeProfile?.dateOfBirth || entry.user?.dateOfBirth;
+                  return dateOfBirth ? formatDate(dateOfBirth) : '-';
+                })()}
               </Typography>
             </Grid>
             <Grid item xs={6}>
               <Typography variant="body2" color="textSecondary">Nationalität</Typography>
               <Typography variant="body1">
-                {entry.user?.nationality || '-'}
+                {entry.user?.employeeProfile?.nationality || entry.user?.nationality || '-'}
               </Typography>
             </Grid>
             <Grid item xs={6}>
               <Typography variant="body2" color="textSecondary">AHV-Nummer</Typography>
               <Typography variant="body1">
-                {entry.user?.ahvNumber || '-'}
+                {entry.user?.employeeProfile?.ahvNumber || entry.user?.ahvNumber || '-'}
               </Typography>
             </Grid>
             <Grid item xs={6}>
               <Typography variant="body2" color="textSecondary">Zivilstand</Typography>
               <Typography variant="body1">
-                {entry.user?.civilStatus || '-'}
+                {entry.user?.employeeProfile?.civilStatus || entry.user?.civilStatus || '-'}
               </Typography>
             </Grid>
             <Grid item xs={12}>
               <Typography variant="body2" color="textSecondary">Adresse</Typography>
               <Typography variant="body1">
-                {entry.user?.street && entry.user?.streetNumber 
-                  ? `${entry.user.street} ${entry.user.streetNumber}` 
-                  : '-'}
+                {(() => {
+                  const street = entry.user?.employeeProfile?.street || entry.user?.street;
+                  const streetNumber = entry.user?.employeeProfile?.streetNumber || entry.user?.streetNumber;
+                  return street && streetNumber ? `${street} ${streetNumber}` : '-';
+                })()}
               </Typography>
               <Typography variant="body1">
-                {entry.user?.zipCode && entry.user?.city 
-                  ? `${entry.user.zipCode} ${entry.user.city}` 
-                  : '-'}
+                {(() => {
+                  const zipCode = entry.user?.employeeProfile?.zipCode || entry.user?.zipCode;
+                  const city = entry.user?.employeeProfile?.city || entry.user?.city;
+                  return zipCode && city ? `${zipCode} ${city}` : '-';
+                })()}
               </Typography>
             </Grid>
             <Grid item xs={6}>
               <Typography variant="body2" color="textSecondary">Eintritt</Typography>
               <Typography variant="body1">
-                {entry.user?.entryDate ? formatDate(entry.user.entryDate) : '-'}
+                {(() => {
+                  const entryDate = entry.user?.employeeProfile?.entryDate || entry.user?.entryDate;
+                  return entryDate ? formatDate(entryDate) : '-';
+                })()}
               </Typography>
             </Grid>
             <Grid item xs={6}>
               <Typography variant="body2" color="textSecondary">Kanton</Typography>
               <Typography variant="body1">
-                {entry.user?.canton || '-'}
+                {entry.user?.employeeProfile?.canton || entry.user?.canton || '-'}
               </Typography>
             </Grid>
           </Grid>
@@ -204,13 +214,13 @@ const PayrollEntryDetail: React.FC<PayrollEntryDetailProps> = ({ open, onClose, 
             <Grid item xs={12}>
               <Typography variant="body2" color="textSecondary">IBAN</Typography>
               <Typography variant="body1" sx={{ fontFamily: 'monospace' }}>
-                {entry.user?.iban || '-'}
+                {entry.user?.employeeProfile?.iban || entry.user?.iban || '-'}
               </Typography>
             </Grid>
             <Grid item xs={12}>
               <Typography variant="body2" color="textSecondary">Bank</Typography>
               <Typography variant="body1">
-                {entry.user?.bankName || '-'}
+                {entry.user?.employeeProfile?.bankName || entry.user?.bankName || '-'}
               </Typography>
             </Grid>
           </Grid>

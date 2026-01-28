@@ -107,13 +107,13 @@ const UserProfile: React.FC = () => {
                   {user?.role === 'ADMIN' ? 'Administrator' : 'Benutzer'}
                 </Typography>
               </Grid>
-              {user?.employeeNumber && (
+              {(user?.employeeProfile?.employeeNumber || user?.employeeNumber) && (
                 <Grid item xs={12} sm={6}>
                   <Typography variant="body2" color="text.secondary">
                     Personalnummer
                   </Typography>
                   <Typography variant="body1">
-                    {user.employeeNumber}
+                    {user.employeeProfile?.employeeNumber || user.employeeNumber}
                   </Typography>
                 </Grid>
               )}

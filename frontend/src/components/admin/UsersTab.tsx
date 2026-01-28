@@ -153,10 +153,10 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
       user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.employeeNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.mobile?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.phone?.toLowerCase().includes(searchTerm.toLowerCase());
+      (user.employeeProfile?.employeeNumber || user.employeeNumber)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.employeeProfile?.city || user.city)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.employeeProfile?.mobile || user.mobile)?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.employeeProfile?.phone || user.phone)?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesActive = showInactive || user.isActive;
     
@@ -219,12 +219,12 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
             ) : null}
             {filteredUsers.map((user) => (
               <tr key={user.id}>
-                <td>{user.employeeNumber || '-'}</td>
+                <td>{user.employeeProfile?.employeeNumber || user.employeeNumber || '-'}</td>
                 <td>{user.firstName} {user.lastName}</td>
                 <td>{user.email}</td>
-                <td>{user.mobile || user.phone || '-'}</td>
-                <td>{user.city || '-'}</td>
-                <td>{user.entryDate ? new Date(user.entryDate).toLocaleDateString('de-DE') : '-'}</td>
+                <td>{user.employeeProfile?.mobile || user.mobile || user.employeeProfile?.phone || user.phone || '-'}</td>
+                <td>{user.employeeProfile?.city || user.city || '-'}</td>
+                <td>{(user.employeeProfile?.entryDate || user.entryDate) ? new Date(user.employeeProfile?.entryDate || user.entryDate!).toLocaleDateString('de-DE') : '-'}</td>
                 <td>{user.role}</td>
                 <td>{user.isActive ? 'Aktiv' : 'Inaktiv'}</td>
                 <td>

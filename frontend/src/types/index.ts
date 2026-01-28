@@ -1,3 +1,47 @@
+export interface EmployeeProfile {
+  id: string;
+  dateOfBirth?: string;
+  placeOfBirth?: string;
+  nationality?: string;
+  phone?: string;
+  mobile?: string;
+  street?: string;
+  streetNumber?: string;
+  zipCode?: string;
+  postalCode?: string;
+  city?: string;
+  country?: string;
+  employeeNumber?: string;
+  startDate?: string;
+  entryDate?: string;
+  exitDate?: string;
+  iban?: string;
+  bankName?: string;
+  bic?: string;
+  civilStatus?: string;
+  religion?: string;
+  ahvNumber?: string;
+  healthInsurance?: string;
+  isCrossBorderCommuter?: boolean;
+  taxId?: string;
+  taxClass?: string;
+  socialSecurityNumber?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyContactRelation?: string;
+  department?: string;
+  position?: string;
+  supervisorId?: string;
+  salaryEncrypted?: string;
+  weeklyHours?: number;
+  contractHours?: number;
+  hourlyRate?: number;
+  canton?: string;
+  exemptFromTracking?: boolean;
+  vacationDays?: number;
+  probationEndDate?: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -6,7 +50,6 @@ export interface User {
   role: 'ADMIN' | 'USER';
   isActive: boolean;
   requiresPasswordChange?: boolean;
-  vacationDays: number;
   userGroupId?: string; // Deprecated: kept for backwards compatibility
   userGroupMemberships?: Array<{
     userGroup: {
@@ -16,13 +59,14 @@ export interface User {
       isActive: boolean;
     };
   }>;
+  employeeProfile?: EmployeeProfile;
+  createdAt: string;
   
-  // Personalien
+  // Legacy fields for backwards compatibility - use employeeProfile instead
+  vacationDays?: number;
   dateOfBirth?: string;
   placeOfBirth?: string;
   nationality?: string;
-  
-  // Kontakt
   phone?: string;
   mobile?: string;
   street?: string;
@@ -30,31 +74,19 @@ export interface User {
   zipCode?: string;
   city?: string;
   country?: string;
-  
-  // Anstellung
   employeeNumber?: string;
   entryDate?: string;
   exitDate?: string;
-  
-  // Bankverbindung
   iban?: string;
   bankName?: string;
-  
-  // Persönliche Angaben
   civilStatus?: string;
   religion?: string;
-  
-  // Sozialversicherung & Steuern
   ahvNumber?: string;
   isCrossBorderCommuter?: boolean;
-  
-  // Swiss Compliance
   weeklyHours?: number;
   canton?: string;
   exemptFromTracking?: boolean;
   contractHours?: number;
-  
-  createdAt: string;
 }
 
 export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';

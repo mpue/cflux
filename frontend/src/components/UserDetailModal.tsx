@@ -27,45 +27,45 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
     email: user.email || '',
     role: user.role || 'USER',
     isActive: user.isActive ?? true,
-    vacationDays: user.vacationDays || 30,
+    vacationDays: user.employeeProfile?.vacationDays || user.vacationDays || 30,
     password: '',
     
     // Personalien
-    dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split('T')[0] : '',
-    placeOfBirth: user.placeOfBirth || '',
-    nationality: user.nationality || 'Schweiz',
+    dateOfBirth: user.employeeProfile?.dateOfBirth ? user.employeeProfile.dateOfBirth.split('T')[0] : (user.dateOfBirth ? user.dateOfBirth.split('T')[0] : ''),
+    placeOfBirth: user.employeeProfile?.placeOfBirth || user.placeOfBirth || '',
+    nationality: user.employeeProfile?.nationality || user.nationality || 'Schweiz',
     
     // Kontakt
-    phone: user.phone || '',
-    mobile: user.mobile || '',
-    street: user.street || '',
-    streetNumber: user.streetNumber || '',
-    zipCode: user.zipCode || '',
-    city: user.city || '',
-    country: user.country || 'Schweiz',
+    phone: user.employeeProfile?.phone || user.phone || '',
+    mobile: user.employeeProfile?.mobile || user.mobile || '',
+    street: user.employeeProfile?.street || user.street || '',
+    streetNumber: user.employeeProfile?.streetNumber || user.streetNumber || '',
+    zipCode: user.employeeProfile?.zipCode || user.zipCode || '',
+    city: user.employeeProfile?.city || user.city || '',
+    country: user.employeeProfile?.country || user.country || 'Schweiz',
     
     // Anstellung
-    employeeNumber: user.employeeNumber || '',
-    entryDate: user.entryDate ? user.entryDate.split('T')[0] : '',
-    exitDate: user.exitDate ? user.exitDate.split('T')[0] : '',
+    employeeNumber: user.employeeProfile?.employeeNumber || user.employeeNumber || '',
+    entryDate: user.employeeProfile?.entryDate ? user.employeeProfile.entryDate.split('T')[0] : (user.entryDate ? user.entryDate.split('T')[0] : ''),
+    exitDate: user.employeeProfile?.exitDate ? user.employeeProfile.exitDate.split('T')[0] : (user.exitDate ? user.exitDate.split('T')[0] : ''),
     
     // Bankverbindung
-    iban: user.iban || '',
-    bankName: user.bankName || '',
+    iban: user.employeeProfile?.iban || user.iban || '',
+    bankName: user.employeeProfile?.bankName || user.bankName || '',
     
     // Persönliche Angaben
-    civilStatus: user.civilStatus || '',
-    religion: user.religion || '',
+    civilStatus: user.employeeProfile?.civilStatus || user.civilStatus || '',
+    religion: user.employeeProfile?.religion || user.religion || '',
     
     // Sozialversicherung
-    ahvNumber: user.ahvNumber || '',
-    isCrossBorderCommuter: user.isCrossBorderCommuter || false,
+    ahvNumber: user.employeeProfile?.ahvNumber || user.ahvNumber || '',
+    isCrossBorderCommuter: user.employeeProfile?.isCrossBorderCommuter || user.isCrossBorderCommuter || false,
     
     // Swiss Compliance
-    weeklyHours: user.weeklyHours || 45,
-    canton: user.canton || 'ZH',
-    exemptFromTracking: user.exemptFromTracking || false,
-    contractHours: user.contractHours || 0
+    weeklyHours: user.employeeProfile?.weeklyHours || user.weeklyHours || 45,
+    canton: user.employeeProfile?.canton || user.canton || 'ZH',
+    exemptFromTracking: user.employeeProfile?.exemptFromTracking || user.exemptFromTracking || false,
+    contractHours: user.employeeProfile?.contractHours || user.contractHours || 0
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

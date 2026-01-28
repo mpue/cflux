@@ -135,7 +135,7 @@ const PDFReportModal: React.FC<PDFReportModalProps> = ({
           <div className="user-info">
             <h3>{user.firstName} {user.lastName}</h3>
             <p>{user.email}</p>
-            {user.employeeNumber && <p>Personalnummer: {user.employeeNumber}</p>}
+            {(user.employeeProfile?.employeeNumber || user.employeeNumber) && <p>Personalnummer: {user.employeeProfile?.employeeNumber || user.employeeNumber}</p>}
           </div>
 
           <div className="quick-select-buttons">

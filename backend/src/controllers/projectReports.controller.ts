@@ -284,7 +284,11 @@ export const getTimeTrackingReport = async (req: AuthRequest, res: Response) => 
             id: true,
             firstName: true,
             lastName: true,
-            hourlyRate: true,
+            employeeProfile: {
+              select: {
+                hourlyRate: true
+              }
+            }
           },
         },
       },
@@ -308,8 +312,8 @@ export const getTimeTrackingReport = async (req: AuthRequest, res: Response) => 
       const hours = workedMs / (1000 * 60 * 60);
 
       // Stundensatz ermitteln (User → Projekt → System)
-      // Nutze user.hourlyRate falls vorhanden, sonst project.defaultHourlyRate, sonst 100 CHF als Fallback
-      let hourlyRate = entry.user.hourlyRate;
+      // Nutze user.employeeProfile.hourlyRate falls vorhanden, sonst project.defaultHourlyRate, sonst 100 CHF als Fallback
+      let hourlyRate = entry.user.employeeProfile?.hourlyRate;
       if (!hourlyRate || hourlyRate <= 0) {
         hourlyRate = project.defaultHourlyRate || 100;
       }

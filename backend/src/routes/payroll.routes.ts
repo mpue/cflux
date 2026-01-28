@@ -18,6 +18,7 @@ router.delete('/periods/:id', authorize('ADMIN'), payrollController.deletePayrol
 
 // Berechnung
 router.post('/periods/:id/calculate', authorize('ADMIN'), payrollController.calculatePayrollForPeriod);
+router.post('/periods/:id/recalculate', authorize('ADMIN'), payrollController.recalculatePayrollPeriod);
 
 // Einzelne Abrechnungseinträge
 router.post('/entries', authorize('ADMIN'), payrollController.upsertPayrollEntry);

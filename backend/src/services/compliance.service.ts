@@ -66,10 +66,18 @@ export async function checkWeeklyHoursViolation(userId: string, date: Date) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { weeklyHours: true, exemptFromTracking: true }
+      select: { 
+        employeeProfile: {
+          select: {
+            weeklyHours: true,
+            exemptFromTracking: true
+          }
+        }
+      }
     });
 
-    if (!user || user.exemptFromTracking) return;
+    const employee = user?.employeeProfile;
+    if (!employee || employee.exemptFromTracking) return;
 
     // Wochenstart (Montag) und -ende (Sonntag) berechnen
     const weekStart = new Date(date);
@@ -99,7 +107,7 @@ export async function checkWeeklyHoursViolation(userId: string, date: Date) {
     });
 
     // Prüfen ob Höchstarbeitszeit überschritten
-    if (totalHours > user.weeklyHours) {
+    if (totalHours > employee.weeklyHours) {
       // Prüfe ob bereits eine Violation für diese Woche existiert
       const existingViolation = await prisma.complianceViolation.findFirst({
         where: {
@@ -110,16 +118,16 @@ export async function checkWeeklyHoursViolation(userId: string, date: Date) {
       });
 
       if (!existingViolation) {
-        console.log(`[COMPLIANCE] Creating MAX_WEEKLY_HOURS violation for user ${userId}: ${totalHours.toFixed(1)}h of max ${user.weeklyHours}h`);
+        console.log(`[COMPLIANCE] Creating MAX_WEEKLY_HOURS violation for user ${userId}: ${totalHours.toFixed(1)}h of max ${employee.weeklyHours}h`);
         const violation = await prisma.complianceViolation.create({
           data: {
             userId,
             type: 'MAX_WEEKLY_HOURS',
             severity: 'WARNING',
             date: weekEnd,
-            description: `Wöchentliche Höchstarbeitszeit überschritten: ${totalHours.toFixed(1)}h von max. ${user.weeklyHours}h`,
+            description: `Wöchentliche Höchstarbeitszeit überschritten: ${totalHours.toFixed(1)}h von max. ${employee.weeklyHours}h`,
             actualValue: `${totalHours.toFixed(1)} Stunden`,
-            requiredValue: `${user.weeklyHours} Stunden`
+            requiredValue: `${employee.weeklyHours} Stunden`
           }
         });
         console.log(`[COMPLIANCE] MAX_WEEKLY_HOURS violation created with ID: ${violation.id}`);
@@ -274,13 +282,18 @@ export async function updateOvertimeBalance(userId: string, date: Date) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { 
-        weeklyHours: true, 
-        contractHours: true,
-        exemptFromTracking: true 
+        employeeProfile: {
+          select: {
+            weeklyHours: true,
+            contractHours: true,
+            exemptFromTracking: true
+          }
+        }
       }
     });
 
-    if (!user || user.exemptFromTracking) return;
+    const employee = user?.employeeProfile;
+    if (!employee || employee.exemptFromTracking) return;
 
     const year = date.getFullYear();
 
@@ -310,8 +323,8 @@ export async function updateOvertimeBalance(userId: string, date: Date) {
       }
     });
 
-    const contractHours = user.contractHours || user.weeklyHours;
-    const maxLegalHours = user.weeklyHours;
+    const contractHours = employee.contractHours || employee.weeklyHours;
+    const maxLegalHours = employee.weeklyHours;
 
     let regularOvertime = 0;
     let extraTime = 0;
@@ -349,7 +362,7 @@ export async function updateOvertimeBalance(userId: string, date: Date) {
     });
 
     // Überzeit-Limit prüfen (170h bei 45h-Woche, 140h bei 50h-Woche)
-    const overtimeLimit = user.weeklyHours === 45 ? 170 : 140;
+    const overtimeLimit = employee.weeklyHours === 45 ? 170 : 140;
     if (balance.extraTime > overtimeLimit) {
       const existingViolation = await prisma.complianceViolation.findFirst({
         where: {

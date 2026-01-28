@@ -740,7 +740,11 @@ export const getUserTimeBookingsReport = async (req: AuthRequest, res: Response)
         firstName: true,
         lastName: true,
         email: true,
-        employeeNumber: true
+        employeeProfile: {
+          select: {
+            employeeNumber: true
+          }
+        }
       }
     });
 

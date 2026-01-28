@@ -701,9 +701,13 @@ export const exportData = async (req: Request, res: Response) => {
           lastName: true,
           role: true,
           isActive: true,
-          vacationDays: true,
           createdAt: true,
-          updatedAt: true
+          updatedAt: true,
+          employeeProfile: {
+            select: {
+              vacationDays: true
+            }
+          }
         }
       }),
       prisma.userGroup.findMany(),

@@ -198,12 +198,16 @@ export async function generatePayrollReport(payrollPeriodId: string) {
               firstName: true,
               lastName: true,
               email: true,
-              employeeNumber: true,
-              street: true,
-              streetNumber: true,
-              zipCode: true,
-              city: true,
-              ahvNumber: true
+              employeeProfile: {
+                select: {
+                  employeeNumber: true,
+                  street: true,
+                  streetNumber: true,
+                  zipCode: true,
+                  city: true,
+                  ahvNumber: true
+                }
+              }
             }
           }
         }
@@ -219,9 +223,9 @@ export async function generatePayrollReport(payrollPeriodId: string) {
   // Für jetzt geben wir die Daten zurück
   return {
     period,
-    totalGrossSalary: period.payrollEntries.reduce((sum, entry) => sum + entry.grossSalary, 0),
-    totalNetSalary: period.payrollEntries.reduce((sum, entry) => sum + entry.netSalary, 0),
-    totalDeductions: period.payrollEntries.reduce((sum, entry) => sum + entry.totalDeductions, 0),
+    totalGrossSalary: period.payrollEntries.reduce((sum: number, entry: any) => sum + entry.grossSalary, 0),
+    totalNetSalary: period.payrollEntries.reduce((sum: number, entry: any) => sum + entry.netSalary, 0),
+    totalDeductions: period.payrollEntries.reduce((sum: number, entry: any) => sum + entry.totalDeductions, 0),
     employeeCount: period.payrollEntries.length
   };
 }
@@ -252,7 +256,9 @@ export async function validatePayrollPeriod(payrollPeriodId: string) {
   const activeUsers = await prisma.user.findMany({
     where: {
       isActive: true,
-      exitDate: null
+      employeeProfile: {
+        exitDate: null
+      }
     }
   });
 

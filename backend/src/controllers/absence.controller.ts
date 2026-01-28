@@ -110,14 +110,22 @@ export const approveAbsenceRequest = async (req: AuthRequest, res: Response) => 
 
     // Update user's vacation days if it's a vacation request
     if (request.type === 'VACATION') {
-      await prisma.user.update({
+      // Find user's employee profile and update vacation days
+      const user = await prisma.user.findUnique({
         where: { id: request.userId },
-        data: {
-          vacationDays: {
-            decrement: request.days
-          }
-        }
+        select: { employeeProfile: { select: { id: true } } }
       });
+      
+      if (user?.employeeProfile?.id) {
+        await prisma.employee.update({
+          where: { id: user.employeeProfile.id },
+          data: {
+            vacationDays: {
+              decrement: request.days
+            }
+          }
+        });
+      }
     }
 
     res.json(request);

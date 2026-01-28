@@ -55,6 +55,9 @@ interface UserTimeBookingsData {
     lastName: string;
     email: string;
     employeeNumber?: string;
+    employeeProfile?: {
+      employeeNumber?: string;
+    };
   };
   period: {
     startDate: string;
@@ -444,10 +447,10 @@ export const UserTimeBookingsReport: React.FC = () => {
                 <span className="info-label">E-Mail:</span>
                 <span className="info-value">{data.user.email}</span>
               </div>
-              {data.user.employeeNumber && (
+              {(data.user.employeeProfile?.employeeNumber || data.user.employeeNumber) && (
                 <div className="info-item">
                   <span className="info-label">Personalnummer:</span>
-                  <span className="info-value">{data.user.employeeNumber}</span>
+                  <span className="info-value">{data.user.employeeProfile?.employeeNumber || data.user.employeeNumber}</span>
                 </div>
               )}
               <div className="info-item">
