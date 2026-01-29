@@ -8,6 +8,13 @@ const router = Router();
 // All routes require authentication
 router.use(authenticate);
 
+// Get matrix overview (must be before '/:id' routes)
+router.get(
+  '/matrix',
+  requireModuleAccess('job_functions', 'canView'),
+  jobFunctionController.getMatrix
+);
+
 // Get all job functions
 router.get(
   '/',

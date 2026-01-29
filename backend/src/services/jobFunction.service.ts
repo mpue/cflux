@@ -306,6 +306,67 @@ class JobFunctionService {
       },
     });
   }
+
+  // Get matrix overview of all job functions and their documents
+  async getMatrix() {
+    // Alle Job-Funktionen mit ihren Dokumenten laden
+    const jobFunctions = await prisma.jobFunction.findMany({
+      where: { isActive: true },
+      include: {
+        documents: {
+          include: {
+            documentNode: {
+              select: {
+                id: true,
+                title: true,
+                type: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { title: 'asc' },
+    });
+
+    // Alle einzigartigen Dokumente sammeln
+    const allDocumentsMap = new Map();
+    jobFunctions.forEach((jf) => {
+      jf.documents.forEach((jfd) => {
+        if (!allDocumentsMap.has(jfd.documentNode.id)) {
+          allDocumentsMap.set(jfd.documentNode.id, jfd.documentNode);
+        }
+      });
+    });
+
+    const allDocuments = Array.from(allDocumentsMap.values()).sort((a, b) =>
+      a.title.localeCompare(b.title)
+    );
+
+    // Matrix erstellen
+    const matrix = {
+      jobFunctions: jobFunctions.map((jf) => ({
+        id: jf.id,
+        title: jf.title,
+      })),
+      documents: allDocuments.map((doc) => ({
+        id: doc.id,
+        title: doc.title,
+        type: doc.type,
+      })),
+      assignments: {} as Record<string, Record<string, boolean>>,
+    };
+
+    // Zuordnungen in Matrix eintragen
+    allDocuments.forEach((doc) => {
+      matrix.assignments[doc.id] = {};
+      jobFunctions.forEach((jf) => {
+        const hasDocument = jf.documents.some((jfd) => jfd.documentNode.id === doc.id);
+        matrix.assignments[doc.id][jf.id] = hasDocument;
+      });
+    });
+
+    return matrix;
+  }
 }
 
 export default new JobFunctionService();

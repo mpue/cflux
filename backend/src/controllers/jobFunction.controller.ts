@@ -200,6 +200,17 @@ class JobFunctionController {
       res.status(500).json({ message: 'Failed to fetch documents' });
     }
   }
+
+  // Get matrix overview of all job functions and documents
+  async getMatrix(req: Request, res: Response) {
+    try {
+      const matrix = await jobFunctionService.getMatrix();
+      res.json(matrix);
+    } catch (error) {
+      console.error('Error fetching job function matrix:', error);
+      res.status(500).json({ message: 'Failed to fetch matrix' });
+    }
+  }
 }
 
 export default new JobFunctionController();

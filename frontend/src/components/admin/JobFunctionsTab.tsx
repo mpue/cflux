@@ -15,11 +15,13 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
   const [showDialog, setShowDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [showDocumentsDialog, setShowDocumentsDialog] = useState(false);
+  const [showMatrixDialog, setShowMatrixDialog] = useState(false);
   const [selectedJobFunction, setSelectedJobFunction] = useState<JobFunction | null>(null);
   const [tabValue, setTabValue] = useState(0);
   const [documents, setDocuments] = useState<any[]>([]);
   const [intranetNodes, setIntranetNodes] = useState<any[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState('');
+  const [matrixData, setMatrixData] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -226,6 +228,21 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
     }
   };
 
+  const handleShowMatrix = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/job-functions/matrix');
+      setMatrixData(response.data);
+      setShowMatrixDialog(true);
+      setError(null);
+    } catch (err) {
+      setError('Fehler beim Laden der Matrix');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatCurrency = (min?: number, max?: number, currency: string = 'CHF') => {
     if (!min && !max) return '-';
     if (min && max) {
@@ -236,13 +253,38 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
     return '-';
   };
 
+  // Flatten document tree to include all sub-documents
+  const flattenDocumentTree = (nodes: any[], prefix: string = ''): any[] => {
+    let result: any[] = [];
+    
+    nodes.forEach(node => {
+      const displayTitle = prefix + node.title;
+      result.push({
+        ...node,
+        displayTitle,
+        level: prefix.length / 2 // Count indentation level
+      });
+      
+      if (node.children && node.children.length > 0) {
+        result = result.concat(flattenDocumentTree(node.children, prefix + '  '));
+      }
+    });
+    
+    return result;
+  };
+
   return (
     <div className="tab-container">
       <div className="tab-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2>Funktionen</h2>
-        <button className="btn btn-primary" onClick={() => handleOpenDialog()}>
-          + Neue Funktion
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-secondary" onClick={handleShowMatrix}>
+            📊 Matrix anzeigen
+          </button>
+          <button className="btn btn-primary" onClick={() => handleOpenDialog()}>
+            + Neue Funktion
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -455,11 +497,11 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
                       style={{ width: '100%', padding: '8px' }}
                     >
                       <option value="">-- Dokument auswählen --</option>
-                      {intranetNodes
+                      {flattenDocumentTree(intranetNodes)
                         .filter(node => !documents.some(d => d.documentNodeId === node.id))
                         .map(node => (
                           <option key={node.id} value={node.id}>
-                            {node.title}
+                            {node.displayTitle}
                           </option>
                         ))}
                     </select>
@@ -512,6 +554,131 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
             </div>
             <div className="modal-footer">
               <button className="btn" onClick={() => setShowDocumentsDialog(false)}>Schließen</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Matrix Dialog */}
+      {showMatrixDialog && matrixData && (
+        <div className="modal-overlay" onClick={() => setShowMatrixDialog(false)}>
+          <div className="modal-content" style={{ maxWidth: '95%', maxHeight: '90vh', width: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Funktionen-Dokumente Matrix</h2>
+              <button className="modal-close" onClick={() => setShowMatrixDialog(false)}>&times;</button>
+            </div>
+            <div className="modal-body" style={{ overflow: 'auto' }}>
+              {matrixData.documents.length === 0 ? (
+                <p style={{ textAlign: 'center', color: '#666', padding: '40px' }}>
+                  Keine Dokumente zugeordnet
+                </p>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table className="data-table" style={{ minWidth: '100%' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ position: 'sticky', left: 0, background: '#fff', zIndex: 10, minWidth: '200px' }}>
+                          Dokument
+                        </th>
+                        {matrixData.jobFunctions.map((jf: any) => (
+                          <th 
+                            key={jf.id} 
+                            style={{ 
+                              minWidth: '50px',
+                              maxWidth: '50px',
+                              padding: '8px 4px',
+                              textAlign: 'center',
+                              verticalAlign: 'bottom'
+                            }}
+                          >
+                            <div style={{
+                              writingMode: 'vertical-rl',
+                              transform: 'rotate(180deg)',
+                              whiteSpace: 'nowrap',
+                              height: '200px',
+                              display: 'flex',
+                              alignItems: 'flex-end',
+                              justifyContent: 'center',
+                              margin: '0 auto'
+                            }}>
+                              {jf.title}
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {matrixData.documents.map((doc: any) => (
+                        <tr key={doc.id}>
+                          <td style={{ 
+                            position: 'sticky', 
+                            left: 0, 
+                            background: '#fff', 
+                            zIndex: 5,
+                            fontWeight: 500 
+                          }}>
+                            {doc.title}
+                            <span style={{ 
+                              fontSize: '0.85em', 
+                              color: '#666', 
+                              marginLeft: '8px' 
+                            }}>
+                              ({doc.type})
+                            </span>
+                          </td>
+                          {matrixData.jobFunctions.map((jf: any) => (
+                            <td 
+                              key={jf.id} 
+                              style={{ 
+                                textAlign: 'center',
+                                background: matrixData.assignments[doc.id]?.[jf.id] ? '#e8f5e9' : '#fff',
+                                padding: '12px 4px'
+                              }}
+                            >
+                              {matrixData.assignments[doc.id]?.[jf.id] ? (
+                                <span style={{ fontSize: '1.2em', color: '#4caf50' }}>✓</span>
+                              ) : (
+                                <span style={{ fontSize: '1.2em', color: '#ccc' }}>—</span>
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {matrixData.documents.length > 0 && (
+                <div style={{ 
+                  marginTop: '20px', 
+                  padding: '15px', 
+                  background: '#f5f5f5', 
+                  borderRadius: '4px',
+                  display: 'flex',
+                  gap: '30px'
+                }}>
+                  <div>
+                    <strong>Gesamt:</strong>
+                  </div>
+                  <div>
+                    <strong>{matrixData.jobFunctions.length}</strong> Funktionen
+                  </div>
+                  <div>
+                    <strong>{matrixData.documents.length}</strong> Dokumente
+                  </div>
+                  <div>
+                    <strong>
+                      {Object.values(matrixData.assignments).reduce((sum: number, jfAssignments: any) => 
+                        sum + Object.values(jfAssignments).filter(Boolean).length, 0
+                      )}
+                    </strong> Zuordnungen
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-primary" onClick={() => setShowMatrixDialog(false)}>Schließen</button>
             </div>
           </div>
         </div>
