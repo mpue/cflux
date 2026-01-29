@@ -149,6 +149,33 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
     loadTree();
   }, [loadTree]);
 
+  // Handle URL parameter to open specific document
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
+    const nodeId = urlParams.get('node');
+    
+    if (nodeId && tree.length > 0) {
+      // Find and open the node
+      const findAndOpenNode = async () => {
+        try {
+          const node = await documentNodeService.getById(nodeId);
+          if (node) {
+            setCurrentNode(node);
+            // Expand all parent folders
+            if (node.parentId) {
+              const breadcrumb = await documentNodeService.getBreadcrumb(nodeId);
+              const parentIds = breadcrumb.slice(0, -1).map(n => n.id);
+              setExpandedFolders(prev => new Set([...prev, ...parentIds]));
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load node from URL:', err);
+        }
+      };
+      findAndOpenNode();
+    }
+  }, [tree]);
+
   useEffect(() => {
     if (currentNode) {
       loadBreadcrumb(currentNode.id);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User } from '../types';
+import { User, JobFunction } from '../types';
+import api from '../services/api';
 
 interface UserDetailModalProps {
   user: User;
@@ -9,6 +10,7 @@ interface UserDetailModalProps {
 
 export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose, onSave }) => {
   const [activeSection, setActiveSection] = useState<'basic' | 'personal' | 'contact' | 'employment' | 'banking' | 'compliance'>('basic');
+  const [jobFunctions, setJobFunctions] = useState<JobFunction[]>([]);
   
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -19,6 +21,19 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
+
+  useEffect(() => {
+    // Load job functions
+    const loadJobFunctions = async () => {
+      try {
+        const response = await api.get('/job-functions');
+        setJobFunctions(response.data);
+      } catch (error) {
+        console.error('Failed to load job functions:', error);
+      }
+    };
+    loadJobFunctions();
+  }, []);
 
   const [formData, setFormData] = useState({
     // Basis
@@ -48,6 +63,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
     employeeNumber: user.employeeProfile?.employeeNumber || user.employeeNumber || '',
     entryDate: user.employeeProfile?.entryDate ? user.employeeProfile.entryDate.split('T')[0] : (user.entryDate ? user.entryDate.split('T')[0] : ''),
     exitDate: user.employeeProfile?.exitDate ? user.employeeProfile.exitDate.split('T')[0] : (user.exitDate ? user.exitDate.split('T')[0] : ''),
+    jobFunctionId: (user as any).jobFunctionId || '',
     
     // Bankverbindung
     iban: user.employeeProfile?.iban || user.iban || '',
@@ -314,6 +330,20 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
           value={formData.employeeNumber}
           onChange={(e) => setFormData({ ...formData, employeeNumber: e.target.value })}
         />
+      </div>
+      <div className="form-group">
+        <label>Funktion</label>
+        <select
+          value={formData.jobFunctionId}
+          onChange={(e) => setFormData({ ...formData, jobFunctionId: e.target.value })}
+        >
+          <option value="">Keine Funktion zugewiesen</option>
+          {jobFunctions.filter(jf => jf.isActive).map((jf) => (
+            <option key={jf.id} value={jf.id}>
+              {jf.title} {jf.department ? `(${jf.department})` : ''}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="form-group">
         <label>Eintrittsdatum</label>

@@ -46,6 +46,7 @@ import elearningRoutes from './routes/elearning.routes';
 import applicantRoutes from './routes/applicant.routes';
 import onboardingRoutes from './routes/onboarding.routes';
 import equipmentTrainingRoutes from './routes/equipment-training.routes';
+import jobFunctionRoutes from './routes/jobFunction.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -126,6 +127,7 @@ app.use('/api/elearning', elearningRoutes);
 app.use('/api/applicants', applicantRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/equipment-training', equipmentTrainingRoutes);
+app.use('/api/job-functions', jobFunctionRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

@@ -164,8 +164,13 @@ model User {
   completedOnboardingTasks OnboardingTask[] @relation("CompletedOnboardingTasks")
   trainingSessions TrainingSession[]
   equipmentAssignments EquipmentAssignment[]
+  createdJobFunctions JobFunction[]
+  jobFunctionDocuments JobFunctionDocument[]
+  jobFunction     JobFunction? @relation("UserJobFunction", fields: [jobFunctionId], references: [id])
+  jobFunctionId   String?
   
   @@index([userGroupId])
+  @@index([jobFunctionId])
   @@map("users")
 }
 
@@ -929,6 +934,7 @@ enum ActionCategory {
   DOCUMENTS       // Dokument hochladen, bearbeiten, etc.
   INCIDENTS       // Vorfall melden, bearbeiten, etc.
   COMPLIANCE      // Compliance-Verstöße
+  ELEARNING       // E-Learning Kurs-Events
   CUSTOM          // Benutzerdefinierte Actions
 }
 
@@ -1524,6 +1530,7 @@ model DocumentNode {
   nodeType          DocumentNodeTypeRegistry? @relation(fields: [nodeTypeKey], references: [typeKey])
   groupPermissions  DocumentNodeGroupPermission[]
   attachments       DocumentNodeAttachment[]  @relation("DocumentNodeAttachments")
+  jobFunctions      JobFunctionDocument[]
   
   @@index([parentId])
   @@index([deletedAt])
@@ -2954,4 +2961,67 @@ model EquipmentAssignment {
   @@index([assignedById])
   @@index([assignedAt])
   @@map("equipment_assignments")
+}
+
+// Job Functions / Funktionen
+model JobFunction {
+  id                String    @id @default(uuid())
+  title             String    // z.B. "Software Engineer", "HR Manager"
+  titleEn           String?   // Englische Übersetzung
+  description       String?   @db.Text
+  descriptionEn     String?   @db.Text
+  
+  // Anforderungen
+  requirements      String?   @db.Text
+  requirementsEn    String?   @db.Text
+  qualifications    String?   @db.Text
+  qualificationsEn  String?   @db.Text
+  
+  // Verantwortlichkeiten
+  responsibilities  String?   @db.Text
+  responsibilitiesEn String?  @db.Text
+  
+  // Organisatorisches
+  department        String?   // Abteilung
+  level             String?   // z.B. "Junior", "Senior", "Lead"
+  category          String?   // z.B. "IT", "HR", "Finance"
+  
+  // Gehaltsspanne (optional)
+  salaryMin         Float?
+  salaryMax         Float?
+  salaryCurrency    String    @default("CHF")
+  
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  createdById       String
+  createdBy         User      @relation(fields: [createdById], references: [id])
+  
+  // Beziehungen
+  employees         User[]    @relation("UserJobFunction")
+  documents         JobFunctionDocument[]
+  
+  @@index([title])
+  @@index([department])
+  @@index([category])
+  @@index([isActive])
+  @@map("job_functions")
+}
+
+// Job Function Documents - Many-to-Many Beziehung
+model JobFunctionDocument {
+  id              String       @id @default(uuid())
+  jobFunctionId   String
+  documentNodeId  String
+  createdAt       DateTime     @default(now())
+  createdById     String
+  
+  jobFunction     JobFunction  @relation(fields: [jobFunctionId], references: [id], onDelete: Cascade)
+  documentNode    DocumentNode @relation(fields: [documentNodeId], references: [id], onDelete: Cascade)
+  createdBy       User         @relation(fields: [createdById], references: [id])
+  
+  @@unique([jobFunctionId, documentNodeId])
+  @@index([jobFunctionId])
+  @@index([documentNodeId])
+  @@map("job_function_documents")
 }

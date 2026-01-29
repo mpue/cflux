@@ -199,6 +199,106 @@ async function seedActions() {
         category: 'COMPLIANCE',
         isSystem: true,
       },
+
+      // E-Learning
+      {
+        actionKey: 'course.created',
+        displayName: 'Kurs erstellt',
+        description: 'Wird ausgelöst wenn ein neuer Kurs erstellt wird',
+        category: 'ELEARNING',
+        isSystem: true,
+        contextSchema: {
+          courseId: 'string',
+          title: 'string',
+          createdBy: 'string',
+        },
+      },
+      {
+        actionKey: 'course.published',
+        displayName: 'Kurs veröffentlicht',
+        description: 'Wird ausgelöst wenn ein Kurs veröffentlicht wird',
+        category: 'ELEARNING',
+        isSystem: true,
+        contextSchema: {
+          courseId: 'string',
+          title: 'string',
+        },
+      },
+      {
+        actionKey: 'course.enrolled',
+        displayName: 'Benutzer in Kurs eingeschrieben',
+        description: 'Wird ausgelöst wenn sich ein Benutzer in einen Kurs einschreibt',
+        category: 'ELEARNING',
+        isSystem: true,
+        contextSchema: {
+          courseId: 'string',
+          userId: 'string',
+          enrollmentId: 'string',
+        },
+      },
+      {
+        actionKey: 'course.completed',
+        displayName: 'Kurs abgeschlossen',
+        description: 'Wird ausgelöst wenn ein Benutzer einen Kurs abschließt',
+        category: 'ELEARNING',
+        isSystem: true,
+        contextSchema: {
+          courseId: 'string',
+          userId: 'string',
+          completedAt: 'string',
+          score: 'number',
+        },
+      },
+      {
+        actionKey: 'lesson.completed',
+        displayName: 'Lektion abgeschlossen',
+        description: 'Wird ausgelöst wenn ein Benutzer eine Lektion abschließt',
+        category: 'ELEARNING',
+        isSystem: true,
+        contextSchema: {
+          lessonId: 'string',
+          courseId: 'string',
+          userId: 'string',
+        },
+      },
+      {
+        actionKey: 'quiz.passed',
+        displayName: 'Quiz bestanden',
+        description: 'Wird ausgelöst wenn ein Benutzer ein Quiz besteht',
+        category: 'ELEARNING',
+        isSystem: true,
+        contextSchema: {
+          quizId: 'string',
+          userId: 'string',
+          score: 'number',
+          passingScore: 'number',
+        },
+      },
+      {
+        actionKey: 'quiz.failed',
+        displayName: 'Quiz nicht bestanden',
+        description: 'Wird ausgelöst wenn ein Benutzer ein Quiz nicht besteht',
+        category: 'ELEARNING',
+        isSystem: true,
+        contextSchema: {
+          quizId: 'string',
+          userId: 'string',
+          score: 'number',
+          passingScore: 'number',
+        },
+      },
+      {
+        actionKey: 'certificate.issued',
+        displayName: 'Zertifikat ausgestellt',
+        description: 'Wird ausgelöst wenn ein Zertifikat ausgestellt wird',
+        category: 'ELEARNING',
+        isSystem: true,
+        contextSchema: {
+          certificateId: 'string',
+          courseId: 'string',
+          userId: 'string',
+        },
+      },
     ];
 
     const created = [];

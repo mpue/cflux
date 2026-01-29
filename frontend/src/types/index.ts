@@ -438,3 +438,37 @@ export interface SalaryConfiguration {
   
   user?: User;
 }
+
+export interface JobFunction {
+  id: string;
+  title: string;
+  titleEn?: string;
+  description?: string;
+  descriptionEn?: string;
+  requirements?: string;
+  requirementsEn?: string;
+  qualifications?: string;
+  qualificationsEn?: string;
+  responsibilities?: string;
+  responsibilitiesEn?: string;
+  department?: string;
+  level?: string;
+  category?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  salaryCurrency: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdById: string;
+  createdBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  employees?: User[];
+  _count?: {
+    employees: number;
+  };
+}
