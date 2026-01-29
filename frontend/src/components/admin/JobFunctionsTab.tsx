@@ -533,7 +533,21 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
                     <tbody>
                       {documents.map((doc) => (
                         <tr key={doc.id}>
-                          <td>{doc.documentNode?.title}</td>
+                          <td>
+                            <a 
+                              href={`#/intranet?node=${doc.documentNode?.id}`}
+                              style={{ 
+                                color: '#1976d2', 
+                                textDecoration: 'none',
+                                fontWeight: 500 
+                              }}
+                              onMouseOver={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                              onMouseOut={(e) => e.currentTarget.style.textDecoration = 'none'}
+                              title="Zum Dokument navigieren"
+                            >
+                              📄 {doc.documentNode?.title}
+                            </a>
+                          </td>
                           <td>{doc.documentNode?.type}</td>
                           <td>{new Date(doc.createdAt).toLocaleDateString('de-DE')}</td>
                           <td>
