@@ -57,6 +57,8 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showTaskDialog, setShowTaskDialog] = useState(false);
+  const [showTaskEditModal, setShowTaskEditModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<ProjectTask | null>(null);
   const [newTask, setNewTask] = useState({
     name: '',
     description: '',
@@ -65,6 +67,7 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     estimatedHours: 0,
+    dependsOn: [] as string[],
   });
 
   useEffect(() => {
@@ -149,6 +152,7 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
           endDate: newTask.endDate ? new Date(newTask.endDate).toISOString() : undefined,
           estimatedHours: newTask.estimatedHours || 0,
           progress: 0,
+          dependsOn: newTask.dependsOn,
         }),
       });
 
@@ -166,6 +170,7 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         estimatedHours: 0,
+        dependsOn: [],
       });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
@@ -285,34 +290,78 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
     try {
       setIsSaving(true);
       const ganttTask = task as GanttTask;
-      const project = projects.find(p => p.id === ganttTask.projectId);
-      
-      if (!project) {
-        setIsSaving(false);
-        return;
+
+      if (viewType === 'projects') {
+        const project = projects.find(p => p.id === ganttTask.projectId);
+        
+        if (!project) {
+          console.error('Project not found:', ganttTask.projectId);
+          setIsSaving(false);
+          return;
+        }
+
+        // Optimistically update local state
+        setTasks(prevTasks => 
+          prevTasks.map(t => 
+            t.id === task.id 
+              ? { ...t, start: task.start, end: task.end, progress: task.progress }
+              : t
+          )
+        );
+
+        setProjects(prevProjects =>
+          prevProjects.map(p =>
+            p.id === ganttTask.projectId
+              ? { ...p, startDate: task.start.toISOString(), endDate: task.end.toISOString(), progress: task.progress }
+              : p
+          )
+        );
+
+        // Save to backend
+        console.log('Updating project:', project.id, {
+          startDate: task.start.toISOString(),
+          endDate: task.end.toISOString(),
+          progress: task.progress,
+        });
+        
+        await projectService.updateProject(project.id, {
+          startDate: task.start.toISOString(),
+          endDate: task.end.toISOString(),
+          progress: task.progress,
+        });
+      } else if (viewType === 'tasks' && ganttTask.taskId) {
+        // Update project task
+        const response = await fetch(`/api/project-tasks/${ganttTask.taskId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            startDate: task.start.toISOString(),
+            endDate: task.end.toISOString(),
+            progress: task.progress,
+          }),
+        });
+
+        if (!response.ok) throw new Error('Failed to update task');
+
+        setTasks(prevTasks => 
+          prevTasks.map(t => 
+            t.id === task.id 
+              ? { ...t, start: task.start, end: task.end, progress: task.progress }
+              : t
+          )
+        );
+
+        setProjectTasks(prevTasks =>
+          prevTasks.map(t =>
+            t.id === ganttTask.taskId
+              ? { ...t, startDate: task.start.toISOString(), endDate: task.end.toISOString(), progress: task.progress }
+              : t
+          )
+        );
       }
-
-      setTasks(prevTasks => 
-        prevTasks.map(t => 
-          t.id === task.id 
-            ? { ...t, start: task.start, end: task.end, progress: task.progress }
-            : t
-        )
-      );
-
-      setProjects(prevProjects =>
-        prevProjects.map(p =>
-          p.id === ganttTask.projectId
-            ? { ...p, startDate: task.start.toISOString(), endDate: task.end.toISOString(), progress: task.progress }
-            : p
-        )
-      );
-
-      await projectService.updateProject(project.id, {
-        startDate: task.start.toISOString(),
-        endDate: task.end.toISOString(),
-        progress: task.progress,
-      });
       
       setIsSaving(false);
       setSaveSuccess(true);
@@ -320,10 +369,14 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
       
       if (onUpdate) onUpdate();
     } catch (error) {
-      console.error('Error updating project:', error);
+      console.error('Error updating task:', error);
       setIsSaving(false);
-      alert('Fehler beim Aktualisieren des Projekts');
-      await loadProjects();
+      alert('Fehler beim Aktualisieren');
+      if (viewType === 'projects') {
+        await loadProjects();
+      } else if (selectedProject) {
+        await loadProjectTasks(selectedProject.id);
+      }
     }
   };
 
@@ -348,25 +401,56 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
       setIsSaving(true);
       const ganttTask = task as GanttTask;
       
-      setTasks(prevTasks => 
-        prevTasks.map(t => 
-          t.id === task.id 
-            ? { ...t, progress: task.progress }
-            : t
-        )
-      );
+      if (viewType === 'projects') {
+        setTasks(prevTasks => 
+          prevTasks.map(t => 
+            t.id === task.id 
+              ? { ...t, progress: task.progress }
+              : t
+          )
+        );
 
-      setProjects(prevProjects =>
-        prevProjects.map(p =>
-          p.id === ganttTask.projectId
-            ? { ...p, progress: task.progress }
-            : p
-        )
-      );
+        setProjects(prevProjects =>
+          prevProjects.map(p =>
+            p.id === ganttTask.projectId
+              ? { ...p, progress: task.progress }
+              : p
+          )
+        );
 
-      await projectService.updateProject(ganttTask.projectId, {
-        progress: task.progress,
-      });
+        await projectService.updateProject(ganttTask.projectId, {
+          progress: task.progress,
+        });
+      } else if (viewType === 'tasks' && ganttTask.taskId) {
+        const response = await fetch(`/api/project-tasks/${ganttTask.taskId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            progress: task.progress,
+          }),
+        });
+
+        if (!response.ok) throw new Error('Failed to update task progress');
+
+        setTasks(prevTasks => 
+          prevTasks.map(t => 
+            t.id === task.id 
+              ? { ...t, progress: task.progress }
+              : t
+          )
+        );
+
+        setProjectTasks(prevTasks =>
+          prevTasks.map(t =>
+            t.id === ganttTask.taskId
+              ? { ...t, progress: task.progress }
+              : t
+          )
+        );
+      }
       
       setIsSaving(false);
       setSaveSuccess(true);
@@ -377,7 +461,74 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
       console.error('Error updating progress:', error);
       setIsSaving(false);
       alert('Fehler beim Aktualisieren des Fortschritts');
-      await loadProjects();
+      if (viewType === 'projects') {
+        await loadProjects();
+      } else if (selectedProject) {
+        await loadProjectTasks(selectedProject.id);
+      }
+    }
+  };
+
+  const handleTaskDoubleClick = (task: Task) => {
+    const ganttTask = task as GanttTask;
+    
+    if (viewType === 'tasks' && ganttTask.taskId) {
+      const projectTask = projectTasks.find(t => t.id === ganttTask.taskId);
+      if (projectTask) {
+        setEditingTask(projectTask);
+        setShowTaskEditModal(true);
+      }
+    }
+  };
+
+  const handleSaveTaskEdit = async () => {
+    if (!editingTask) return;
+
+    try {
+      setIsSaving(true);
+      
+      // Only send updateable fields, not nested objects
+      const updateData = {
+        name: editingTask.name,
+        description: editingTask.description || null,
+        status: editingTask.status,
+        priority: editingTask.priority,
+        startDate: editingTask.startDate || null,
+        endDate: editingTask.endDate || null,
+        progress: editingTask.progress,
+        estimatedHours: editingTask.estimatedHours || 0,
+        dependsOn: editingTask.dependencies?.map(d => d.dependsOnTask.id) || [],
+      };
+
+      const response = await fetch(`/api/project-tasks/${editingTask.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to update task');
+      }
+
+      setShowTaskEditModal(false);
+      setEditingTask(null);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+      
+      if (selectedProject) {
+        await loadProjectTasks(selectedProject.id);
+      }
+      if (onUpdate) onUpdate();
+    } catch (error) {
+      console.error('Error saving task:', error);
+      const message = error instanceof Error ? error.message : 'Unbekannter Fehler';
+      alert(`Fehler beim Speichern der Aufgabe: ${message}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -546,6 +697,7 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
             onDateChange={handleTaskChange}
             onDelete={handleTaskDelete}
             onProgressChange={handleProgressChange}
+            onDoubleClick={handleTaskDoubleClick}
             locale="de"
             listCellWidth="200px"
             columnWidth={viewMode === ViewMode.Month ? 60 : undefined}
@@ -569,12 +721,159 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
           </>
         ) : (
           <>
-            <p>💡 <strong>Tipp:</strong> Ziehen Sie Aufgaben, um Start-/Enddaten zu ändern.</p>
-            <p>📊 Der Fortschrittsbalken zeigt den Bearbeitungsstand der Aufgabe.</p>
+            <p>💡 <strong>Tipp:</strong> Ziehen Sie Aufgaben, um Start-/Enddaten zu ändern. Änderungen werden automatisch gespeichert.</p>
+            <p>✏️ Doppelklicken Sie auf eine Aufgabe, um sie zu bearbeiten.</p>
+            <p>📊 Der Fortschrittsbalken kann durch Ziehen angepasst werden (0-100%).</p>
             <p>🔗 Abhängigkeiten zwischen Aufgaben werden als Pfeile dargestellt.</p>
           </>
         )}
       </div>
+
+      {/* Edit Task Modal */}
+      {showTaskEditModal && editingTask && (
+        <div className="modal-overlay" onClick={() => setShowTaskEditModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Aufgabe bearbeiten</h2>
+              <button className="close-button" onClick={() => setShowTaskEditModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Aufgaben-Name *</label>
+                <input
+                  type="text"
+                  value={editingTask.name}
+                  onChange={(e) => setEditingTask({ ...editingTask, name: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Beschreibung</label>
+                <textarea
+                  value={editingTask.description || ''}
+                  onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                  rows={4}
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Status</label>
+                  <select
+                    value={editingTask.status}
+                    onChange={(e) => setEditingTask({ ...editingTask, status: e.target.value })}
+                  >
+                    <option value="TODO">Todo</option>
+                    <option value="IN_PROGRESS">In Bearbeitung</option>
+                    <option value="IN_REVIEW">Review</option>
+                    <option value="DONE">Erledigt</option>
+                    <option value="BLOCKED">Blockiert</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Priorität</label>
+                  <select
+                    value={editingTask.priority}
+                    onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value })}
+                  >
+                    <option value="LOW">Niedrig</option>
+                    <option value="MEDIUM">Mittel</option>
+                    <option value="HIGH">Hoch</option>
+                    <option value="URGENT">Dringend</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Startdatum</label>
+                  <input
+                    type="date"
+                    value={editingTask.startDate ? editingTask.startDate.split('T')[0] : ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, startDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Enddatum</label>
+                  <input
+                    type="date"
+                    value={editingTask.endDate ? editingTask.endDate.split('T')[0] : ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, endDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Fortschritt: {editingTask.progress}%</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={editingTask.progress}
+                  onChange={(e) => setEditingTask({ ...editingTask, progress: parseInt(e.target.value) })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Geschätzte Stunden</label>
+                <input
+                  type="number"
+                  value={editingTask.estimatedHours || 0}
+                  onChange={(e) => setEditingTask({ ...editingTask, estimatedHours: Number(e.target.value) })}
+                  min="0"
+                  step="0.5"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Abhängigkeiten (Aufgaben, die zuerst abgeschlossen sein müssen)</label>
+                <select
+                  multiple
+                  value={editingTask.dependencies?.map(d => d.dependsOnTask.id) || []}
+                  onChange={(e) => {
+                    const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
+                    const newDeps = selectedIds.map(id => {
+                      const task = projectTasks.find(t => t.id === id);
+                      return {
+                        dependsOnTask: {
+                          id,
+                          name: task?.name || '',
+                          status: task?.status || 'TODO',
+                          startDate: task?.startDate,
+                          endDate: task?.endDate,
+                        }
+                      };
+                    });
+                    setEditingTask({ ...editingTask, dependencies: newDeps });
+                  }}
+                  style={{ height: '120px' }}
+                >
+                  {projectTasks
+                    .filter(t => t.id !== editingTask.id)
+                    .map(task => (
+                      <option key={task.id} value={task.id}>
+                        {task.name} ({task.status})
+                      </option>
+                    ))}
+                </select>
+                <small style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>
+                  Halten Sie Strg (Windows) oder Cmd (Mac) gedrückt, um mehrere Aufgaben auszuwählen
+                </small>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={() => setShowTaskEditModal(false)}>
+                Abbrechen
+              </button>
+              <button className="btn-primary" onClick={handleSaveTaskEdit} disabled={isSaving}>
+                {isSaving ? 'Speichert...' : 'Speichern'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* New Task Dialog */}
       {showTaskDialog && (
@@ -664,6 +963,30 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
                   min="0"
                   step="0.5"
                 />
+              </div>
+
+              <div className="form-group">
+                <label>Abhängigkeiten (Aufgaben, die zuerst abgeschlossen sein müssen)</label>
+                <select
+                  multiple
+                  value={newTask.dependsOn}
+                  onChange={(e) => {
+                    const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+                    setNewTask({ ...newTask, dependsOn: selectedOptions });
+                  }}
+                  style={{ height: '120px' }}
+                >
+                  {projectTasks
+                    .filter(t => t.id !== editingTask?.id)
+                    .map(task => (
+                      <option key={task.id} value={task.id}>
+                        {task.name} ({task.status})
+                      </option>
+                    ))}
+                </select>
+                <small style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>
+                  Halten Sie Strg (Windows) oder Cmd (Mac) gedrückt, um mehrere Aufgaben auszuwählen
+                </small>
               </div>
             </div>
             <div className="modal-footer">
