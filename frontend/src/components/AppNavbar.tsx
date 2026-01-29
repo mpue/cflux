@@ -36,6 +36,7 @@ import {
   PictureAsPdf as PdfIcon,
   PermMedia as MediaIcon,
   HealthAndSafety as EHSIcon,
+  School as SchoolIcon,
 } from '@mui/icons-material';
 
 interface AppNavbarProps {
@@ -292,14 +293,8 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
           )}
           {hasModuleAccess('elearning') && (
             <MenuItem onClick={() => navigateTo('/elearning')}>
-              <Box component="span" sx={{ mr: 1 }}>📚</Box>
+              <SchoolIcon sx={{ mr: 1 }} />
               E-Learning
-            </MenuItem>
-          )}
-          {hasModuleAccess('onboarding') && (
-            <MenuItem onClick={() => navigateTo('/admin/onboarding')}>
-              <Box component="span" sx={{ mr: 1 }}>👤</Box>
-              Onboarding
             </MenuItem>
           )}
           {(user?.role === 'ADMIN' || hasAnyAdminModule()) && (

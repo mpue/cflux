@@ -11,13 +11,48 @@ import './ProjectPlanningPage.css';
 interface GanttTask extends Omit<Task, 'project'> {
   projectId: string;
   project?: Project;
+  taskId?: string; // For project tasks
 }
+
+interface ProjectTask {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  status: string;
+  priority: string;
+  startDate?: string;
+  endDate?: string;
+  estimatedHours?: number;
+  actualHours?: number;
+  progress: number;
+  assignedToId?: string;
+  assignedTo?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+  dependencies?: {
+    dependsOnTask: {
+      id: string;
+      name: string;
+      status: string;
+      startDate?: string;
+      endDate?: string;
+    };
+  }[];
+}
+
+type ViewType = 'projects' | 'tasks';
 
 const ProjectPlanningPage: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [projectTasks, setProjectTasks] = useState<ProjectTask[]>([]);
   const [tasks, setTasks] = useState<GanttTask[]>([]);
+  const [viewType, setViewType] = useState<ViewType>('projects');
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Month);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -35,11 +70,22 @@ const ProjectPlanningPage: React.FC = () => {
     loadProjects();
   }, []);
 
+  useEffect(() => {
+    if (viewType === 'projects') {
+      convertProjectsToTasks(projects);
+    } else if (viewType === 'tasks' && selectedProject) {
+      loadProjectTasks(selectedProject.id);
+    }
+  }, [viewType, selectedProject]);
+
   const loadProjects = async () => {
     try {
       setIsLoading(true);
       const projectsData = await projectService.getAllProjects();
       setProjects(projectsData);
+      if (projectsData.length > 0) {
+        setSelectedProject(projectsData[0]);
+      }
       convertProjectsToTasks(projectsData);
     } catch (error) {
       console.error('Error loading projects:', error);
@@ -47,6 +93,84 @@ const ProjectPlanningPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const loadProjectTasks = async (projectId: string) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/project-tasks/project/${projectId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      
+      if (!response.ok) throw new Error('Failed to load tasks');
+      
+      const tasksData: ProjectTask[] = await response.json();
+      setProjectTasks(tasksData);
+      convertTasksToGantt(tasksData);
+    } catch (error) {
+      console.error('Error loading project tasks:', error);
+      alert('Fehler beim Laden der Aufgaben');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const convertTasksToGantt = (tasksData: ProjectTask[]) => {
+    const ganttTasks: GanttTask[] = tasksData.map((task) => {
+      const startDate = task.startDate ? new Date(task.startDate) : new Date();
+      const endDate = task.endDate ? new Date(task.endDate) : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000); // Default: 7 days
+
+      if (endDate <= startDate) {
+        endDate.setTime(startDate.getTime() + 24 * 60 * 60 * 1000);
+      }
+
+      // Map dependencies
+      const dependencies = task.dependencies?.map(dep => dep.dependsOnTask.id) || [];
+
+      return {
+        id: task.id,
+        projectId: task.projectId,
+        taskId: task.id,
+        name: task.assignedTo 
+          ? `${task.name} (${task.assignedTo.firstName} ${task.assignedTo.lastName})`
+          : task.name,
+        start: startDate,
+        end: endDate,
+        progress: task.progress || 0,
+        type: 'task' as const,
+        dependencies,
+        styles: {
+          backgroundColor: getTaskColor(task.status),
+          backgroundSelectedColor: getTaskColor(task.status, true),
+          progressColor: getTaskProgressColor(task.status),
+          progressSelectedColor: getTaskProgressColor(task.status, true),
+        },
+      };
+    });
+
+    setTasks(ganttTasks);
+  };
+
+  const getTaskColor = (status: string, selected: boolean = false): string => {
+    const colors: Record<string, string> = {
+      TODO: selected ? '#6b7280' : '#9ca3af',
+      IN_PROGRESS: selected ? '#2563eb' : '#3b82f6',
+      COMPLETED: selected ? '#059669' : '#10b981',
+      BLOCKED: selected ? '#dc2626' : '#ef4444',
+    };
+    return colors[status] || (selected ? '#6b7280' : '#9ca3af');
+  };
+
+  const getTaskProgressColor = (status: string, selected: boolean = false): string => {
+    const colors: Record<string, string> = {
+      TODO: selected ? '#4b5563' : '#6b7280',
+      IN_PROGRESS: selected ? '#1e40af' : '#2563eb',
+      COMPLETED: selected ? '#047857' : '#059669',
+      BLOCKED: selected ? '#b91c1c' : '#dc2626',
+    };
+    return colors[status] || (selected ? '#4b5563' : '#6b7280');
   };
 
   const convertProjectsToTasks = (projectsData: Project[]) => {
@@ -104,46 +228,86 @@ const ProjectPlanningPage: React.FC = () => {
     try {
       setIsSaving(true);
       const ganttTask = task as GanttTask;
-      const project = projects.find(p => p.id === ganttTask.projectId);
-      
-      if (!project) {
-        setIsSaving(false);
-        return;
+
+      if (viewType === 'projects') {
+        const project = projects.find(p => p.id === ganttTask.projectId);
+        
+        if (!project) {
+          setIsSaving(false);
+          return;
+        }
+
+        // Optimistically update local state
+        setTasks(prevTasks => 
+          prevTasks.map(t => 
+            t.id === task.id 
+              ? { ...t, start: task.start, end: task.end, progress: task.progress }
+              : t
+          )
+        );
+
+        setProjects(prevProjects =>
+          prevProjects.map(p =>
+            p.id === ganttTask.projectId
+              ? { ...p, startDate: task.start.toISOString(), endDate: task.end.toISOString(), progress: task.progress }
+              : p
+          )
+        );
+
+        // Update project dates in background
+        await projectService.updateProject(project.id, {
+          startDate: task.start.toISOString(),
+          endDate: task.end.toISOString(),
+          progress: task.progress,
+        });
+      } else if (viewType === 'tasks' && ganttTask.taskId) {
+        // Update project task
+        const response = await fetch(`/api/project-tasks/${ganttTask.taskId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            startDate: task.start.toISOString(),
+            endDate: task.end.toISOString(),
+            progress: task.progress,
+          }),
+        });
+
+        if (!response.ok) throw new Error('Failed to update task');
+
+        // Update local state
+        setTasks(prevTasks => 
+          prevTasks.map(t => 
+            t.id === task.id 
+              ? { ...t, start: task.start, end: task.end, progress: task.progress }
+              : t
+          )
+        );
+
+        setProjectTasks(prevTasks =>
+          prevTasks.map(t =>
+            t.id === ganttTask.taskId
+              ? { ...t, startDate: task.start.toISOString(), endDate: task.end.toISOString(), progress: task.progress }
+              : t
+          )
+        );
       }
-
-      // Optimistically update local state
-      setTasks(prevTasks => 
-        prevTasks.map(t => 
-          t.id === task.id 
-            ? { ...t, start: task.start, end: task.end, progress: task.progress }
-            : t
-        )
-      );
-
-      setProjects(prevProjects =>
-        prevProjects.map(p =>
-          p.id === ganttTask.projectId
-            ? { ...p, startDate: task.start.toISOString(), endDate: task.end.toISOString(), progress: task.progress }
-            : p
-        )
-      );
-
-      // Update project dates in background
-      await projectService.updateProject(project.id, {
-        startDate: task.start.toISOString(),
-        endDate: task.end.toISOString(),
-        progress: task.progress,
-      });
       
       setIsSaving(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (error) {
-      console.error('Error updating project:', error);
+      console.error('Error updating task:', error);
       setIsSaving(false);
-      alert('Fehler beim Aktualisieren des Projekts');
-      // Reload to revert changes
-      await loadProjects();
+      alert('Fehler beim Aktualisieren');
+      // Reload
+      if (viewType === 'projects') {
+        await loadProjects();
+      } else if (selectedProject) {
+        await loadProjectTasks(selectedProject.id);
+      }
     }
   };
 
@@ -237,6 +401,54 @@ const ProjectPlanningPage: React.FC = () => {
           </div>
         )}
         
+        {/* DEBUG: Test if this renders */}
+        <h1 style={{color: 'red', fontSize: '48px', background: 'yellow', padding: '20px'}}>
+          🚨 TEST - WENN DU DAS SIEHST, RENDERT REACT HIER! 🚨
+        </h1>
+        
+        {/* Tab Switcher */}
+        <div className="view-tabs">
+          <button
+            className={`tab-button ${viewType === 'projects' ? 'active' : ''}`}
+            onClick={() => setViewType('projects')}
+          >
+            📁 Projekte
+          </button>
+          <button
+            className={`tab-button ${viewType === 'tasks' ? 'active' : ''}`}
+            onClick={() => setViewType('tasks')}
+          >
+            ✅ Aufgaben
+          </button>
+        </div>
+
+        {/* Project selector for tasks view */}
+        {viewType === 'tasks' && (
+          <div className="project-selector">
+            <label>Projekt:</label>
+            <select
+              value={selectedProject?.id || ''}
+              onChange={(e) => {
+                const project = projects.find(p => p.id === e.target.value);
+                setSelectedProject(project || null);
+              }}
+            >
+              {projects.map(project => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+            <button 
+              className="btn-new-task"
+              onClick={() => {/* TODO: Open task creation modal */}}
+              disabled={!selectedProject}
+            >
+              + Neue Aufgabe
+            </button>
+          </div>
+        )}
+        
         <div className="planning-header">
           <div className="view-controls">
             <label>Ansicht:</label>
@@ -267,25 +479,48 @@ const ProjectPlanningPage: React.FC = () => {
           </div>
 
           <div className="legend">
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#3b82f6' }}></span>
-              <span>Aktiv</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#10b981' }}></span>
-              <span>Abgeschlossen</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
-              <span>Pausiert</span>
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#ef4444' }}></span>
-              <span>Abgebrochen</span>
-            </div>
+            {viewType === 'projects' ? (
+              <>
+                <div className="legend-item">
+                  <span className="legend-color" style={{ backgroundColor: '#3b82f6' }}></span>
+                  <span>Aktiv</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-color" style={{ backgroundColor: '#10b981' }}></span>
+                  <span>Abgeschlossen</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
+                  <span>Pausiert</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-color" style={{ backgroundColor: '#ef4444' }}></span>
+                  <span>Abgebrochen</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="legend-item">
+                  <span className="legend-color" style={{ backgroundColor: '#9ca3af' }}></span>
+                  <span>To Do</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-color" style={{ backgroundColor: '#3b82f6' }}></span>
+                  <span>In Bearbeitung</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-color" style={{ backgroundColor: '#10b981' }}></span>
+                  <span>Abgeschlossen</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-color" style={{ backgroundColor: '#ef4444' }}></span>
+                  <span>Blockiert</span>
+                </div>
+              </>
+            )}
           </div>
 
-          <button className="btn-refresh" onClick={loadProjects}>
+          <button className="btn-refresh" onClick={viewType === 'projects' ? loadProjects : () => selectedProject && loadProjectTasks(selectedProject.id)}>
             🔄 Aktualisieren
           </button>
         </div>
@@ -293,12 +528,14 @@ const ProjectPlanningPage: React.FC = () => {
         {isLoading ? (
           <div className="loading-state">
             <div className="spinner"></div>
-            <p>Lade Projekte...</p>
+            <p>Lade {viewType === 'projects' ? 'Projekte' : 'Aufgaben'}...</p>
           </div>
         ) : tasks.length === 0 ? (
           <div className="empty-state">
-            <p>Keine Projekte vorhanden</p>
-            <button onClick={() => navigate('/projects')}>Projekt erstellen</button>
+            <p>Keine {viewType === 'projects' ? 'Projekte' : 'Aufgaben'} vorhanden</p>
+            {viewType === 'projects' && (
+              <button onClick={() => navigate('/projects')}>Projekt erstellen</button>
+            )}
           </div>
         ) : (
           <div className="gantt-wrapper">
@@ -306,7 +543,7 @@ const ProjectPlanningPage: React.FC = () => {
               tasks={tasks as Task[]}
               viewMode={viewMode}
               onDateChange={handleTaskChange}
-              onDelete={handleTaskDelete}
+              onDelete={viewType === 'projects' ? handleTaskDelete : undefined}
               onProgressChange={handleProgressChange}
               locale="de"
               listCellWidth="200px"
@@ -324,9 +561,14 @@ const ProjectPlanningPage: React.FC = () => {
       </div>
 
       <div className="planning-info">
-        <p>💡 <strong>Tipp:</strong> Ziehen Sie Projektbalken, um Start-/Enddaten zu ändern. Änderungen werden automatisch gespeichert.</p>
+        <p>💡 <strong>Tipp:</strong> Ziehen Sie {viewType === 'projects' ? 'Projektbalken' : 'Aufgabenbalken'}, um Start-/Enddaten zu ändern. Änderungen werden automatisch gespeichert.</p>
         <p>📊 Der Fortschrittsbalken kann durch Ziehen angepasst werden (0-100%).</p>
-        <p>🗑️ Klicken Sie auf das Papierkorb-Symbol, um ein Projekt zu löschen.</p>
+        {viewType === 'projects' && (
+          <p>🗑️ Klicken Sie auf das Papierkorb-Symbol, um ein Projekt zu löschen.</p>
+        )}
+        {viewType === 'tasks' && (
+          <p>🔗 Abhängigkeiten zwischen Aufgaben werden durch Pfeile visualisiert.</p>
+        )}
       </div>
     </div>
   );

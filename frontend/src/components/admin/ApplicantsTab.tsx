@@ -91,7 +91,7 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
       setLoading(true);
       setError(null);
       const params = statusFilter ? `?status=${statusFilter}` : '';
-      const response = await api.get(`/applicants/admin/applicants${params}`);
+      const response = await api.get(`/onboarding/applicants${params}`);
       setApplicants(response.data);
     } catch (err: any) {
       console.error('Error loading applicants:', err);
@@ -127,7 +127,7 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
 
   const handleStatusChange = async (applicantId: string, newStatus: string) => {
     try {
-      await api.patch(`/applicants/${applicantId}/status`, { status: newStatus });
+      await api.patch(`/onboarding/applicants/${applicantId}/status`, { status: newStatus });
       loadApplicants();
       if (onUpdate) onUpdate();
     } catch (err: any) {
@@ -141,7 +141,7 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
     
     try {
       // Manuell verifizieren via direktem DB-Update
-      await api.post(`/applicants/${selectedApplicant.id}/verify-manual`);
+      await api.post(`/onboarding/applicants/${selectedApplicant.id}/verify-manual`);
       setVerifyDialogOpen(false);
       loadApplicants();
     } catch (err: any) {
@@ -158,7 +158,7 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
   const handleViewDocuments = async (applicant: Applicant) => {
     setSelectedApplicant(applicant);
     try {
-      const response = await api.get(`/applicants/${applicant.id}/documents`);
+      const response = await api.get(`/onboarding/applicants/${applicant.id}/documents`);
       setApplicantDocuments(response.data);
       setDocumentsDialogOpen(true);
     } catch (err: any) {
@@ -169,7 +169,7 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
 
   const handleDownloadDocument = async (documentId: string, fileName: string) => {
     try {
-      const response = await api.get(`/applicants/admin/documents/${documentId}/download`, {
+      const response = await api.get(`/onboarding/applicants/documents/${documentId}/download`, {
         responseType: 'blob',
       });
       

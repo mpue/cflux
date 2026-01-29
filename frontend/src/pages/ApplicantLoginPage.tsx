@@ -33,7 +33,7 @@ const ApplicantLoginPage: React.FC = () => {
 
       // Vereinfachter Login: Nur E-Mail-basierte Authentifizierung
       // In der Produktion sollte hier ein Token/Password-System verwendet werden
-      const response = await api.post('/applicants/login', { email });
+      const response = await api.post('/onboarding/applicants/login', { email });
       
       // Speichere Applicant ID im localStorage
       localStorage.setItem('applicantId', response.data.id);

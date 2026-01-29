@@ -405,8 +405,68 @@ model Project {
   ehsMonthlyData EHSMonthlyData[]
   ehsTodos    EHSTodo[]
   budget      ProjectBudget?
+  tasks       ProjectTask[]
 
   @@map("projects")
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model ProjectTask {
+  id          String       @id @default(uuid())
+  projectId   String
+  name        String
+  description String?
+  status      TaskStatus   @default(TODO)
+  priority    TaskPriority @default(MEDIUM)
+  startDate   DateTime?
+  endDate     DateTime?
+  estimatedHours Float?
+  actualHours    Float?     @default(0)
+  progress    Int          @default(0) // 0-100%
+  assignedToId String?     // Optional: Assigned user
+  createdById String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo  Employee?    @relation("TaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy   Employee?    @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  
+  // Self-referencing for dependencies
+  dependencies TaskDependency[] @relation("TaskDependencies")
+  dependentOn  TaskDependency[] @relation("DependentTasks")
+
+  @@index([projectId])
+  @@index([assignedToId])
+  @@map("project_tasks")
+}
+
+model TaskDependency {
+  id              String   @id @default(uuid())
+  taskId          String   // The task that depends on another
+  dependsOnTaskId String   // The task it depends on
+  createdAt       DateTime @default(now())
+
+  task            ProjectTask @relation("TaskDependencies", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOnTask   ProjectTask @relation("DependentTasks", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, dependsOnTaskId])
+  @@index([taskId])
+  @@index([dependsOnTaskId])
+  @@map("task_dependencies")
 }
 
 model Location {
@@ -2758,6 +2818,10 @@ model Employee {
   overtimeBalances    OvertimeBalance[] @relation("EmployeeOvertime")
   complianceViolations ComplianceViolation[] @relation("EmployeeViolations")
   projectAssignments  ProjectAssignment[] @relation("EmployeeProjects")
+  
+  // Project Task Relations
+  assignedTasks       ProjectTask[]     @relation("TaskAssignee")
+  createdTasks        ProjectTask[]     @relation("TaskCreator")
   
   @@index([email])
   @@index([userId])

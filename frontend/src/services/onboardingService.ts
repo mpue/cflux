@@ -30,31 +30,31 @@ import {
 export const applicantService = {
   // Register new applicant (public)
   register: async (data: ApplicantFormData): Promise<Applicant> => {
-    const response = await api.post('/applicants/register', data);
+    const response = await api.post('/onboarding/applicants/register', data);
     return response.data;
   },
 
   // Verify email (public)
   verifyEmail: async (token: string): Promise<{ message: string; applicant: Applicant }> => {
-    const response = await api.get(`/applicants/verify/${token}`);
+    const response = await api.get(`/onboarding/applicants/verify/${token}`);
     return response.data;
   },
 
   // Get all applicants
   getAll: async (filters?: { status?: ApplicantStatus; position?: string }): Promise<Applicant[]> => {
-    const response = await api.get('/applicants/admin/applicants', { params: filters });
+    const response = await api.get('/onboarding/applicants', { params: filters });
     return response.data;
   },
 
   // Get single applicant
   getById: async (id: string): Promise<Applicant> => {
-    const response = await api.get(`/applicants/${id}`);
+    const response = await api.get(`/onboarding/applicants/${id}`);
     return response.data;
   },
 
   // Update applicant status
   updateStatus: async (id: string, status: ApplicantStatus): Promise<Applicant> => {
-    const response = await api.patch(`/applicants/${id}/status`, { status });
+    const response = await api.patch(`/onboarding/applicants/${id}/status`, { status });
     return response.data;
   },
 
@@ -65,7 +65,7 @@ export const applicantService = {
     formData.append('applicantId', applicantId);
     formData.append('documentType', documentType);
 
-    const response = await api.post(`/applicants/${applicantId}/documents`, formData, {
+    const response = await api.post(`/onboarding/applicants/${applicantId}/documents`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
@@ -73,54 +73,54 @@ export const applicantService = {
 
   // Get applicant documents
   getDocuments: async (id: string): Promise<ApplicantDocument[]> => {
-    const response = await api.get(`/applicants/${id}/documents`);
+    const response = await api.get(`/onboarding/applicants/${id}/documents`);
     return response.data;
   },
 
   // Delete document
   deleteDocument: async (documentId: string): Promise<void> => {
-    await api.delete(`/applicants/documents/${documentId}`);
+    await api.delete(`/onboarding/applicants/documents/${documentId}`);
   },
 
   // Check required documents
   checkRequiredDocuments: async (id: string): Promise<{ allUploaded: boolean; missing: string[]; uploaded: string[] }> => {
-    const response = await api.get(`/applicants/${id}/documents/check`);
+    const response = await api.get(`/onboarding/applicants/${id}/documents/check`);
     return response.data;
   },
 
   // Schedule interview
   scheduleInterview: async (data: any): Promise<ApplicantInterview> => {
-    const response = await api.post('/applicants/interviews', data);
+    const response = await api.post('/onboarding/interviews', data);
     return response.data;
   },
 
   // Get applicant interviews
   getInterviews: async (id: string): Promise<ApplicantInterview[]> => {
-    const response = await api.get(`/applicants/${id}/interviews`);
+    const response = await api.get(`/onboarding/applicants/${id}/interviews`);
     return response.data;
   },
 
   // Update interview
   updateInterview: async (interviewId: string, data: any): Promise<ApplicantInterview> => {
-    const response = await api.patch(`/applicants/interviews/${interviewId}`, data);
+    const response = await api.patch(`/onboarding/interviews/${interviewId}`, data);
     return response.data;
   },
 
   // Add note
   addNote: async (applicantId: string, content: string, isInternal: boolean = true): Promise<ApplicantNote> => {
-    const response = await api.post(`/applicants/${applicantId}/notes`, { content, isInternal });
+    const response = await api.post(`/onboarding/applicants/${applicantId}/notes`, { content, isInternal });
     return response.data;
   },
 
   // Get notes
   getNotes: async (id: string, includeInternal: boolean = true): Promise<ApplicantNote[]> => {
-    const response = await api.get(`/applicants/${id}/notes`, { params: { includeInternal } });
+    const response = await api.get(`/onboarding/applicants/${id}/notes`, { params: { includeInternal } });
     return response.data;
   },
 
   // Delete note
   deleteNote: async (noteId: string): Promise<void> => {
-    await api.delete(`/applicants/notes/${noteId}`);
+    await api.delete(`/onboarding/notes/${noteId}`);
   },
 };
 
