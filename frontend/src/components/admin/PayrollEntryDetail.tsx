@@ -83,9 +83,9 @@ const PayrollEntryDetail: React.FC<PayrollEntryDetailProps> = ({ open, onClose, 
               {entry.payrollPeriod?.name}
             </Typography>
           </Box>
-          {settings && (
+          {settings && settings.companyName && (
             <Box sx={{ textAlign: 'right' }}>
-              <Typography variant="h6" fontWeight="bold">{settings.companyName || 'Firma'}</Typography>
+              <Typography variant="h6" fontWeight="bold">{settings.companyName}</Typography>
               {settings.companyAddress && (
                 <Typography variant="body2" color="textSecondary" sx={{ whiteSpace: 'pre-line' }}>
                   {settings.companyAddress}
@@ -109,9 +109,9 @@ const PayrollEntryDetail: React.FC<PayrollEntryDetailProps> = ({ open, onClose, 
               <Typography variant="h4" fontWeight="bold">Lohnabrechnung</Typography>
               <Typography variant="h6">{entry.payrollPeriod?.name}</Typography>
             </Box>
-            {settings && (
+            {settings && settings.companyName && (
               <Box sx={{ textAlign: 'right' }}>
-                <Typography variant="h6" fontWeight="bold">{settings.companyName || 'Firma'}</Typography>
+                <Typography variant="h6" fontWeight="bold">{settings.companyName}</Typography>
                 {settings.companyAddress && (
                   <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
                     {settings.companyAddress}

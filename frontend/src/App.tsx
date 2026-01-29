@@ -43,6 +43,7 @@ import ApplicantVerifyPage from './pages/ApplicantVerifyPage';
 import ApplicantPortalPage from './pages/ApplicantPortalPage';
 import LandingPage from './pages/LandingPage';
 import UserProfile from './pages/UserProfile';
+import JobFunctionsPage from './pages/JobFunctionsPage';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
@@ -325,6 +326,14 @@ function App() {
               element={
                 <PrivateRoute adminOnly>
                   <ApplicantsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/job-functions"
+              element={
+                <PrivateRoute adminOnly allowModuleAccess>
+                  <JobFunctionsPage />
                 </PrivateRoute>
               }
             />

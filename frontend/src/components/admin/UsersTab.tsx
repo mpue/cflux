@@ -201,6 +201,7 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
               <th>Personalnr.</th>
               <th>Name</th>
               <th>E-Mail</th>
+              <th>Funktion</th>
               <th>Telefon</th>
               <th>Ort</th>
               <th>Eintrittsdatum</th>
@@ -212,7 +213,7 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+                <td colSpan={10} style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
                   Keine Benutzer gefunden
                 </td>
               </tr>
@@ -222,6 +223,7 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
                 <td>{user.employeeProfile?.employeeNumber || user.employeeNumber || '-'}</td>
                 <td>{user.firstName} {user.lastName}</td>
                 <td>{user.email}</td>
+                <td>{(user as any).jobFunction?.title || '-'}</td>
                 <td>{user.employeeProfile?.mobile || user.mobile || user.employeeProfile?.phone || user.phone || '-'}</td>
                 <td>{user.employeeProfile?.city || user.city || '-'}</td>
                 <td>{(user.employeeProfile?.entryDate || user.entryDate) ? new Date(user.employeeProfile?.entryDate || user.entryDate!).toLocaleDateString('de-DE') : '-'}</td>

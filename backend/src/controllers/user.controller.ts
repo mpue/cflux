@@ -104,6 +104,17 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
         isActive: true,
         createdAt: true,
         userGroupId: true,
+        jobFunctionId: true,
+        jobFunction: {
+          select: {
+            id: true,
+            title: true,
+            titleEn: true,
+            department: true,
+            level: true,
+            category: true,
+          },
+        },
         userGroupMemberships: {
           include: {
             userGroup: {

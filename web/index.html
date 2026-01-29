@@ -125,124 +125,95 @@
 
         .hero-background {
             width: 100%;
-            height: 600px;
+            max-width: 900px;
+            height: 500px;
             position: relative;
             margin: 0 auto 3rem;
-            overflow: visible;
-            perspective: 1200px;
+            overflow: hidden;
+            border-radius: 1rem;
+            box-shadow: var(--shadow-lg);
         }
 
-        .carousel-container {
+        .slideshow-container {
             position: relative;
             width: 100%;
             height: 100%;
+        }
+
+        .slideshow-slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        .slideshow-slide.active {
+            opacity: 1;
+        }
+
+        .slideshow-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 1rem;
+            border: 3px solid var(--border);
+        }
+
+        .slideshow-dots {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .slideshow-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .slideshow-dot.active {
+            background: var(--primary);
+        }
+
+        .slideshow-prev,
+        .slideshow-next {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--text-dark);
+            border: none;
+            font-size: 2rem;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transform-style: preserve-3d;
+            transition: background 0.3s;
+            z-index: 10;
         }
 
-        .carousel-track {
-            position: relative;
-            width: 600px;
-            height: 400px;
-            transform-style: preserve-3d;
-            animation: rotate3d 30s linear infinite;
+        .slideshow-prev:hover,
+        .slideshow-next:hover {
+            background: rgba(255, 255, 255, 1);
         }
 
-        @keyframes rotate3d {
-            from {
-                transform: rotateY(0deg);
-            }
-            to {
-                transform: rotateY(360deg);
-            }
+        .slideshow-prev {
+            left: 20px;
         }
 
-        @keyframes counterRotate1 {
-            from { transform: rotateY(0deg); }
-            to { transform: rotateY(-360deg); }
-        }
-
-        @keyframes counterRotate2 {
-            from { transform: rotateY(-72deg); }
-            to { transform: rotateY(-432deg); }
-        }
-
-        @keyframes counterRotate3 {
-            from { transform: rotateY(-144deg); }
-            to { transform: rotateY(-504deg); }
-        }
-
-        @keyframes counterRotate4 {
-            from { transform: rotateY(-216deg); }
-            to { transform: rotateY(-576deg); }
-        }
-
-        @keyframes counterRotate5 {
-            from { transform: rotateY(-288deg); }
-            to { transform: rotateY(-648deg); }
-        }
-
-        .carousel-track:hover {
-            animation-play-state: paused;
-        }
-
-        .carousel-slide {
-            position: absolute;
-            width: 600px;
-            left: 50%;
-            top: 50%;
-            margin-left: -300px;
-            margin-top: -200px;
-            transform-style: preserve-3d;
-        }
-
-        .carousel-slide:nth-child(1) {
-            transform: rotateY(0deg) translateZ(800px);
-        }
-        .carousel-slide:nth-child(1) img {
-            animation: counterRotate1 30s linear infinite;
-        }
-        
-        .carousel-slide:nth-child(2) {
-            transform: rotateY(72deg) translateZ(800px);
-        }
-        .carousel-slide:nth-child(2) img {
-            animation: counterRotate2 30s linear infinite;
-        }
-        
-        .carousel-slide:nth-child(3) {
-            transform: rotateY(144deg) translateZ(800px);
-        }
-        .carousel-slide:nth-child(3) img {
-            animation: counterRotate3 30s linear infinite;
-        }
-        
-        .carousel-slide:nth-child(4) {
-            transform: rotateY(216deg) translateZ(800px);
-        }
-        .carousel-slide:nth-child(4) img {
-            animation: counterRotate4 30s linear infinite;
-        }
-        
-        .carousel-slide:nth-child(5) {
-            transform: rotateY(288deg) translateZ(800px);
-        }
-        .carousel-slide:nth-child(5) img {
-            animation: counterRotate5 30s linear infinite;
-        }
-
-        .carousel-track:hover .carousel-slide img {
-            animation-play-state: paused;
-        }
-
-        .carousel-slide img {
-            width: 100%;
-            height: auto;
-            border-radius: 1rem;
-            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.4);
-            border: 3px solid var(--border);
+        .slideshow-next {
+            right: 20px;
         }
 
         .hero h1 {
@@ -700,23 +671,32 @@
         </section>
 
         <div class="hero-background">
-            <div class="carousel-container">
-                <div class="carousel-track">
-                    <div class="carousel-slide">
-                        <img src="time_recording.png" alt="Zeiterfassung">
-                    </div>
-                    <div class="carousel-slide">
-                        <img src="project_management.png" alt="Projektmanagement">
-                    </div>
-                    <div class="carousel-slide">
-                        <img src="invoice_management.png" alt="Rechnungsverwaltung">
-                    </div>
-                    <div class="carousel-slide">
-                        <img src="workflow_editor.png" alt="Workflow Editor">
-                    </div>
-                    <div class="carousel-slide">
-                        <img src="compliance_dashboard.png" alt="Compliance Dashboard">
-                    </div>
+            <div class="slideshow-container">
+                <div class="slideshow-slide active">
+                    <img src="time_recording.png" alt="Zeiterfassung">
+                </div>
+                <div class="slideshow-slide">
+                    <img src="project_management.png" alt="Projektmanagement">
+                </div>
+                <div class="slideshow-slide">
+                    <img src="invoice_management.png" alt="Rechnungsverwaltung">
+                </div>
+                <div class="slideshow-slide">
+                    <img src="workflow_editor.png" alt="Workflow Editor">
+                </div>
+                <div class="slideshow-slide">
+                    <img src="compliance_dashboard.png" alt="Compliance Dashboard">
+                </div>
+                
+                <button class="slideshow-prev" onclick="changeSlide(-1)">‹</button>
+                <button class="slideshow-next" onclick="changeSlide(1)">›</button>
+                
+                <div class="slideshow-dots">
+                    <span class="slideshow-dot active" onclick="currentSlide(0)"></span>
+                    <span class="slideshow-dot" onclick="currentSlide(1)"></span>
+                    <span class="slideshow-dot" onclick="currentSlide(2)"></span>
+                    <span class="slideshow-dot" onclick="currentSlide(3)"></span>
+                    <span class="slideshow-dot" onclick="currentSlide(4)"></span>
                 </div>
             </div>
         </div>
@@ -1342,6 +1322,54 @@
             <p>© 2025 Matthias Püski. Alle Rechte vorbehalten.</p>
         </div>
     </footer>
+
+    <script>
+        let currentSlideIndex = 0;
+        const slides = document.querySelectorAll('.slideshow-slide');
+        const dots = document.querySelectorAll('.slideshow-dot');
+        let autoSlideInterval;
+
+        function showSlide(index) {
+            if (index >= slides.length) {
+                currentSlideIndex = 0;
+            } else if (index < 0) {
+                currentSlideIndex = slides.length - 1;
+            } else {
+                currentSlideIndex = index;
+            }
+
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active');
+                dots[i].classList.remove('active');
+            });
+
+            slides[currentSlideIndex].classList.add('active');
+            dots[currentSlideIndex].classList.add('active');
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlideIndex + direction);
+            resetAutoSlide();
+        }
+
+        function currentSlide(index) {
+            showSlide(index);
+            resetAutoSlide();
+        }
+
+        function autoSlide() {
+            currentSlideIndex++;
+            showSlide(currentSlideIndex);
+        }
+
+        function resetAutoSlide() {
+            clearInterval(autoSlideInterval);
+            autoSlideInterval = setInterval(autoSlide, 5000);
+        }
+
+        // Start automatic slideshow
+        autoSlideInterval = setInterval(autoSlide, 5000);
+    </script>
 
 </body>
 </html>

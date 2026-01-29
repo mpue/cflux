@@ -201,6 +201,14 @@ async function seedModules() {
       route: '/onboarding',
       sortOrder: 23,
     },
+    {
+      name: 'Funktionen',
+      key: 'job_functions',
+      description: 'Jobbeschreibungen und Funktionsdefinitionen',
+      icon: 'work',
+      route: '/admin/job-functions',
+      sortOrder: 24,
+    },
   ];
 
   for (const module of modules) {

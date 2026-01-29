@@ -164,8 +164,12 @@ model User {
   completedOnboardingTasks OnboardingTask[] @relation("CompletedOnboardingTasks")
   trainingSessions TrainingSession[]
   equipmentAssignments EquipmentAssignment[]
+  createdJobFunctions JobFunction[]
+  jobFunction     JobFunction? @relation("UserJobFunction", fields: [jobFunctionId], references: [id])
+  jobFunctionId   String?
   
   @@index([userGroupId])
+  @@index([jobFunctionId])
   @@map("users")
 }
 
@@ -2954,4 +2958,48 @@ model EquipmentAssignment {
   @@index([assignedById])
   @@index([assignedAt])
   @@map("equipment_assignments")
+}
+
+// Job Functions / Funktionen
+model JobFunction {
+  id                String    @id @default(uuid())
+  title             String    // z.B. "Software Engineer", "HR Manager"
+  titleEn           String?   // Englische Übersetzung
+  description       String?   @db.Text
+  descriptionEn     String?   @db.Text
+  
+  // Anforderungen
+  requirements      String?   @db.Text
+  requirementsEn    String?   @db.Text
+  qualifications    String?   @db.Text
+  qualificationsEn  String?   @db.Text
+  
+  // Verantwortlichkeiten
+  responsibilities  String?   @db.Text
+  responsibilitiesEn String?  @db.Text
+  
+  // Organisatorisches
+  department        String?   // Abteilung
+  level             String?   // z.B. "Junior", "Senior", "Lead"
+  category          String?   // z.B. "IT", "HR", "Finance"
+  
+  // Gehaltsspanne (optional)
+  salaryMin         Float?
+  salaryMax         Float?
+  salaryCurrency    String    @default("CHF")
+  
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  createdById       String
+  createdBy         User      @relation(fields: [createdById], references: [id])
+  
+  // Beziehungen
+  employees         User[]    @relation("UserJobFunction")
+  
+  @@index([title])
+  @@index([department])
+  @@index([category])
+  @@index([isActive])
+  @@map("job_functions")
 }
