@@ -14,8 +14,12 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
   
   const [showDialog, setShowDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
+  const [showDocumentsDialog, setShowDocumentsDialog] = useState(false);
   const [selectedJobFunction, setSelectedJobFunction] = useState<JobFunction | null>(null);
   const [tabValue, setTabValue] = useState(0);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [intranetNodes, setIntranetNodes] = useState<any[]>([]);
+  const [selectedDocumentId, setSelectedDocumentId] = useState('');
   
   const [formData, setFormData] = useState({
     title: '',
@@ -159,6 +163,69 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
     }
   };
 
+  const handleManageDocuments = async (jobFunction: JobFunction) => {
+    setSelectedJobFunction(jobFunction);
+    setLoading(true);
+    try {
+      // Load documents for this job function
+      const docsResponse = await api.get(`/job-functions/${jobFunction.id}/documents`);
+      setDocuments(docsResponse.data);
+      
+      // Load all intranet nodes
+      const nodesResponse = await api.get('/intranet/tree');
+      setIntranetNodes(nodesResponse.data);
+      
+      setShowDocumentsDialog(true);
+    } catch (err) {
+      setError('Fehler beim Laden der Dokumente');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddDocument = async () => {
+    if (!selectedJobFunction || !selectedDocumentId) return;
+
+    setLoading(true);
+    try {
+      await api.post(`/job-functions/${selectedJobFunction.id}/documents`, {
+        documentNodeId: selectedDocumentId,
+      });
+      setSuccess('Dokument erfolgreich hinzugefügt');
+      setSelectedDocumentId('');
+      
+      // Reload documents
+      const docsResponse = await api.get(`/job-functions/${selectedJobFunction.id}/documents`);
+      setDocuments(docsResponse.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Fehler beim Hinzufügen des Dokuments');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveDocument = async (documentId: string) => {
+    if (!selectedJobFunction) return;
+    if (!window.confirm('Möchten Sie dieses Dokument wirklich entfernen?')) return;
+
+    setLoading(true);
+    try {
+      await api.delete(`/job-functions/${selectedJobFunction.id}/documents/${documentId}`);
+      setSuccess('Dokument erfolgreich entfernt');
+      
+      // Reload documents
+      const docsResponse = await api.get(`/job-functions/${selectedJobFunction.id}/documents`);
+      setDocuments(docsResponse.data);
+    } catch (err) {
+      setError('Fehler beim Entfernen des Dokuments');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatCurrency = (min?: number, max?: number, currency: string = 'CHF') => {
     if (!min && !max) return '-';
     if (min && max) {
@@ -229,6 +296,9 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
                 <td>
                   <button className="btn btn-sm" onClick={() => handleOpenDialog(jobFunction)} title="Bearbeiten">
                     ✏️
+                  </button>
+                  <button className="btn btn-sm" onClick={() => handleManageDocuments(jobFunction)} title="Dokumente verwalten">
+                    📄
                   </button>
                   <button className="btn btn-sm btn-danger" onClick={() => handleDelete(jobFunction.id)} title="Löschen">
                     🗑️
@@ -361,6 +431,88 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Documents Dialog */}
+      {showDocumentsDialog && selectedJobFunction && (
+        <div className="modal-overlay" onClick={() => setShowDocumentsDialog(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+            <div className="modal-header">
+              <h3>Dokumente für {selectedJobFunction.title}</h3>
+              <button className="modal-close" onClick={() => setShowDocumentsDialog(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: '20px' }}>
+                <h4>Neues Dokument hinzufügen</h4>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <label>Intranet-Dokument</label>
+                    <select 
+                      value={selectedDocumentId} 
+                      onChange={(e) => setSelectedDocumentId(e.target.value)}
+                      style={{ width: '100%', padding: '8px' }}
+                    >
+                      <option value="">-- Dokument auswählen --</option>
+                      {intranetNodes
+                        .filter(node => !documents.some(d => d.documentNodeId === node.id))
+                        .map(node => (
+                          <option key={node.id} value={node.id}>
+                            {node.title}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={handleAddDocument}
+                    disabled={!selectedDocumentId || loading}
+                  >
+                    Hinzufügen
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <h4>Zugeordnete Dokumente ({documents.length})</h4>
+                {documents.length === 0 ? (
+                  <p style={{ color: '#666', fontStyle: 'italic' }}>Keine Dokumente zugeordnet</p>
+                ) : (
+                  <table className="data-table" style={{ marginTop: '10px' }}>
+                    <thead>
+                      <tr>
+                        <th>Titel</th>
+                        <th>Typ</th>
+                        <th>Hinzugefügt am</th>
+                        <th>Aktion</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {documents.map((doc) => (
+                        <tr key={doc.id}>
+                          <td>{doc.documentNode?.title}</td>
+                          <td>{doc.documentNode?.type}</td>
+                          <td>{new Date(doc.createdAt).toLocaleDateString('de-DE')}</td>
+                          <td>
+                            <button 
+                              className="btn btn-sm btn-danger" 
+                              onClick={() => handleRemoveDocument(doc.documentNodeId)}
+                              title="Entfernen"
+                            >
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn" onClick={() => setShowDocumentsDialog(false)}>Schließen</button>
+            </div>
           </div>
         </div>
       )}

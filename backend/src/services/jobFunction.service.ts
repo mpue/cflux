@@ -77,6 +77,19 @@ class JobFunctionService {
             },
           },
         },
+        documents: {
+          include: {
+            documentNode: {
+              select: {
+                id: true,
+                title: true,
+                type: true,
+                contentType: true,
+                slug: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -230,6 +243,68 @@ class JobFunctionService {
       .map(jf => jf.department)
       .filter(Boolean)
       .sort();
+  }
+
+  // Add document to job function
+  async addDocument(jobFunctionId: string, documentNodeId: string, userId: string) {
+    return await prisma.jobFunctionDocument.create({
+      data: {
+        jobFunctionId,
+        documentNodeId,
+        createdById: userId,
+      },
+      include: {
+        documentNode: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            contentType: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Remove document from job function
+  async removeDocument(jobFunctionId: string, documentNodeId: string) {
+    return await prisma.jobFunctionDocument.deleteMany({
+      where: {
+        jobFunctionId,
+        documentNodeId,
+      },
+    });
+  }
+
+  // Get documents for job function
+  async getDocuments(jobFunctionId: string) {
+    return await prisma.jobFunctionDocument.findMany({
+      where: { jobFunctionId },
+      include: {
+        documentNode: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            contentType: true,
+            slug: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 }
 

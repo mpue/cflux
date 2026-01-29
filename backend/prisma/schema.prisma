@@ -165,6 +165,7 @@ model User {
   trainingSessions TrainingSession[]
   equipmentAssignments EquipmentAssignment[]
   createdJobFunctions JobFunction[]
+  jobFunctionDocuments JobFunctionDocument[]
   jobFunction     JobFunction? @relation("UserJobFunction", fields: [jobFunctionId], references: [id])
   jobFunctionId   String?
   
@@ -1528,6 +1529,7 @@ model DocumentNode {
   nodeType          DocumentNodeTypeRegistry? @relation(fields: [nodeTypeKey], references: [typeKey])
   groupPermissions  DocumentNodeGroupPermission[]
   attachments       DocumentNodeAttachment[]  @relation("DocumentNodeAttachments")
+  jobFunctions      JobFunctionDocument[]
   
   @@index([parentId])
   @@index([deletedAt])
@@ -2996,10 +2998,29 @@ model JobFunction {
   
   // Beziehungen
   employees         User[]    @relation("UserJobFunction")
+  documents         JobFunctionDocument[]
   
   @@index([title])
   @@index([department])
   @@index([category])
   @@index([isActive])
   @@map("job_functions")
+}
+
+// Job Function Documents - Many-to-Many Beziehung
+model JobFunctionDocument {
+  id              String       @id @default(uuid())
+  jobFunctionId   String
+  documentNodeId  String
+  createdAt       DateTime     @default(now())
+  createdById     String
+  
+  jobFunction     JobFunction  @relation(fields: [jobFunctionId], references: [id], onDelete: Cascade)
+  documentNode    DocumentNode @relation(fields: [documentNodeId], references: [id], onDelete: Cascade)
+  createdBy       User         @relation(fields: [createdById], references: [id])
+  
+  @@unique([jobFunctionId, documentNodeId])
+  @@index([jobFunctionId])
+  @@index([documentNodeId])
+  @@map("job_function_documents")
 }

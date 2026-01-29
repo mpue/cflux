@@ -64,6 +64,27 @@ router.get(
   jobFunctionController.getJobFunctionById
 );
 
+// Get documents for job function
+router.get(
+  '/:id/documents',
+  requireModuleAccess('job_functions', 'canView'),
+  jobFunctionController.getDocuments
+);
+
+// Add document to job function
+router.post(
+  '/:id/documents',
+  requireModuleAccess('job_functions', 'canEdit'),
+  jobFunctionController.addDocument
+);
+
+// Remove document from job function
+router.delete(
+  '/:id/documents/:documentId',
+  requireModuleAccess('job_functions', 'canEdit'),
+  jobFunctionController.removeDocument
+);
+
 // Update job function
 router.put(
   '/:id',

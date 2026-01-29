@@ -153,6 +153,53 @@ class JobFunctionController {
       res.status(500).json({ message: 'Failed to fetch departments' });
     }
   }
+
+  // Add document to job function
+  async addDocument(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { documentNodeId } = req.body;
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      if (!documentNodeId) {
+        return res.status(400).json({ message: 'documentNodeId is required' });
+      }
+
+      const result = await jobFunctionService.addDocument(id, documentNodeId, userId);
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error adding document to job function:', error);
+      res.status(500).json({ message: error.message || 'Failed to add document' });
+    }
+  }
+
+  // Remove document from job function
+  async removeDocument(req: Request, res: Response) {
+    try {
+      const { id, documentId } = req.params;
+      await jobFunctionService.removeDocument(id, documentId);
+      res.json({ message: 'Document removed successfully' });
+    } catch (error) {
+      console.error('Error removing document from job function:', error);
+      res.status(500).json({ message: 'Failed to remove document' });
+    }
+  }
+
+  // Get documents for job function
+  async getDocuments(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const documents = await jobFunctionService.getDocuments(id);
+      res.json(documents);
+    } catch (error) {
+      console.error('Error fetching documents for job function:', error);
+      res.status(500).json({ message: 'Failed to fetch documents' });
+    }
+  }
 }
 
 export default new JobFunctionController();
