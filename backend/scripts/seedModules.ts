@@ -209,6 +209,14 @@ async function seedModules() {
       route: '/admin/job-functions',
       sortOrder: 24,
     },
+    {
+      name: 'Checklisten',
+      key: 'checklists',
+      description: 'Vorlagen und Instanzen für Onboarding, Offboarding, Audits und mehr',
+      icon: 'checklist',
+      route: '/checklists',
+      sortOrder: 25,
+    },
   ];
 
   for (const module of modules) {

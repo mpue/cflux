@@ -700,7 +700,7 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
             onDoubleClick={handleTaskDoubleClick}
             locale="de"
             listCellWidth="200px"
-            columnWidth={viewMode === ViewMode.Month ? 60 : undefined}
+            columnWidth={viewMode === ViewMode.Month ? 100 : undefined}
             todayColor="rgba(252, 165, 165, 0.3)"
             barBackgroundColor="#ddd"
             barBackgroundSelectedColor="#aaa"

@@ -525,6 +525,66 @@ npm run build
 - Rate Limiting auf API-Endpoints
 - HTTPS-ready (in Produktion empfohlen)
 
+## Testing
+
+### Unit Tests (Backend)
+
+```bash
+cd backend
+npm test
+```
+
+Das Backend verwendet Jest für Unit- und Integrationstests der Services, Controller und Middleware.
+
+### E2E Tests (Playwright)
+
+Das Projekt verwendet Playwright für End-to-End UI-Tests:
+
+```bash
+# Stelle sicher, dass Docker läuft
+docker-compose up -d
+
+# Schnelle Smoke-Tests (empfohlen)
+npm run test:smoke
+
+# Alle E2E-Tests
+npm test
+
+# Tests im UI Mode (interaktiv)
+npm run test:ui
+
+# Spezifische Tests
+npm run test:auth         # Nur Login-Tests
+npm run test:chromium     # Nur Chromium Browser
+```
+
+**Verfügbare Test-Suites:**
+- `smoke.spec.ts` - ✅ Grundlegende Funktionalität (5 Tests, alle bestehen)
+- `auth.spec.ts` - Login/Logout (5 Tests)
+- `dashboard.spec.ts` - Dashboard Navigation (4 Tests)
+- `time-tracking.spec.ts` - Zeiterfassung (6 Tests)
+- `projects.spec.ts` - Projekt-Management (3 Tests)
+- `admin.spec.ts` - Admin-Funktionen & Berechtigungen (6 Tests)
+- `intranet.spec.ts` - Intranet Dokumenten-Management (4 Tests)
+
+**Test Reports:**
+```bash
+# HTML Report anzeigen
+npx playwright show-report
+
+# Code Generator für neue Tests
+npm run test:codegen
+```
+
+**Dokumentation:** Siehe [docs/PLAYWRIGHT_TESTING.md](docs/PLAYWRIGHT_TESTING.md) für Details.
+
+### CI/CD
+
+GitHub Actions führt automatisch Playwright-Tests aus bei:
+- Push auf `main` oder `develop` Branches
+- Pull Requests
+- Manueller Workflow-Auslösung
+
 ## Compliance & Rechtliches
 
 ### Schweizer Arbeitsgesetz (ArG/ArGV 1)

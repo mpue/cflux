@@ -37,6 +37,7 @@ import {
   PermMedia as MediaIcon,
   HealthAndSafety as EHSIcon,
   School as SchoolIcon,
+  ChecklistRtl as ChecklistIcon,
 } from '@mui/icons-material';
 
 interface AppNavbarProps {
@@ -107,7 +108,7 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
       'time_tracking', 'absences', 'projects', 'invoices',
       'customers', 'suppliers', 'orders', 'articles',
       'inventory', 'devices', 'cost_centers', 'reminders',
-      'zeitmodelle', 'incidents', 'media', 'intranet'
+      'zeitmodelle', 'incidents', 'media', 'intranet', 'checklists'
     ];
     
     return modules.some(module => 
@@ -295,6 +296,12 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
             <MenuItem onClick={() => navigateTo('/elearning')}>
               <SchoolIcon sx={{ mr: 1 }} />
               E-Learning
+            </MenuItem>
+          )}
+          {hasModuleAccess('checklists') && (
+            <MenuItem onClick={() => navigateTo('/checklists')}>
+              <ChecklistIcon sx={{ mr: 1 }} />
+              Checklisten
             </MenuItem>
           )}
           {(user?.role === 'ADMIN' || hasAnyAdminModule()) && (

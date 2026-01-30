@@ -169,6 +169,12 @@ model User {
   jobFunction     JobFunction? @relation("UserJobFunction", fields: [jobFunctionId], references: [id])
   jobFunctionId   String?
   
+  // Checklisten
+  createdChecklistTemplates ChecklistTemplate[] @relation("CreatedTemplates")
+  userChecklists ChecklistInstance[] @relation("UserChecklists")
+  assignedChecklists ChecklistInstance[] @relation("AssignedChecklists")
+  checklistCompletions ChecklistItemCompletion[]
+  
   @@index([userGroupId])
   @@index([jobFunctionId])
   @@map("users")
@@ -406,6 +412,7 @@ model Project {
   ehsTodos    EHSTodo[]
   budget      ProjectBudget?
   tasks       ProjectTask[]
+  checklistInstances ChecklistInstance[]
 
   @@map("projects")
 }
@@ -3088,4 +3095,179 @@ model JobFunctionDocument {
   @@index([jobFunctionId])
   @@index([documentNodeId])
   @@map("job_function_documents")
+}
+
+// ============================================================================
+// CHECKLISTEN MODULE
+// ============================================================================
+
+enum ChecklistType {
+  ONBOARDING
+  OFFBOARDING
+  AUDIT
+  MAINTENANCE
+  PROJECT
+  CUSTOM
+}
+
+enum ChecklistItemType {
+  CHECKBOX          // Einfache Ja/Nein Checkbox
+  TEXT              // Freitext (z.B. "Notizen")
+  DATE              // Datum auswählen
+  SIGNATURE         // Digitale Unterschrift
+  FILE_UPLOAD       // Dokument hochladen
+  PHOTO             // Foto machen
+  NUMBER            // Zahl eingeben
+  SELECT            // Dropdown (Optionen in JSON)
+  MULTI_SELECT      // Multiple Choice
+}
+
+enum ChecklistStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+// Checklisten-Vorlage (wiederverwendbar)
+model ChecklistTemplate {
+  id                String   @id @default(cuid())
+  name              String   // "IT-Onboarding", "Offboarding Standard"
+  description       String?  @db.Text
+  type              ChecklistType // ONBOARDING, OFFBOARDING
+  category          String?  // "IT", "HR", "Fachlich", "Admin"
+  isActive          Boolean  @default(true)
+  
+  // Workflow
+  estimatedDuration Int?     // Minuten
+  responsibleRole   String?  // "IT", "HR", "Vorgesetzter"
+  
+  // Verbindungen
+  items             ChecklistItem[]
+  instances         ChecklistInstance[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  createdBy         User     @relation("CreatedTemplates", fields: [createdById], references: [id])
+  createdById       String
+  
+  @@index([type, isActive])
+  @@index([createdById])
+  @@map("checklist_templates")
+}
+
+// Template-Items (Bausteine)
+model ChecklistItem {
+  id                String   @id @default(cuid())
+  templateId        String
+  template          ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  
+  // Inhalt
+  title             String
+  description       String?  @db.Text
+  order             Int      // Reihenfolge
+  
+  // Item-Typ
+  itemType          ChecklistItemType
+  required          Boolean  @default(false)
+  
+  // Wer ist verantwortlich?
+  assignedRole      String?  // "IT", "HR", "Vorgesetzter", "Mitarbeiter selbst"
+  
+  // Timing
+  dueAfterDays      Int?     // "5 Tage nach Start" → 5
+  dueDayOffset      Int?     // Relative zu Startdatum
+  
+  // Bedingte Logik
+  conditionalParentId String?
+  showIfParentValue   String? // "yes", "no", specific value
+  
+  // Für konkrete Instanzen
+  completions       ChecklistItemCompletion[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([templateId, order])
+  @@map("checklist_items")
+}
+
+// Konkrete Checklist-Instanz (für einen Mitarbeiter)
+model ChecklistInstance {
+  id                String   @id @default(cuid())
+  templateId        String
+  template          ChecklistTemplate @relation(fields: [templateId], references: [id])
+  
+  // Für wen?
+  userId            String   // Der neue/ausscheidende Mitarbeiter
+  user              User     @relation("UserChecklists", fields: [userId], references: [id])
+  
+  // Status
+  status            ChecklistStatus @default(IN_PROGRESS)
+  startDate         DateTime @default(now())
+  targetEndDate     DateTime?
+  completedDate     DateTime?
+  
+  // Progress
+  totalItems        Int      @default(0)
+  completedItems    Int      @default(0)
+  progressPercent   Int      @default(0)
+  
+  // Zuweisungen
+  assignedToId      String?  // HR-Person die überwacht
+  assignedTo        User?    @relation("AssignedChecklists", fields: [assignedToId], references: [id])
+  
+  // Kontext
+  notes             String?  @db.Text
+  projectId         String?  // Falls projekt-bezogen
+  project           Project? @relation(fields: [projectId], references: [id])
+  
+  // Completions
+  completions       ChecklistItemCompletion[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId, status])
+  @@index([assignedToId, status])
+  @@index([templateId])
+  @@index([projectId])
+  @@map("checklist_instances")
+}
+
+// Item-Completion (für jedes Item einer Instanz)
+model ChecklistItemCompletion {
+  id                String   @id @default(cuid())
+  
+  instanceId        String
+  instance          ChecklistInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  
+  itemId            String
+  item              ChecklistItem @relation(fields: [itemId], references: [id])
+  
+  // Completion-Daten
+  completed         Boolean  @default(false)
+  completedAt       DateTime?
+  completedById     String?
+  completedBy       User?    @relation(fields: [completedById], references: [id])
+  
+  // Werte je nach ItemType
+  textValue         String?  @db.Text // Für TEXT, SELECT
+  numberValue       Float?   // Für NUMBER
+  dateValue         DateTime? // Für DATE
+  boolValue         Boolean? // Für CHECKBOX
+  jsonValue         Json?    // Für MULTI_SELECT, komplexe Daten
+  fileUrl           String?  // Für FILE_UPLOAD, PHOTO, SIGNATURE
+  
+  // Kommentare
+  comment           String?  @db.Text
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@unique([instanceId, itemId])
+  @@index([instanceId, completed])
+  @@index([completedById])
+  @@map("checklist_item_completions")
 }

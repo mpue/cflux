@@ -6,3 +6,9 @@ build
 *.log
 .DS_Store
 postgres
+
+# Playwright test artifacts
+/e2e/.auth/
+/playwright-report/
+/playwright/.cache/
+/test-results/

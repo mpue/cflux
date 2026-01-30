@@ -32,6 +32,7 @@ import {
   NotesWidget,
   WeatherWidget,
   BauhausClockWidget,
+  ChecklistsWidget,
   WidgetSettingsModal,
   AddWidgetModal,
 } from '../components/DashboardWidgets';
@@ -575,6 +576,13 @@ const Dashboard: React.FC = () => {
                 return (
                   <div key={widget.id}>
                     <OnboardingWidget employeeId={user?.id} />
+                  </div>
+                );
+              
+              case 'checklists':
+                return (
+                  <div key={widget.id}>
+                    <ChecklistsWidget userId={user?.id} />
                   </div>
                 );
               

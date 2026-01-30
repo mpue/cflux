@@ -44,6 +44,10 @@ import ApplicantPortalPage from './pages/ApplicantPortalPage';
 import LandingPage from './pages/LandingPage';
 import UserProfile from './pages/UserProfile';
 import JobFunctionsPage from './pages/JobFunctionsPage';
+import ChecklistsPage from './pages/ChecklistsPage';
+import ChecklistInstanceDetailPage from './pages/ChecklistInstanceDetailPage';
+import ChecklistTemplateFormPage from './pages/ChecklistTemplateFormPage';
+import ChecklistInstanceFormPage from './pages/ChecklistInstanceFormPage';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
@@ -334,6 +338,68 @@ function App() {
               element={
                 <PrivateRoute adminOnly allowModuleAccess>
                   <JobFunctionsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/checklists"
+              element={
+                <PrivateRoute allowModuleAccess>
+                  <ChecklistsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route              path="/checklists/templates/new"
+              element={
+                <PrivateRoute allowModuleAccess>
+                  <ChecklistTemplateFormPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/checklists/templates/:id/edit"
+              element={
+                <PrivateRoute allowModuleAccess>
+                  <ChecklistTemplateFormPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/checklists/instances/new"
+              element={
+                <PrivateRoute allowModuleAccess>
+                  <ChecklistInstanceFormPage />
+                </PrivateRoute>
+              }
+            />
+            <Route              path="/checklists/templates/new"
+              element={
+                <PrivateRoute allowModuleAccess>
+                  <ChecklistTemplateFormPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/checklists/templates/:id/edit"
+              element={
+                <PrivateRoute allowModuleAccess>
+                  <ChecklistTemplateFormPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/checklists/instances/new"
+              element={
+                <PrivateRoute allowModuleAccess>
+                  <ChecklistInstanceFormPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/checklists/instances/:id"
+              element={
+                <PrivateRoute allowModuleAccess>
+                  <ChecklistInstanceDetailPage />
                 </PrivateRoute>
               }
             />

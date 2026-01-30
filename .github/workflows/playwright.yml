@@ -1,0 +1,107 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: timetracking
+          POSTGRES_PASSWORD: timetracking123
+          POSTGRES_DB: timetracking
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: |
+          backend/package-lock.json
+          frontend/package-lock.json
+
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        npm ci
+
+    - name: Setup database
+      env:
+        DATABASE_URL: postgresql://timetracking:timetracking123@localhost:5432/timetracking
+      run: |
+        cd backend
+        npx prisma db push --skip-generate
+        npx prisma generate
+        npm run seed:modules
+
+    - name: Start backend
+      env:
+        DATABASE_URL: postgresql://timetracking:timetracking123@localhost:5432/timetracking
+        JWT_SECRET: test-secret-key-for-ci
+        NODE_ENV: test
+      run: |
+        cd backend
+        npm run dev &
+        sleep 10
+      
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci
+
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps chromium
+
+    - name: Start frontend
+      run: |
+        cd frontend
+        npm start &
+        sleep 30
+      env:
+        CI: true
+
+    - name: Wait for services
+      run: |
+        npx wait-on http://localhost:3001/health -t 30000 || echo "Backend health check skipped"
+        npx wait-on http://localhost:3000 -t 60000
+
+    - name: Run Playwright tests
+      run: npx playwright test
+      env:
+        PLAYWRIGHT_BASE_URL: http://localhost:3000
+        SKIP_WEBSERVER: true
+
+    - name: Upload Playwright Report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30
+
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: test-results/
+        retention-days: 30
