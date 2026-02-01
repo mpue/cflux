@@ -4,13 +4,13 @@ test.describe('Time Tracking', () => {
   // Authentication handled by adminPage fixture
 
   test.beforeEach(async ({ adminPage }) => {
-    await adminPage.goto('/#/time');
+    await adminPage.goto('/#/dashboard');
     await adminPage.waitForLoadState('networkidle');
   });
 
   test('should display time tracking page', async ({ adminPage }) => {
-    await expect(adminPage).toHaveURL(/.*#\/time/);
-    await expect(adminPage.locator('h1, h2').filter({ hasText: /Zeit|Time/i }).first()).toBeVisible();
+    await expect(adminPage).toHaveURL(/.*#\/dashboard/);
+    await expect(adminPage.locator('h1, h2, h3').filter({ hasText: /Zeit|Time/i }).first()).toBeVisible();
   });
 
   test('should show clock-in button when not clocked in', async ({ adminPage }) => {

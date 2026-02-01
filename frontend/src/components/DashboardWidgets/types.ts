@@ -14,7 +14,8 @@ export type WidgetType =
   | 'payroll'
   | 'bauhaus-clock'
   | 'onboarding'
-  | 'checklists';
+  | 'checklists'
+  | 'news';
 
 export interface DashboardWidget {
   id: string;
@@ -192,5 +193,15 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     minH: 3,
     defaultW: 6,
     defaultH: 4,
+  },
+  {
+    id: 'news',
+    type: 'news',
+    title: '📰 Nachrichten',
+    isVisible: false,
+    minW: 4,
+    minH: 3,
+    defaultW: 6,
+    defaultH: 5,
   },
 ];

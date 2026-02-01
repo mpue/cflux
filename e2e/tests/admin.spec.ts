@@ -50,7 +50,7 @@ test.describe('User Management', () => {
   // Authentication handled by adminPage fixture
 
   test('should display users page', async ({ adminPage }) => {
-    await adminPage.goto('/#/users');
+    await adminPage.goto('/#/admin?tab=users');
     await adminPage.waitForLoadState('networkidle');
     
     await expect(adminPage).toHaveURL(/.*#\/users/);

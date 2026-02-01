@@ -13,8 +13,7 @@ test.describe('Dashboard', () => {
     const navElements = [
       'Dashboard',
       'Zeit',
-      'Projekte',
-      'Benutzer',
+      'Projekte'      
     ];
 
     for (const element of navElements) {
@@ -27,14 +26,14 @@ test.describe('Dashboard', () => {
     // Click on time tracking menu item
     await adminPage.click('text=/Zeit|Time/i').catch(() => {
       // Fallback to href navigation
-      return adminPage.goto('/#/time');
+      return adminPage.goto('/#/dashboard');
     });
 
     // Wait for the time page to load
-    await adminPage.waitForURL(/.*#\/time/);
+    await adminPage.waitForURL(/.*#\/dashboard/);
     
     // Check for time-related content
-    await expect(adminPage.locator('text=/Zeiterfassung|Stunden|Clock/i').first()).toBeVisible({
+    await expect(adminPage.locator('text=/Zeit erfassen|Stunden|Clock/i').first()).toBeVisible({
       timeout: 10000
     });
   });

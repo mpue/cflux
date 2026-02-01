@@ -48,6 +48,7 @@ import ChecklistsPage from './pages/ChecklistsPage';
 import ChecklistInstanceDetailPage from './pages/ChecklistInstanceDetailPage';
 import ChecklistTemplateFormPage from './pages/ChecklistTemplateFormPage';
 import ChecklistInstanceFormPage from './pages/ChecklistInstanceFormPage';
+import NewsManagement from './pages/NewsManagement';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
@@ -346,6 +347,14 @@ function App() {
               element={
                 <PrivateRoute allowModuleAccess>
                   <ChecklistsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/news-management"
+              element={
+                <PrivateRoute adminOnly>
+                  <NewsManagement />
                 </PrivateRoute>
               }
             />

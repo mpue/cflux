@@ -175,6 +175,11 @@ model User {
   assignedChecklists ChecklistInstance[] @relation("AssignedChecklists")
   checklistCompletions ChecklistItemCompletion[]
   
+  // News
+  createdNewsSources NewsSource[]
+  createdNewsItems NewsItem[] @relation("NewsItemCreator")
+  readNewsItems    NewsItem[] @relation("NewsItemReads")
+  
   @@index([userGroupId])
   @@index([jobFunctionId])
   @@map("users")
@@ -193,6 +198,7 @@ model UserGroup {
   userGroupMemberships UserGroupMembership[]
   moduleAccess ModuleAccess[]
   documentNodePermissions DocumentNodeGroupPermission[]
+  visibleNewsSources NewsSource[] @relation("NewsSourceVisibility")
   
   @@map("user_groups")
 }
@@ -3270,4 +3276,88 @@ model ChecklistItemCompletion {
   @@index([instanceId, completed])
   @@index([completedById])
   @@map("checklist_item_completions")
+}
+
+// ===== NEWS WIDGET SYSTEM =====
+
+enum NewsSourceType {
+  RSS
+  MANUAL
+  INTERNAL
+}
+
+enum NewsPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+// News Sources (konfigurierbare Quellen)
+model NewsSource {
+  id                String           @id @default(cuid())
+  name              String           // z.B. "Firmen-Blog", "Branchennews"
+  type              NewsSourceType   @default(MANUAL)
+  url               String?          // RSS Feed URL (nur bei RSS)
+  refreshInterval   Int              @default(3600) // in Sekunden, default 1h
+  isActive          Boolean          @default(true)
+  displayOnDashboard Boolean         @default(true)
+  priority          Int              @default(0) // Sortierung
+  
+  // Styling
+  icon              String?          // Font Awesome Icon Name
+  color             String?          // Hex Color
+  
+  // Berechtigungen
+  visibleToGroups   UserGroup[]      @relation("NewsSourceVisibility")
+  
+  // Items
+  items             NewsItem[]
+  
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  createdById       String?
+  createdBy         User?            @relation(fields: [createdById], references: [id])
+  
+  @@index([isActive, displayOnDashboard])
+  @@index([type])
+  @@map("news_sources")
+}
+
+// News Items (einzelne Nachrichten)
+model NewsItem {
+  id                String           @id @default(cuid())
+  
+  sourceId          String
+  source            NewsSource       @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  
+  title             String
+  content           String           @db.Text
+  excerpt           String?          // Kurze Zusammenfassung
+  externalUrl       String?          // Link zum Original-Artikel
+  imageUrl          String?          // Bild-URL
+  
+  priority          NewsPriority     @default(NORMAL)
+  isPinned          Boolean          @default(false) // Wichtige News oben anpinnen
+  isActive          Boolean          @default(true)
+  
+  publishedAt       DateTime         @default(now())
+  expiresAt         DateTime?        // Optional: automatisch ausblenden nach Datum
+  
+  // Read tracking
+  readBy            User[]           @relation("NewsItemReads")
+  
+  // Metadaten
+  author            String?
+  tags              String[]         // Array von Tags für Filterung
+  
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  createdById       String?
+  createdBy         User?            @relation("NewsItemCreator", fields: [createdById], references: [id])
+  
+  @@index([sourceId, isActive, publishedAt])
+  @@index([isPinned, priority])
+  @@index([publishedAt])
+  @@map("news_items")
 }

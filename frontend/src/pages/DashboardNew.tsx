@@ -33,6 +33,7 @@ import {
   WeatherWidget,
   BauhausClockWidget,
   ChecklistsWidget,
+  NewsWidget,
   WidgetSettingsModal,
   AddWidgetModal,
 } from '../components/DashboardWidgets';
@@ -583,6 +584,16 @@ const Dashboard: React.FC = () => {
                 return (
                   <div key={widget.id}>
                     <ChecklistsWidget userId={user?.id} />
+                  </div>
+                );
+              
+              case 'news':
+                return (
+                  <div key={widget.id}>
+                    <NewsWidget 
+                      widgetId={widget.id}
+                      onRemove={() => removeWidget(widget.id)}
+                    />
                   </div>
                 );
               

@@ -12,6 +12,7 @@ export { default as NotesWidget } from './NotesWidget';
 export { default as WeatherWidget } from './WeatherWidget';
 export { default as BauhausClockWidget } from './BauhausClockWidget';
 export { default as ChecklistsWidget } from './ChecklistsWidget';
+export { default as NewsWidget } from './NewsWidget';
 export { default as WidgetHeader } from './WidgetHeader';
 export { default as WidgetSettingsModal } from './WidgetSettingsModal';
 export { default as AddWidgetModal } from './AddWidgetModal';

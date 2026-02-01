@@ -46,6 +46,7 @@ import {
 import OnboardingTab from '../components/admin/OnboardingTab';
 import ChecklistsTab from '../components/admin/ChecklistsTab';
 import JobFunctionsTab from '../components/admin/JobFunctionsTab';
+import NewsTab from '../components/AdminTabs/NewsTab';
 import { TimeBookingsReport } from '../components/admin/TimeBookingsReport';
 import { UserTimeBookingsReport } from '../components/admin/UserTimeBookingsReport';
 import WorkflowsTab from '../components/admin/WorkflowsTab';
@@ -63,7 +64,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists' | 'news';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -179,7 +180,8 @@ const AdminDashboard: React.FC = () => {
       elearning: 'E-Learning',
       onboarding: 'Onboarding',
       jobFunctions: 'Funktionen',
-      checklists: 'Checklisten'
+      checklists: 'Checklisten',
+      news: 'News'
     };
     return titles[tab] || tab;
   };
@@ -764,7 +766,7 @@ const AdminDashboard: React.FC = () => {
 
             {/* System & Konfiguration */}
             {(() => {
-              const groupCheck = shouldShowGroup('System Konfiguration', ['Workflows', 'Module', 'Berechtigungen', 'Einstellungen', 'E-Learning', 'Onboarding', 'Funktionen', 'Checklisten', 'Backup']);
+              const groupCheck = shouldShowGroup('System Konfiguration', ['Workflows', 'Module', 'Berechtigungen', 'Einstellungen', 'E-Learning', 'Onboarding', 'Funktionen', 'Checklisten', 'News', 'Backup']);
               return groupCheck.show && (
             <div className="tab-group">
               <div 
@@ -840,6 +842,13 @@ const AdminDashboard: React.FC = () => {
                       label="✅ Checklisten"
                     />
                   )}
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('News')) && (
+                    <TabButton
+                      active={activeTab === 'news'}
+                      onClick={() => changeTab('news')}
+                      label="📰 News"
+                    />
+                  )}
                   {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Backup')) && (
                     <TabButton
                       active={activeTab === 'backup'}
@@ -870,6 +879,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'onboarding' && <OnboardingTab onUpdate={loadData} />}
             {activeTab === 'jobFunctions' && <JobFunctionsTab onUpdate={loadData} />}
             {activeTab === 'checklists' && <ChecklistsTab onUpdate={loadData} />}
+            {activeTab === 'news' && <NewsTab onUpdate={loadData} />}
             {activeTab === 'customers' && <CustomersTab customers={customers} onUpdate={loadData} />}
             {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} onUpdate={loadData} />}
             {activeTab === 'orders' && <OrdersTab suppliers={suppliers} onUpdate={loadData} />}
