@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import BauhausClock from '../BauhausClock';
+import WidgetHeader from './WidgetHeader';
 import './DashboardWidgets.css';
 
 interface BauhausClockWidgetProps {
@@ -16,12 +17,14 @@ const BauhausClockWidget: React.FC<BauhausClockWidgetProps> = ({ onRemove, onSet
       if (containerRef.current) {
         const width = containerRef.current.offsetWidth;
         const height = containerRef.current.offsetHeight;
-        const size = Math.min(width, height) - 40;
+        // Padding (5px * 2 = 10px) + etwas Puffer (10px) = 20px
+        const size = Math.min(width, height) - 120;
         setClockSize(Math.max(100, size));
       }
     };
 
-    updateSize();
+    // Verzögere die erste Berechnung leicht, damit das Layout gerendert ist
+    const timer = setTimeout(updateSize, 100);
     window.addEventListener('resize', updateSize);
     
     // Beobachte auch Größenänderungen des Containers
@@ -31,28 +34,36 @@ const BauhausClockWidget: React.FC<BauhausClockWidgetProps> = ({ onRemove, onSet
     }
 
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('resize', updateSize);
       resizeObserver.disconnect();
     };
   }, []);
 
   return (
-    <div 
-      ref={containerRef}
-      className="dashboard-widget bauhaus-clock-widget"
-      style={{ height: '100%', width: '100%' }}
-    >
-      <div className="widget-content" style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        height: '100%',
-        width: '100%',
-        padding: 0
-      }}>
+    <>
+      <WidgetHeader 
+        title="Bauhaus Uhr" 
+        icon="🎨"
+        onRemove={onRemove}
+        onSettings={onSettings}
+      />
+      <div 
+        ref={containerRef}
+        className="widget-content"
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          height: '100%',
+          width: '100%',
+          padding: '5px',
+          overflow: 'hidden'
+        }}
+      >
         <BauhausClock size={clockSize} />
       </div>
-    </div>
+    </>
   );
 };
 
