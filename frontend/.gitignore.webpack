@@ -1,0 +1,2 @@
+# Add webpack cache directory to gitignore
+node_modules/.cache/

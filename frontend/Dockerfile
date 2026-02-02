@@ -12,6 +12,7 @@ RUN --mount=type=cache,target=/root/.npm \
 
 # Copy config files
 COPY tsconfig.json ./
+COPY craco.config.js ./
 
 # Copy environment files
 COPY .env* ./
