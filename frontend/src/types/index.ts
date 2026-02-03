@@ -129,6 +129,8 @@ export interface Customer {
 export interface Supplier {
   id: string;
   name: string;
+  customerNumber?: string;
+  category?: string;
   contactPerson?: string;
   email?: string;
   phone?: string;

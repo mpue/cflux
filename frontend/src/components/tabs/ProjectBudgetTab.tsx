@@ -223,6 +223,22 @@ const ProjectBudgetTab: React.FC = () => {
     }
   };
 
+  const handleSyncTimeEntries = async (budgetId: string) => {
+    if (!window.confirm('Möchten Sie alle Zeiteinträge des Projekts mit diesem Budget synchronisieren? Dies kann einige Sekunden dauern.')) {
+      return;
+    }
+    try {
+      setLoading(true);
+      const result = await projectBudgetService.syncTimeEntries(budgetId);
+      setSuccessMessage(`✅ ${result.message} (${result.stats.total} Einträge verarbeitet, ${result.stats.errors} Fehler)`);
+      await loadData();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Fehler beim Synchronisieren der Zeiteinträge');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const openEditBudgetModal = (budget: ProjectBudget) => {
     setEditingBudget(budget);
     setFormData({
@@ -390,6 +406,13 @@ const ProjectBudgetTab: React.FC = () => {
                 title="Position hinzufügen"
               >
                 + Position
+              </button>
+              <button 
+                className="btn-secondary" 
+                onClick={() => handleSyncTimeEntries(budget.id)}
+                title="Alle Zeiteinträge des Projekts mit Budget synchronisieren"
+              >
+                🔄 Zeiteinträge sync
               </button>
               <button className="btn-secondary" onClick={() => openEditBudgetModal(budget)}>
                 Bearbeiten
