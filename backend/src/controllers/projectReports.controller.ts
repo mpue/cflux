@@ -106,7 +106,7 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
 
         // Stunden und Kosten berechnen
         let totalHours = 0;
-        const userHours: Record<string, number> = {};
+        const employeeHours: Record<string, number> = {};
 
         for (const entry of timeEntries) {
           if (entry.clockOut) {
@@ -118,10 +118,10 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
 
             totalHours += hours;
 
-            if (!userHours[entry.employeeId]) {
-              userHours[entry.employeeId] = 0;
+            if (!employeeHours[entry.employeeId]) {
+              employeeHours[entry.employeeId] = 0;
             }
-            userHours[entry.employeeId] += hours;
+            employeeHours[entry.employeeId] += hours;
           }
         }
 
@@ -177,18 +177,32 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
               : null,
           timeTracking: {
             totalHours: Math.round(totalHours * 100) / 100,
-            userCount: Object.keys(userHours).length,
-            topUsers: Object.entries(userHours)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 5)
-              .map(([userId, hours]) => {
-                const user = project.assignments.find((a) => a.userId === userId)?.user;
-                return {
-                  userId,
-                  name: user ? `${user.firstName} ${user.lastName}` : 'Unknown',
-                  hours: Math.round(hours * 100) / 100,
-                };
-              }),
+            userCount: Object.keys(employeeHours).length,
+            topUsers: await Promise.all(
+              Object.entries(employeeHours)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(async ([employeeId, hours]) => {
+                  const employee = await prisma.employee.findUnique({
+                    where: { id: employeeId },
+                    include: {
+                      user: {
+                        select: {
+                          firstName: true,
+                          lastName: true,
+                        },
+                      },
+                    },
+                  });
+                  return {
+                    employeeId,
+                    name: employee && employee.user 
+                      ? `${employee.user.firstName} ${employee.user.lastName}` 
+                      : 'Unknown',
+                    hours: Math.round(hours * 100) / 100,
+                  };
+                })
+            ),
           },
           teamSize: project.assignments.length,
         };
