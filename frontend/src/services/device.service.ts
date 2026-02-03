@@ -76,6 +76,18 @@ class DeviceService {
   async returnDevice(id: string, notes?: string): Promise<void> {
     await api.post(`/devices/${id}/return`, { notes });
   }
+
+  async exportDevices(): Promise<Blob> {
+    const response = await api.get('/devices/export/json', {
+      responseType: 'blob'
+    });
+    return response.data;
+  }
+
+  async importDevices(devices: Partial<Device>[]): Promise<{ message: string; results: { success: number; failed: number; errors: string[] } }> {
+    const response = await api.post('/devices/import/json', devices);
+    return response.data;
+  }
 }
 
 export const deviceService = new DeviceService();

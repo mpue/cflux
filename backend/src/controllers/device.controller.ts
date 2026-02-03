@@ -400,3 +400,115 @@ export const returnDevice = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Fehler beim Zurückgeben des Geräts' });
   }
 };
+
+export const exportDevices = async (req: AuthRequest, res: Response) => {
+  try {
+    const devices = await prisma.device.findMany({
+      orderBy: { name: 'asc' },
+      select: {
+        name: true,
+        serialNumber: true,
+        manufacturer: true,
+        model: true,
+        category: true,
+        purchaseDate: true,
+        warrantyUntil: true,
+        notes: true,
+        isActive: true
+      }
+    });
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename=devices-export.json');
+    res.json(devices);
+  } catch (error) {
+    console.error('Export devices error:', error);
+    res.status(500).json({ error: 'Failed to export devices' });
+  }
+};
+
+export const importDevices = async (req: AuthRequest, res: Response) => {
+  try {
+    const devices = req.body;
+
+    if (!Array.isArray(devices)) {
+      return res.status(400).json({ error: 'Invalid data format. Expected an array of devices.' });
+    }
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[]
+    };
+
+    for (const device of devices) {
+      try {
+        if (!device.name) {
+          results.failed++;
+          results.errors.push(`Device without name skipped`);
+          continue;
+        }
+
+        // Prüfen ob Gerät bereits existiert (nach serialNumber oder Name)
+        let existing = null;
+        if (device.serialNumber) {
+          existing = await prisma.device.findUnique({
+            where: { serialNumber: device.serialNumber }
+          });
+        }
+        
+        if (!existing) {
+          existing = await prisma.device.findFirst({
+            where: { name: device.name }
+          });
+        }
+
+        if (existing) {
+          // Update existierendes Gerät
+          await prisma.device.update({
+            where: { id: existing.id },
+            data: {
+              name: device.name,
+              serialNumber: device.serialNumber || null,
+              manufacturer: device.manufacturer,
+              model: device.model,
+              category: device.category,
+              purchaseDate: device.purchaseDate ? new Date(device.purchaseDate) : null,
+              warrantyUntil: device.warrantyUntil ? new Date(device.warrantyUntil) : null,
+              notes: device.notes,
+              isActive: device.isActive !== undefined ? device.isActive : true
+            }
+          });
+        } else {
+          // Neues Gerät erstellen
+          await prisma.device.create({
+            data: {
+              name: device.name,
+              serialNumber: device.serialNumber || null,
+              manufacturer: device.manufacturer,
+              model: device.model,
+              category: device.category,
+              purchaseDate: device.purchaseDate ? new Date(device.purchaseDate) : null,
+              warrantyUntil: device.warrantyUntil ? new Date(device.warrantyUntil) : null,
+              notes: device.notes,
+              isActive: device.isActive !== undefined ? device.isActive : true
+            }
+          });
+        }
+        
+        results.success++;
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push(`Failed to import ${device.name}: ${error.message}`);
+      }
+    }
+
+    res.json({
+      message: 'Import completed',
+      results
+    });
+  } catch (error) {
+    console.error('Import devices error:', error);
+    res.status(500).json({ error: 'Failed to import devices' });
+  }
+};

@@ -8,7 +8,9 @@ import {
   updateDevice,
   deleteDevice,
   assignDevice,
-  returnDevice
+  returnDevice,
+  exportDevices,
+  importDevices
 } from '../controllers/device.controller';
 
 const router = express.Router();
@@ -19,6 +21,9 @@ router.use(authenticate);
 // Get all devices (Admin only)
 router.get('/', authorize('ADMIN'), getAllDevices);
 
+// Export devices (Admin only)
+router.get('/export/json', authorize('ADMIN'), exportDevices);
+
 // Get device by ID (Admin only)
 router.get('/:id', authorize('ADMIN'), getDeviceById);
 
@@ -27,6 +32,9 @@ router.get('/user/:userId', getDevicesByUser);
 
 // Create device (Admin only)
 router.post('/', authorize('ADMIN'), createDevice);
+
+// Import devices (Admin only)
+router.post('/import/json', authorize('ADMIN'), importDevices);
 
 // Update device (Admin only)
 router.put('/:id', authorize('ADMIN'), updateDevice);

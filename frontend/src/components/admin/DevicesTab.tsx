@@ -28,6 +28,54 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
 
   const categories = ['Laptop', 'Handy', 'Tablet', 'Monitor', 'PSA', 'Werkzeug', 'Sonstiges'];
 
+  const handleExport = async () => {
+    try {
+      const blob = await deviceService.exportDevices();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `geraete-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Export');
+    }
+  };
+
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const devices = JSON.parse(text);
+
+        if (!Array.isArray(devices)) {
+          alert('Ungültiges JSON-Format. Es wird ein Array von Geräten erwartet.');
+          return;
+        }
+
+        const result = await deviceService.importDevices(devices);
+        alert(
+          `Import abgeschlossen:\n` +
+          `Erfolgreich: ${result.results.success}\n` +
+          `Fehlgeschlagen: ${result.results.failed}` +
+          (result.results.errors.length > 0 ? `\n\nFehler:\n${result.results.errors.join('\n')}` : '')
+        );
+        onUpdate();
+      } catch (error: any) {
+        alert(error.response?.data?.error || 'Fehler beim Import');
+      }
+    };
+    input.click();
+  };
+
   const handleOpenModal = (device?: Device) => {
     if (device) {
       setEditingDevice(device);
@@ -152,12 +200,28 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2>📱 Geräteverwaltung</h2>
-        <button
-          className="btn btn-primary"
-          onClick={() => handleOpenModal()}
-        >
-          Neues Gerät
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={handleExport}
+            title="Alle Geräte als JSON exportieren"
+          >
+            📥 Export
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={handleImport}
+            title="Geräte aus JSON importieren"
+          >
+            📤 Import
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => handleOpenModal()}
+          >
+            Neues Gerät
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
