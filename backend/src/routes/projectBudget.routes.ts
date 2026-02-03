@@ -20,5 +20,6 @@ router.delete('/items/:itemId', authenticate, projectBudgetController.deleteBudg
 
 // Zeiteinträge
 router.get('/:id/time-entries', authenticate, projectBudgetController.getBudgetTimeEntries);
+router.post('/:id/sync-time-entries', authenticate, projectBudgetController.syncTimeEntriesToBudget);
 
 export default router;

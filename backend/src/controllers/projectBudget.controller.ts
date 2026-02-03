@@ -643,3 +643,88 @@ export const getBudgetTimeEntries = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Fehler beim Abrufen der Zeiteinträge' });
   }
 };
+
+// POST /api/project-budgets/:id/sync-time-entries - Alle Zeiteinträge des Projekts mit Budget synchronisieren
+export const syncTimeEntriesToBudget = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const budget = await prisma.projectBudget.findUnique({
+      where: { id },
+      include: {
+        project: true,
+      },
+    });
+
+    if (!budget) {
+      return res.status(404).json({ error: 'Projekt-Budget nicht gefunden' });
+    }
+
+    // Alle abgeschlossenen Zeiteinträge des Projekts im Budget-Zeitraum abrufen
+    const timeEntries = await prisma.timeEntry.findMany({
+      where: {
+        projectId: budget.projectId,
+        status: 'CLOCKED_OUT',
+        clockOut: { not: null },
+        clockIn: {
+          gte: budget.startDate,
+          lte: budget.endDate,
+        },
+      },
+      orderBy: { clockIn: 'asc' },
+    });
+
+    console.log(`[BUDGET SYNC] Synchronisiere ${timeEntries.length} Zeiteinträge für Budget ${id}`);
+
+    // Budget-Update Service importieren
+    const { updateBudgetFromTimeEntry } = require('../services/budgetUpdate.service');
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    // Jeden Zeiteintrag verarbeiten
+    for (const entry of timeEntries) {
+      try {
+        await updateBudgetFromTimeEntry(entry.id);
+        successCount++;
+      } catch (error) {
+        console.error(`[BUDGET SYNC] Fehler beim Verarbeiten von TimeEntry ${entry.id}:`, error);
+        errorCount++;
+      }
+    }
+
+    console.log(`[BUDGET SYNC] Abgeschlossen: ${successCount} erfolgreich, ${errorCount} Fehler`);
+
+    // Aktualisiertes Budget zurückgeben
+    const updatedBudget = await prisma.projectBudget.findUnique({
+      where: { id },
+      include: {
+        project: true,
+        items: {
+          where: { isActive: true },
+          include: {
+            inventoryItem: {
+              include: {
+                article: true,
+              },
+            },
+            costCenter: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      message: `${successCount} von ${timeEntries.length} Zeiteinträgen erfolgreich synchronisiert`,
+      budget: updatedBudget,
+      stats: {
+        total: timeEntries.length,
+        success: successCount,
+        errors: errorCount,
+      },
+    });
+  } catch (error) {
+    console.error('Fehler beim Synchronisieren der Zeiteinträge:', error);
+    res.status(500).json({ error: 'Fehler beim Synchronisieren der Zeiteinträge' });
+  }
+};

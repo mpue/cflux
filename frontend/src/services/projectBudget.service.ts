@@ -107,6 +107,11 @@ class ProjectBudgetService {
     const response = await api.get(`/project-budgets/${budgetId}/time-entries`);
     return response.data;
   }
+
+  async syncTimeEntries(budgetId: string): Promise<any> {
+    const response = await api.post(`/project-budgets/${budgetId}/sync-time-entries`);
+    return response.data;
+  }
 }
 
 export default new ProjectBudgetService();

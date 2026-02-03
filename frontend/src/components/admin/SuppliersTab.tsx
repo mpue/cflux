@@ -17,6 +17,8 @@ export const SuppliersTab: React.FC<SuppliersTabProps> = ({ suppliers, onUpdate 
   const filteredSuppliers = suppliers.filter(supplier => {
     const matchesSearch = !searchTerm || 
       supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier.customerNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      supplier.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       supplier.contactPerson?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       supplier.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       supplier.city?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -64,6 +66,8 @@ export const SuppliersTab: React.FC<SuppliersTabProps> = ({ suppliers, onUpdate 
         <thead>
           <tr>
             <th>Name</th>
+            <th>Kundennummer</th>
+            <th>Kategorie</th>
             <th>Ansprechpartner</th>
             <th>Kontakt</th>
             <th>Ort</th>
@@ -74,7 +78,7 @@ export const SuppliersTab: React.FC<SuppliersTabProps> = ({ suppliers, onUpdate 
         <tbody>
           {filteredSuppliers.length === 0 ? (
             <tr>
-              <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+              <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
                 Keine Lieferanten gefunden
               </td>
             </tr>
@@ -88,6 +92,20 @@ export const SuppliersTab: React.FC<SuppliersTabProps> = ({ suppliers, onUpdate 
                       UID: {supplier.taxId}
                     </div>
                   )}
+                </td>
+                <td>{supplier.customerNumber || '-'}</td>
+                <td>
+                  {supplier.category ? (
+                    <span style={{
+                      padding: '3px 8px',
+                      borderRadius: '3px',
+                      fontSize: '0.85em',
+                      backgroundColor: '#e3f2fd',
+                      color: '#1976d2'
+                    }}>
+                      {supplier.category}
+                    </span>
+                  ) : '-'}
                 </td>
                 <td>{supplier.contactPerson || '-'}</td>
                 <td>
@@ -184,6 +202,8 @@ const SupplierModal: React.FC<{
 }> = ({ supplier, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     name: supplier?.name || '',
+    customerNumber: supplier?.customerNumber || '',
+    category: supplier?.category || '',
     contactPerson: supplier?.contactPerson || '',
     email: supplier?.email || '',
     phone: supplier?.phone || '',
@@ -218,6 +238,28 @@ const SupplierModal: React.FC<{
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div className="form-group">
+              <label>Kundennummer</label>
+              <input
+                type="text"
+                value={formData.customerNumber}
+                onChange={(e) => setFormData({ ...formData, customerNumber: e.target.value })}
+                placeholder="z.B. KD-12345"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Kategorie</label>
+              <input
+                type="text"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                placeholder="z.B. IT, Bürobedarf"
+              />
+            </div>
           </div>
 
           <div className="form-group">

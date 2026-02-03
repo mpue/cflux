@@ -58,6 +58,8 @@ export const createSupplier = async (req: AuthRequest, res: Response) => {
   try {
     const {
       name,
+      customerNumber,
+      category,
       contactPerson,
       email,
       phone,
@@ -77,6 +79,8 @@ export const createSupplier = async (req: AuthRequest, res: Response) => {
     const supplier = await prisma.supplier.create({
       data: {
         name,
+        customerNumber,
+        category,
         contactPerson,
         email,
         phone,
@@ -102,6 +106,8 @@ export const updateSupplier = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const {
       name,
+      customerNumber,
+      category,
       contactPerson,
       email,
       phone,
@@ -118,6 +124,8 @@ export const updateSupplier = async (req: AuthRequest, res: Response) => {
       where: { id },
       data: {
         name,
+        customerNumber,
+        category,
         contactPerson,
         email,
         phone,
