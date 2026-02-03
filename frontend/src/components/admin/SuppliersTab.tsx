@@ -28,19 +28,83 @@ export const SuppliersTab: React.FC<SuppliersTabProps> = ({ suppliers, onUpdate 
     return matchesSearch && matchesActive;
   });
 
+  const handleExport = async () => {
+    try {
+      const blob = await supplierService.exportSuppliers();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `lieferanten-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Export');
+    }
+  };
+
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const suppliers = JSON.parse(text);
+
+        if (!Array.isArray(suppliers)) {
+          alert('Ungültiges JSON-Format. Es wird ein Array von Lieferanten erwartet.');
+          return;
+        }
+
+        const result = await supplierService.importSuppliers(suppliers);
+        alert(
+          `Import abgeschlossen:\n` +
+          `Erfolgreich: ${result.results.success}\n` +
+          `Fehlgeschlagen: ${result.results.failed}` +
+          (result.results.errors.length > 0 ? `\n\nFehler:\n${result.results.errors.join('\n')}` : '')
+        );
+        onUpdate();
+      } catch (error: any) {
+        alert(error.response?.data?.error || 'Fehler beim Import');
+      }
+    };
+    input.click();
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2>Lieferantenverwaltung</h2>
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            setEditingSupplier(null);
-            setShowModal(true);
-          }}
-        >
-          Neuer Lieferant
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            className="btn btn-secondary"
+            onClick={handleExport}
+            title="Alle Lieferanten als JSON exportieren"
+          >
+            📥 Export
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={handleImport}
+            title="Lieferanten aus JSON importieren"
+          >
+            📤 Import
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              setEditingSupplier(null);
+              setShowModal(true);
+            }}
+          >
+            Neuer Lieferant
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>

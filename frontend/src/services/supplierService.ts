@@ -28,3 +28,15 @@ export const updateSupplier = async (id: string, supplierData: Partial<Supplier>
 export const deleteSupplier = async (id: string): Promise<void> => {
   await api.delete(`/suppliers/${id}`);
 };
+
+export const exportSuppliers = async (): Promise<Blob> => {
+  const response = await api.get('/suppliers/export/json', {
+    responseType: 'blob'
+  });
+  return response.data;
+};
+
+export const importSuppliers = async (suppliers: Partial<Supplier>[]): Promise<{ message: string; results: { success: number; failed: number; errors: string[] } }> => {
+  const response = await api.post('/suppliers/import/json', suppliers);
+  return response.data;
+};

@@ -175,6 +175,8 @@ export const exportSuppliers = async (req: AuthRequest, res: Response) => {
       orderBy: { name: 'asc' },
       select: {
         name: true,
+        customerNumber: true,
+        category: true,
         contactPerson: true,
         email: true,
         phone: true,
@@ -229,6 +231,8 @@ export const importSuppliers = async (req: AuthRequest, res: Response) => {
           await prisma.supplier.update({
             where: { id: existing.id },
             data: {
+              customerNumber: supplier.customerNumber,
+              category: supplier.category,
               contactPerson: supplier.contactPerson,
               email: supplier.email,
               phone: supplier.phone,
@@ -246,6 +250,8 @@ export const importSuppliers = async (req: AuthRequest, res: Response) => {
           await prisma.supplier.create({
             data: {
               name: supplier.name,
+              customerNumber: supplier.customerNumber,
+              category: supplier.category,
               contactPerson: supplier.contactPerson,
               email: supplier.email,
               phone: supplier.phone,
