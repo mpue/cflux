@@ -160,3 +160,111 @@ export const deleteSupplier = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to delete supplier' });
   }
 };
+
+export const exportSuppliers = async (req: AuthRequest, res: Response) => {
+  try {
+    const suppliers = await prisma.supplier.findMany({
+      orderBy: { name: 'asc' },
+      select: {
+        name: true,
+        contactPerson: true,
+        email: true,
+        phone: true,
+        address: true,
+        zipCode: true,
+        city: true,
+        country: true,
+        taxId: true,
+        notes: true,
+        isActive: true
+      }
+    });
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename=suppliers-export.json');
+    res.json(suppliers);
+  } catch (error) {
+    console.error('Export suppliers error:', error);
+    res.status(500).json({ error: 'Failed to export suppliers' });
+  }
+};
+
+export const importSuppliers = async (req: AuthRequest, res: Response) => {
+  try {
+    const suppliers = req.body;
+
+    if (!Array.isArray(suppliers)) {
+      return res.status(400).json({ error: 'Invalid data format. Expected an array of suppliers.' });
+    }
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[]
+    };
+
+    for (const supplier of suppliers) {
+      try {
+        if (!supplier.name) {
+          results.failed++;
+          results.errors.push(`Supplier without name skipped`);
+          continue;
+        }
+
+        // Prüfen ob Lieferant bereits existiert (nach Name)
+        const existing = await prisma.supplier.findFirst({
+          where: { name: supplier.name }
+        });
+
+        if (existing) {
+          // Update existierender Lieferant
+          await prisma.supplier.update({
+            where: { id: existing.id },
+            data: {
+              contactPerson: supplier.contactPerson,
+              email: supplier.email,
+              phone: supplier.phone,
+              address: supplier.address,
+              zipCode: supplier.zipCode,
+              city: supplier.city,
+              country: supplier.country || 'Schweiz',
+              taxId: supplier.taxId,
+              notes: supplier.notes,
+              isActive: supplier.isActive !== undefined ? supplier.isActive : true
+            }
+          });
+        } else {
+          // Neuen Lieferanten erstellen
+          await prisma.supplier.create({
+            data: {
+              name: supplier.name,
+              contactPerson: supplier.contactPerson,
+              email: supplier.email,
+              phone: supplier.phone,
+              address: supplier.address,
+              zipCode: supplier.zipCode,
+              city: supplier.city,
+              country: supplier.country || 'Schweiz',
+              taxId: supplier.taxId,
+              notes: supplier.notes,
+              isActive: supplier.isActive !== undefined ? supplier.isActive : true
+            }
+          });
+        }
+        
+        results.success++;
+      } catch (error: any) {
+        results.failed++;
+        results.errors.push(`Failed to import ${supplier.name}: ${error.message}`);
+      }
+    }
+
+    res.json({
+      message: 'Import completed',
+      results
+    });
+  } catch (error) {
+    console.error('Import suppliers error:', error);
+    res.status(500).json({ error: 'Failed to import suppliers' });
+  }
+};
