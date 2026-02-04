@@ -107,23 +107,70 @@ export const SuppliersTab: React.FC<SuppliersTabProps> = ({ suppliers, onUpdate 
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>
-        <input
-          type="text"
-          placeholder="Suche nach Name, Ansprechpartner, E-Mail oder Ort..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-        />
-        <label style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+      <div style={{ 
+        position: 'sticky',
+        top: '0',
+        zIndex: 100,
+        background: 'var(--card-bg, #f8f9fa)', 
+        padding: '15px', 
+        borderRadius: '8px', 
+        marginBottom: '20px',
+        border: '1px solid var(--border-color, #dee2e6)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+      }}>
+        <div style={{ marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary, #333)', fontSize: '13px' }}>
+          🔍 Filter
+        </div>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
-            type="checkbox"
-            checked={showInactive}
-            onChange={(e) => setShowInactive(e.target.checked)}
-            style={{ width: 'auto', marginRight: '5px' }}
+            type="text"
+            placeholder="Suche nach Name, Ansprechpartner, E-Mail oder Ort..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ 
+              flex: 1, 
+              padding: '10px', 
+              borderRadius: '4px', 
+              border: '1px solid #ccc',
+              fontSize: '14px',
+              minWidth: '300px'
+            }}
           />
-          Inaktive anzeigen
-        </label>
+          <label style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            whiteSpace: 'nowrap',
+            padding: '10px',
+            background: 'white',
+            borderRadius: '4px',
+            border: '1px solid #ccc',
+            cursor: 'pointer'
+          }}>
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              style={{ width: 'auto', marginRight: '8px', cursor: 'pointer' }}
+            />
+            Inaktive anzeigen
+          </label>
+          {(searchTerm || showInactive) && (
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => {
+                setSearchTerm('');
+                setShowInactive(false);
+              }}
+              title="Alle Filter zurücksetzen"
+              style={{ padding: '8px 12px' }}
+            >
+              ✖ Filter zurücksetzen
+            </button>
+          )}
+        </div>
+        <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-secondary, #666)' }}>
+          {filteredSuppliers.length} von {suppliers.length} Lieferanten angezeigt
+        </div>
       </div>
 
       <table className="table">
