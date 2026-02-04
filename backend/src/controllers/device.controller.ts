@@ -449,52 +449,20 @@ export const importDevices = async (req: AuthRequest, res: Response) => {
           continue;
         }
 
-        // Prüfen ob Gerät bereits existiert (nach serialNumber oder Name)
-        let existing = null;
-        if (device.serialNumber) {
-          existing = await prisma.device.findUnique({
-            where: { serialNumber: device.serialNumber }
-          });
-        }
-        
-        if (!existing) {
-          existing = await prisma.device.findFirst({
-            where: { name: device.name }
-          });
-        }
-
-        if (existing) {
-          // Update existierendes Gerät
-          await prisma.device.update({
-            where: { id: existing.id },
-            data: {
-              name: device.name,
-              serialNumber: device.serialNumber || null,
-              manufacturer: device.manufacturer,
-              model: device.model,
-              category: device.category,
-              purchaseDate: device.purchaseDate ? new Date(device.purchaseDate) : null,
-              warrantyUntil: device.warrantyUntil ? new Date(device.warrantyUntil) : null,
-              notes: device.notes,
-              isActive: device.isActive !== undefined ? device.isActive : true
-            }
-          });
-        } else {
-          // Neues Gerät erstellen
-          await prisma.device.create({
-            data: {
-              name: device.name,
-              serialNumber: device.serialNumber || null,
-              manufacturer: device.manufacturer,
-              model: device.model,
-              category: device.category,
-              purchaseDate: device.purchaseDate ? new Date(device.purchaseDate) : null,
-              warrantyUntil: device.warrantyUntil ? new Date(device.warrantyUntil) : null,
-              notes: device.notes,
-              isActive: device.isActive !== undefined ? device.isActive : true
-            }
-          });
-        }
+        // Neues Gerät erstellen (keine Duplikatsprüfung)
+        await prisma.device.create({
+          data: {
+            name: device.name,
+            serialNumber: device.serialNumber || null,
+            manufacturer: device.manufacturer,
+            model: device.model,
+            category: device.category,
+            purchaseDate: device.purchaseDate ? new Date(device.purchaseDate) : null,
+            warrantyUntil: device.warrantyUntil ? new Date(device.warrantyUntil) : null,
+            notes: device.notes,
+            isActive: device.isActive !== undefined ? device.isActive : true
+          }
+        });
         
         results.success++;
       } catch (error: any) {

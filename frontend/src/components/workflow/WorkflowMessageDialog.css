@@ -1,0 +1,65 @@
+.workflow-message-dialog {
+  padding: 20px;
+}
+
+.workflow-message-dialog .dialog-title {
+  margin: 0 0 20px 0;
+  font-size: 1.5em;
+  color: #333;
+  border-bottom: 2px solid #0066cc;
+  padding-bottom: 10px;
+}
+
+.workflow-message-dialog .dialog-content {
+  margin: 20px 0;
+  line-height: 1.6;
+  color: #444;
+  font-size: 1em;
+}
+
+.workflow-message-dialog .dialog-content p {
+  margin: 10px 0;
+}
+
+.workflow-message-dialog .dialog-content ul,
+.workflow-message-dialog .dialog-content ol {
+  margin: 10px 0;
+  padding-left: 25px;
+}
+
+.workflow-message-dialog .dialog-content li {
+  margin: 5px 0;
+}
+
+.workflow-message-dialog .dialog-content strong,
+.workflow-message-dialog .dialog-content b {
+  font-weight: 600;
+  color: #222;
+}
+
+.workflow-message-dialog .dialog-content em,
+.workflow-message-dialog .dialog-content i {
+  font-style: italic;
+}
+
+.workflow-message-dialog .dialog-content a {
+  color: #0066cc;
+  text-decoration: underline;
+}
+
+.workflow-message-dialog .dialog-content a:hover {
+  color: #004499;
+}
+
+.workflow-message-dialog .dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.workflow-message-dialog .btn {
+  min-width: 100px;
+}

@@ -32,6 +32,7 @@ function mapNodeTypeToStepType(nodeType: string): WorkflowStepType {
     'valueCondition': 'VALUE_CONDITION',
     'delay': 'DELAY',
     'logic': 'LOGIC_AND', // Default to AND logic
+    'messageDialog': 'MESSAGE_DIALOG',
   };
   return mapping[nodeType] || 'APPROVAL';
 }
@@ -544,6 +545,12 @@ export const workflowService = {
             status: notificationsSent ? 'COMPLETED' : 'SKIPPED',
           },
         });
+      }
+
+      if (step.type === 'MESSAGE_DIALOG' && activeSteps.has(step.id)) {
+        console.log(`[Workflow] MESSAGE_DIALOG step "${step.name}" is PENDING (will be shown in frontend)`);
+        // MESSAGE_DIALOG steps remain PENDING and will be shown/acknowledged by user in frontend
+        // After user acknowledges, frontend should call acknowledgeMessageDialog to mark as COMPLETED
       }
     }
 
@@ -1380,5 +1387,68 @@ export const workflowService = {
       console.error('Error sending workflow notifications:', error);
       return false;
     }
+  },
+
+  // Acknowledge MESSAGE_DIALOG step (mark as completed after user sees it)
+  async acknowledgeMessageDialog(instanceStepId: string, userId?: string): Promise<any> {
+    const instanceStep = await prisma.workflowInstanceStep.update({
+      where: { id: instanceStepId },
+      data: {
+        status: 'COMPLETED',
+        approvedById: userId || null,
+        approvedAt: new Date(),
+        comment: 'Message dialog acknowledged',
+      },
+      include: {
+        step: true,
+        instance: {
+          include: {
+            steps: {
+              include: {
+                step: true,
+              },
+              orderBy: {
+                step: {
+                  order: 'asc',
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Check if all steps are completed
+    const allCompleted = instanceStep.instance.steps.every(
+      (step: any) => step.status === 'APPROVED' || step.status === 'SKIPPED' || step.status === 'COMPLETED'
+    );
+
+    if (allCompleted) {
+      await prisma.workflowInstance.update({
+        where: { id: instanceStep.instanceId },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date(),
+        },
+      });
+    } else {
+      // Find next PENDING step and move workflow forward
+      const currentStepOrder = instanceStep.step.order;
+      for (const step of instanceStep.instance.steps as any[]) {
+        if (step.step.order > currentStepOrder) {
+          if (step.status === 'PENDING') {
+            await prisma.workflowInstance.update({
+              where: { id: instanceStep.instanceId },
+              data: {
+                currentStepId: step.step.id,
+              },
+            });
+            break;
+          }
+        }
+      }
+    }
+
+    return instanceStep;
   },
 };

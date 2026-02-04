@@ -36,6 +36,7 @@ router.get('/invoices/:invoiceId/instances', workflowController.getInvoiceWorkfl
 router.get('/entities/:entityType/:entityId/instances', workflowController.getEntityWorkflowInstances);
 router.post('/instances/steps/:instanceStepId/approve', workflowController.approveWorkflowStep);
 router.post('/instances/steps/:instanceStepId/reject', workflowController.rejectWorkflowStep);
+router.post('/instances/steps/:instanceStepId/acknowledge', workflowController.acknowledgeMessageDialog);
 router.get('/invoices/:invoiceId/check-approval', workflowController.checkInvoiceApproval);
 
 export default router;

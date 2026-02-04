@@ -134,6 +134,11 @@
   background: linear-gradient(135deg, #FFC107 0%, #FFA000 100%);
 }
 
+/* Message Dialog Node */
+.message-dialog-node .node-header {
+  background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+}
+
 /* Logic Node */
 .logic-node .node-header {
   background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);

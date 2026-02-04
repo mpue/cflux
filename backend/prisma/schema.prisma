@@ -981,6 +981,7 @@ enum WorkflowStepType {
   TEXT_CONDITION  // Textvergleich
   LOGIC_AND       // UND-Verknüpfung
   LOGIC_OR        // ODER-Verknüpfung
+  MESSAGE_DIALOG  // Modaler Nachrichtendialog
 }
 
 enum WorkflowStepStatus {

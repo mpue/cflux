@@ -171,6 +171,19 @@ export const workflowController = {
     }
   },
 
+  async acknowledgeMessageDialog(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      const instanceStep = await workflowService.acknowledgeMessageDialog(
+        req.params.instanceStepId,
+        userId
+      );
+      res.json(instanceStep);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
   async checkInvoiceApproval(req: Request, res: Response) {
     try {
       const allCompleted = await workflowService.checkInvoiceWorkflowsCompleted(

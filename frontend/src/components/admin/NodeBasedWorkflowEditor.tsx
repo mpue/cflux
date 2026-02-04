@@ -26,6 +26,7 @@ import DateConditionNode from './nodes/DateConditionNode';
 import ValueConditionNode from './nodes/ValueConditionNode';
 import DelayNode from './nodes/DelayNode';
 import NotificationNode from './nodes/NotificationNode';
+import MessageDialogNode from './nodes/MessageDialogNode';
 import LogicNode from './nodes/LogicNode';
 import WorkflowTestDialog from './WorkflowTestDialog';
 import { workflowService, Workflow } from '../../services/workflow.service';
@@ -48,6 +49,7 @@ const nodeTypes: NodeTypes = {
   valueCondition: ValueConditionNode,
   delay: DelayNode,
   notification: NotificationNode,
+  messageDialog: MessageDialogNode,
   logic: LogicNode,
 };
 
@@ -61,6 +63,7 @@ const availableNodes = [
   { type: 'logic', label: '🔀 Logik', icon: '🔀', description: 'UND/ODER-Verknüpfung' },
   { type: 'delay', label: '⏱️ Verzögerung', icon: '⏱️', description: 'Zeitverzögerung' },
   { type: 'notification', label: '🔔 Benachrichtigung', icon: '🔔', description: 'Benachrichtigung senden' },
+  { type: 'messageDialog', label: '💬 Nachrichtendialog', icon: '💬', description: 'Modaler Nachrichtendialog' },
   { type: 'end', label: '🏁 Ende', icon: '🏁', description: 'Workflow-Ende' },
 ];
 
@@ -233,6 +236,13 @@ const NodeBasedWorkflowEditor: React.FC<NodeBasedWorkflowEditorProps> = ({
           recipients: [],
           message: '',
         };
+      case 'messageDialog':
+        return {
+          name: 'Nachrichtendialog',
+          title: 'Hinweis',
+          message: '<p>Ihre Nachricht hier...</p>',
+          buttonText: 'OK',
+        };
       default:
         return {};
     }
@@ -366,6 +376,7 @@ const NodeBasedWorkflowEditor: React.FC<NodeBasedWorkflowEditorProps> = ({
       logic: nodeType.includes('AND') ? 'LOGIC_AND' : 'LOGIC_OR',
       delay: 'DELAY',
       notification: 'NOTIFICATION',
+      messageDialog: 'MESSAGE_DIALOG',
     };
     return mapping[nodeType] || 'APPROVAL';
   };
@@ -842,6 +853,58 @@ const NodePropertiesEditor: React.FC<NodePropertiesEditorProps> = ({
                 placeholder="Benachrichtigungstext eingeben..."
                 rows={4}
                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              />
+            </div>
+          </>
+        );
+
+      case 'messageDialog':
+        return (
+          <>
+            <div className="form-group">
+              <label>Name</label>
+              <input
+                type="text"
+                value={config.name || ''}
+                onChange={(e) => handleChange('name', e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Dialog-Titel</label>
+              <input
+                type="text"
+                value={config.title || 'Hinweis'}
+                onChange={(e) => handleChange('title', e.target.value)}
+                placeholder="z.B. Wichtiger Hinweis"
+              />
+            </div>
+            <div className="form-group">
+              <label>Nachricht (HTML)</label>
+              <textarea
+                value={config.message || ''}
+                onChange={(e) => handleChange('message', e.target.value)}
+                placeholder="<p>Ihre HTML-Nachricht hier...</p>"
+                rows={8}
+                style={{ 
+                  width: '100%', 
+                  padding: '8px', 
+                  borderRadius: '4px', 
+                  border: '1px solid #ddd',
+                  fontFamily: 'monospace',
+                  fontSize: '0.9em'
+                }}
+              />
+              <small style={{ color: '#666', fontSize: '0.85em', display: 'block', marginTop: '4px' }}>
+                Unterstützt HTML-Tags wie &lt;p&gt;, &lt;b&gt;, &lt;i&gt;, &lt;ul&gt;, &lt;li&gt;, etc.
+              </small>
+            </div>
+            <div className="form-group">
+              <label>Button-Text</label>
+              <input
+                type="text"
+                value={config.buttonText || 'OK'}
+                onChange={(e) => handleChange('buttonText', e.target.value)}
+                placeholder="z.B. Verstanden, Weiter, Schließen"
               />
             </div>
           </>
