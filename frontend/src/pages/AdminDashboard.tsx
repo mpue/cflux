@@ -308,6 +308,9 @@ const AdminDashboard: React.FC = () => {
         case 'devices':
           const devicesData = await deviceService.getAllDevices();
           setDevices(devicesData);
+          // Load users needed for device assignment
+          const deviceUsers = await userService.getAllUsersAdmin();
+          setUsers(deviceUsers);
           break;
         case 'travelExpenses':
           const expensesData = await travelExpenseService.getAllTravelExpenses();
