@@ -618,3 +618,98 @@ export const getLoggedInUsers = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to get logged in users' });
   }
 };
+
+// Admin: Create manual time entry
+export const createTimeEntry = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId, clockIn, clockOut, projectId, description, pauseMinutes } = req.body;
+
+    if (!userId || !clockIn) {
+      return res.status(400).json({ error: 'userId and clockIn are required' });
+    }
+
+    // Get employeeId from userId
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { employeeProfile: true }
+    });
+
+    if (!user?.employeeProfile) {
+      return res.status(400).json({ error: 'User does not have an employee profile' });
+    }
+
+    const employeeId = user.employeeProfile.id;
+    const clockInDate = new Date(clockIn);
+    const clockOutDate = clockOut ? new Date(clockOut) : undefined;
+
+    // Validate dates
+    if (clockOutDate && clockOutDate <= clockInDate) {
+      return res.status(400).json({ error: 'clockOut must be after clockIn' });
+    }
+
+    // Determine status
+    const status = clockOutDate ? 'CLOCKED_OUT' : 'CLOCKED_IN';
+
+    const timeEntry = await prisma.timeEntry.create({
+      data: {
+        employeeId,
+        projectId: projectId || undefined,
+        clockIn: clockInDate,
+        clockOut: clockOutDate,
+        description,
+        pauseMinutes: pauseMinutes || 0,
+        status
+      },
+      include: {
+        project: true,
+        location: true,
+        employee: {
+          select: {
+            id: true,
+            userId: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    // Run compliance checks if entry is completed
+    if (clockOutDate) {
+      console.log(`[COMPLIANCE] Running compliance checks for manually created time entry`);
+      try {
+        await checkDailyHoursViolation(employeeId, clockInDate, clockOutDate);
+        await checkWeeklyHoursViolation(employeeId, clockInDate);
+        await checkMissingPauseViolation(employeeId, clockInDate, clockOutDate);
+        await updateOvertimeBalance(employeeId, clockInDate);
+        console.log(`[COMPLIANCE] Compliance checks completed`);
+      } catch (complianceError) {
+        console.error('[COMPLIANCE] Error during compliance checks:', complianceError);
+      }
+    }
+
+    // Trigger action
+    try {
+      await actionService.triggerAction('timeentry.created', {
+        entityType: 'TIMEENTRY',
+        entityId: timeEntry.id,
+        userId: req.user!.id,
+        employeeId: employeeId,
+        targetUserId: userId,
+        startTime: clockInDate.toISOString(),
+        endTime: clockOutDate?.toISOString(),
+        projectId: projectId,
+        description: description,
+        manual: true
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger timeentry.created:', actionError);
+    }
+
+    res.status(201).json(timeEntry);
+  } catch (error) {
+    console.error('Create time entry error:', error);
+    res.status(500).json({ error: 'Failed to create time entry' });
+  }
+};

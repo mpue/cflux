@@ -11,6 +11,7 @@ export const TimeEntriesTab: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -82,6 +83,14 @@ export const TimeEntriesTab: React.FC = () => {
           style={{ height: '40px', marginTop: '24px' }}
         >
           {loading ? 'Lädt...' : 'Einträge laden'}
+        </button>
+        <button 
+          className="btn btn-success" 
+          onClick={() => setShowCreateModal(true)}
+          disabled={!userId}
+          style={{ height: '40px', marginTop: '24px' }}
+        >
+          + Neuer Eintrag
         </button>
       </div>
 
@@ -169,6 +178,23 @@ export const TimeEntriesTab: React.FC = () => {
           }}
         />
       )}
+
+      {showCreateModal && (
+        <TimeEntryCreateModal
+          userId={userId}
+          projects={projects}
+          onClose={() => setShowCreateModal(false)}
+          onSave={async (data) => {
+            try {
+              await timeService.createTimeEntry(data);
+              setShowCreateModal(false);
+              await loadEntries();
+            } catch (error) {
+              alert('Fehler beim Erstellen');
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -186,8 +212,33 @@ const TimeEntryEditModal: React.FC<{
     description: entry.description || '',
   });
 
+  const calculateDuration = () => {
+    if (!formData.clockIn || !formData.clockOut) return null;
+    const start = new Date(formData.clockIn);
+    const end = new Date(formData.clockOut);
+    if (end <= start) return 'Ungültig';
+    
+    const diffMs = end.getTime() - start.getTime();
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+  };
+
+  const duration = calculateDuration();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
+    if (formData.clockOut) {
+      const start = new Date(formData.clockIn);
+      const end = new Date(formData.clockOut);
+      if (end <= start) {
+        alert('Ausstempeln muss nach Einstempeln liegen!');
+        return;
+      }
+    }
+    
     await onSave({
       clockIn: formData.clockIn,
       clockOut: formData.clockOut || undefined,
@@ -220,6 +271,21 @@ const TimeEntryEditModal: React.FC<{
             />
           </div>
 
+          {duration && (
+            <div style={{ 
+              padding: '12px', 
+              backgroundColor: '#f0f9ff', 
+              borderLeft: '4px solid #3b82f6',
+              marginBottom: '15px',
+              borderRadius: '4px'
+            }}>
+              <strong>Berechnete Dauer:</strong>{' '}
+              <span style={{ fontSize: '16px', color: duration === 'Ungültig' ? '#ef4444' : '#059669' }}>
+                {duration}
+              </span>
+            </div>
+          )}
+
           <div className="form-group">
             <label>Projekt</label>
             <select
@@ -250,6 +316,171 @@ const TimeEntryEditModal: React.FC<{
             </button>
             <button type="submit" className="btn btn-primary">
               Speichern
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const TimeEntryCreateModal: React.FC<{
+  userId: string;
+  projects: Project[];
+  onClose: () => void;
+  onSave: (data: {
+    userId: string;
+    clockIn: string;
+    clockOut?: string;
+    projectId?: string;
+    description?: string;
+    pauseMinutes?: number;
+  }) => Promise<void>;
+}> = ({ userId, projects, onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    clockIn: new Date().toISOString().slice(0, 16),
+    clockOut: '',
+    projectId: '',
+    description: '',
+    pauseMinutes: 0,
+  });
+
+  const calculateDuration = () => {
+    if (!formData.clockIn || !formData.clockOut) return null;
+    const start = new Date(formData.clockIn);
+    const end = new Date(formData.clockOut);
+    if (end <= start) return { total: 'Ungültig', net: 'Ungültig' };
+    
+    const diffMs = end.getTime() - start.getTime();
+    const totalMinutes = Math.floor(diffMs / (1000 * 60));
+    const netMinutes = totalMinutes - (formData.pauseMinutes || 0);
+    
+    const totalHours = Math.floor(totalMinutes / 60);
+    const totalMins = totalMinutes % 60;
+    
+    const netHours = Math.floor(netMinutes / 60);
+    const netMins = netMinutes % 60;
+    
+    return {
+      total: `${totalHours}h ${totalMins}m`,
+      net: `${netHours}h ${netMins}m`
+    };
+  };
+
+  const duration = calculateDuration();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if (formData.clockOut) {
+      const start = new Date(formData.clockIn);
+      const end = new Date(formData.clockOut);
+      if (end <= start) {
+        alert('Ausstempeln muss nach Einstempeln liegen!');
+        return;
+      }
+    }
+    
+    await onSave({
+      userId,
+      clockIn: formData.clockIn,
+      clockOut: formData.clockOut || undefined,
+      projectId: formData.projectId || undefined,
+      description: formData.description,
+      pauseMinutes: formData.pauseMinutes || 0,
+    });
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>Neuer Zeiteintrag</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Einstempeln *</label>
+            <input
+              type="datetime-local"
+              value={formData.clockIn}
+              onChange={(e) => setFormData({ ...formData, clockIn: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Ausstempeln</label>
+            <input
+              type="datetime-local"
+              value={formData.clockOut}
+              onChange={(e) => setFormData({ ...formData, clockOut: e.target.value })}
+            />
+            <small style={{ color: '#666', fontSize: '12px' }}>
+              Optional - leer lassen für offenen Eintrag
+            </small>
+          </div>
+
+          {duration && (
+            <div style={{ 
+              padding: '12px', 
+              backgroundColor: '#f0f9ff', 
+              borderLeft: '4px solid #3b82f6',
+              marginBottom: '15px',
+              borderRadius: '4px'
+            }}>
+              <div style={{ marginBottom: '4px' }}>
+                <strong>Gesamtdauer:</strong>{' '}
+                <span style={{ fontSize: '16px', color: duration.total === 'Ungültig' ? '#ef4444' : '#059669' }}>
+                  {duration.total}
+                </span>
+              </div>
+              {formData.pauseMinutes > 0 && duration.net !== 'Ungültig' && (
+                <div style={{ fontSize: '14px', color: '#666' }}>
+                  Nettoarbeitszeit (abzgl. {formData.pauseMinutes} Min Pause): <strong>{duration.net}</strong>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="form-group">
+            <label>Projekt</label>
+            <select
+              value={formData.projectId}
+              onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+            >
+              <option value="">Kein Projekt</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Pausenzeit (Minuten)</label>
+            <input
+              type="number"
+              min="0"
+              value={formData.pauseMinutes}
+              onChange={(e) => setFormData({ ...formData, pauseMinutes: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Beschreibung</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+            />
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Abbrechen
+            </button>
+            <button type="submit" className="btn btn-success">
+              Erstellen
             </button>
           </div>
         </form>

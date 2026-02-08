@@ -63,4 +63,16 @@ export const timeService = {
     const response = await api.get('/time/logged-in-users');
     return response.data;
   },
+
+  createTimeEntry: async (data: {
+    userId: string;
+    clockIn: string;
+    clockOut?: string;
+    projectId?: string;
+    description?: string;
+    pauseMinutes?: number;
+  }): Promise<TimeEntry> => {
+    const response = await api.post('/time/manual-entry', data);
+    return response.data;
+  },
 };

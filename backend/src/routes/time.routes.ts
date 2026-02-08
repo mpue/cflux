@@ -18,6 +18,7 @@ router.put('/my-entries/:id', timeController.updateMyTimeEntry);
 router.delete('/my-entries/:id', timeController.deleteMyTimeEntry);
 
 // Admin time corrections
+router.post('/manual-entry', authorize('ADMIN'), timeController.createTimeEntry);
 router.put('/:id', authorize('ADMIN'), timeController.updateTimeEntry);
 router.delete('/:id', authorize('ADMIN'), timeController.deleteTimeEntry);
 router.get('/user/:userId', authorize('ADMIN'), timeController.getUserTimeEntries);
