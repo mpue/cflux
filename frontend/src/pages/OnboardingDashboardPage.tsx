@@ -153,17 +153,10 @@ const OnboardingDashboardPage: React.FC = () => {
                 />
               </Box>
 
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+              <Box sx={{ mt: 2 }}>
                 <Typography variant="caption" color="textSecondary">
                   {Math.round(item.progress.progressPercentage)}% abgeschlossen
                 </Typography>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => navigate(`/admin/onboarding/employees/${item.employee.id}`)}
-                >
-                  Details
-                </Button>
               </Box>
             </Paper>
           </Grid>
