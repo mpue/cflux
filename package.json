@@ -4,6 +4,9 @@
   "description": "Playwright E2E tests for cflux time tracking system",
   "private": true,
   "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
     "test": "playwright test",
     "test:smoke": "playwright test e2e/tests/smoke.spec.ts",
     "test:auth": "playwright test e2e/tests/auth.spec.ts",
@@ -19,6 +22,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.41.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "concurrently": "^8.2.2"
   }
 }

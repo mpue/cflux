@@ -3,6 +3,8 @@ import PDFDocument from 'pdfkit';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../types/auth';
 import axios from 'axios';
+import path from 'path';
+import fs from 'fs';
 
 const prisma = new PrismaClient();
 
@@ -119,12 +121,23 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
             fit: [logoWidth, logoHeight]
           });
         } else {
-          // Local file path
-          doc.image(template.logoUrl, logoX, logoY, { 
-            width: logoWidth,
-            height: logoHeight,
-            fit: [logoWidth, logoHeight]
-          });
+          // Local file path - convert relative web path to absolute filesystem path
+          let logoPath = template.logoUrl;
+          if (logoPath.startsWith('/uploads/')) {
+            // Convert web path to filesystem path
+            logoPath = path.join(__dirname, '../..', logoPath);
+          }
+          
+          // Check if file exists before trying to load it
+          if (fs.existsSync(logoPath)) {
+            doc.image(logoPath, logoX, logoY, { 
+              width: logoWidth,
+              height: logoHeight,
+              fit: [logoWidth, logoHeight]
+            });
+          } else {
+            console.error(`Logo file not found: ${logoPath}`);
+          }
         }
         
         // Adjust header start based on logo position

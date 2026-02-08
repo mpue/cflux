@@ -283,6 +283,7 @@ const ProjectAssignModal: React.FC<{
   onUpdate: () => void;
 }> = ({ project, onClose, onUpdate }) => {
   const [users, setUsers] = useState<User[]>([]);
+  const [currentProject, setCurrentProject] = useState<Project>(project);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -295,18 +296,31 @@ const ProjectAssignModal: React.FC<{
     setLoading(false);
   };
 
+  const loadCurrentProject = async () => {
+    try {
+      const projects = await projectService.getAllProjects();
+      const updatedProject = projects.find(p => p.id === project.id);
+      if (updatedProject) {
+        setCurrentProject(updatedProject);
+      }
+    } catch (error) {
+      console.error('Error loading project:', error);
+    }
+  };
+
   const isAssigned = (userId: string) => {
-    return project.assignments?.some((a: any) => a.user.id === userId);
+    return currentProject.assignments?.some((a: any) => a.user.id === userId);
   };
 
   const handleToggleAssignment = async (userId: string) => {
     try {
       if (isAssigned(userId)) {
-        await projectService.unassignUser(project.id, userId);
+        await projectService.unassignUser(currentProject.id, userId);
       } else {
-        await projectService.assignUser(project.id, userId);
+        await projectService.assignUser(currentProject.id, userId);
       }
       await onUpdate();
+      await loadCurrentProject();
     } catch (error) {
       console.error('Toggle assignment error:', error);
       alert('Fehler beim Zuweisen/Entfernen');
@@ -315,7 +329,7 @@ const ProjectAssignModal: React.FC<{
 
   return (
     <BaseModal isOpen={true} onClose={onClose} maxWidth="700px">
-      <h2>Benutzer zu "{project.name}" zuweisen</h2>
+      <h2>Benutzer zu "{currentProject.name}" zuweisen</h2>
       {loading ? (
           <p>Lädt...</p>
         ) : (
