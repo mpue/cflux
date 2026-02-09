@@ -42,6 +42,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
     email: user.email || '',
     role: user.role || 'USER',
     isActive: user.isActive ?? true,
+    requiresPasswordChange: user.requiresPasswordChange ?? false,
     vacationDays: user.employeeProfile?.vacationDays || user.vacationDays || 30,
     password: '',
     
@@ -167,6 +168,19 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
           />
           {' '}Aktiv
         </label>
+      </div>
+      <div className="form-group">
+        <label>
+          <input
+            type="checkbox"
+            checked={formData.requiresPasswordChange}
+            onChange={(e) => setFormData({ ...formData, requiresPasswordChange: e.target.checked })}
+          />
+          {' '}Passwort ändern erforderlich
+        </label>
+        <small style={{ display: 'block', color: '#666', fontSize: '12px', marginTop: '4px' }}>
+          Benutzer muss beim nächsten Login das Passwort ändern
+        </small>
       </div>
       <div className="form-group">
         <label>Urlaubstage pro Jahr</label>

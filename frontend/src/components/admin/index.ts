@@ -23,3 +23,4 @@ export { TravelExpensesTab } from './TravelExpensesTab';
 export { OrdersTab } from './OrdersTab';
 export { default as ELearningManagementTab } from './ELearningManagementTab';
 export { default as ApplicantsTab } from './ApplicantsTab';
+export { default as SystemLogsTab } from './SystemLogsTab';

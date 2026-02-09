@@ -4,7 +4,9 @@ import { authenticate, requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
-// ========== SYSTEM ACTIONS ==========
+// ========== WICHTIG: Spezifische Routen MÜSSEN vor parametrisierten Routen kommen ==========
+
+// ========== ROOT ROUTES ==========
 
 /**
  * @route   GET /api/actions
@@ -14,32 +16,11 @@ const router = Router();
 router.get('/', authenticate, actionController.getAllSystemActions);
 
 /**
- * @route   GET /api/actions/:actionKey
- * @desc    System Action nach Key abrufen
- * @access  Private
- */
-router.get('/:actionKey', authenticate, actionController.getSystemActionByKey);
-
-/**
  * @route   POST /api/actions
  * @desc    Neue System Action erstellen
  * @access  Admin
  */
 router.post('/', authenticate, requireAdmin, actionController.createSystemAction);
-
-/**
- * @route   PUT /api/actions/:actionKey
- * @desc    System Action aktualisieren
- * @access  Admin
- */
-router.put('/:actionKey', authenticate, requireAdmin, actionController.updateSystemAction);
-
-/**
- * @route   DELETE /api/actions/:actionKey
- * @desc    System Action löschen
- * @access  Admin
- */
-router.delete('/:actionKey', authenticate, requireAdmin, actionController.deleteSystemAction);
 
 // ========== SEEDING ==========
 
@@ -76,13 +57,6 @@ router.get('/statistics', authenticate, requireAdmin, actionController.getAction
 router.post('/triggers', authenticate, requireAdmin, actionController.createWorkflowTrigger);
 
 /**
- * @route   GET /api/actions/workflows/:workflowId/triggers
- * @desc    Alle Trigger für einen Workflow
- * @access  Private
- */
-router.get('/workflows/:workflowId/triggers', authenticate, actionController.getWorkflowTriggers);
-
-/**
  * @route   PUT /api/actions/triggers/:id
  * @desc    Workflow Trigger aktualisieren
  * @access  Admin
@@ -103,7 +77,14 @@ router.delete('/triggers/:id', authenticate, requireAdmin, actionController.dele
  */
 router.patch('/triggers/:id/toggle', authenticate, requireAdmin, actionController.toggleWorkflowTrigger);
 
-// ========== SYSTEM ACTIONS (mit :actionKey am Ende wegen Route-Konflikt) ==========
+/**
+ * @route   GET /api/actions/workflows/:workflowId/triggers
+ * @desc    Alle Trigger für einen Workflow
+ * @access  Private
+ */
+router.get('/workflows/:workflowId/triggers', authenticate, actionController.getWorkflowTriggers);
+
+// ========== PARAMETRISIERTE ROUTEN (MÜSSEN AM ENDE KOMMEN) ==========
 
 /**
  * @route   POST /api/actions/:actionKey/trigger

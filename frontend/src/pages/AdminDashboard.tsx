@@ -51,6 +51,7 @@ import { TimeBookingsReport } from '../components/admin/TimeBookingsReport';
 import { UserTimeBookingsReport } from '../components/admin/UserTimeBookingsReport';
 import WorkflowsTab from '../components/admin/WorkflowsTab';
 import WorkflowActionsTab from '../components/admin/WorkflowActionsTab';
+import SystemLogsTab from '../components/admin/SystemLogsTab';
 import CostCentersTab from '../components/tabs/CostCentersTab';
 import InventoryTab from '../components/tabs/InventoryTab';
 import ProjectBudgetTab from '../components/tabs/ProjectBudgetTab';
@@ -64,7 +65,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists' | 'news';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists' | 'news';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -171,6 +172,7 @@ const AdminDashboard: React.FC = () => {
       modules: 'Module',
       modulePermissions: 'Modulberechtigungen',
       workflowActions: 'Workflow-Aktionen',
+      systemLogs: 'System Logs',
       payroll: 'Lohnabrechnung',
       costCenters: 'Kostenstellen',
       projectBudget: 'Projektbudget',
@@ -792,9 +794,17 @@ const AdminDashboard: React.FC = () => {
                     />
                   )}
                   {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Workflow Actions')) && (
-                    <TabButton                      active={activeTab === 'workflowActions'}
+                    <TabButton
+                      active={activeTab === 'workflowActions'}
                       onClick={() => changeTab('workflowActions')}
                       label="⚡ Workflow Actions"
+                    />
+                  )}
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('System Logs')) && (
+                    <TabButton
+                      active={activeTab === 'systemLogs'}
+                      onClick={() => changeTab('systemLogs')}
+                      label="📋 System Logs"
                     />
                   )}
                   {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Module')) && (
@@ -915,6 +925,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'modulePermissions' && <ModulePermissionsPage embedded />}
             {activeTab === 'workflows' && <WorkflowsTab />}
             {activeTab === 'workflowActions' && <WorkflowActionsTab />}
+            {activeTab === 'systemLogs' && <SystemLogsTab />}
             {activeTab === 'settings' && <SystemSettingsTab />}
             {activeTab === 'payroll' && <PayrollManagement />}
             {activeTab === 'zeitmodelle' && <ZeitmodelleVerwaltung />}

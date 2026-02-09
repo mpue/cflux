@@ -17,6 +17,7 @@ const UserCreateModal: React.FC<{
     password: '',
     role: 'USER' as 'ADMIN' | 'USER',
     isActive: true,
+    requiresPasswordChange: false,
     vacationDays: 30,
   });
 
@@ -111,6 +112,21 @@ const UserCreateModal: React.FC<{
               />
               Aktiv
             </label>
+          </div>
+
+          <div className="form-group">
+            <label>
+              <input
+                type="checkbox"
+                checked={formData.requiresPasswordChange}
+                onChange={(e) => setFormData({ ...formData, requiresPasswordChange: e.target.checked })}
+                style={{ width: 'auto', marginRight: '10px' }}
+              />
+              Passwort ändern erforderlich
+            </label>
+            <small style={{ display: 'block', color: '#666', fontSize: '12px', marginTop: '4px' }}>
+              Benutzer muss beim nächsten Login das Passwort ändern
+            </small>
           </div>
 
           <div className="form-group">
