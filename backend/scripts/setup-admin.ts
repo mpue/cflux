@@ -35,7 +35,6 @@ async function setupAdmin() {
         firstName: 'System',
         lastName: 'Administrator',
         role: 'ADMIN',
-        vacationDays: 30,
         isActive: true,
         requiresPasswordChange: true, // User must change password on first login
       },
