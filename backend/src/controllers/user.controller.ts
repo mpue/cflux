@@ -127,6 +127,15 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
             },
           },
         },
+        supervisorId: true,
+        supervisor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
         employeeProfile: {
           select: {
             id: true,
@@ -186,6 +195,23 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
         role: true,
         isActive: true,
         createdAt: true,
+        supervisorId: true,
+        supervisor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        subordinates: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
         employeeProfile: {
           select: {
             id: true,
@@ -217,6 +243,60 @@ export const getUserById = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const getOrgChart = async (req: AuthRequest, res: Response) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        supervisorId: true,
+        jobFunctionId: true,
+        jobFunction: {
+          select: {
+            id: true,
+            title: true,
+            department: true,
+          },
+        },
+        employeeProfile: {
+          select: {
+            id: true,
+            position: true,
+            department: true,
+            departmentId: true,
+            departmentRef: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    });
+
+    const departments = await prisma.department.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    res.json({ users, departments });
+  } catch (error) {
+    console.error('Get org chart error:', error);
+    res.status(500).json({ error: 'Failed to get org chart data' });
+  }
+};
+
 export const updateUser = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -230,7 +310,7 @@ export const updateUser = async (req: AuthRequest, res: Response) => {
       'iban', 'bankName', 'bic', 'civilStatus', 'religion',
       'ahvNumber', 'healthInsurance', 'isCrossBorderCommuter', 'taxId', 'taxClass',
       'socialSecurityNumber', 'emergencyContactName', 'emergencyContactPhone', 'emergencyContactRelation',
-      'department', 'position', 'supervisorId', 'salaryEncrypted',
+      'department', 'position', 'salaryEncrypted',
       'weeklyHours', 'contractHours', 'hourlyRate', 'canton', 'exemptFromTracking', 'vacationDays'
     ];
     
@@ -403,6 +483,28 @@ export const changePassword = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ error: 'Failed to change password' });
+  }
+};
+
+export const getSubordinates = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const subordinates = await prisma.user.findMany({
+      where: { supervisorId: id, isActive: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+      },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    });
+    res.json(subordinates);
+  } catch (error) {
+    console.error('Get subordinates error:', error);
+    res.status(500).json({ error: 'Failed to get subordinates' });
   }
 };
 

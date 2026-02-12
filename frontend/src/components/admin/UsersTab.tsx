@@ -221,6 +221,7 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
               <th>Telefon</th>
               <th>Ort</th>
               <th>Eintrittsdatum</th>
+              <th>Vorgesetzte/r</th>
               <th>Rolle</th>
               <th>Status</th>
               <th>Aktionen</th>
@@ -229,7 +230,7 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={10} style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+                <td colSpan={11} style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
                   Keine Benutzer gefunden
                 </td>
               </tr>
@@ -243,6 +244,7 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
                 <td>{user.employeeProfile?.mobile || user.mobile || user.employeeProfile?.phone || user.phone || '-'}</td>
                 <td>{user.employeeProfile?.city || user.city || '-'}</td>
                 <td>{(user.employeeProfile?.entryDate || user.entryDate) ? new Date(user.employeeProfile?.entryDate || user.entryDate!).toLocaleDateString('de-DE') : '-'}</td>
+                <td>{user.supervisor ? `${user.supervisor.firstName} ${user.supervisor.lastName}` : '-'}</td>
                 <td>{user.role}</td>
                 <td>{user.isActive ? 'Aktiv' : 'Inaktiv'}</td>
                 <td>

@@ -50,6 +50,7 @@ import equipmentTrainingRoutes from './routes/equipment-training.routes';
 import jobFunctionRoutes from './routes/jobFunction.routes';
 import checklistRoutes from './routes/checklist.routes';
 import newsRoutes from './routes/news.routes';
+import departmentRoutes from './routes/department.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -135,6 +136,7 @@ app.use('/api/equipment-training', equipmentTrainingRoutes);
 app.use('/api/job-functions', jobFunctionRoutes);
 app.use('/api/checklists', checklistRoutes);
 app.use('/api/news', newsRoutes);
+app.use('/api/departments', departmentRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

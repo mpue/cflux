@@ -51,6 +51,19 @@ export interface User {
   isActive: boolean;
   requiresPasswordChange?: boolean;
   userGroupId?: string; // Deprecated: kept for backwards compatibility
+  supervisorId?: string;
+  supervisor?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  subordinates?: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  }>;
   userGroupMemberships?: Array<{
     userGroup: {
       id: string;

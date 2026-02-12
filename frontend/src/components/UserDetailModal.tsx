@@ -11,6 +11,7 @@ interface UserDetailModalProps {
 export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose, onSave }) => {
   const [activeSection, setActiveSection] = useState<'basic' | 'personal' | 'contact' | 'employment' | 'banking' | 'compliance'>('basic');
   const [jobFunctions, setJobFunctions] = useState<JobFunction[]>([]);
+  const [allUsers, setAllUsers] = useState<Array<{ id: string; firstName: string; lastName: string; email: string }>>([]);
   
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -33,6 +34,19 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
       }
     };
     loadJobFunctions();
+  }, []);
+
+  useEffect(() => {
+    // Load all users for supervisor dropdown
+    const loadUsers = async () => {
+      try {
+        const response = await api.get('/users/list');
+        setAllUsers(response.data);
+      } catch (error) {
+        console.error('Failed to load users:', error);
+      }
+    };
+    loadUsers();
   }, []);
 
   const [formData, setFormData] = useState({
@@ -65,6 +79,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
     entryDate: user.employeeProfile?.entryDate ? user.employeeProfile.entryDate.split('T')[0] : (user.entryDate ? user.entryDate.split('T')[0] : ''),
     exitDate: user.employeeProfile?.exitDate ? user.employeeProfile.exitDate.split('T')[0] : (user.exitDate ? user.exitDate.split('T')[0] : ''),
     jobFunctionId: (user as any).jobFunctionId || '',
+    supervisorId: user.supervisorId || '',
     
     // Bankverbindung
     iban: user.employeeProfile?.iban || user.iban || '',
@@ -96,8 +111,14 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
     
     const dataToSend: any = { ...formData };
     
-    // Leere Felder entfernen
+    // supervisorId: leerer String → null senden (Vorgesetzter entfernen)
+    if (dataToSend.supervisorId === '') {
+      dataToSend.supervisorId = null;
+    }
+    
+    // Leere Felder entfernen (außer supervisorId, da null explizit gewollt)
     Object.keys(dataToSend).forEach(key => {
+      if (key === 'supervisorId') return;
       if (dataToSend[key] === '' || dataToSend[key] === null) {
         delete dataToSend[key];
       }
@@ -374,6 +395,22 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
           value={formData.exitDate}
           onChange={(e) => setFormData({ ...formData, exitDate: e.target.value })}
         />
+      </div>
+      <div className="form-group">
+        <label>Vorgesetzte/r</label>
+        <select
+          value={formData.supervisorId}
+          onChange={(e) => setFormData({ ...formData, supervisorId: e.target.value })}
+        >
+          <option value="">Kein Vorgesetzter</option>
+          {allUsers
+            .filter(u => u.id !== user.id)
+            .map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.firstName} {u.lastName} ({u.email})
+              </option>
+            ))}
+        </select>
       </div>
     </>
   );

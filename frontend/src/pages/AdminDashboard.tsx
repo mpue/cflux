@@ -41,14 +41,17 @@ import {
   DevicesTab,
   TravelExpensesTab,
   OrdersTab,
-  ELearningManagementTab
+  ELearningManagementTab,
+  DepartmentsTab
 } from '../components/admin';
 import OnboardingTab from '../components/admin/OnboardingTab';
+import OrgChartTab from '../components/admin/OrgChartTab';
 import ChecklistsTab from '../components/admin/ChecklistsTab';
 import JobFunctionsTab from '../components/admin/JobFunctionsTab';
 import NewsTab from '../components/AdminTabs/NewsTab';
 import { TimeBookingsReport } from '../components/admin/TimeBookingsReport';
 import { UserTimeBookingsReport } from '../components/admin/UserTimeBookingsReport';
+import BusinessReportTab from '../components/admin/BusinessReportTab';
 import WorkflowsTab from '../components/admin/WorkflowsTab';
 import WorkflowActionsTab from '../components/admin/WorkflowActionsTab';
 import SystemLogsTab from '../components/admin/SystemLogsTab';
@@ -65,7 +68,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists' | 'news';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists' | 'news';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -157,6 +160,8 @@ const AdminDashboard: React.FC = () => {
       articleGroups: 'Artikelgruppen',
       customers: 'Kunden',
       suppliers: 'Lieferanten',
+      departments: 'Abteilungen',
+      orgChart: 'Organigramm',
       reports: 'Berichte',
       compliance: 'Compliance',
       devices: 'Geräte',
@@ -168,6 +173,7 @@ const AdminDashboard: React.FC = () => {
       reminders: 'Mahnungen',
       timeBookings: 'Zeitbuchungen',
       userTimeBookings: 'Benutzer-Zeitbuchungen',
+      businessReport: 'Geschäftsbericht',
       backup: 'Backup',
       modules: 'Module',
       modulePermissions: 'Modulberechtigungen',
@@ -436,7 +442,7 @@ const AdminDashboard: React.FC = () => {
             <div className="tab-navigation">
             {/* Benutzerverwaltung */}
             {(() => {
-              const groupCheck = shouldShowGroup('Benutzer Teams', ['Benutzer', 'Gruppen', 'Standorte']);
+              const groupCheck = shouldShowGroup('Benutzer Teams', ['Benutzer', 'Gruppen', 'Standorte', 'Organigramm']);
               return groupCheck.show && (
             <div className="tab-group">
               <div 
@@ -470,6 +476,13 @@ const AdminDashboard: React.FC = () => {
                       active={activeTab === 'locations'}
                       onClick={() => changeTab('locations')}
                       label="📍 Standorte"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('departments')) && (groupCheck.showAll || matchesSearch('Organigramm')) && (
+                    <TabButton
+                      active={activeTab === 'orgChart'}
+                      onClick={() => changeTab('orgChart')}
+                      label="🏗️ Organigramm"
                     />
                   )}
                 </>
@@ -593,7 +606,7 @@ const AdminDashboard: React.FC = () => {
 
             {/* Stammdaten */}
             {(() => {
-              const groupCheck = shouldShowGroup('Stammdaten', ['Kunden', 'Lieferanten', 'Bestellungen', 'Artikelgruppen', 'Artikel', 'Geräte', 'Kostenstellen', 'Lagerbestand', 'Inventar']);
+              const groupCheck = shouldShowGroup('Stammdaten', ['Kunden', 'Lieferanten', 'Abteilungen', 'Bestellungen', 'Artikelgruppen', 'Artikel', 'Geräte', 'Kostenstellen', 'Lagerbestand', 'Inventar']);
               return groupCheck.show && (
             <div className="tab-group">
               <div 
@@ -620,6 +633,13 @@ const AdminDashboard: React.FC = () => {
                       active={activeTab === 'suppliers'}
                       onClick={() => changeTab('suppliers')}
                       label="🚚 Lieferanten"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('departments')) && (groupCheck.showAll || matchesSearch('Abteilungen')) && (
+                    <TabButton
+                      active={activeTab === 'departments'}
+                      onClick={() => changeTab('departments')}
+                      label="🏢 Abteilungen"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('orders')) && (groupCheck.showAll || matchesSearch('Bestellungen')) && (
@@ -755,6 +775,13 @@ const AdminDashboard: React.FC = () => {
                       active={activeTab === 'userTimeBookings'}
                       onClick={() => changeTab('userTimeBookings')}
                       label="👤 Stunden (User)"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('reports')) && (groupCheck.showAll || matchesSearch('Geschäftsbericht')) && (
+                    <TabButton
+                      active={activeTab === 'businessReport'}
+                      onClick={() => changeTab('businessReport')}
+                      label="📈 Geschäftsbericht"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('compliance')) && (groupCheck.showAll || matchesSearch('Compliance')) && (
@@ -895,6 +922,8 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'news' && <NewsTab onUpdate={loadData} />}
             {activeTab === 'customers' && <CustomersTab customers={customers} onUpdate={loadData} />}
             {activeTab === 'suppliers' && <SuppliersTab suppliers={suppliers} onUpdate={loadData} />}
+            {activeTab === 'departments' && <DepartmentsTab onUpdate={loadData} />}
+            {activeTab === 'orgChart' && <OrgChartTab onUpdate={loadData} />}
             {activeTab === 'orders' && <OrdersTab suppliers={suppliers} onUpdate={loadData} />}
             {activeTab === 'articleGroups' && <ArticleGroupsTab articleGroups={articleGroups} onUpdate={loadData} />}
             {activeTab === 'articles' && <ArticlesTab articles={articles} articleGroups={articleGroups} onUpdate={loadData} />}
@@ -906,6 +935,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'reports' && <ReportsTab reports={reports} />}
             {activeTab === 'timeBookings' && <TimeBookingsReport />}
             {activeTab === 'userTimeBookings' && <UserTimeBookingsReport />}
+            {activeTab === 'businessReport' && <BusinessReportTab />}
             {activeTab === 'backup' && <BackupTab />}
             {activeTab === 'vacationPlanner' && <VacationPlanner />}
             {activeTab === 'holidays' && <HolidaysTab />}

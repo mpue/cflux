@@ -50,12 +50,20 @@ async function seedModules() {
       sortOrder: 4,
     },
     {
+      name: 'Abteilungen',
+      key: 'departments',
+      description: 'Abteilungsverwaltung',
+      icon: 'business',
+      route: '/departments',
+      sortOrder: 5,
+    },
+    {
       name: 'Artikel',
       key: 'articles',
       description: 'Artikel- und Produktverwaltung',
       icon: 'inventory',
       route: '/articles',
-      sortOrder: 5,
+      sortOrder: 6,
     },
     {
       name: 'Rechnungen',
