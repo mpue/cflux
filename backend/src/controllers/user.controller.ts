@@ -257,6 +257,7 @@ export const getOrgChart = async (req: AuthRequest, res: Response) => {
         lastName: true,
         email: true,
         role: true,
+        avatarUrl: true,
         supervisorId: true,
         jobFunctionId: true,
         jobFunction: {

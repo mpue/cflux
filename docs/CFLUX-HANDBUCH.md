@@ -1,9 +1,44 @@
-# CFlux ERP & Zeitmanagement System
-## Umfassendes Benutzerhandbuch
+<div style="page-break-after: always; text-align: center; padding-top: 60px;">
 
-**Version 2.0 | Januar 2026**
+<br>
+
+<img src="../web/logo.png" height="256px">
+
+<br>
+
+# CFlux
+
+## ERP & Zeitmanagement System
 
 ---
+
+### Umfassendes Benutzerhandbuch
+
+<br><br>
+
+**Version 2.1**
+
+**Februar 2026**
+
+<br><br><br>
+
+| | |
+|---|---|
+| **Produkt** | CFlux ERP & Zeitmanagement |
+| **Dokumenttyp** | Benutzerhandbuch |
+| **Version** | 2.1 |
+| **Datum** | 14. Februar 2026 |
+| **Sprache** | Deutsch |
+| **Zielgruppe** | Mitarbeiter, Administratoren, HR |
+| **Vertraulichkeit** | Intern |
+
+<br><br>
+
+*© 2026 CFlux Software GmbH — Alle Rechte vorbehalten.*
+
+</div>
+
+<div style="page-break-after: always;"></div>
 
 ## 📑 Inhaltsverzeichnis
 
@@ -63,26 +98,42 @@
 
 ### 11. [Administration](#11-administration)
    - [Benutzerverwaltung](#benutzerverwaltung)
+   - [Benutzer-Avatar](#benutzer-avatar)
    - [Benutzergruppen](#benutzergruppen)
    - [Berechtigungen](#berechtigungen)
+   - [Abteilungen](#abteilungen)
+   - [Organigramm](#organigramm)
    - [Modulverwaltung](#modulverwaltung)
+   - [Stellenfunktionen](#stellenfunktionen)
    - [System-Einstellungen](#system-einstellungen)
+   - [System-Logs](#system-logs)
 
 ### 12. [Weitere Module](#12-weitere-module)
    - [Intranet](#intranet)
+   - [Bestellungen](#bestellungen)
+   - [Checklisten](#checklisten)
+   - [News-Verwaltung](#news-verwaltung)
+   - [Medien](#medien)
    - [Incident Management (EHS)](#incident-management-ehs)
    - [Stammdaten](#stammdaten)
+   - [Geräte](#geräte)
+   - [Kostenstellen](#kostenstellen)
+   - [Lagerbestand](#lagerbestand)
    - [Lohnabrechnung](#lohnabrechnung)
+   - [Mahnwesen](#mahnwesen)
    - [Reisekosten](#reisekosten)
    - [Workflows](#workflows)
    - [Compliance](#compliance)
+   - [Standorte](#standorte)
+   - [Geschäftsbericht](#geschäftsbericht)
+   - [Projektplanung](#projektplanung)
 
 ### 13. [Tipps & Tricks](#13-tipps--tricks)
    - [Tastenkombinationen](#tastenkombinationen)
    - [Best Practices](#best-practices)
    - [Häufige Fragen](#häufige-fragen)
 
----
+<div style="page-break-before: always;"></div>
 
 # 1. Einführung
 
@@ -96,14 +147,25 @@ CFlux ist ein umfassendes **Enterprise Resource Planning (ERP) System** mit Foku
 
 ✅ **Zeiterfassung** - Präzise Arbeitszeiterfassung mit Ein-/Ausstempeln  
 ✅ **Projektmanagement** - Projekte verwalten und Zeit darauf buchen  
+✅ **Projektplanung** - Gantt-Diagramme und Meilensteinplanung  
 ✅ **Urlaubsverwaltung** - Urlaubsanträge stellen und genehmigen  
 ✅ **Abwesenheitsmanagement** - Krankmeldungen und andere Abwesenheiten  
 ✅ **Bewerber-Portal** - Online-Bewerbungen und Onboarding  
 ✅ **E-Learning** - Kurse, Lektionen, Quizzes und Zertifikate  
 ✅ **Nachrichten** - Internes Kommunikationssystem  
+✅ **Bestellungen** - Bestellwesen mit mehrstufigem Workflow  
+✅ **Checklisten** - Vorlagenbasierte Prüflisten und Aufgabenlisten  
+✅ **News-Verwaltung** - Interne Nachrichten und Ankündigungen  
+✅ **Medien** - Zentrale Medienverwaltung und Galerie  
 ✅ **Reporting** - Umfassende Statistiken und Auswertungen  
 ✅ **Rechnungswesen** - Rechnungen mit Schweizer QR-Code  
 ✅ **Compliance** - Automatische Überwachung gesetzlicher Vorgaben  
+✅ **Intranet** - Dokumentenverwaltung mit Versionierung  
+✅ **Kostenstellen** - Kostenstellenverwaltung und -zuordnung  
+✅ **Lagerbestand** - Inventar- und Bestandsverwaltung  
+✅ **Geräte** - Geräteverwaltung und -zuordnung  
+✅ **Organigramm** - Visuelle Organisationsstruktur mit Avataren  
+✅ **Benutzer-Avatare** - Profilbilder mit automatischer Größenanpassung  
 
 ### Für wen ist CFlux?
 
@@ -141,18 +203,33 @@ CFlux besteht aus mehreren integrierten Modulen:
 | **Urlaub** | Urlaubsanträge, Genehmigungen | Alle |
 | **Abwesenheiten** | Krankmeldungen, sonstige Abwesenheiten | Alle |
 | **Projekte** | Projektverwaltung, Zeitauswertung | Alle/Admin |
+| **Projektplanung** | Gantt-Diagramme, Meilensteinplanung | Admin |
 | **Bewerber** | Online-Bewerbungen, Onboarding | HR/Admin |
 | **E-Learning** | Kurse, Quizzes, Zertifikate | Alle |
 | **Nachrichten** | Interne Kommunikation | Alle |
+| **Bestellungen** | Bestellwesen mit 8-Stufen-Workflow | Alle/Admin |
+| **Checklisten** | Vorlagenbasierte Prüflisten | Alle |
+| **News** | Interne Nachrichten und Ankündigungen | Alle/Admin |
+| **Medien** | Medienverwaltung und Galerie | Alle |
 | **Rechnungen** | Rechnungserstellung, QR-Code | Admin |
+| **Mahnwesen** | Zahlungserinnerungen | Admin |
 | **Reports** | Statistiken und Auswertungen | Alle/Admin |
+| **Geschäftsbericht** | Unternehmenskennzahlen | Admin |
 | **Intranet** | Dokumentenverwaltung | Alle |
 | **EHS** | Arbeitssicherheit, Vorfälle | EHS-Team |
 | **Stammdaten** | Kunden, Lieferanten, Artikel | Admin |
+| **Geräte** | Geräteverwaltung und -zuordnung | Admin |
+| **Kostenstellen** | Kostenstellen verwalten | Admin |
+| **Lagerbestand** | Inventar- und Bestandsverwaltung | Admin |
 | **Lohnabrechnung** | Lohndaten, Abrechnungen | HR |
 | **Reisekosten** | Spesenerfassung | Alle |
 | **Workflows** | Automatisierte Prozesse | Admin |
 | **Compliance** | Gesetzliche Vorgaben | Admin |
+| **Standorte** | Mehrere Firmenstandorte verwalten | Admin |
+| **Abteilungen** | Organisationsstruktur | Admin |
+| **Organigramm** | Visuelle Darstellung mit Avataren | Alle |
+| **Stellenfunktionen** | Berufsbezeichnungen verwalten | Admin |
+| **System-Logs** | Systemprotokollierung | Admin |
 
 ## Erste Schritte
 
@@ -160,7 +237,7 @@ CFlux besteht aus mehreren integrierten Modulen:
 
 Beim ersten Aufruf von CFlux sehen Sie die Landing Page:
 
-![Landing Page](../web/kickstart/dashboard.png)
+![Landing Page](../web/kickstart/landing_page.png)
 
 **Zwei Wege ins System:**
 
@@ -239,7 +316,7 @@ Nach der Anmeldung sehen Sie Ihr persönliches Dashboard:
 - Mindestens 1 Kleinbuchstabe
 - Mindestens 1 Zahl
 
----
+<div style="page-break-before: always;"></div>
 
 # 2. Bewerbung & Onboarding
 
@@ -412,7 +489,7 @@ Wenn Sie zu einem Interview eingeladen werden:
 - Bereiten Sie sich auf das Gespräch vor
 - Seien Sie pünktlich!
 
----
+<div style="page-break-before: always;"></div>
 
 # 3. Zeiterfassung
 
@@ -602,7 +679,7 @@ Im Dashboard sehen Sie:
 
 ![Zeitmodell zuweisen](../web/kickstart/zeitmodell_zuweisen.png)
 
----
+<div style="page-break-before: always;"></div>
 
 # 4. Urlaubsverwaltung
 
@@ -764,7 +841,7 @@ Total verfügbar:     28 Tage
 - 25. Dezember ist Weihnachten (Feiertag)
 - → Nur 5 Urlaubstage werden abgezogen, nicht 6!
 
----
+<div style="page-break-before: always;"></div>
 
 # 5. Abwesenheiten
 
@@ -918,7 +995,7 @@ Falls in Ihrer Firma Home Office gemeldet werden muss:
 - Nach Zeitraum
 - Nach Status
 
----
+<div style="page-break-before: always;"></div>
 
 # 6. E-Learning
 
@@ -935,7 +1012,7 @@ CFlux beinhaltet eine vollständige E-Learning-Plattform für interne Schulungen
 1. Navigieren Sie zu **"E-Learning"** im Menü
 2. Sie sehen den **Kurskatalog**
 
-![Kursliste](../web/kickstart/course_list.png)
+![Kursliste](../web/kickstart/courcde_list.png)
 
 **Kurs-Informationen:**
 - 📚 **Kurstitel**
@@ -1191,7 +1268,7 @@ Wenn Sie:
 **Zertifikat erneut herunterladen:**
 - Klicken Sie auf **"📥 Download"** neben dem gewünschten Kurs
 
----
+<div style="page-break-before: always;"></div>
 
 # 7. Nachrichten-System
 
@@ -1391,7 +1468,7 @@ Die Zahl **(3)** zeigt **3 ungelesene Nachrichten** an.
 - Alle Nachrichten gelesen sind
 - Oder: Nachrichten als gelesen markiert wurden
 
----
+<div style="page-break-before: always;"></div>
 
 # 8. Projektverwaltung
 
@@ -1523,7 +1600,7 @@ Verwalten Sie Projekte und buchen Sie Ihre Arbeitszeit darauf.
 
 ✅ **Datei wird heruntergeladen!**
 
----
+<div style="page-break-before: always;"></div>
 
 # 9. Rechnungswesen
 
@@ -1705,7 +1782,7 @@ Bei Rechnungen mit **Währung = CHF**:
 - Überfällige Rechnungen werden **rot** markiert
 - Automatische Erinnerungs-E-Mails (falls konfiguriert)
 
----
+<div style="page-break-before: always;"></div>
 
 # 10. Reporting & Statistiken
 
@@ -1764,7 +1841,7 @@ Umfassende Reports und Statistiken für Auswertungen.
 
 Als Administrator haben Sie Zugriff auf Team-weite Reports:
 
-![Mitarbeiter-Reports](../web/kickstart/reporting_mitarbeiter.png)
+![Mitarbeiter-Reports](../web/kickstart/reoorting_mitarbeiter.png)
 
 ### Mitarbeiter-Übersicht
 
@@ -1885,7 +1962,7 @@ Als Administrator haben Sie Zugriff auf Team-weite Reports:
 - Universell lesbar
 - Für Import in andere Software
 
----
+<div style="page-break-before: always;"></div>
 
 # 11. Administration
 
@@ -1893,7 +1970,31 @@ Für Administratoren: Verwaltung des gesamten Systems.
 
 ## Benutzerverwaltung
 
-![Benutzerverwaltung](../web/kickstart/benutzerverwaltung.png)
+![Benutzerverwaltung - Tabellenansicht](../web/kickstart/benutzerverwaltung.png)
+
+![Benutzerverwaltung - Kartenansicht](../web/kickstart/user_cards.png)
+
+### Ansichtsmodus
+
+**Die Benutzerliste unterstützt zwei Ansichtsmodi:**
+
+- **☰ Tabellenansicht** - Klassische Listendarstellung mit allen Details
+- **▦ Kartenansicht** - Visuelle Karten mit Avatar, Name, Rolle und Status (Standardansicht)
+
+**Zwischen Ansichten wechseln:**
+
+1. Oben rechts neben der Suchleiste finden Sie die **Umschalter-Buttons** (☰ / ▦)
+2. Klicken Sie auf das gewünschte **Symbol**
+3. Die Ansicht wechselt sofort
+
+**Kartenansicht zeigt pro Benutzer:**
+- 🖼️ **Avatar** (Profilbild oder Initialen-Platzhalter, 72px)
+- 👤 **Vorname und Nachname**
+- 📧 **E-Mail-Adresse**
+- 🏷️ **Rolle** (ADMIN / USER, farblich hervorgehoben)
+- ✅/🚫 **Status** (Aktiv / Inaktiv)
+- 🏢 **Abteilung** und **Standort**
+- 🔧 **Aktionsbuttons** (Bearbeiten, Passwort zurücksetzen, etc.)
 
 ### Benutzer erstellen
 
@@ -1959,6 +2060,55 @@ Für Administratoren: Verwaltung des gesamten Systems.
 
 ✅ **Benutzer muss Passwort beim nächsten Login ändern!**
 
+## Benutzer-Avatar
+
+### Avatar hochladen
+
+**Profilbild für einen Benutzer hochladen:**
+
+1. Öffnen Sie das **Benutzer-Detail** (Klick auf Bearbeiten-Button)
+2. Im Tab **"Basis"** sehen Sie oben den **Avatar-Bereich**
+3. Klicken Sie auf **"📷 Avatar hochladen"**
+4. Wählen Sie ein **Bild** von Ihrem Computer
+
+**Automatische Verarbeitung:**
+- 🔄 Das Bild wird automatisch auf **200 × 200 Pixel** zugeschnitten
+- 📐 Bilder werden zentriert und proportional beschnitten (*cover-crop*)
+- 🖼️ Konvertierung ins effiziente **WebP-Format** (Qualität 85%)
+- 📁 Speicherung unter `uploads/avatars/`
+
+**Unterstützte Formate:**
+- JPEG / JPG
+- PNG
+- WebP
+- GIF
+
+**Maximale Dateigröße:** 5 MB (vor Verarbeitung)
+
+✅ **Avatar wird sofort in der Kartenansicht und im Organigramm angezeigt!**
+
+### Avatar löschen
+
+**Bestehendes Profilbild entfernen:**
+
+1. Öffnen Sie das **Benutzer-Detail**
+2. Neben dem aktuellen Avatar: Klicken Sie auf **"🗑️ Avatar löschen"**
+3. Das Bild wird entfernt
+
+✅ **Statt des Bildes werden wieder die Initialen angezeigt!**
+
+### Avatar-Anzeige
+
+**Der Avatar wird an folgenden Stellen angezeigt:**
+
+- 👤 **Benutzer-Kartenansicht** (72px, rund)
+- 🏗️ **Organigramm** (in jedem Knoten)
+- 📋 **Benutzer-Detail-Modal** (großes Vorschaubild)
+- 🔝 **Navigation** (falls konfiguriert)
+
+**Ohne Avatar:**
+- Es werden die **Initialen** des Benutzers (Vorname + Nachname) als farbiger Platzhalter angezeigt
+
 ## Benutzergruppen
 
 ![Benutzergruppen](../web/kickstart/benutzergruppen.png)
@@ -2014,8 +2164,6 @@ Für Administratoren: Verwaltung des gesamten Systems.
 
 ### Beispiel: HR-Gruppe
 
-**Typische Berechtigungen für HR:**
-
 | Modul | Ansehen | Erstellen | Bearbeiten | Löschen |
 |-------|---------|-----------|-----------|---------|
 | **Zeiterfassung** | ✅ | ❌ | ✅ | ❌ |
@@ -2026,9 +2174,62 @@ Für Administratoren: Verwaltung des gesamten Systems.
 | **E-Learning** | ✅ | ✅ | ✅ | ✅ |
 | **Rechnungen** | ❌ | ❌ | ❌ | ❌ |
 
+## Abteilungen
+
+![Abteilungen](../web/kickstart/admin_abteilungen.png)
+
+**Abteilungen strukturieren Ihre Organisation:**
+
+### Abteilung erstellen
+
+1. Gehen Sie zu **"Verwaltung" → Tab "Abteilungen"**
+2. Klicken Sie auf **"+ Neue Abteilung"**
+3. Geben Sie ein:
+   - **Name:** z.B. "Entwicklung", "Vertrieb", "HR"
+   - **Beschreibung:** Zweck der Abteilung
+   - **Leiter:** Verantwortliche Person (optional)
+4. Klicken Sie auf **"Erstellen"**
+
+### Mitarbeiter zuweisen
+
+1. Im **Benutzer-Detail** (Bearbeiten)
+2. Wählen Sie die **Abteilung** im Dropdown-Feld
+3. Speichern
+
+✅ **Der Mitarbeiter erscheint nun in der entsprechenden Abteilung im Organigramm!**
+
+## Organigramm
+
+![Organigramm](../web/kickstart/admin_organigramm.png)
+
+**Visuelle Darstellung der Organisationsstruktur:**
+
+### Organigramm anzeigen
+
+1. Gehen Sie zu **"Verwaltung" → Tab "Organigramm"**
+2. Das Organigramm wird als **Baumstruktur** dargestellt
+
+**Pro Knoten sehen Sie:**
+- 🖼️ **Avatar** (Profilbild oder Initialen)
+- 👤 **Name** des Mitarbeiters
+- 🏢 **Abteilung**
+- 📋 **Stellenfunktion**
+- 🔗 **Berichtslinien** (Vorgesetzter → Mitarbeiter)
+
+### Hierarchie verwalten
+
+**Berichtslinien festlegen:**
+
+1. Im **Benutzer-Detail** (Bearbeiten)
+2. Wählen Sie den **Vorgesetzten** im Dropdown-Feld
+3. Speichern
+4. Die Hierarchie wird automatisch im Organigramm aktualisiert
+
+✅ **Avatare werden direkt in den Organigramm-Knoten angezeigt!**
+
 ## Modulverwaltung
 
-![Module](../web/kickstart/module.png)
+![Module](../web/kickstart/admin_module.png)
 
 ### Module aktivieren/deaktivieren
 
@@ -2171,7 +2372,56 @@ Tab: **"Backup"**
 
 ⚠️ **Nur in Notfällen verwenden!**
 
----
+## Stellenfunktionen
+
+![Stellenfunktionen](../web/kickstart/admin_funktionen.png)
+
+**Berufsbezeichnungen und Stellenfunktionen verwalten:**
+
+### Funktion erstellen
+
+1. Gehen Sie zu **"Verwaltung" → Tab "Funktionen"**
+2. Klicken Sie auf **"+ Neue Funktion"**
+3. Geben Sie ein:
+   - **Bezeichnung:** z.B. "Software-Entwickler", "Projektleiter", "Team Lead"
+   - **Beschreibung:** Aufgabenbeschreibung (optional)
+4. Klicken Sie auf **"Erstellen"**
+
+### Funktion zuweisen
+
+1. Im **Benutzer-Detail** (Bearbeiten)
+2. Wählen Sie die **Stellenfunktion** im Dropdown-Feld
+3. Speichern
+
+✅ **Die Funktion wird im Organigramm und in der Kartenansicht angezeigt!**
+
+## System-Logs
+
+![System-Logs](../web/kickstart/admin_system_logs.png)
+
+**Systemprotokollierung für Administratoren:**
+
+### Logs einsehen
+
+1. Gehen Sie zu **"Verwaltung" → Tab "System-Logs"**
+2. Sie sehen chronologisch alle System-Ereignisse
+
+**Protokollierte Aktionen:**
+- 🔑 **Login-Versuche** (erfolgreich/fehlgeschlagen)
+- 👤 **Benutzer-Änderungen** (Erstellen, Bearbeiten, Deaktivieren)
+- ⏱️ **Zeiteinträge** (Korrekturen, Löschungen)
+- 📋 **Modul-Zugriffe** und Berechtigungsänderungen
+- 🔧 **System-Konfigurationsänderungen**
+
+**Filter:**
+- Nach Datum/Zeitraum
+- Nach Benutzer
+- Nach Aktion/Typ
+- Nach Schweregrad
+
+✅ **Wichtig für Audit-Trail und Compliance-Nachweis!**
+
+<div style="page-break-before: always;"></div>
 
 # 12. Weitere Module
 
@@ -2195,6 +2445,159 @@ CFlux beinhaltet viele weitere spezialisierte Module:
 - Prozess-Dokumentationen
 - Formulare und Vorlagen
 - Anleitungen und Handbücher
+
+## Bestellungen
+
+![Bestellungen](../web/kickstart/bestellungen.png)
+
+**Bestellwesen mit mehrstufigem Workflow:**
+
+### Bestellung erstellen
+
+1. Navigieren Sie zu **"Bestellungen"** im Menü
+2. Klicken Sie auf **"+ Neue Bestellung"**
+3. Füllen Sie das Formular aus:
+   - 🏭 **Lieferant:** Lieferant auswählen
+   - 📝 **Beschreibung:** Bestellgrund
+   - 📦 **Positionen:** Artikel, Menge, Einzelpreis
+4. Klicken Sie auf **"Erstellen"**
+
+✅ **Bestellnummer wird automatisch generiert (Format: BO-XXXXXX)!**
+
+### 8-Stufen-Workflow
+
+Jede Bestellung durchläuft einen strukturierten Workflow:
+
+| Stufe | Status | Beschreibung |
+|-------|--------|--------------|
+| 1 | **Entwurf** (Draft) | Bestellung in Bearbeitung |
+| 2 | **Angefragt** (Requested) | Bestellung eingereicht |
+| 3 | **Genehmigt** (Approved) | Von Vorgesetztem genehmigt |
+| 4 | **Bestellt** (Ordered) | Beim Lieferanten bestellt |
+| 5 | **Teillieferung** (Partially Received) | Teilweise geliefert |
+| 6 | **Erhalten** (Received) | Vollständig geliefert |
+| 7 | **Storniert** (Cancelled) | Bestellung abgebrochen |
+| 8 | **Abgelehnt** (Rejected) | Nicht genehmigt |
+
+### Lieferungen erfassen
+
+**Bei Teillieferungen:**
+
+1. Öffnen Sie die **Bestellung**
+2. Klicken Sie auf **"📦 Lieferung erfassen"**
+3. Geben Sie **gelieferte Mengen** pro Position ein
+4. Klicken Sie auf **"Speichern"**
+
+✅ **Status wechselt automatisch zu "Teillieferung" oder "Erhalten"!**
+
+### Bestellübersicht (Admin)
+
+![Admin Bestellungen](../web/kickstart/admin_bestellungen.png)
+
+In der Verwaltung sehen Admins:
+- 📊 Alle Bestellungen mit Status-Filter
+- 💰 Gesamtwerte und Budgets
+- 📅 Liefertermine
+- ✅ Genehmigungsaktionen
+
+## Checklisten
+
+![Checklisten](../web/kickstart/checklisten.png)
+
+**Vorlagenbasierte Prüflisten und Aufgabenlisten:**
+
+### Vorlagen erstellen (Admin)
+
+![Admin Checklisten](../web/kickstart/admin_checklisten.png)
+
+1. Navigieren Sie zu **"Checklisten"** im Menü
+2. Klicken Sie auf **"+ Neue Vorlage"**
+3. Füllen Sie aus:
+   - **Titel:** z.B. "Tägliche Sicherheitsprüfung"
+   - **Beschreibung:** Zweck der Checkliste
+   - **Kategorie:** Zuordnung
+4. Fügen Sie **Prüfpunkte** hinzu:
+   - 📝 Bezeichnung des Prüfpunkts
+   - ✅ Typ (Checkbox, Text-Eingabe, Ja/Nein)
+   - ⚠️ Pflichtfeld (Ja/Nein)
+5. Klicken Sie auf **"Speichern"**
+
+### Checkliste ausfüllen
+
+1. Navigieren Sie zu **"Checklisten"**
+2. Klicken Sie auf **"+ Neue Checkliste"** (aus Vorlage)
+3. Wählen Sie eine **Vorlage** aus
+4. Füllen Sie alle **Prüfpunkte** aus:
+   - ✅ Checkboxen abhaken
+   - 📝 Textfelder ausfüllen
+   - 📎 Anhänge hinzufügen (optional)
+5. Klicken Sie auf **"Abschließen"**
+
+✅ **Die ausgefüllte Checkliste wird gespeichert und ist für Admins einsehbar!**
+
+### Checklisten-Übersicht
+
+- 📋 Alle erstellten und abgeschlossenen Checklisten
+- 📊 Fortschrittsanzeige (X von Y Punkten erledigt)
+- 📅 Filter nach Datum, Vorlage, Bearbeiter
+- 📥 Export als PDF
+
+## News-Verwaltung
+
+![News](../web/kickstart/admin_news.png)
+
+**Interne Nachrichten und Ankündigungen für alle Mitarbeiter:**
+
+### News erstellen (Admin)
+
+1. Gehen Sie zu **"Verwaltung" → Tab "News"**
+2. Klicken Sie auf **"+ Neuer Beitrag"**
+3. Füllen Sie aus:
+   - 📋 **Titel:** Überschrift des Beitrags
+   - 📝 **Inhalt:** Rich-Text mit Formatierung
+   - 🏷️ **Kategorie:** z.B. "Allgemein", "HR", "IT"
+   - 📅 **Veröffentlichungsdatum**
+   - 📌 **Angeheftet:** Wichtige Beiträge oben fixieren
+4. Klicken Sie auf **"Veröffentlichen"**
+
+### News anzeigen
+
+- News erscheinen auf dem **Dashboard** und/oder im **Menü**
+- Neue Beiträge werden markiert
+- Ältere Beiträge sind chronologisch sortiert
+
+### News bearbeiten/löschen
+
+1. In der **News-Verwaltung** (Admin)
+2. Klicken Sie auf **"✏️ Bearbeiten"** oder **"🗑️ Löschen"**
+
+## Medien
+
+![Medien](../web/kickstart/medien.png)
+
+**Zentrale Medienverwaltung und Galerie:**
+
+### Medien hochladen
+
+1. Navigieren Sie zu **"Medien"** im Menü
+2. Klicken Sie auf **"+ Hochladen"**
+3. Wählen Sie **Dateien** aus (Bilder, PDFs, Dokumente)
+4. Optional: **Titel** und **Beschreibung** ergänzen
+5. Klicken Sie auf **"Hochladen"**
+
+**Unterstützte Dateitypen:**
+- 🖼️ Bilder (JPEG, PNG, WebP, GIF, SVG)
+- 📄 Dokumente (PDF, DOC, DOCX, XLS, XLSX)
+- 📹 Videos (MP4, WebM)
+- 📁 Weitere Dateiformate
+
+### Medien verwalten
+
+- 🔍 **Suche:** Nach Dateinamen oder Beschreibung
+- 📁 **Kategorien:** Medien nach Typ filtern
+- 📥 **Download:** Dateien herunterladen
+- 🗑️ **Löschen:** Nicht mehr benötigte Medien entfernen
+- 📋 **Details:** Dateigröße, Format, Hochladedatum
 
 ## Incident Management (EHS)
 
@@ -2250,6 +2653,98 @@ CFlux beinhaltet viele weitere spezialisierte Module:
 
 ![Stammdaten Artikelgruppen](../web/kickstart/stammdaten_artikelgruppen.png)
 
+## Geräte
+
+![Geräte](../web/kickstart/admin_geraete.png)
+
+**Geräteverwaltung und -zuordnung:**
+
+### Gerät erfassen
+
+1. Gehen Sie zu **"Verwaltung" → Tab "Geräte"**
+2. Klicken Sie auf **"+ Neues Gerät"**
+3. Füllen Sie aus:
+   - 📋 **Bezeichnung:** z.B. "MacBook Pro 16 Zoll"
+   - 🔢 **Seriennummer**
+   - 🏷️ **Kategorie:** Laptop, Monitor, Telefon, etc.
+   - 📅 **Anschaffungsdatum**
+   - 💰 **Anschaffungswert**
+   - 📍 **Standort**
+4. Klicken Sie auf **"Erstellen"**
+
+### Gerät zuweisen
+
+1. In der **Geräteliste:** Klicken Sie auf ein Gerät
+2. Wählen Sie **"Zuweisen"**
+3. Wählen Sie den **Mitarbeiter** aus
+4. Speichern
+
+**Geräteinformationen:**
+- 👤 **Zugewiesen an:** Aktueller Nutzer
+- 📅 **Zuweisungsdatum**
+- 📊 **Status:** Verfügbar, Zugewiesen, In Reparatur, Ausgemustert
+- 📝 **Notizen:** Zustand, Zubehör, etc.
+
+✅ **Vollständige Nachverfolgbarkeit aller Firmengeräte!**
+
+## Kostenstellen
+
+![Kostenstellen](../web/kickstart/admin_kostenstellen.png)
+
+**Kostenstellenverwaltung für die Buchhaltung:**
+
+### Kostenstelle erstellen
+
+1. Gehen Sie zu **"Verwaltung" → Tab "Kostenstellen"** oder direkt zur **Kostenstellen-Seite**
+2. Klicken Sie auf **"+ Neue Kostenstelle"**
+3. Füllen Sie aus:
+   - 🔢 **Nummer:** Kostenstellennummer (z.B. 1000, 2000)
+   - 📋 **Bezeichnung:** z.B. "Verwaltung", "Produktion", "Vertrieb"
+   - 📝 **Beschreibung:** Erläuterung (optional)
+   - 👤 **Verantwortlicher:** Kostenstellenleiter
+4. Klicken Sie auf **"Erstellen"**
+
+### Kostenstellen zuordnen
+
+Kostenstellen können zugeordnet werden zu:
+- 👤 **Mitarbeiter** (über Benutzer-Detail)
+- 📁 **Projekte** (über Projekt-Einstellungen)
+- 📦 **Bestellungen** (bei Bestellerfassung)
+- 🧾 **Rechnungen** (bei Rechnungspositionen)
+
+✅ **Ermöglicht detaillierte Kostenauswertungen pro Kostenstelle!**
+
+## Lagerbestand
+
+![Lagerbestand](../web/kickstart/admin_lagerbestand.png)
+
+**Inventar- und Bestandsverwaltung:**
+
+### Bestand einsehen
+
+1. Gehen Sie zu **"Verwaltung" → Tab "Lagerbestand"**
+2. Sie sehen alle **Artikel mit aktuellem Bestand**
+
+**Angezeigt werden:**
+- 📦 **Artikel:** Name und Nummer
+- 🔢 **Aktueller Bestand:** Stückzahl
+- ⚠️ **Mindestbestand:** Schwellenwert
+- 📊 **Status:** OK / Niedrig / Kritisch (farbcodiert)
+- 📍 **Lagerort**
+
+### Bestandsbewegungen
+
+- **Wareneingang:** Bestand erhöhen (z.B. bei Lieferung)
+- **Warenausgang:** Bestand reduzieren (z.B. bei Verbrauch)
+- **Inventur:** Bestand manuell korrigieren
+- **Umlagerung:** Zwischen Lagerorten verschieben
+
+### Bestandswarnungen
+
+- ⚠️ Bei Unterschreiten des **Mindestbestands** wird eine Warnung angezeigt
+- 📧 Optional: Automatische E-Mail-Benachrichtigung
+- 📊 Bestandshistorie und Verlaufsdiagramme
+
 ## Lohnabrechnung
 
 ![Lohnabrechnung](../web/kickstart/lohnabrechnung.png)
@@ -2267,6 +2762,35 @@ CFlux beinhaltet viele weitere spezialisierte Module:
 - Monatliche Lohnabrechnung
 - Jahresabschlüsse
 - Lohnausweise für Steuerbehörden
+
+## Mahnwesen
+
+![Mahnwesen](../web/kickstart/admin_mahnwesen.png)
+
+**Automatisiertes Mahnwesen für überfällige Rechnungen:**
+
+### Mahnstufen
+
+CFlux unterstützt ein mehrstufiges Mahnsystem:
+
+| Stufe | Tage nach Fälligkeit | Aktion |
+|-------|---------------------|--------|
+| **Erinnerung** | 7 Tage | Freundliche Zahlungserinnerung |
+| **1. Mahnung** | 14 Tage | Erste Mahnung |
+| **2. Mahnung** | 30 Tage | Zweite Mahnung mit Gebühr |
+| **3. Mahnung** | 45 Tage | Letzte Mahnung vor Inkasso |
+
+### Mahnungen verwalten
+
+1. Gehen Sie zu **"Verwaltung" → Tab "Mahnwesen"**
+2. Sie sehen alle **überfälligen Rechnungen**
+3. **Aktionen:**
+   - 📧 **Mahnung senden** (E-Mail)
+   - 📄 **Mahnung als PDF** generieren
+   - ✅ **Als bezahlt markieren**
+   - 📝 **Notiz hinzufügen**
+
+✅ **Überfällige Rechnungen werden automatisch erkannt und markiert!**
 
 ## Reisekosten
 
@@ -2335,17 +2859,92 @@ CFlux beinhaltet viele weitere spezialisierte Module:
 
 ## Standorte
 
-![Standorte](../web/kickstart/standorte.png)
+![Standorte - Tabellenansicht](../web/kickstart/standorte.png)
 
-**Mehrere Firmenstandorte:**
+![Standorte - Kartenansicht](../web/kickstart/locations.png)
 
-- 📍 Standorte definieren
-- 👥 Mitarbeiter zuweisen
-- 🎉 Feiertage pro Standort (kantonal)
-- ⏰ Zeitmodelle pro Standort
-- 📊 Auswertungen pro Standort
+**Mehrere Firmenstandorte verwalten:**
 
----
+### Standort erstellen
+
+1. Gehen Sie zu **"Verwaltung" → Tab "Standorte"**
+2. Klicken Sie auf **"+ Neuer Standort"**
+3. Füllen Sie aus:
+   - 📍 **Name:** z.B. "Hauptsitz Zürich", "Filiale Bern"
+   - 🏢 **Adresse:** Strasse, PLZ, Ort
+   - 🇨🇭 **Kanton:** Für kantonale Feiertage
+   - 📞 **Telefon** (optional)
+   - 📧 **E-Mail** (optional)
+4. Klicken Sie auf **"Erstellen"**
+
+### Standort-Funktionen
+
+- 📍 **Standorte definieren** - Mehrere Büros/Filialen verwalten
+- 👥 **Mitarbeiter zuweisen** - Im Benutzer-Detail den Standort setzen
+- 🎉 **Feiertage pro Standort** - Kantonale Feiertage automatisch zuordnen
+- ⏰ **Zeitmodelle pro Standort** - Unterschiedliche Arbeitszeiten
+- 📊 **Auswertungen pro Standort** - Standort-spezifische Reports
+
+### Ansichtsmodus
+
+**Auch Standorte unterstützen Tabellen- und Kartenansicht:**
+- **☰ Tabellenansicht** - Kompakte Liste
+- **▦ Kartenansicht** - Visuelle Karten mit Standort-Details
+
+![Admin Standorte](../web/kickstart/admin_standorte.png)
+
+## Geschäftsbericht
+
+![Geschäftsbericht](../web/kickstart/admin_geschaeftsbericht.png)
+
+**Unternehmenskennzahlen auf einen Blick:**
+
+### Bericht einsehen
+
+1. Gehen Sie zu **"Verwaltung" → Tab "Geschäftsbericht"**
+2. Sie sehen eine Zusammenfassung der wichtigsten Kennzahlen
+
+**Verfügbare Kennzahlen:**
+- 👥 **Mitarbeiter:** Gesamtzahl, aktive/inaktive
+- ⏱️ **Arbeitsstunden:** Gesamt, Durchschnitt pro Mitarbeiter
+- 📁 **Projekte:** Aktive, abgeschlossene
+- 💰 **Umsatz:** Fakturiert, offen, überfällig
+- 📊 **Auslastung:** Team-Auslastungsquote
+- 🏥 **Abwesenheiten:** Krankenquote, Urlaubsquote
+- 📈 **Trends:** Vergleich zu Vormonat/-jahr
+
+**Zeitraum wählen:**
+- Monat, Quartal, Jahr oder benutzerdefiniert
+
+## Projektplanung
+
+![Projektplanung](../web/kickstart/admin_projektplanung.png)
+
+**Erweiterte Projektplanung mit Gantt-Diagrammen:**
+
+### Projektplan erstellen
+
+1. Navigieren Sie zu **"Projektplanung"** oder **"Verwaltung" → Tab "Projektplanung"**
+2. Wählen Sie ein **Projekt** aus
+3. Erstellen Sie **Meilensteine** und **Aufgaben**
+
+**Planungsfunktionen:**
+- 📊 **Gantt-Diagramm** - Visuelle Zeitplanung
+- 🎯 **Meilensteine** - Wichtige Projektziele
+- 📋 **Aufgaben** - Detaillierte Arbeitspakete
+- 🔗 **Abhängigkeiten** - Aufgaben verknüpfen
+- 👤 **Zuweisungen** - Mitarbeiter zuordnen
+- 📅 **Zeitachse** - Start-/Enddaten pro Aufgabe
+- 💰 **Budgetplanung** - Kosten pro Arbeitspaket
+
+### Fortschritt verfolgen
+
+- ✅ Aufgaben als erledigt markieren
+- 📊 Fortschrittsbalken pro Aufgabe und Meilenstein
+- 🔴 Verzögerungen werden farblich hervorgehoben
+- 📧 Automatische Benachrichtigungen bei Fristüberschreitungen
+
+<div style="page-break-before: always;"></div>
 
 # 13. Tipps & Tricks
 
@@ -2538,12 +3137,18 @@ CFlux beinhaltet viele weitere spezialisierte Module:
 ### 🤔 Wie lade ich mein Profilbild hoch?
 
 **Lösung:**
-1. Gehen Sie zu **"Mein Profil"**
-2. Klicken Sie auf das **Standard-Avatar-Bild**
-3. Wählen Sie ein **Bild** von Ihrem Computer (max. 2 MB)
-4. Das Bild wird **automatisch hochgeladen**
+1. Wenden Sie sich an Ihren **Administrator**
+2. Admin öffnet Ihr **Benutzer-Detail** (Verwaltung → Benutzer → Bearbeiten)
+3. Im Tab **"Basis"** klickt der Admin auf **"📷 Avatar hochladen"**
+4. Ein **Bild** wird ausgewählt (JPEG, PNG, WebP, GIF)
+5. Das Bild wird **automatisch** auf **200 × 200 Pixel** zugeschnitten und ins WebP-Format konvertiert
 
-**Empfohlenes Format:** Quadratisch, mind. 200x200px, JPEG oder PNG
+**Ergebnis:**
+- Ihr Avatar erscheint in der **Benutzer-Kartenansicht** (72px, rund)
+- Ihr Avatar wird im **Organigramm** angezeigt
+- Ohne Avatar werden Ihre **Initialen** als Platzhalter verwendet
+
+**Empfohlenes Format:** Quadratisch, mind. 200×200px, JPEG oder PNG (max. 5 MB)
 
 ---
 
@@ -2739,6 +3344,25 @@ CFlux erfüllt die **Datenschutz-Grundverordnung (DSGVO)**:
 
 ## Änderungshistorie
 
+**Version 2.1 - Februar 2026**
+- ✅ Benutzer-Avatare mit automatischer Größenanpassung (200×200px, WebP)
+- ✅ Kartenansicht für Benutzerliste (umschaltbar mit Tabellenansicht)
+- ✅ Avatar-Anzeige im Organigramm
+- ✅ Bestellungen mit 8-Stufen-Workflow (BO-XXXXXX)
+- ✅ Checklisten-Modul (Vorlagen und Instanzen)
+- ✅ News-Verwaltung für interne Ankündigungen
+- ✅ Medien-Modul (zentrale Medienverwaltung)
+- ✅ Geräte-Verwaltung und -Zuordnung
+- ✅ Kostenstellen-Verwaltung
+- ✅ Lagerbestand und Inventar-Modul
+- ✅ Stellenfunktionen-Verwaltung
+- ✅ Mahnwesen für überfällige Rechnungen
+- ✅ Geschäftsbericht mit Unternehmenskennzahlen
+- ✅ Projektplanung mit Gantt-Diagrammen
+- ✅ System-Logs für Audit-Trail
+- ✅ Abteilungsverwaltung
+- ✅ Erweiterte Standortverwaltung mit Kartenansicht
+
 **Version 2.0 - Januar 2026**
 - ✅ Bewerber-Portal und Onboarding hinzugefügt
 - ✅ E-Learning-Plattform integriert
@@ -2757,7 +3381,7 @@ CFlux erfüllt die **Datenschutz-Grundverordnung (DSGVO)**:
 ## Impressum
 
 **CFlux ERP & Zeitmanagement System**  
-Version 2.0
+Version 2.1
 
 © 2026 CFlux Software GmbH  
 Alle Rechte vorbehalten.
@@ -2767,12 +3391,30 @@ E-Mail: info@cflux.ch
 Web: www.cflux.ch  
 Telefon: +41 XX XXX XX XX
 
----
+<div style="page-break-before: always;"></div>
 
 # Ende des Handbuchs
 
-Vielen Dank, dass Sie CFlux nutzen! 🎉
+<div style="text-align: center; padding-top: 100px;">
+
+<br><br><br>
+
+## Vielen Dank, dass Sie CFlux nutzen! 🎉
+
+<br>
 
 Bei Fragen oder Anregungen wenden Sie sich gerne an Ihren Administrator oder unseren Support.
 
+<br><br>
+
 **Viel Erfolg mit CFlux!** 💼⏱️
+
+<br><br><br>
+
+---
+
+*CFlux ERP & Zeitmanagement System*  
+*Version 2.1 — Februar 2026*  
+*© 2026 CFlux Software GmbH*
+
+</div>

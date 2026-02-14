@@ -3,9 +3,9 @@
 # cflux - Micro ERP and Swiss Compliant Time Tracking System
 ## Executive Summary für die Geschäftsleitung
 
-**Berichtsdatum:** 12. Februar 2026  
-**Version:** 1.3  
-**Status:** Production with Org Management
+**Berichtsdatum:** 14. Februar 2026  
+**Version:** 1.4  
+**Status:** Production with Org Management & Avatar Support
 
 ---
 
@@ -1539,7 +1539,10 @@ Die folgenden Dokumente enthalten detaillierte technische Informationen:
 
 ### Benutzerverwaltung
 ![Benutzer](../web/kickstart/benutzerverwaltung.png)  
-**Benutzer** - Mitarbeiterverwaltung
+**Benutzer** - Mitarbeiterverwaltung (Tabellenansicht)
+
+![Benutzer-Karten](../web/kickstart/user_cards.png)  
+**Benutzer-Karten** - Kartenansicht mit Avataren (Standardansicht)
 
 ![Gruppen](../web/kickstart/benutzergruppen.png)  
 **Gruppen** - Gruppenverwaltung
@@ -1578,10 +1581,10 @@ Die folgenden Dokumente enthalten detaillierte technische Informationen:
 **Compliance** - ArG-Überwachung
 
 ### Abteilungen & Organigramm (NEU - Februar 2026)
-![Organigramm](../kickstart/admin_organigramm.png)  
+![Organigramm](../web/kickstart/admin_organigramm.png)  
 **Organigramm** - Interaktive Organisationsstruktur mit Drag & Drop
 
-![Abteilungen](../kickstart/admin_abteilungen.png)  
+![Abteilungen](../web/kickstart/admin_abteilungen.png)  
 **Abteilungen** - Abteilungsverwaltung mit Mitarbeiter-Zuweisung
 
 **Features:**
@@ -1592,7 +1595,7 @@ Die folgenden Dokumente enthalten detaillierte technische Informationen:
 - Vorgesetzten-Hierarchie beliebiger Tiefe
 
 ### Onboarding & HR (NEU - Januar 2026)
-![Onboarding](../kickstart/admin_onboarding.png)  
+![Onboarding](../web/kickstart/admin_onboarding.png)  
 **Onboarding** - Admin-Panel mit Onboarding-Verwaltung
 
 **Features:**
@@ -1642,7 +1645,10 @@ Die folgenden Dokumente enthalten detaillierte technische Informationen:
 **Artikelgruppen** - Kategorisierung
 
 ![Standorte](../web/kickstart/standorte.png)  
-**Standorte** - Standortverwaltung
+**Standorte** - Standortverwaltung (Tabellenansicht)
+
+![Standorte-Karten](../web/kickstart/locations.png)  
+**Standorte-Karten** - Kartenansicht mit Details
 
 ### Weitere Module
 ![Feiertage](../web/kickstart/feiertage.png)  
@@ -1667,13 +1673,82 @@ Die folgenden Dokumente enthalten detaillierte technische Informationen:
 ![System-Einstellungen](../web/kickstart/system_einstellungen.png)  
 **System-Einstellungen** - Konfiguration
 
+### Weitere Admin-Module
+![Zeiteinträge](../web/kickstart/admin_zeiteintraege.png)  
+**Zeiteinträge** - Zentrale Stundenübersicht
+
+![Mahnwesen](../web/kickstart/admin_mahnwesen.png)  
+**Mahnwesen** - Mahnungen verwalten
+
+![Geräte](../web/kickstart/admin_geraete.png)  
+**Geräteverwaltung** - IT-Inventar
+
+![Kostenstellen](../web/kickstart/admin_kostenstellen.png)  
+**Kostenstellen** - Kostenstellenverwaltung
+
+![Lagerbestand](../web/kickstart/admin_lagerbestand.png)  
+**Inventar & Lagerbestand** - Bestände verwalten
+
+![Projektplanung](../web/kickstart/admin_projektplanung.png)  
+**Projektplanung** - Gantt-Diagramm & Milestones
+
+![Analytics](../web/kickstart/admin_analytics.png)  
+**Analytics** - Erweiterte Auswertungen
+
+![Stunden alle](../web/kickstart/admin_stunden_alle.png)  
+**Stunden (Alle)** - Team-Stundenübersicht
+
+![Stunden User](../web/kickstart/admin_stunden_user.png)  
+**Stunden (Mitarbeiter)** - Einzelne Mitarbeiter-Auswertung
+
+![Geschäftsbericht](../web/kickstart/admin_geschaeftsbericht.png)  
+**Geschäftsbericht** - Management-Report
+
+![Workflow-Actions](../web/kickstart/admin_workflow_actions.png)  
+**Workflow-Actions** - Workflow-Regeln & Trigger
+
+![System-Logs](../web/kickstart/admin_system_logs.png)  
+**System-Logs** - Protokollierung & Audit
+
+![Funktionen](../web/kickstart/admin_funktionen.png)  
+**Job-Funktionen** - Stellenprofile
+
+![Checklisten](../web/kickstart/admin_checklisten.png)  
+**Checklisten** - Vorlagen & Zuweisungen
+
+![News](../web/kickstart/admin_news.png)  
+**Unternehmensnews** - Nachrichten & Ankündigungen
+
+### Benutzerseiten
+![Profil](../web/kickstart/profil.png)  
+**Profil** - Persönliches Benutzerprofil
+
+![EHS-Dashboard](../web/kickstart/ehs_dashboard.png)  
+**EHS-Dashboard** - Sicherheits- & Umweltmanagement
+
+![Medien](../web/kickstart/medien.png)  
+**Medien** - Medienbibliothek
+
+![Bestellungen](../web/kickstart/bestellungen.png)  
+**Bestellungen** - Bestellübersicht
+
+![Checklisten Benutzer](../web/kickstart/checklisten.png)  
+**Meine Checklisten** - Aufgaben & Checklisten
+
+### Login & Landing
+![Login](../web/kickstart/login.png)  
+**Login** - Anmeldeseite
+
+![Landing Page](../web/kickstart/landing_page.png)  
+**Landing Page** - Startseite
+
 ### Interaktive Präsentation
 Eine vollständige, interaktive Präsentation mit allen Screenshots ist verfügbar unter:
 - `web/kickstart/presentation.html` - Klickbare Bildergalerie mit Beschreibungen
 
 ---
 
-**Erstellt am:** 12. Februar 2026  
-**Version:** 1.3  
+**Erstellt am:** 14. Februar 2026  
+**Version:** 1.4  
 **Autor:** Matthias Püski / Aquist GmbH Schweiz  
 **Status:** Production with Org Management

@@ -9,6 +9,7 @@ interface OrgUser {
   lastName: string;
   email: string;
   role: string;
+  avatarUrl?: string;
   supervisorId: string | null;
   jobFunction?: {
     id: string;
@@ -457,12 +458,20 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
             {/* Avatar */}
             <div style={{
               width: 36, height: 36, borderRadius: '50%',
-              background: isHead ? '#28a745' : user.role === 'ADMIN' ? '#ffc107' : '#007bff',
+              background: user.avatarUrl ? 'transparent' : (isHead ? '#28a745' : user.role === 'ADMIN' ? '#ffc107' : '#007bff'),
               color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 'bold', fontSize: '13px', flexShrink: 0,
-              position: 'relative',
+              position: 'relative', overflow: 'hidden',
             }}>
-              {user.firstName[0]}{user.lastName[0]}
+              {user.avatarUrl ? (
+                <img
+                  src={`${process.env.REACT_APP_API_URL?.replace('/api', '') || window.location.origin}/${user.avatarUrl}`}
+                  alt={`${user.firstName} ${user.lastName}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <>{user.firstName[0]}{user.lastName[0]}</>
+              )}
               {isHead && (
                 <span style={{
                   position: 'absolute', top: -6, right: -4,

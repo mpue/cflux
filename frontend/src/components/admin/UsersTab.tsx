@@ -428,20 +428,21 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
           >
             {/* Card Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div style={{
-                  width: '48px',
-                  height: '48px',
+                  width: '72px',
+                  height: '72px',
                   borderRadius: '50%',
                   backgroundColor: user.avatarUrl ? 'transparent' : (user.isActive ? '#e3f2fd' : '#fce4ec'),
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '20px',
+                  fontSize: '26px',
                   fontWeight: 600,
                   color: user.isActive ? '#1565c0' : '#c62828',
                   flexShrink: 0,
                   overflow: 'hidden',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                 }}>
                   {user.avatarUrl ? (
                     <img

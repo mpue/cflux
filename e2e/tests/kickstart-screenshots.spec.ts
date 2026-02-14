@@ -13,7 +13,7 @@ import fs from 'fs';
  *   npx playwright test e2e/tests/kickstart-screenshots.spec.ts --project=chromium
  */
 
-const SCREENSHOT_DIR = path.resolve(__dirname, '../../kickstart');
+const SCREENSHOT_DIR = path.resolve(__dirname, '../../web/kickstart');
 
 // Alle Admin-Tabs mit sprechenden Screenshot-Namen
 const ADMIN_TABS: { tab: string; name: string; waitFor?: string }[] = [
@@ -101,6 +101,9 @@ test.describe('Kickstart Screenshots - Alle Tabs und Seiten', () => {
   // ----- Admin-Panel Tabs -----
   for (const { tab, name, waitFor } of ADMIN_TABS) {
     test(`Admin Tab: ${name}`, async ({ adminPage }) => {
+      // Höhere Auflösung setzen
+      await adminPage.setViewportSize({ width: 1920, height: 1080 });
+
       // Navigiere zum Tab
       await adminPage.goto(`/#/admin?tab=${tab}`);
       await adminPage.waitForLoadState('networkidle');
@@ -129,6 +132,9 @@ test.describe('Kickstart Screenshots - Alle Tabs und Seiten', () => {
   // ----- Standalone-Seiten -----
   for (const { path: pagePath, name, waitFor } of STANDALONE_PAGES) {
     test(`Seite: ${name}`, async ({ adminPage }) => {
+      // Höhere Auflösung setzen
+      await adminPage.setViewportSize({ width: 1920, height: 1080 });
+
       await adminPage.goto(`/#${pagePath}`);
       await adminPage.waitForLoadState('networkidle');
       await adminPage.waitForTimeout(1500);
@@ -152,6 +158,7 @@ test.describe('Kickstart Screenshots - Alle Tabs und Seiten', () => {
 
   // ----- Login-Seite (ohne Auth) -----
   test('Login-Seite', async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto('/#/login');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
@@ -164,6 +171,7 @@ test.describe('Kickstart Screenshots - Alle Tabs und Seiten', () => {
 
   // ----- Landing Page (ohne Auth) -----
   test('Landing Page', async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto('/#/');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
