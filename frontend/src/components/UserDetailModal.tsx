@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, JobFunction } from '../types';
 import api from '../services/api';
+import { userService } from '../services/user.service';
 
 interface UserDetailModalProps {
   user: User;
@@ -12,6 +13,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
   const [activeSection, setActiveSection] = useState<'basic' | 'personal' | 'contact' | 'employment' | 'banking' | 'compliance'>('basic');
   const [jobFunctions, setJobFunctions] = useState<JobFunction[]>([]);
   const [allUsers, setAllUsers] = useState<Array<{ id: string; firstName: string; lastName: string; email: string }>>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(user.avatarUrl);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -132,8 +136,95 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({ user, onClose,
     await onSave(dataToSend);
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const result = await userService.uploadAvatar(user.id, file);
+      setAvatarUrl(result.avatarUrl);
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Hochladen des Avatars');
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
+
+  const handleAvatarDelete = async () => {
+    if (!window.confirm('Avatar wirklich löschen?')) return;
+    try {
+      await userService.deleteAvatar(user.id);
+      setAvatarUrl(undefined);
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Löschen des Avatars');
+    }
+  };
+
+  const getAvatarSrc = (url: string) => {
+    // Build full URL from backend
+    const backendUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || window.location.origin;
+    return `${backendUrl}/${url}`;
+  };
+
   const renderBasicInfo = () => (
     <>
+      {/* Avatar Upload */}
+      <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+        <div
+          onClick={() => avatarInputRef.current?.click()}
+          style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            backgroundColor: avatarUrl ? 'transparent' : '#e3f2fd',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: avatarUrl ? '0' : '28px',
+            fontWeight: 600,
+            color: '#1565c0',
+            cursor: 'pointer',
+            border: '2px dashed #ccc',
+            overflow: 'hidden',
+            flexShrink: 0,
+            position: 'relative',
+          }}
+          title="Klicken zum Ändern"
+        >
+          {avatarUrl ? (
+            <img src={getAvatarSrc(avatarUrl)} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`
+          )}
+          {avatarUploading && (
+            <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>
+              ⏳
+            </div>
+          )}
+        </div>
+        <div>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            style={{ display: 'none' }}
+            onChange={handleAvatarUpload}
+          />
+          <button type="button" className="btn btn-small" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading}>
+            📷 Avatar hochladen
+          </button>
+          {avatarUrl && (
+            <button type="button" className="btn btn-small btn-danger" style={{ marginLeft: '8px' }} onClick={handleAvatarDelete}>
+              Entfernen
+            </button>
+          )}
+          <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#999' }}>
+            Wird automatisch auf 200×200px zugeschnitten
+          </p>
+        </div>
+      </div>
+
       <div className="form-group">
         <label>Vorname *</label>
         <input

@@ -163,6 +163,7 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
   const [payrollHistoryUser, setPayrollHistoryUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -274,8 +275,27 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
           />
           Inaktive anzeigen
         </label>
+        <div style={{ display: 'flex', gap: '2px', border: '1px solid #ccc', borderRadius: '6px', overflow: 'hidden' }}>
+          <button
+            className={`btn btn-small ${viewMode === 'table' ? 'btn-primary' : ''}`}
+            onClick={() => setViewMode('table')}
+            title="Tabellenansicht"
+            style={{ borderRadius: 0, border: 'none', padding: '6px 10px', fontSize: '16px', minWidth: '36px' }}
+          >
+            ☰
+          </button>
+          <button
+            className={`btn btn-small ${viewMode === 'cards' ? 'btn-primary' : ''}`}
+            onClick={() => setViewMode('cards')}
+            title="Kartenansicht"
+            style={{ borderRadius: 0, border: 'none', padding: '6px 10px', fontSize: '16px', minWidth: '36px' }}
+          >
+            ▦
+          </button>
+        </div>
       </div>
 
+      {viewMode === 'table' ? (
       <div className="data-table-wrapper">
         <table className="table">
           <thead>
@@ -386,6 +406,154 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
         </tbody>
       </table>
       </div>
+      ) : (
+      /* Card View */
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+        {filteredUsers.length === 0 && (
+          <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '50px', color: 'var(--text-secondary)' }}>
+            <p style={{ fontSize: '48px', marginBottom: '10px' }}>👤</p>
+            <p>Keine Benutzer gefunden</p>
+          </div>
+        )}
+        {filteredUsers.map((user) => (
+          <div
+            key={user.id}
+            className="card"
+            style={{
+              borderTop: `4px solid ${user.isActive ? '#4CAF50' : '#dc3545'}`,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Card Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  backgroundColor: user.avatarUrl ? 'transparent' : (user.isActive ? '#e3f2fd' : '#fce4ec'),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  color: user.isActive ? '#1565c0' : '#c62828',
+                  flexShrink: 0,
+                  overflow: 'hidden',
+                }}>
+                  {user.avatarUrl ? (
+                    <img
+                      src={`${process.env.REACT_APP_API_URL?.replace('/api', '') || window.location.origin}/${user.avatarUrl}`}
+                      alt={`${user.firstName} ${user.lastName}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <>{user.firstName.charAt(0)}{user.lastName.charAt(0)}</>
+                  )}
+                </div>
+                <div>
+                  <h3 style={{ margin: '0 0 2px 0', fontSize: '16px' }}>{user.firstName} {user.lastName}</h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>{user.email}</p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                <span style={{
+                  padding: '3px 8px',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  backgroundColor: user.role === 'ADMIN' ? '#e8eaf6' : '#f5f5f5',
+                  color: user.role === 'ADMIN' ? '#283593' : '#616161',
+                }}>
+                  {user.role}
+                </span>
+                <span style={{
+                  padding: '3px 8px',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  backgroundColor: user.isActive ? '#d4edda' : '#f8d7da',
+                  color: user.isActive ? '#155724' : '#721c24',
+                }}>
+                  {user.isActive ? 'Aktiv' : 'Inaktiv'}
+                </span>
+              </div>
+            </div>
+
+            {/* Card Details */}
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '12px' }}>
+              {(user.employeeProfile?.employeeNumber || user.employeeNumber) && (
+                <div>🏷️ <strong>Personalnr.:</strong> {user.employeeProfile?.employeeNumber || user.employeeNumber}</div>
+              )}
+              {(user as any).jobFunction?.title && (
+                <div>💼 <strong>Funktion:</strong> {(user as any).jobFunction.title}</div>
+              )}
+              {(user.employeeProfile?.mobile || user.mobile || user.employeeProfile?.phone || user.phone) && (
+                <div>📞 <strong>Telefon:</strong> {user.employeeProfile?.mobile || user.mobile || user.employeeProfile?.phone || user.phone}</div>
+              )}
+              {(user.employeeProfile?.city || user.city) && (
+                <div>📍 <strong>Ort:</strong> {user.employeeProfile?.city || user.city}</div>
+              )}
+              {(user.employeeProfile?.entryDate || user.entryDate) && (
+                <div>📅 <strong>Eintritt:</strong> {new Date(user.employeeProfile?.entryDate || user.entryDate!).toLocaleDateString('de-DE')}</div>
+              )}
+              {user.supervisor && (
+                <div>👤 <strong>Vorgesetzte/r:</strong> {user.supervisor.firstName} {user.supervisor.lastName}</div>
+              )}
+            </div>
+
+            {/* Card Actions */}
+            <div style={{ marginTop: 'auto', paddingTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '6px', borderTop: '1px solid var(--border-color, #eee)' }}>
+              <button
+                className="btn btn-primary btn-small"
+                style={{ fontSize: '12px' }}
+                onClick={() => {
+                  setEditingUser(user);
+                  setShowModal(true);
+                }}
+              >
+                Bearbeiten
+              </button>
+              <button
+                className="btn btn-success btn-small"
+                style={{ fontSize: '12px' }}
+                onClick={() => setPdfReportUser(user)}
+              >
+                PDF
+              </button>
+              <button
+                className="btn btn-warning btn-small"
+                style={{ fontSize: '12px' }}
+                onClick={() => setSalaryConfigUser(user)}
+              >
+                💰 Gehalt
+              </button>
+              <button
+                className="btn btn-info btn-small"
+                style={{ fontSize: '12px' }}
+                onClick={() => setPayrollHistoryUser(user)}
+              >
+                📊 Abr.
+              </button>
+              <button
+                className="btn btn-danger btn-small"
+                style={{ fontSize: '12px' }}
+                onClick={async () => {
+                  if (window.confirm('Benutzer wirklich löschen?')) {
+                    await userService.deleteUser(user.id);
+                    onUpdate();
+                  }
+                }}
+              >
+                Löschen
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      )}
 
       {showModal && editingUser && (
         <UserDetailModal

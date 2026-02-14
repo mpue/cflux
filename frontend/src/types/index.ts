@@ -50,6 +50,7 @@ export interface User {
   role: 'ADMIN' | 'USER';
   isActive: boolean;
   requiresPasswordChange?: boolean;
+  avatarUrl?: string;
   userGroupId?: string; // Deprecated: kept for backwards compatibility
   supervisorId?: string;
   supervisor?: {

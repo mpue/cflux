@@ -93,6 +93,7 @@ model User {
   isActive      Boolean         @default(true)
   requiresPasswordChange Boolean @default(false)
   userGroupId   String?         // Deprecated: wird für Rückwärtskompatibilität beibehalten
+  avatarUrl     String?         // Path to user avatar image
   resetToken    String?         // Password reset token
   resetTokenExpiry DateTime?    // Token expiry time
   

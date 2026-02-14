@@ -3,6 +3,9 @@ import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middleware/auth';
 import bcrypt from 'bcrypt';
 import { actionService } from '../services/action.service';
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs';
 
 const prisma = new PrismaClient();
 
@@ -102,6 +105,7 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
         lastName: true,
         role: true,
         isActive: true,
+        avatarUrl: true,
         createdAt: true,
         userGroupId: true,
         jobFunctionId: true,
@@ -1066,5 +1070,82 @@ export const exportUsers = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Export users error:', error);
     res.status(500).json({ error: 'Failed to export users' });
+  }
+};
+
+export const uploadAvatar = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ error: 'Kein Bild hochgeladen' });
+    }
+
+    // Process image with sharp: resize to 200x200 with cover crop
+    const avatarDir = path.join(__dirname, '../../uploads/avatars');
+    const processedFilename = `avatar-${id}-${Date.now()}.webp`;
+    const processedPath = path.join(avatarDir, processedFilename);
+
+    await sharp(file.path)
+      .resize(200, 200, {
+        fit: 'cover',
+        position: 'centre'
+      })
+      .webp({ quality: 85 })
+      .toFile(processedPath);
+
+    // Remove original uploaded file
+    fs.unlinkSync(file.path);
+
+    // Remove old avatar if exists
+    const user = await prisma.user.findUnique({ where: { id }, select: { avatarUrl: true } });
+    if (user?.avatarUrl) {
+      const oldPath = path.join(__dirname, '../../', user.avatarUrl);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+    }
+
+    // Update user record
+    const avatarUrl = `uploads/avatars/${processedFilename}`;
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { avatarUrl },
+      select: { id: true, avatarUrl: true }
+    });
+
+    res.json(updatedUser);
+  } catch (error) {
+    console.error('Avatar upload error:', error);
+    // Clean up uploaded file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: 'Fehler beim Hochladen des Avatars' });
+  }
+};
+
+export const deleteAvatar = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({ where: { id }, select: { avatarUrl: true } });
+    if (user?.avatarUrl) {
+      const filePath = path.join(__dirname, '../../', user.avatarUrl);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    await prisma.user.update({
+      where: { id },
+      data: { avatarUrl: null }
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Avatar delete error:', error);
+    res.status(500).json({ error: 'Fehler beim Löschen des Avatars' });
   }
 };

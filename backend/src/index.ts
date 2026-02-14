@@ -85,6 +85,7 @@ app.use('/uploads/certificates', express.static(path.join(__dirname, '../uploads
 app.use('/uploads/applicant-documents', express.static(path.join(__dirname, '../uploads/applicant-documents')));
 app.use('/uploads/employee-documents', express.static(path.join(__dirname, '../uploads/employee-documents')));
 app.use('/uploads/handover-protocols', express.static(path.join(__dirname, '../uploads/handover-protocols')));
+app.use('/uploads/avatars', express.static(path.join(__dirname, '../uploads/avatars')));
 
 // Routes
 app.use('/api/auth', authRoutes);

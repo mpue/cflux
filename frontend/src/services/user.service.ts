@@ -64,6 +64,19 @@ export const userService = {
     window.URL.revokeObjectURL(url);
   },
 
+  uploadAvatar: async (userId: string, file: File): Promise<{ id: string; avatarUrl: string }> => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await api.post(`/users/${userId}/avatar`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  deleteAvatar: async (userId: string): Promise<void> => {
+    await api.delete(`/users/${userId}/avatar`);
+  },
+
   importUsers: async (file: File): Promise<{
     success: boolean;
     message: string;
