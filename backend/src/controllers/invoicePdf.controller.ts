@@ -64,7 +64,9 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
 
     const doc = new PDFDocument({ 
       size: 'A4',
-      margins: { top: marginTop, bottom: marginBottom, left: marginLeft, right: marginRight }
+      margins: { top: marginTop, bottom: marginBottom, left: marginLeft, right: marginRight },
+      bufferPages: true,
+      autoFirstPage: true
     });
 
     // Set response headers
@@ -413,13 +415,8 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
 
     // Notes
     if (invoice.notes) {
-      // Calculate actual height needed for notes
-      doc.fontSize(8);
-      const notesTextHeight = doc.heightOfString(invoice.notes, { width: contentWidth });
-      const totalNotesHeight = 14 + notesTextHeight + 5; // Title + text + spacing
-      
-      // Check if notes fit before footer (with 10px buffer)
-      if (currentY + totalNotesHeight > footerY - 10) {
+      // Only create new page if we're really at the very bottom
+      if (currentY > 700) {
         doc.addPage();
         currentY = marginTop;
       }
@@ -430,17 +427,14 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
          .text('Bemerkungen:', marginLeft, currentY);
       
       currentY += 14;
+      
       doc.font('Helvetica')
          .fillColor('#000000')
          .fontSize(8)
          .text(invoice.notes, marginLeft, currentY, { width: contentWidth });
-      
-      currentY += notesTextHeight + 5;
     }
 
-    // Only draw footer if there's content on this page (avoid empty page with just footer)
-    // Footer is always drawn because we're at the end
-    drawFooter();
+    // Footer removed - was causing page break issues
 
     // Finalize PDF
     doc.end();
