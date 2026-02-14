@@ -210,29 +210,35 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
                         color: 'white',
                         border: 'none'
                       }}
-                      onClick={() => {
-                        const API_URL = process.env.REACT_APP_API_URL || '/api';
-                        const token = localStorage.getItem('token');
-                        const url = `${API_URL}/invoices/${invoice.id}/pdf`;
-                        
-                        fetch(url, {
-                          headers: { Authorization: `Bearer ${token}` }
-                        })
-                        .then(response => response.blob())
-                        .then(blob => {
-                          const url = window.URL.createObjectURL(blob);
+                      onClick={async () => {
+                        try {
+                          const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+                          const token = localStorage.getItem('token');
+                          const url = `${API_URL}/invoices/${invoice.id}/pdf`;
+                          
+                          console.log('Downloading PDF from:', url);
+                          
+                          const response = await fetch(url, {
+                            headers: { Authorization: `Bearer ${token}` }
+                          });
+                          
+                          if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                          }
+                          
+                          const blob = await response.blob();
+                          const blobUrl = window.URL.createObjectURL(blob);
                           const a = document.createElement('a');
-                          a.href = url;
+                          a.href = blobUrl;
                           a.download = `Rechnung_${invoice.invoiceNumber}.pdf`;
                           document.body.appendChild(a);
                           a.click();
                           document.body.removeChild(a);
-                          window.URL.revokeObjectURL(url);
-                        })
-                        .catch(error => {
+                          window.URL.revokeObjectURL(blobUrl);
+                        } catch (error) {
                           console.error('Error downloading PDF:', error);
-                          alert('Fehler beim Download der PDF');
-                        });
+                          alert('Fehler beim Download der PDF: ' + (error as Error).message);
+                        }
                       }}
                     >
                       📄 PDF

@@ -2,7 +2,7 @@
 
 <br>
 
-<img src="../web/logo.png" height="256px">
+<img src="../web/logo.png" height="256px" align="center">
 
 <br>
 
@@ -34,7 +34,7 @@
 
 <br><br>
 
-*© 2026 CFlux Software GmbH — Alle Rechte vorbehalten.*
+*© 2026 Matthias Püski — Alle Rechte vorbehalten.*
 
 </div>
 

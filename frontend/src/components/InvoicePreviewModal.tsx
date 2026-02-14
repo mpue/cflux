@@ -26,8 +26,9 @@ const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoice, onCl
     const fetchPdf = async () => {
       try {
         const token = localStorage.getItem('token');
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/invoices/${invoice.id}/pdf`,
+          `${apiUrl}/invoices/${invoice.id}/pdf`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -36,6 +37,7 @@ const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoice, onCl
         );
 
         if (!response.ok) {
+          console.error('PDF fetch failed:', response.status, response.statusText);
           throw new Error('PDF konnte nicht geladen werden');
         }
 
@@ -44,6 +46,7 @@ const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoice, onCl
         setPdfUrl(url);
         setLoading(false);
       } catch (err) {
+        console.error('Error fetching PDF:', err);
         setError('Fehler beim Laden des PDFs');
         setLoading(false);
       }
@@ -56,7 +59,7 @@ const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoice, onCl
         URL.revokeObjectURL(pdfUrl);
       }
     };
-  }, [invoice.id]);
+  }, [invoice.id, pdfUrl]);
 
   const handleDownload = () => {
     const link = document.createElement('a');
