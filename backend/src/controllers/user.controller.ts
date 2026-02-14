@@ -286,6 +286,7 @@ export const getOrgChart = async (req: AuthRequest, res: Response) => {
         id: true,
         name: true,
         description: true,
+        managerId: true,
       },
       orderBy: { name: 'asc' },
     });
@@ -537,5 +538,533 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Delete user error:', error);
     res.status(500).json({ error: 'Failed to delete user' });
+  }
+};
+
+export const importUsers = async (req: AuthRequest, res: Response) => {
+  try {
+    const importData = req.body;
+    
+    if (!importData || !importData.users || !Array.isArray(importData.users)) {
+      return res.status(400).json({ error: 'Invalid import data format. Expected { users: [...] }' });
+    }
+
+    const results = {
+      created: 0,
+      updated: 0,
+      errors: [] as Array<{ email: string; error: string }>,
+      skipped: 0
+    };
+
+    for (const userData of importData.users) {
+      try {
+        // Email is required for identification
+        if (!userData.email) {
+          results.skipped++;
+          continue;
+        }
+
+        // Check if user exists
+        const existingUser = await prisma.user.findUnique({
+          where: { email: userData.email }
+        });
+
+        // Prepare user data (only safe fields)
+        const userUpdateData: any = {
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          role: userData.role || 'USER',
+          isActive: userData.isActive !== undefined ? userData.isActive : true,
+          supervisorId: null // Will be set in second pass
+        };
+
+        // Handle password - only for new users or if explicitly provided
+        if (!existingUser && userData.password) {
+          userUpdateData.password = await bcrypt.hash(userData.password, 10);
+        } else if (!existingUser) {
+          // Generate random password for new users
+          userUpdateData.password = await bcrypt.hash(Math.random().toString(36).slice(-8), 10);
+          userUpdateData.requiresPasswordChange = true;
+        }
+
+        // Prepare employee profile data
+        const employeeData: any = {};
+        const employeeFields = [
+          'dateOfBirth', 'placeOfBirth', 'nationality', 'phone', 'mobile',
+          'street', 'streetNumber', 'zipCode', 'postalCode', 'city', 'country',
+          'employeeNumber', 'startDate', 'entryDate', 'exitDate', 'probationEndDate',
+          'iban', 'bankName', 'bic', 'civilStatus', 'religion',
+          'ahvNumber', 'healthInsurance', 'isCrossBorderCommuter', 'taxId', 'taxClass',
+          'socialSecurityNumber', 'emergencyContactName', 'emergencyContactPhone', 'emergencyContactRelation',
+          'department', 'position',
+          'weeklyHours', 'contractHours', 'hourlyRate', 'canton', 'exemptFromTracking', 'vacationDays'
+        ];
+
+        if (userData.employeeProfile) {
+          for (const field of employeeFields) {
+            if (userData.employeeProfile[field] !== undefined) {
+              employeeData[field] = userData.employeeProfile[field];
+            }
+          }
+
+          // Convert date strings to Date objects
+          const dateFields = ['dateOfBirth', 'entryDate', 'startDate', 'exitDate', 'probationEndDate'];
+          for (const field of dateFields) {
+            if (employeeData[field]) {
+              employeeData[field] = new Date(employeeData[field]);
+            }
+          }
+        }
+
+        let userId: string;
+
+        if (existingUser) {
+          // Update existing user
+          const updatedUser = await prisma.user.update({
+            where: { email: userData.email },
+            data: userUpdateData
+          });
+          userId = updatedUser.id;
+
+          // Update or create employee profile
+          const existingEmployee = await prisma.employee.findUnique({
+            where: { userId }
+          });
+
+          if (existingEmployee && Object.keys(employeeData).length > 0) {
+            await prisma.employee.update({
+              where: { userId },
+              data: {
+                firstName: userUpdateData.firstName,
+                lastName: userUpdateData.lastName,
+                email: userData.email,
+                ...employeeData
+              }
+            });
+          } else if (!existingEmployee && Object.keys(employeeData).length > 0) {
+            await prisma.employee.create({
+              data: {
+                userId,
+                firstName: userUpdateData.firstName,
+                lastName: userUpdateData.lastName,
+                email: userData.email,
+                ...employeeData
+              }
+            });
+          }
+
+          results.updated++;
+        } else {
+          // Create new user
+          const newUser = await prisma.user.create({
+            data: userUpdateData
+          });
+          userId = newUser.id;
+
+          // Create employee profile if data provided
+          if (Object.keys(employeeData).length > 0) {
+            await prisma.employee.create({
+              data: {
+                userId,
+                firstName: userUpdateData.firstName,
+                lastName: userUpdateData.lastName,
+                email: userData.email,
+                ...employeeData
+              }
+            });
+          }
+
+          results.created++;
+        }
+
+        // Handle user group memberships
+        if (userData.userGroupMemberships && Array.isArray(userData.userGroupMemberships)) {
+          // Remove existing memberships
+          await prisma.userGroupMembership.deleteMany({
+            where: { userId }
+          });
+
+          // Add new memberships
+          for (const membership of userData.userGroupMemberships) {
+            if (membership.userGroup && membership.userGroup.name) {
+              // Find group by name
+              const group = await prisma.userGroup.findUnique({
+                where: { name: membership.userGroup.name }
+              });
+
+              if (group) {
+                await prisma.userGroupMembership.create({
+                  data: {
+                    userId,
+                    userGroupId: group.id
+                  }
+                });
+              }
+            }
+          }
+        }
+
+      } catch (userError: any) {
+        results.errors.push({
+          email: userData.email || 'unknown',
+          error: userError.message
+        });
+      }
+    }
+
+    // Second pass: Set supervisor relationships
+    for (const userData of importData.users) {
+      try {
+        if (userData.email && userData.supervisor && userData.supervisor.email) {
+          const user = await prisma.user.findUnique({
+            where: { email: userData.email }
+          });
+
+          const supervisor = await prisma.user.findUnique({
+            where: { email: userData.supervisor.email }
+          });
+
+          if (user && supervisor) {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { supervisorId: supervisor.id }
+            });
+          }
+        }
+      } catch (error) {
+        // Ignore supervisor errors
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Import completed',
+      results
+    });
+
+  } catch (error) {
+    console.error('Import users error:', error);
+    res.status(500).json({ error: 'Failed to import users' });
+  }
+};
+
+export const exportUsers = async (req: AuthRequest, res: Response) => {
+  try {
+    // Fetch all users with complete relations
+    const users = await prisma.user.findMany({
+      include: {
+        // Basic relations
+        employeeProfile: true,
+        userGroup: true,
+        userGroupMemberships: {
+          include: {
+            userGroup: true
+          }
+        },
+        supervisor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        subordinates: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        jobFunction: true,
+        
+        // Time tracking & absences
+        absenceRequests: true,
+        overtimeBalances: true,
+        complianceViolations: true,
+        
+        // Projects
+        projectAssignments: {
+          include: {
+            project: true
+          }
+        },
+        
+        // Incidents & EHS
+        reportedIncidents: true,
+        assignedIncidents: true,
+        assignedEHSTodos: true,
+        createdEHSTodos: true,
+        
+        // Workflows
+        workflowApprovals: {
+          include: {
+            instance: true,
+            step: true,
+            approvedBy: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            }
+          }
+        },
+        
+        // Payroll & salary
+        payrollEntries: true,
+        salaryConfiguration: true,
+        
+        // Devices
+        devices: true,
+        deviceAssignments: {
+          include: {
+            device: true
+          }
+        },
+        
+        // Travel expenses
+        travelExpenses: true,
+        approvedTravelExpenses: true,
+        
+        // Messages
+        sentMessages: {
+          select: {
+            id: true,
+            subject: true,
+            createdAt: true,
+            isRead: true
+          },
+          take: 100 // Limit to avoid huge exports
+        },
+        receivedMessages: {
+          select: {
+            id: true,
+            subject: true,
+            createdAt: true,
+            isRead: true
+          },
+          take: 100
+        },
+        
+        // Documents & intranet
+        createdDocumentNodes: {
+          select: {
+            id: true,
+            title: true,
+            createdAt: true
+          }
+        },
+        updatedDocumentNodes: {
+          select: {
+            id: true,
+            title: true,
+            updatedAt: true
+          }
+        },
+        
+        // Orders
+        requestedOrders: {
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            createdAt: true
+          }
+        },
+        approvedOrders: {
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            approvedAt: true
+          }
+        },
+        rejectedOrders: {
+          select: {
+            id: true,
+            orderNumber: true,
+            status: true,
+            rejectedAt: true
+          }
+        },
+        receivedDeliveries: {
+          select: {
+            id: true,
+            deliveryNumber: true,
+            deliveryDate: true
+          }
+        },
+        
+        // Action logs
+        actionLogs: {
+          select: {
+            id: true,
+            actionKey: true,
+            success: true,
+            createdAt: true
+          },
+          take: 100 // Limit to avoid huge exports
+        },
+        
+        // Cost centers
+        managedCostCenters: {
+          select: {
+            id: true,
+            code: true,
+            name: true
+          }
+        },
+        
+        // Inventory
+        inventoryMovements: {
+          select: {
+            id: true,
+            type: true,
+            quantity: true,
+            createdAt: true
+          }
+        },
+        
+        // Project budgets
+        createdProjectBudgets: {
+          select: {
+            id: true,
+            budgetName: true,
+            totalBudget: true,
+            createdAt: true
+          }
+        },
+        
+        // Dashboard layout
+        dashboardLayout: true,
+        
+        // Time models (Zeitmodelle)
+        mitarbeiterZeitmodelle: {
+          include: {
+            zeitmodell: true
+          }
+        },
+        
+        // E-Learning
+        enrollments: {
+          include: {
+            course: {
+              select: {
+                id: true,
+                title: true
+              }
+            }
+          }
+        },
+        createdCourses: {
+          select: {
+            id: true,
+            title: true,
+            createdAt: true
+          }
+        },
+        
+        // Onboarding
+        supervisedEmployees: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        applicantNotes: true,
+        uploadedEmployeeDocuments: {
+          select: {
+            id: true,
+            documentType: true,
+            fileName: true,
+            uploadedAt: true
+          }
+        },
+        assignedOnboardingTasks: {
+          select: {
+            id: true,
+            title: true,
+            status: true
+          }
+        },
+        completedOnboardingTasks: {
+          select: {
+            id: true,
+            title: true,
+            completedAt: true
+          }
+        },
+        trainingSessions: true,
+        equipmentAssignments: {
+          include: {
+            equipment: true
+          }
+        },
+        
+        // Checklists
+        createdChecklistTemplates: {
+          select: {
+            id: true,
+            name: true,
+            createdAt: true
+          }
+        },
+        userChecklists: {
+          select: {
+            id: true,
+            status: true,
+            startDate: true
+          }
+        },
+        assignedChecklists: {
+          select: {
+            id: true,
+            status: true,
+            startDate: true
+          }
+        },
+        
+        // News
+        createdNewsSources: {
+          select: {
+            id: true,
+            name: true,
+            createdAt: true
+          }
+        },
+        createdNewsItems: {
+          select: {
+            id: true,
+            title: true,
+            createdAt: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
+    const filename = `users_export_${timestamp}.json`;
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    // Send JSON with pretty formatting
+    res.json({
+      exportDate: new Date().toISOString(),
+      totalUsers: users.length,
+      users: users
+    });
+
+  } catch (error) {
+    console.error('Export users error:', error);
+    res.status(500).json({ error: 'Failed to export users' });
   }
 };

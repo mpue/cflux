@@ -6,7 +6,7 @@ const SystemSettingsTab: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<'company' | 'system' | 'backup' | 'email' | 'invoice' | 'features'>('company');
+  const [activeSection, setActiveSection] = useState<'company' | 'system' | 'backup' | 'email' | 'invoice' | 'features' | 'maps'>('company');
   const [testEmailRecipient, setTestEmailRecipient] = useState('');
   const [testingEmail, setTestingEmail] = useState(false);
 
@@ -146,6 +146,12 @@ const SystemSettingsTab: React.FC = () => {
           onClick={() => setActiveSection('features')}
         >
           🎛️ Features
+        </button>
+        <button
+          className={`nav-btn ${activeSection === 'maps' ? 'active' : ''}`}
+          onClick={() => setActiveSection('maps')}
+        >
+          🗺️ Karten
         </button>
       </div>
 
@@ -620,6 +626,48 @@ const SystemSettingsTab: React.FC = () => {
                 </label>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeSection === 'maps' && (
+          <div className="settings-section">
+            <h3>🗺️ Google Maps Konfiguration</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              Konfigurieren Sie den Google Maps API Key, um Standortkarten in der Standortverwaltung anzuzeigen.
+              Sie benötigen einen API Key mit aktivierter <strong>Maps Embed API</strong>.
+            </p>
+            
+            <div className="form-group">
+              <label>Google Maps API Key</label>
+              <input
+                type="password"
+                value={settings.googleMapsApiKey || ''}
+                onChange={(e) => handleChange('googleMapsApiKey', e.target.value)}
+                placeholder="AIza..."
+                autoComplete="off"
+              />
+              <small style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                Erstellen Sie einen API Key unter{' '}
+                <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">
+                  Google Cloud Console
+                </a>
+                {' '}und aktivieren Sie die "Maps Embed API".
+              </small>
+            </div>
+
+            {settings.googleMapsApiKey && (
+              <div style={{ marginTop: '20px' }}>
+                <h4 style={{ marginBottom: '10px' }}>Vorschau</h4>
+                <iframe
+                  title="Google Maps Vorschau"
+                  width="100%"
+                  height="200"
+                  style={{ border: '1px solid var(--border-color)', borderRadius: '8px' }}
+                  loading="lazy"
+                  src={`https://www.google.com/maps/embed/v1/place?key=${settings.googleMapsApiKey}&q=Zürich,Schweiz`}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

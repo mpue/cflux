@@ -160,9 +160,9 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     title: '🌤️ Wetter',
     isVisible: false,
     minW: 3,
-    minH: 4,
+    minH: 6,
     defaultW: 4,
-    defaultH: 4,
+    defaultH: 8,
   },
   {
     id: 'bauhaus-clock',

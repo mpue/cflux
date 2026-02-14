@@ -54,6 +54,9 @@ export interface SystemSettings {
   enableCompliance: boolean;
   enableTimeTracking: boolean;
 
+  // Google Maps
+  googleMapsApiKey?: string;
+
   createdAt: string;
   updatedAt: string;
 }

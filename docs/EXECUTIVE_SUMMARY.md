@@ -3,15 +3,15 @@
 # cflux - Micro ERP and Swiss Compliant Time Tracking System
 ## Executive Summary für die Geschäftsleitung
 
-**Berichtsdatum:** 23. Januar 2026  
-**Version:** 1.2  
-**Status:** Production with Onboarding Module
+**Berichtsdatum:** 12. Februar 2026  
+**Version:** 1.3  
+**Status:** Production with Org Management
 
 ---
 
 ## Management Summary
 
-**cflux** ist ein umfassendes Zeiterfassungs- und Projekt-Management-System, das speziell auf die Anforderungen des Schweizer Arbeitsrechts (ArG/ArGV 1) ausgerichtet ist. Das System integriert Zeiterfassung, Projektmanagement, Budget-Kontrolle, Compliance-Überwachung, **Onboarding & HR-Prozesse**, **E-Learning-System** sowie umfangreiche Reporting-Funktionen in einer modernen Web-Anwendung.
+**cflux** ist ein umfassendes Zeiterfassungs- und Projekt-Management-System, das speziell auf die Anforderungen des Schweizer Arbeitsrechts (ArG/ArGV 1) ausgerichtet ist. Das System integriert Zeiterfassung, Projektmanagement, Budget-Kontrolle, Compliance-Überwachung, **Onboarding & HR-Prozesse**, **E-Learning-System**, **Abteilungsverwaltung mit Organigramm** sowie umfangreiche Reporting-Funktionen in einer modernen Web-Anwendung.
 
 ### Kernziele
 - 🕐 **Rechtssichere Zeiterfassung** nach Schweizer Arbeitsrecht
@@ -19,6 +19,7 @@
 - ⚖️ **Automatisierte Compliance-Prüfung** und Warnsystem
 - 📊 **Professionelle Reports** für Kunden und Management
 - 🔐 **Modulares Berechtigungssystem** für unterschiedliche Benutzergruppen
+- 🏢 **Abteilungen & Organigramm** mit Vorgesetzten-Hierarchie und Cross-Department-Visualisierung (NEU Februar 2026)
 - 👤 **Digitales Onboarding** für neue Mitarbeiter (NEU Januar 2026)
 - 🎓 **E-Learning & Schulungsmanagement** mit Compliance-Integration (NEU Dezember 2025)
 
@@ -55,6 +56,8 @@
 - **Bewerbermanagement** mit Online-Portal (NEU)
 - **Equipment & Schulungstracking** für neue Mitarbeiter (NEU)
 - **E-Learning-System** für Compliance-Schulungen und Weiterbildung (NEU)
+- **Abteilungsverwaltung** mit visueller Organisationsstruktur (NEU)
+- **Organigramm** mit Drag & Drop und Vorgesetzten-Zuordnung (NEU)
 
 ---
 
@@ -683,7 +686,86 @@ Hierarchie (Stundensatz-Ermittlung):
 
 ---
 
-### 14. 📦 Weitere Module
+### 14. 🏢 Abteilungen & Organigramm (NEU: Februar 2026)
+**Status:** ✅ Produktiv
+
+**Überblick:**
+Vollständige Organisations-Verwaltung mit Abteilungen, Vorgesetzten-Hierarchie und interaktivem Organigramm. Ermöglicht die visuelle Darstellung und Bearbeitung der Unternehmensstruktur per Drag & Drop, inklusive abteilungsübergreifender Beziehungen.
+
+**Kernfunktionen:**
+
+#### A) Abteilungsverwaltung
+- **CRUD** für Abteilungen (Name, Beschreibung, Abteilungsleiter)
+- **Mitarbeiter-Zuweisung** über Suchfeld mit Autovervollständigung
+- **Mitarbeiter entfernen** aus Abteilung
+- **Verfügbare Mitarbeiter** anzeigen (noch nicht zugeordnet)
+- **Abteilungsleiter** definierbar (managerId)
+
+#### B) Vorgesetzten-Beziehung
+- **Self-referencing User-Modell** (supervisorId auf User)
+- **Hierarchische Darstellung** beliebiger Tiefe
+- **Zirkuläre-Referenz-Schutz** bei Zuweisung
+- **Dropdown-Auswahl** im Mitarbeiter-Detailformular (Anstellung-Tab)
+- **Spalte "Vorgesetzte/r"** in der Benutzerliste
+
+#### C) Interaktives Organigramm
+- **Drag & Drop:**
+  - Mitarbeiter auf Mitarbeiter = Vorgesetzten zuweisen
+  - Mitarbeiter auf Abteilung = Abteilung wechseln
+  - Mitarbeiter auf "Ohne Abteilung" = aus Abteilung entfernen
+- **Pan & Zoom:**
+  - Alt + Maus = Canvas verschieben
+  - Strg/⌘ + Scroll = Zoom (30%–200%)
+  - Reset-Button zum Zurücksetzen
+- **Abteilungs-Spalten** mit aufklappbarer Hierarchie
+- **Hierarchie-Bäume** mit Expand/Collapse pro Mitarbeiter
+- **Connector-Linien** zur visuellen Verkettung
+
+#### D) Cross-Department-Visualisierung
+- **"↑ Berichtet an: Name (Abt.)"** — blaues Badge wenn Vorgesetzter in anderer Abteilung
+- **"➜ Leitet: Abt. (Anzahl)"** — grünes Badge wenn Untergebene in anderen Abteilungen
+- **Abteilungsleiter-Hervorhebung:**
+  - 👑 Krone auf Avatar
+  - Grüner Rahmen und Hintergrund
+  - Leitung im Abteilungs-Header angezeigt
+- **Klick-Navigation:** Badge-Klick scrollt automatisch zum Ziel-User, öffnet alle Hierarchie-Ebenen und hebt den User 2.5 Sekunden mit gelbem Glow hervor
+- **Abteilungs-Header:** Zeigt Leitung + Link zur übergeordneten Abteilung
+
+**REST API Endpunkte:**
+- `GET /api/departments` — Alle Abteilungen auflisten
+- `POST /api/departments` — Neue Abteilung erstellen
+- `PUT /api/departments/:id` — Abteilung bearbeiten
+- `DELETE /api/departments/:id` — Abteilung löschen (Soft-Delete)
+- `POST /api/departments/:id/employees` — Mitarbeiter zuordnen
+- `DELETE /api/departments/:id/employees/:employeeId` — Mitarbeiter entfernen
+- `GET /api/departments/:id/available-employees` — Verfügbare Mitarbeiter
+- `GET /api/users/org-chart` — Organigramm-Daten (Users + Departments)
+- `GET /api/users/:id/subordinates` — Untergebene eines Users
+
+**Technische Highlights:**
+- **Self-Referencing Relation** auf User-Modell (`supervisorId → User`)
+- **Department-Modell** mit `managerId`, `employees[]` Relation
+- **Zirkuläre-Referenz-Erkennung** bei Supervisor-Zuweisung (Frontend + Backend)
+- **Refs-basiertes Scroll-to-User** mit `useRef` Map für alle Karten
+- **Cross-Department-Erkennung** durch Vergleich von Supervisor-Department und User-Department
+
+**Geschäftlicher Nutzen:**
+- ✅ **Transparenz**: Klare Darstellung der Organisationsstruktur
+- ✅ **Effizienz**: Drag & Drop statt manuelle Zuweisungen
+- ✅ **Abteilungsübergreifend**: Visualisierung von Matrix-Organisationen
+- ✅ **Self-Service**: Admins können Struktur ohne Entwickler ändern
+- ✅ **Compliance**: Nachvollziehbare Vorgesetzten-Kette für Genehmigungsprozesse
+
+**Screenshots:**
+> 📸 *Screenshots verfügbar:*
+> - Organigramm mit Abteilungs-Spalten und Hierarchie-Bäumen
+> - Cross-Department-Badges (Berichtet an / Leitet)
+> - Abteilungsleiter-Hervorhebung mit Krone
+> - Abteilungsverwaltung mit Mitarbeiter-Zuweisung
+
+---
+
+### 15. 📦 Weitere Module
 
 #### Workflow-System
 - Flexible Workflow-Definition für beliebige Prozesse
@@ -852,6 +934,35 @@ Hierarchie (Stundensatz-Ermittlung):
 - Große Community und Support
 - Einfaches Deployment
 - Schema-First Database Design (keine Migrations-Fehler)
+
+---
+
+## Letzte Updates (Februar 2026)
+
+### 🏢 Abteilungen & Organigramm (12.02.2026)
+- Neues Department-Modell mit vollständiger CRUD-Verwaltung
+- Vorgesetzten-Beziehung (self-referencing supervisorId auf User)
+- Interaktives Organigramm mit Drag & Drop, Pan & Zoom
+- Cross-Department-Visualisierung mit klickbaren Badges
+- Abteilungsleiter-Hervorhebung (👑 Krone, grüner Rahmen)
+- Klick-Navigation zwischen abteilungsübergreifenden Beziehungen
+- Mitarbeiter-Zuweisung per Such-Dialog oder Drag & Drop
+- Supervisor-Dropdown im Mitarbeiter-Detailformular
+- Vorgesetzten-Spalte in Benutzerliste
+- Playwright-basierte Screenshot-Tests für alle 56 Admin-Tabs und Seiten
+
+**Business Value:**
+- Visuelle Organisationsstruktur für Management und HR
+- Schnelle Umstrukturierungen per Drag & Drop
+- Matrix-Organisation darstellbar (abteilungsübergreifende Führung)
+- Nachvollziehbare Vorgesetzten-Kette für Genehmigungsprozesse
+
+**Technische Details:**
+- REST API: `/api/departments/*` mit 7 Endpunkten + `/api/users/org-chart`
+- Self-Referencing Prisma Relation (`UserSupervisor`)
+- React-Refs-basierte Scroll-Navigation im Organigramm
+- Cross-Department-Erkennung für Badges und Leiter-Highlight
+- 56 automatisierte Playwright-Screenshots aller Module
 
 ---
 
@@ -1466,13 +1577,23 @@ Die folgenden Dokumente enthalten detaillierte technische Informationen:
 ![Compliance](../web/kickstart/compliance.png)  
 **Compliance** - ArG-Überwachung
 
+### Abteilungen & Organigramm (NEU - Februar 2026)
+![Organigramm](../kickstart/admin_organigramm.png)  
+**Organigramm** - Interaktive Organisationsstruktur mit Drag & Drop
+
+![Abteilungen](../kickstart/admin_abteilungen.png)  
+**Abteilungen** - Abteilungsverwaltung mit Mitarbeiter-Zuweisung
+
+**Features:**
+- Interaktives Organigramm mit Pan, Zoom & Drag & Drop
+- Cross-Department-Badges (Berichtet an / Leitet)
+- Abteilungsleiter-Hervorhebung mit 👑 Krone
+- Klick-Navigation zwischen Abteilungen
+- Vorgesetzten-Hierarchie beliebiger Tiefe
+
 ### Onboarding & HR (NEU - Januar 2026)
-> 📸 **Screenshots folgen nach User-Testing**
-> - Bewerberliste mit Status-Tracking
-> - Onboarding-Dashboard mit Fortschrittsanzeige
-> - Equipment-Übergabeprotokoll (PDF)
-> - Mitarbeiter-Widget "Mein Onboarding"
-> - Admin-Panel Onboarding-Tab mit Navigationskarten
+![Onboarding](../kickstart/admin_onboarding.png)  
+**Onboarding** - Admin-Panel mit Onboarding-Verwaltung
 
 **Features:**
 - Bewerbermanagement mit Online-Portal
@@ -1552,7 +1673,7 @@ Eine vollständige, interaktive Präsentation mit allen Screenshots ist verfügb
 
 ---
 
-**Erstellt am:** 23. Januar 2026  
-**Version:** 1.2  
+**Erstellt am:** 12. Februar 2026  
+**Version:** 1.3  
 **Autor:** Matthias Püski / Aquist GmbH Schweiz  
-**Status:** Production with Onboarding Module
+**Status:** Production with Org Management

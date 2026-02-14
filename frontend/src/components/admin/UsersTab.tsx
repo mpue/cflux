@@ -163,6 +163,42 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
   const [payrollHistoryUser, setPayrollHistoryUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const result = await userService.importUsers(file);
+      
+      // Show results
+      let message = `Import abgeschlossen:\n`;
+      message += `✅ Erstellt: ${result.results.created}\n`;
+      message += `🔄 Aktualisiert: ${result.results.updated}\n`;
+      message += `⏭️ Übersprungen: ${result.results.skipped}\n`;
+      
+      if (result.results.errors.length > 0) {
+        message += `\n❌ Fehler (${result.results.errors.length}):\n`;
+        result.results.errors.forEach(err => {
+          message += `- ${err.email}: ${err.error}\n`;
+        });
+      }
+      
+      alert(message);
+      
+      // Refresh user list
+      onUpdate();
+    } catch (error: any) {
+      console.error('Import error:', error);
+      alert(`Fehler beim Importieren: ${error.response?.data?.error || error.message}`);
+    }
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = !searchTerm || 
@@ -183,12 +219,42 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2>Benutzerverwaltung</h2>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowCreateModal(true)}
-        >
-          Neuer Benutzer
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            style={{ display: 'none' }}
+            onChange={handleImport}
+          />
+          <button
+            className="btn btn-info"
+            onClick={() => fileInputRef.current?.click()}
+            title="Benutzer aus JSON-Datei importieren"
+          >
+            📤 Import
+          </button>
+          <button
+            className="btn btn-success"
+            onClick={async () => {
+              try {
+                await userService.exportUsers();
+              } catch (error) {
+                console.error('Export error:', error);
+                alert('Fehler beim Exportieren der Benutzer');
+              }
+            }}
+            title="Alle Benutzer mit Relationen als JSON exportieren"
+          >
+            📥 Export
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowCreateModal(true)}
+          >
+            Neuer Benutzer
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>
@@ -246,7 +312,30 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
                 <td>{(user.employeeProfile?.entryDate || user.entryDate) ? new Date(user.employeeProfile?.entryDate || user.entryDate!).toLocaleDateString('de-DE') : '-'}</td>
                 <td>{user.supervisor ? `${user.supervisor.firstName} ${user.supervisor.lastName}` : '-'}</td>
                 <td>{user.role}</td>
-                <td>{user.isActive ? 'Aktiv' : 'Inaktiv'}</td>
+                <td>
+                  {user.role === 'ADMIN' ? (
+                    <span style={{ color: '#28a745', fontWeight: 500 }}>Aktiv</span>
+                  ) : (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', margin: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={user.isActive}
+                        onChange={async (e) => {
+                          try {
+                            await userService.updateUser(user.id, { isActive: e.target.checked });
+                            onUpdate();
+                          } catch (error: any) {
+                            alert(error.response?.data?.error || 'Fehler beim Ändern des Status');
+                          }
+                        }}
+                        style={{ width: 'auto', cursor: 'pointer' }}
+                      />
+                      <span style={{ color: user.isActive ? '#28a745' : '#dc3545', fontWeight: 500, fontSize: '13px' }}>
+                        {user.isActive ? 'Aktiv' : 'Inaktiv'}
+                      </span>
+                    </label>
+                  )}
+                </td>
                 <td>
                 <button
                   className="btn btn-primary"

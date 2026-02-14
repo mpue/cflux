@@ -301,7 +301,7 @@ export const UserGroupsTab: React.FC<UserGroupsTabProps> = ({ onLoad }) => {
 
       {viewMode === 'cards' ? (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '20px' }}>
             {groups.map(group => (
               <div key={group.id} className="card" style={{ borderTop: `4px solid ${group.color || '#4CAF50'}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>

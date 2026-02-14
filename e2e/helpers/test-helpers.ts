@@ -5,7 +5,7 @@ import { test as base, expect } from '@playwright/test';
  */
 export const TEST_USERS = {
   admin: {
-    email: 'admin@example.com',
+    email: 'admin@timetracking.local',
     password: 'godspeed',
   },
   manager: {

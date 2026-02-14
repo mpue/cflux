@@ -47,6 +47,9 @@ export interface SystemSettingsData {
   enableIncidents?: boolean;
   enableCompliance?: boolean;
   enableTimeTracking?: boolean;
+
+  // Google Maps
+  googleMapsApiKey?: string;
 }
 
 class SystemSettingsService {
@@ -144,6 +147,7 @@ class SystemSettingsService {
       timezone: settings.timezone,
       invoicePrefix: settings.invoicePrefix,
       invoiceTermsDays: settings.invoiceTermsDays,
+      googleMapsApiKey: settings.googleMapsApiKey,
     };
   }
 }

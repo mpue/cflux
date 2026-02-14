@@ -31,11 +31,19 @@ interface OrgDepartment {
   id: string;
   name: string;
   description?: string;
+  managerId?: string;
 }
 
 interface DragData {
   userId: string;
   type: 'employee';
+}
+
+interface CrossDeptLink {
+  userId: string;
+  userName: string;
+  deptId: string;
+  deptName: string;
 }
 
 // ---- Component ----
@@ -51,8 +59,10 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
+  const [highlightUserId, setHighlightUserId] = useState<string | null>(null);
   const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const userCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const loadData = useCallback(async () => {
     try {
@@ -100,6 +110,89 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
       if (!supervisor) return true;
       return supervisor.employeeProfile?.departmentId !== u.employeeProfile?.departmentId;
     });
+
+  // --- Cross-department helpers ---
+
+  /** Get users from OTHER departments that this user supervises */
+  const getCrossDeptSubordinates = (userId: string, userDeptId?: string): CrossDeptLink[] => {
+    return users
+      .filter(u => u.supervisorId === userId && u.employeeProfile?.departmentId && u.employeeProfile.departmentId !== userDeptId)
+      .map(u => {
+        const dept = departments.find(d => d.id === u.employeeProfile?.departmentId);
+        return {
+          userId: u.id,
+          userName: `${u.firstName} ${u.lastName}`,
+          deptId: dept?.id || '',
+          deptName: dept?.name || u.employeeProfile?.departmentRef?.name || '?',
+        };
+      });
+  };
+
+  /** Get the departments this user effectively leads (has subordinates there) */
+  const getDepartmentsLedByUser = (userId: string, userDeptId?: string): OrgDepartment[] => {
+    const crossSubs = getCrossDeptSubordinates(userId, userDeptId);
+    const deptIds = [...new Set(crossSubs.map(s => s.deptId))];
+    return deptIds.map(id => departments.find(d => d.id === id)).filter(Boolean) as OrgDepartment[];
+  };
+
+  /** Check if a user is the department head (manager or top of hierarchy) */
+  const isDepartmentHead = (userId: string, deptId: string): boolean => {
+    const dept = departments.find(d => d.id === deptId);
+    if (dept?.managerId === userId) return true;
+    // Fallback: top-level user in department with subordinates
+    const deptUsers = getUsersByDepartment(deptId);
+    const topLevel = getTopLevelUsers(deptUsers);
+    if (topLevel.length === 1 && topLevel[0].id === userId) return true;
+    return false;
+  };
+
+  /** Get department head user for a department */
+  const getDepartmentHead = (deptId: string): OrgUser | null => {
+    const dept = departments.find(d => d.id === deptId);
+    if (dept?.managerId) {
+      return users.find(u => u.id === dept.managerId) || null;
+    }
+    const deptUsers = getUsersByDepartment(deptId);
+    const topLevel = getTopLevelUsers(deptUsers);
+    return topLevel.length === 1 ? topLevel[0] : null;
+  };
+
+  /** Scroll to and highlight a user card */
+  const scrollToUser = (userId: string) => {
+    // Ensure department is expanded
+    const user = users.find(u => u.id === userId);
+    if (user?.employeeProfile?.departmentId) {
+      setExpandedDepts(prev => {
+        const next = new Set(prev);
+        next.add(user.employeeProfile!.departmentId!);
+        return next;
+      });
+    }
+
+    // Expand all ancestors so the user is visible
+    const expandAncestors = (uid: string) => {
+      const u = users.find(x => x.id === uid);
+      if (u?.supervisorId) {
+        setExpandedUsers(prev => {
+          const next = new Set(prev);
+          next.add(u.supervisorId!);
+          return next;
+        });
+        expandAncestors(u.supervisorId);
+      }
+    };
+    expandAncestors(userId);
+
+    // Highlight and scroll
+    setHighlightUserId(userId);
+    setTimeout(() => {
+      const el = userCardRefs.current[userId];
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }
+    }, 100);
+    setTimeout(() => setHighlightUserId(null), 2500);
+  };
 
   // --- Drag & Drop ---
 
@@ -278,10 +371,24 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
     const isExpanded = expandedUsers.has(user.id);
     const isDragOver = dragOverTarget === `user-${user.id}`;
     const position = user.employeeProfile?.position || user.jobFunction?.title || '';
+    const userDeptId = user.employeeProfile?.departmentId;
+    const isHighlighted = highlightUserId === user.id;
+    const isHead = userDeptId ? isDepartmentHead(user.id, userDeptId) : false;
+
+    // Cross-department relationships
+    const crossDeptSubs = getCrossDeptSubordinates(user.id, userDeptId);
+    const deptsLed = getDepartmentsLedByUser(user.id, userDeptId);
+
+    // Supervisor in different department?
+    const supervisor = user.supervisorId ? users.find(u => u.id === user.supervisorId) : null;
+    const supervisorDeptId = supervisor?.employeeProfile?.departmentId;
+    const hasCrossDeptSupervisor = supervisor && supervisorDeptId && supervisorDeptId !== userDeptId;
+    const supervisorDept = hasCrossDeptSupervisor ? departments.find(d => d.id === supervisorDeptId) : null;
 
     return (
       <div key={user.id} style={{ marginLeft: depth > 0 ? 24 : 0 }}>
         <div
+          ref={el => { userCardRefs.current[user.id] = el; }}
           draggable
           onDragStart={(e) => handleDragStart(e, user.id)}
           onDragOver={(e) => handleDragOver(e, `user-${user.id}`)}
@@ -289,20 +396,30 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
           onDrop={(e) => handleDropOnUser(e, user.id)}
           style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
+            flexDirection: 'column',
+            gap: '4px',
             padding: '8px 12px',
             margin: '4px 0',
             borderRadius: '8px',
-            border: isDragOver ? '2px dashed #007bff' : '1px solid var(--border-color, #dee2e6)',
-            background: isDragOver
-              ? 'rgba(0, 123, 255, 0.08)'
-              : user.role === 'ADMIN'
-                ? 'linear-gradient(135deg, rgba(255,193,7,0.08), rgba(255,193,7,0.02))'
-                : 'var(--card-bg, #fff)',
+            border: isHighlighted
+              ? '2px solid #ffc107'
+              : isDragOver
+                ? '2px dashed #007bff'
+                : isHead
+                  ? '2px solid #28a74580'
+                  : '1px solid var(--border-color, #dee2e6)',
+            background: isHighlighted
+              ? 'rgba(255, 193, 7, 0.15)'
+              : isDragOver
+                ? 'rgba(0, 123, 255, 0.08)'
+                : isHead
+                  ? 'linear-gradient(135deg, rgba(40,167,69,0.06), rgba(40,167,69,0.01))'
+                  : user.role === 'ADMIN'
+                    ? 'linear-gradient(135deg, rgba(255,193,7,0.08), rgba(255,193,7,0.02))'
+                    : 'var(--card-bg, #fff)',
             cursor: 'grab',
-            transition: 'all 0.15s ease',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            transition: 'all 0.3s ease',
+            boxShadow: isHighlighted ? '0 0 12px rgba(255, 193, 7, 0.5)' : '0 1px 3px rgba(0,0,0,0.06)',
             position: 'relative',
           }}
         >
@@ -318,70 +435,143 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
             }} />
           )}
 
-          {/* Expand/collapse for subordinates */}
-          {hasSubs ? (
-            <button
-              onClick={(e) => { e.stopPropagation(); toggleUser(user.id); }}
-              style={{
-                width: 20, height: 20, border: 'none', borderRadius: '50%',
-                background: '#e9ecef', cursor: 'pointer', fontSize: '10px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              {isExpanded ? '▼' : '▶'}
-            </button>
-          ) : (
-            <div style={{ width: 20, flexShrink: 0 }} />
-          )}
-
-          {/* Avatar */}
-          <div style={{
-            width: 36, height: 36, borderRadius: '50%',
-            background: user.role === 'ADMIN' ? '#ffc107' : '#007bff',
-            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 'bold', fontSize: '13px', flexShrink: 0,
-          }}>
-            {user.firstName[0]}{user.lastName[0]}
-          </div>
-
-          {/* Name & info */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {user.firstName} {user.lastName}
-            </div>
-            <div style={{ fontSize: '11px', color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {position || user.email}
-            </div>
-          </div>
-
-          {/* Badges */}
-          <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
-            {user.role === 'ADMIN' && (
-              <span style={{ fontSize: '9px', background: '#ffc107', color: '#000', padding: '2px 5px', borderRadius: 3, fontWeight: 600 }}>
-                ADMIN
-              </span>
-            )}
-            {hasSubs && (
-              <span style={{ fontSize: '9px', background: '#17a2b8', color: '#fff', padding: '2px 5px', borderRadius: 3 }}>
-                {subs.length}
-              </span>
-            )}
-            {user.supervisorId && (
+          {/* Main row: expand + avatar + name + badges */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Expand/collapse for subordinates */}
+            {hasSubs ? (
               <button
-                onClick={(e) => { e.stopPropagation(); handleRemoveSupervisor(user.id); }}
-                title="Vorgesetzten entfernen"
+                onClick={(e) => { e.stopPropagation(); toggleUser(user.id); }}
                 style={{
-                  width: 18, height: 18, border: 'none', borderRadius: '50%',
-                  background: '#dc3545', color: '#fff', cursor: 'pointer',
-                  fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 20, height: 20, border: 'none', borderRadius: '50%',
+                  background: '#e9ecef', cursor: 'pointer', fontSize: '10px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
                 }}
               >
-                ✕
+                {isExpanded ? '▼' : '▶'}
               </button>
+            ) : (
+              <div style={{ width: 20, flexShrink: 0 }} />
             )}
+
+            {/* Avatar */}
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: isHead ? '#28a745' : user.role === 'ADMIN' ? '#ffc107' : '#007bff',
+              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 'bold', fontSize: '13px', flexShrink: 0,
+              position: 'relative',
+            }}>
+              {user.firstName[0]}{user.lastName[0]}
+              {isHead && (
+                <span style={{
+                  position: 'absolute', top: -6, right: -4,
+                  fontSize: '12px', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.3))',
+                }} title="Abteilungsleiter">👑</span>
+              )}
+            </div>
+
+            {/* Name & info */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user.firstName} {user.lastName}
+              </div>
+              <div style={{ fontSize: '11px', color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {position || user.email}
+              </div>
+            </div>
+
+            {/* Badges */}
+            <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
+              {user.role === 'ADMIN' && (
+                <span style={{ fontSize: '9px', background: '#ffc107', color: '#000', padding: '2px 5px', borderRadius: 3, fontWeight: 600 }}>
+                  ADMIN
+                </span>
+              )}
+              {hasSubs && (
+                <span style={{ fontSize: '9px', background: '#17a2b8', color: '#fff', padding: '2px 5px', borderRadius: 3 }}>
+                  {subs.length}
+                </span>
+              )}
+              {user.supervisorId && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleRemoveSupervisor(user.id); }}
+                  title="Vorgesetzten entfernen"
+                  style={{
+                    width: 18, height: 18, border: 'none', borderRadius: '50%',
+                    background: '#dc3545', color: '#fff', cursor: 'pointer',
+                    fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Cross-department: supervisor in other dept */}
+          {hasCrossDeptSupervisor && supervisor && (
+            <button
+              onClick={(e) => { e.stopPropagation(); scrollToUser(supervisor.id); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '4px',
+                padding: '3px 8px', border: 'none', borderRadius: '4px',
+                background: 'linear-gradient(90deg, #e3f2fd, #bbdefb)',
+                cursor: 'pointer', fontSize: '10px', color: '#1565c0',
+                fontWeight: 500, width: 'fit-content',
+                transition: 'background 0.15s',
+              }}
+              title={`Zum Vorgesetzten navigieren: ${supervisor.firstName} ${supervisor.lastName}`}
+            >
+              <span>↑</span>
+              <span>Berichtet an</span>
+              <strong>{supervisor.firstName} {supervisor.lastName}</strong>
+              <span style={{
+                background: '#1565c0', color: '#fff', padding: '1px 5px',
+                borderRadius: '3px', fontSize: '9px',
+              }}>
+                {supervisorDept?.name || '?'}
+              </span>
+            </button>
+          )}
+
+          {/* Cross-department: supervises people in other depts */}
+          {deptsLed.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              {deptsLed.map(dept => {
+                const subsInDept = crossDeptSubs.filter(s => s.deptId === dept.id);
+                return (
+                  <button
+                    key={dept.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Scroll to first subordinate in that department
+                      if (subsInDept.length > 0) scrollToUser(subsInDept[0].userId);
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                      padding: '3px 8px', border: 'none', borderRadius: '4px',
+                      background: 'linear-gradient(90deg, #e8f5e9, #c8e6c9)',
+                      cursor: 'pointer', fontSize: '10px', color: '#2e7d32',
+                      fontWeight: 500, transition: 'background 0.15s',
+                    }}
+                    title={`Navigiere zu ${dept.name}: ${subsInDept.map(s => s.userName).join(', ')}`}
+                  >
+                    <span>➜</span>
+                    <span>Leitet</span>
+                    <strong>{dept.name}</strong>
+                    <span style={{
+                      background: '#2e7d32', color: '#fff', padding: '1px 5px',
+                      borderRadius: '3px', fontSize: '9px',
+                    }}>
+                      {subsInDept.length}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Subordinates */}
@@ -459,6 +649,11 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
             const topLevel = getTopLevelUsers(deptUsers);
             const isExpanded = expandedDepts.has(dept.id);
             const isDragOver = dragOverTarget === `dept-${dept.id}`;
+            const head = getDepartmentHead(dept.id);
+            const headSupervisor = head?.supervisorId ? users.find(u => u.id === head.supervisorId) : null;
+            const headSupervisorDept = headSupervisor?.employeeProfile?.departmentId
+              ? departments.find(d => d.id === headSupervisor.employeeProfile?.departmentId)
+              : null;
 
             return (
               <div
@@ -481,27 +676,51 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
                 <div
                   onClick={() => toggleDept(dept.id)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '8px',
+                    display: 'flex', flexDirection: 'column', gap: '4px',
                     padding: '12px 16px', cursor: 'pointer',
                     borderBottom: isExpanded ? '1px solid var(--border-color, #dee2e6)' : 'none',
                     borderRadius: isExpanded ? '10px 10px 0 0' : '10px',
                     background: 'linear-gradient(135deg, #e3f2fd, #f3e5f5)',
                   }}
                 >
-                  <span style={{ fontSize: '18px' }}>🏢</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: '14px' }}>{dept.name}</div>
-                    {dept.description && (
-                      <div style={{ fontSize: '11px', color: '#888' }}>{dept.description}</div>
-                    )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>🏢</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: '14px' }}>{dept.name}</div>
+                      {dept.description && (
+                        <div style={{ fontSize: '11px', color: '#888' }}>{dept.description}</div>
+                      )}
+                    </div>
+                    <span style={{
+                      fontSize: '11px', background: '#e3f2fd', color: '#1976d2',
+                      padding: '2px 8px', borderRadius: '10px', fontWeight: 600,
+                    }}>
+                      {deptUsers.length}
+                    </span>
+                    <span style={{ fontSize: '10px' }}>{isExpanded ? '▼' : '▶'}</span>
                   </div>
-                  <span style={{
-                    fontSize: '11px', background: '#e3f2fd', color: '#1976d2',
-                    padding: '2px 8px', borderRadius: '10px', fontWeight: 600,
-                  }}>
-                    {deptUsers.length}
-                  </span>
-                  <span style={{ fontSize: '10px' }}>{isExpanded ? '▼' : '▶'}</span>
+
+                  {/* Head info line */}
+                  {head && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '28px' }}>
+                      <span style={{ fontSize: '10px', color: '#666' }}>
+                        👑 Leitung: <strong>{head.firstName} {head.lastName}</strong>
+                      </span>
+                      {headSupervisor && headSupervisorDept && headSupervisorDept.id !== dept.id && (
+                        <span
+                          onClick={(e) => { e.stopPropagation(); scrollToUser(headSupervisor.id); }}
+                          style={{
+                            fontSize: '9px', background: '#bbdefb', color: '#1565c0',
+                            padding: '1px 6px', borderRadius: '3px', cursor: 'pointer',
+                            fontWeight: 500,
+                          }}
+                          title={`Navigiere zu ${headSupervisor.firstName} ${headSupervisor.lastName} (${headSupervisorDept.name})`}
+                        >
+                          ↑ {headSupervisorDept.name}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Department employees */}

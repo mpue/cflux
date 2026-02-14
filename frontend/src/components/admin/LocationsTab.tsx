@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Location } from '../../types';
 import { locationService } from '../../services/location.service';
+import { systemSettingsService } from '../../services/systemSettings.service';
 import { BaseModal } from '../common/BaseModal';
 
 interface LocationsTabProps {
@@ -11,11 +12,25 @@ interface LocationsTabProps {
 export const LocationsTab: React.FC<LocationsTabProps> = ({ locations, onUpdate }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [googleMapsApiKey, setGoogleMapsApiKey] = useState<string>('');
+
+  useEffect(() => {
+    loadApiKey();
+  }, []);
+
+  const loadApiKey = async () => {
+    try {
+      const settings = await systemSettingsService.getSettings();
+      setGoogleMapsApiKey(settings.googleMapsApiKey || '');
+    } catch (error) {
+      console.error('Fehler beim Laden des API Keys:', error);
+    }
+  };
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h2>Standortverwaltung</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ margin: 0 }}>Standortverwaltung</h2>
         <button
           className="btn btn-primary"
           onClick={() => {
@@ -27,55 +42,111 @@ export const LocationsTab: React.FC<LocationsTabProps> = ({ locations, onUpdate 
         </button>
       </div>
 
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Adresse</th>
-            <th>Beschreibung</th>
-            <th>Status</th>
-            <th>Aktionen</th>
-          </tr>
-        </thead>
-        <tbody>
-          {locations.map((location) => (
-            <tr key={location.id}>
-              <td>{location.name}</td>
-              <td>{location.address || '-'}</td>
-              <td>{location.description || '-'}</td>
-              <td>{location.isActive ? 'Aktiv' : 'Inaktiv'}</td>
-              <td>
-                <button
-                  className="btn btn-primary"
-                  style={{ marginRight: '5px', padding: '5px 10px', fontSize: '12px' }}
-                  onClick={() => {
-                    setEditingLocation(location);
-                    setShowModal(true);
-                  }}
-                >
-                  Bearbeiten
-                </button>
-                <button
-                  className="btn btn-danger"
-                  style={{ padding: '5px 10px', fontSize: '12px' }}
-                  onClick={async () => {
-                    if (window.confirm('Standort wirklich löschen?')) {
-                      try {
-                        await locationService.deleteLocation(location.id);
-                        onUpdate();
-                      } catch (error: any) {
-                        alert(error.response?.data?.error || 'Fehler beim Löschen');
-                      }
+      {!googleMapsApiKey && (
+        <div style={{
+          padding: '12px 16px',
+          backgroundColor: '#fff3cd',
+          border: '1px solid #ffc107',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          fontSize: '14px',
+          color: '#856404',
+        }}>
+          💡 Tipp: Hinterlegen Sie einen Google Maps API Key unter <strong>Einstellungen → Karten</strong>, um Kartenausschnitte in den Standort-Karten anzuzeigen.
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '20px' }}>
+        {locations.map((location) => (
+          <div
+            key={location.id}
+            className="card"
+            style={{
+              borderTop: `4px solid ${location.isActive ? '#4CAF50' : '#dc3545'}`,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Google Maps Embed */}
+            {googleMapsApiKey && location.address && (
+              <div style={{ margin: '-20px -20px 16px -20px', height: '180px', overflow: 'hidden' }}>
+                <iframe
+                  title={`Karte: ${location.name}`}
+                  width="100%"
+                  height="180"
+                  style={{ border: 'none', display: 'block' }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://www.google.com/maps/embed/v1/place?key=${googleMapsApiKey}&q=${encodeURIComponent(location.address)}&zoom=15`}
+                />
+              </div>
+            )}
+
+            {/* Card Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+              <div>
+                <h3 style={{ margin: '0 0 5px 0' }}>📍 {location.name}</h3>
+                {location.address && (
+                  <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    {location.address}
+                  </p>
+                )}
+                {location.description && (
+                  <p style={{ margin: '0', fontSize: '13px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                    {location.description}
+                  </p>
+                )}
+              </div>
+              <span style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                backgroundColor: location.isActive ? '#d4edda' : '#f8d7da',
+                color: location.isActive ? '#155724' : '#721c24',
+                flexShrink: 0,
+              }}>
+                {location.isActive ? 'Aktiv' : 'Inaktiv'}
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div style={{ marginTop: 'auto', paddingTop: '12px', display: 'flex', gap: '10px' }}>
+              <button
+                className="btn btn-small"
+                onClick={() => {
+                  setEditingLocation(location);
+                  setShowModal(true);
+                }}
+              >
+                Bearbeiten
+              </button>
+              <button
+                className="btn btn-small btn-danger"
+                onClick={async () => {
+                  if (window.confirm('Standort wirklich löschen?')) {
+                    try {
+                      await locationService.deleteLocation(location.id);
+                      onUpdate();
+                    } catch (error: any) {
+                      alert(error.response?.data?.error || 'Fehler beim Löschen');
                     }
-                  }}
-                >
-                  Löschen
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  }
+                }}
+              >
+                Löschen
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {locations.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '50px', color: 'var(--text-secondary)' }}>
+          <p style={{ fontSize: '48px', marginBottom: '10px' }}>📍</p>
+          <p>Keine Standorte vorhanden</p>
+        </div>
+      )}
 
       {showModal && (
         <LocationModal

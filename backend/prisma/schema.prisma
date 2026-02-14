@@ -1285,6 +1285,9 @@ model SystemSettings {
   // Default Workflows
   travelExpenseDefaultWorkflowId String?
   
+  // Google Maps
+  googleMapsApiKey      String?   // API Key für Google Maps Embed
+  
   // Budget & Billing
   defaultHourlyRate     Float     @default(100.0)  // Globaler Default-Stundensatz (CHF/h)
   
