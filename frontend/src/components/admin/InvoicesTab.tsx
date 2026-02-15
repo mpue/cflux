@@ -214,7 +214,7 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
                         try {
                           const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
                           const token = localStorage.getItem('token');
-                          const url = `${API_URL}/invoices/${invoice.id}/pdf`;
+                          const url = `${API_URL}/invoices/${invoice.id}/pdf?download=true`;
                           
                           console.log('Downloading PDF from:', url);
                           

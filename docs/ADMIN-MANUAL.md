@@ -1,21 +1,24 @@
 # cflux Administrator-Handbuch
 
 **Für Administratoren und System-Manager**  
-Version 1.0 - Januar 2025
+Version 2.0 - Februar 2026
 
 ---
 
 ## Inhaltsverzeichnis
 
 1. [Administrator-Rolle](#administrator-rolle)
-2. [Benutzerverwaltung](#benutzerverwaltung)
-3. [Projektverwaltung](#projektverwaltung)
-4. [Zeitmanagement](#zeitmanagement)
-5. [Urlaubsverwaltung](#urlaubsverwaltung)
-6. [Rechnungswesen](#rechnungswesen)
-7. [Reporting & Analytics](#reporting--analytics)
-8. [System-Administration](#system-administration)
-9. [Best Practices](#best-practices)
+2. [Modul-Berechtigungssystem](#modul-berechtigungssystem)
+3. [Benutzergruppen](#benutzergruppen)
+4. [Benutzerverwaltung](#benutzerverwaltung)
+5. [Projektverwaltung](#projektverwaltung)
+6. [Zeitmanagement](#zeitmanagement)
+7. [Urlaubsverwaltung](#urlaubsverwaltung)
+8. [Rechnungswesen](#rechnungswesen)
+9. [Weitere Module](#weitere-module)
+10. [Reporting & Analytics](#reporting--analytics)
+11. [System-Administration](#system-administration)
+12. [Best Practices](#best-practices)
 
 ---
 
@@ -23,38 +26,29 @@ Version 1.0 - Januar 2025
 
 ### Berechtigungen
 
-Als Administrator haben Sie **vollständigen Zugriff** auf alle Funktionen:
+Als Administrator haben Sie **vollständigen Zugriff** auf alle Funktionen und Module:
 
-**Benutzer:**
+**System-Administration:**
 - ✅ Benutzer erstellen, bearbeiten, löschen
-- ✅ Rollen zuweisen (USER ↔ ADMIN)
-- ✅ Urlaubskontingente festlegen
-- ✅ Benutzer aktivieren/deaktivieren
+- ✅ Benutzergruppen verwalten
+- ✅ Module und Zugriffsrechte konfigurieren
+- ✅ System-Einstellungen anpassen
+- ✅ Audit-Logs einsehen
 
-**Projekte:**
-- ✅ Projekte erstellen, bearbeiten, löschen
-- ✅ Benutzer zu Projekten zuweisen
-- ✅ Projekt-Status verwalten
+**Modul-Verwaltung:**
+- ✅ Alle Module aktivieren/deaktivieren
+- ✅ Modulberechtigungen für Gruppen festlegen
+- ✅ Granulare Rechte vergeben (View/Create/Edit/Delete)
 
-**Zeiterfassung:**
-- ✅ Zeiteinträge aller Benutzer einsehen
-- ✅ Zeiteinträge korrigieren
-- ✅ Zeiteinträge löschen
+**Automatischer Vollzugriff:**
+- ✅ Administratoren haben automatisch Zugriff auf alle Module
+- ✅ Unabhängig von Gruppenzugehörigkeit
+- ✅ Können nicht eingeschränkt werden
 
-**Urlaub & Abwesenheiten:**
-- ✅ Alle Anträge einsehen
-- ✅ Anträge genehmigen/ablehnen
-- ✅ Anträge stornieren
-
-**Reports:**
-- ✅ Team-weite Reports
-- ✅ Projekt-Auswertungen
-- ✅ Export-Funktionen
-
-**Rechnungen:**
-- ✅ Rechnungen erstellen
-- ✅ Rechnungen versenden
-- ✅ Zahlungen tracken
+**Wichtig:** Normale Benutzer (USER) erhalten Zugriff basierend auf:
+- Ihrer Gruppenzugehörigkeit (Multi-Group-fähig seit Dez 2025)
+- Den Modulberechtigungen ihrer Gruppen
+- Kumulativ über alle Gruppenmitgliedschaften
 
 ### Verantwortlichkeiten
 
@@ -83,6 +77,277 @@ Als Administrator sind Sie verantwortlich für:
 
 ---
 
+## Modul-Berechtigungssystem
+
+### Übersicht
+
+cflux verwendet seit Dezember 2025 ein **modulbasiertes Berechtigungssystem**. Anstelle von einfachen Rollen (USER/ADMIN) werden Zugriffsrechte über Module und Benutzergruppen gesteuert.
+
+**Prinzip:**
+```
+Benutzer → Benutzergruppen → Modulzugriffe → Granulare Rechte
+```
+
+### Verfügbare Module
+
+Das System umfasst aktuell folgende Module:
+
+**Kern-Module:**
+- **Dashboard** - Übersichtsseite
+- **Zeiterfassung** - Zeit- und Anwesenheitsverwaltung
+- **Projekte** - Projektverwaltung
+- **Abwesenheiten** - Urlaubs- und Abwesenheitsverwaltung
+
+**Geschäftspartner:**
+- **Kunden** - Kundenverwaltung
+- **Lieferanten** - Lieferantenverwaltung
+- **Abteilungen** - Abteilungsstruktur
+
+**Finanzen & Bestellwesen:**
+- **Artikel** - Artikel- und Produktverwaltung
+- **Rechnungen** - Rechnungsverwaltung
+- **Mahnungen** - Mahnwesen
+- **Kostenstellen** - Kostenstellenverwaltung
+- **Bestellungen** - Bestellmanagement (Orders)
+
+**Erweiterte Funktionen:**
+- **Intranet** - Wissensdatenbank und Dokumentenmanagement
+- **Lagerbestand** - Inventarverwaltung
+- **Projekt-Budget** - Budgetplanung und -überwachung
+- **Projekt-Reports** - Projektauswertungen
+- **Projektplanung** - Gantt-Charts und Zeitpläne
+- **Workflows** - Genehmigungs-Workflows (z.B. für Rechnungen)
+
+**Compliance & Sicherheit:**
+- **Compliance** - Schweizer Arbeitsgesetz-Compliance
+- **Vorfälle** - Incident/EHS Management
+
+**HR & Weiterbildung:**
+- **E-Learning** - Schulungsmanagement und Online-Kurse
+- **Onboarding** - Bewerberverwaltung und Mitarbeiter-Onboarding
+
+**Analytics:**
+- **Berichte** - Auswertungen und Reports
+
+**System:**
+- **Benutzer** - Benutzerverwaltung
+- **Benutzergruppen** - Gruppenverwaltung
+- **Module** - Modulkonfiguration
+- **Einstellungen** - Systemeinstellungen
+
+### Berechtigungsstufen
+
+Für jedes Modul können vier granulare Rechte vergeben werden:
+
+**1. canView (Ansehen)**
+- Benutzer kann Modul öffnen
+- Daten lesen und anzeigen
+- Kein Änderungsrecht
+
+**2. canCreate (Erstellen)**
+- Neue Einträge erstellen
+- Benötigt: canView
+- Beispiel: Neue Zeitbuchung, neue Rechnung
+
+**3. canEdit (Bearbeiten)**
+- Bestehende Einträge ändern
+- Benötigt: canView
+- Beispiel: Zeitkorrektur, Rechnung anpassen
+
+**4. canDelete (Löschen)**
+- Einträge löschen (soft-delete)
+- Höchste Berechtigung
+- Benötigt: canView
+
+**Typische Kombinationen:**
+```
+Nur Lesen:         canView: ✓  canCreate: ✗  canEdit: ✗  canDelete: ✗
+Standard-Benutzer: canView: ✓  canCreate: ✓  canEdit: ✓  canDelete: ✗
+Power-User:        canView: ✓  canCreate: ✓  canEdit: ✓  canDelete: ✓
+Kein Zugriff:      canView: ✗  canCreate: ✗  canEdit: ✗  canDelete: ✗
+```
+
+### Module verwalten
+
+**Module-Übersicht:**
+
+1. Navigieren Sie zu **"Verwaltung" → "Module"**
+2. Übersicht aller verfügbaren Module
+3. Status (Aktiv/Inaktiv)
+4. Sortierreihenfolge
+
+**Modul aktivieren/deaktivieren:**
+
+1. Modul öffnen
+2. **"Aktiv"**-Checkbox setzen/entfernen
+3. Speichern
+
+**Effekt:**
+- Inaktive Module erscheinen nicht in Benutzer-Navigation
+- Zugriffe werden blockiert
+- Daten bleiben erhalten
+
+**Modulberechtigungen für Gruppen:**
+
+1. Modul öffnen
+2. Tab **"Gruppenberechtigungen"**
+3. Wählen Sie Benutzergruppe
+4. Setzen Sie Rechte:
+   ```
+   Gruppe: Projektmanager
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ☑ canView      Modul sichtbar
+   ☑ canCreate    Daten erstellen
+   ☑ canEdit      Daten bearbeiten
+   ☐ canDelete    Nicht erlaubt
+   ```
+5. Speichern
+
+💡 **Tipp:** Benutzer erhalten die **Union** aller Rechte ihrer Gruppen!
+
+---
+
+## Benutzergruppen
+
+### Übersicht
+
+**Benutzergruppen** sind die zentrale Einheit für Zugriffsverwaltung. Seit Dezember 2025 können Benutzer **mehreren Gruppen** gleichzeitig angehören.
+
+**Vorteile:**
+- Granulare Rechtevergabe
+- Zentrale Verwaltung
+- Flexibles Rechtemanagement
+- Multi-Group Support
+
+### Gruppe erstellen
+
+**Neue Gruppe anlegen:**
+
+1. Navigieren Sie zu **"Verwaltung" → "Benutzergruppen"**
+2. Klicken Sie **"Neue Gruppe"**
+3. Füllen Sie das Formular aus:
+   ```
+   Name:         Projektmanager
+   Beschreibung: Manager mit Projektzugriff
+   Aktiv:        ✓ Ja
+   ```
+4. Klicken Sie **"Erstellen"**
+
+**Standard-Gruppen:**
+
+Empfohlene Gruppen für typische Setups:
+
+```
+Gruppe              Beschreibung
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Administratoren     Voller Systemzugriff
+Projektmanager      Projekt- und Zeitverwaltung
+Mitarbeiter         Basis-Zeiterfassung
+Buchhaltung         Rechnungen und Finanzen
+HR                  Personal und Urlaubsverwaltung
+EHS-Manager         Compliance und Vorfälle
+Support             Nur-Lesen-Zugriff
+```
+
+### Berechtigungen zuweisen
+
+**Modulzugriff konfigurieren:**
+
+1. Öffnen Sie die Benutzergruppe
+2. Tab **"Modulberechtigungen"**
+3. Für jedes Modul:
+   ```
+   Modul: Zeiterfassung
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ☑ canView      ✓ Sichtbar
+   ☑ canCreate    ✓ Einstempeln
+   ☑ canEdit      ✓ Korrigieren
+   ☐ canDelete    ✗ Nicht löschen
+   ```
+4. Wiederholen für alle Module
+5. Speichern
+
+**Beispiel-Konfiguration "Mitarbeiter":**
+
+```
+Modul              View  Create  Edit  Delete
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Dashboard           ✓     -       -     -
+Zeiterfassung       ✓     ✓       ✓     ✗
+Projekte            ✓     ✗       ✗     ✗
+Abwesenheiten       ✓     ✓       ✗     ✗
+Berichte            ✓     ✗       ✗     ✗
+Intranet            ✓     ✓       ✓     ✗
+E-Learning          ✓     ✗       ✗     ✗
+```
+
+**Beispiel-Konfiguration "Projektmanager":**
+
+```
+Modul              View  Create  Edit  Delete
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Dashboard           ✓     -       -     -
+Zeiterfassung       ✓     ✓       ✓     ✓
+Projekte            ✓     ✓       ✓     ✗
+Abwesenheiten       ✓     ✓       ✓     ✗
+Berichte            ✓     ✓       ✗     ✗
+Projekt-Budget      ✓     ✓       ✓     ✗
+Projekt-Reports     ✓     ✓       ✗     ✗
+```
+
+### Benutzer zu Gruppen zuweisen
+
+**Einzelzuweisung:**
+
+1. Öffnen Sie den Benutzer
+2. Tab **"Gruppenmitgliedschaften"**
+3. Klicken Sie **"Zu Gruppe hinzufügen"**
+4. Wählen Sie Gruppe(n) aus
+5. Speichern
+
+**Mehrfachzuweisung:**
+
+Ein Benutzer kann **mehreren Gruppen** gleichzeitig angehören:
+
+```
+Benutzer: Max Mustermann
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Gruppen:
+  ✓ Mitarbeiter          (Basis-Rechte)
+  ✓ Projektmanager       (Projekt-Rechte)
+  ✓ Buchhaltung          (Finanz-Rechte)
+
+→ Erhält die UNION aller Rechte!
+```
+
+**Rechtekumulation:**
+
+Benutzer Max erhält:
+- Zeiterfassung von "Mitarbeiter"
+- Projektmanagement von "Projektmanager"
+- Rechnungen von "Buchhaltung"
+- **Höchste Rechte** bei Überschneidungen
+
+### Gruppe bearbeiten/löschen
+
+**Bearbeiten:**
+
+1. Gruppe öffnen
+2. Name/Beschreibung ändern
+3. Modul-Rechte anpassen
+4. Speichern
+
+**Löschen:**
+
+⚠️ **Vorsicht!** Löschen einer Gruppe:
+- Entfernt alle Mitgliedschaften
+- Benutzer verlieren entsprechende Rechte
+- Kann nicht rückgängig gemacht werden
+
+**Empfehlung:** Gruppen besser deaktivieren statt löschen!
+
+---
+
 ## Benutzerverwaltung
 
 ### Benutzer erstellen
@@ -101,11 +366,22 @@ Als Administrator sind Sie verantwortlich für:
    Aktiv:          ✓ Ja
    ```
 4. Klicken Sie **"Erstellen"**
+5. **Wichtig:** Weisen Sie den Benutzer zu Gruppen zu!
 
 **Initiales Passwort:**
 - System generiert temporäres Passwort
 - Benutzer erhält E-Mail mit Login-Daten
 - Benutzer muss Passwort bei erster Anmeldung ändern
+
+**Gruppenzuweisung:**
+
+Nach dem Erstellen:
+1. Öffnen Sie den neuen Benutzer
+2. Tab **"Gruppenmitgliedschaften"**
+3. Fügen Sie zu passenden Gruppen hinzu
+4. Speichern
+
+💡 **Wichtig:** Benutzer ohne Gruppenzuweisung (USER-Rolle) haben **keinen Modulzugriff**!
 
 **Bulk-Import (CSV):**
 
@@ -144,13 +420,33 @@ Für viele Benutzer auf einmal:
 ```
 Benutzer öffnen → Rolle: ADMIN auswählen → Speichern
 ```
+- Erhält automatisch Vollzugriff auf alle Module
+- Unabhängig von Gruppenzugehörigkeit
+- Kann Module und Berechtigungen verwalten
 
 **ADMIN zu USER zurückstufen:**
 ```
 Benutzer öffnen → Rolle: USER auswählen → Speichern
 ```
+- Verliert automatischen Vollzugriff
+- Benötigt dann Gruppenzuweisungen für Modulzugriff
+- ⚠️ **Wichtig:** Vorher Gruppenmitgliedschaften prüfen!
 
 ⚠️ **Wichtig:** Es sollte immer mindestens ein ADMIN-Benutzer existieren!
+
+**Unterschied USER vs ADMIN:**
+
+```
+USER:
+  → Zugriff über Gruppenmitgliedschaften
+  → Kumulativ über alle Gruppen
+  → Granular steuerbar
+  
+ADMIN:
+  → Automatischer Vollzugriff
+  → Alle Module, alle Rechte
+  → Kann nicht eingeschränkt werden
+```
 
 ### Passwort zurücksetzen
 
@@ -733,6 +1029,302 @@ Durchschn. Zahlungsziel: 22 Tage
 
 ---
 
+## Weitere Module
+
+cflux bietet zahlreiche spezialisierte Module für verschiedene Geschäftsprozesse. Die wichtigsten werden nachfolgend beschrieben.
+
+### Intranet & Wissensdatenbank
+
+**Modul-Key:** `intranet`
+
+**Funktion:** Hierarchisches Dokumentenmanagement-System für Wissen und interne Dokumente.
+
+**Hauptfunktionen:**
+- 📁 Hierarchische Dokumentenstruktur (wie Dateisystem)
+- 📎 Datei-Anhänge mit Versionierung
+- 🔍 Volltextsuche über Dokumente und Anhänge
+- 👥 Gruppen-basierte Berechtigungen (READ/WRITE/ADMIN)
+- 🔀 Drag & Drop für Neuorganisation
+
+**Zugriffsebenen:**
+```
+READ:   Dokument lesen, Anhänge herunterladen
+WRITE:  Dokumente bearbeiten, Anhänge hochladen
+ADMIN:  Berechtigungen verwalten, Struktur ändern
+```
+
+**Anwendungsfälle:**
+- Unternehmens-Wiki
+- Handbücher und Prozessdokumentationen
+- Vorlagen und Formulare
+- Schulungsmaterialien
+
+**Details:** Siehe `docs/INTRANET.md`
+
+---
+
+### Bestellwesen (Orders)
+
+**Modul-Key:** `orders` (separate Implementierung)
+
+**Funktion:** Vollständiges Bestellmanagement mit 8-Stufen-Workflow.
+
+**Workflow-Status:**
+```
+1. DRAFT              Entwurf erstellt
+2. REQUESTED          Bestellung angefordert
+3. APPROVED           Genehmigt
+4. ORDERED            Bei Lieferant bestellt
+5. PARTIALLY_RECEIVED Teillieferung erhalten
+6. RECEIVED           Vollständig erhalten
+7. CANCELLED          Storniert
+8. REJECTED           Abgelehnt
+```
+
+**Hauptfunktionen:**
+- 📋 Auto-generierte Bestellnummern (BO-XXXXXX)
+- 📦 Teillieferungen tracken (`OrderDelivery`)
+- 💰 Budgetüberwachung
+- 📧 Benachrichtigungen bei Statusänderungen
+- 📊 Bestellübersichten und Reports
+
+**Typischer Ablauf:**
+1. Mitarbeiter erstellt Bestellanforderung (DRAFT)
+2. Vorgesetzter prüft und fordert an (REQUESTED)
+3. Einkauf genehmigt (APPROVED)
+4. Bestellung beim Lieferant (ORDERED)
+5. Wareneingang erfassen (RECEIVED)
+
+**Details:** Siehe `docs/ORDERS_MODULE.md`
+
+---
+
+### Workflows & Genehmigungen
+
+**Modul-Key:** Integriert in andere Module (z.B. Rechnungen, EHS)
+
+**Funktion:** Konfigurierbare Genehmigungs-Workflows für verschiedene Prozesse.
+
+**Komponenten:**
+- **Workflow** - Definition des Prozesses
+- **WorkflowStep** - Einzelne Genehmigungsschritte
+- **WorkflowInstance** - Konkrete Durchführung (z.B. für Rechnung #123)
+- **WorkflowInstanceStep** - Aktueller Bearbeitungsstatus
+
+**Eigenschaften:**
+- ✅ Sequentielle Genehmigungsschritte
+- 👥 Rollenbasierte Genehmiger
+- 🔔 Automatische Benachrichtigungen
+- 📝 Kommentare und Ablehnungsgründe
+- 🎨 Visueller Workflow-Editor
+
+**Anwendungsfälle:**
+- Rechnungsfreigaben (Auto-Trigger bei Status SENT)
+- Bestellgenehmigungen
+- Urlaubsanträge
+- Incident-Bearbeitung
+
+**Beispiel Rechnungs-Workflow:**
+```
+Schritt 1: Teamleiter prüft
+Schritt 2: Geschäftsführer genehmigt
+Schritt 3: Buchhaltung verbucht
+→ Bei jedem Schritt: Approve/Reject mit Kommentar
+```
+
+**Details:** Siehe `docs/WORKFLOW_SYSTEM.md`
+
+---
+
+### EHS & Incident Management
+
+**Modul-Key:** `incidents`
+
+**Funktion:** Sicherheitsvorfälle und Arbeitsunfälle erfassen und verwalten.
+
+**Incident-Arten:**
+- 🔥 Sicherheitsvorfall
+- 🤕 Arbeitsunfall
+- 🌍 Umweltvorfall
+- ⚠️ Beinahe-Unfall (Near Miss)
+
+**Workflow:**
+1. **Meldung** - Vorfall erfassen
+2. **Bewertung** - Schweregrad einschätzen
+3. **Untersuchung** - Root Cause Analysis
+4. **Maßnahmen** - Korrekturmaßnahmen definieren
+5. **Abschluss** - Nachverfolgung & Dokumentation
+
+**Hauptfunktionen:**
+- 📝 Strukturierte Vorfall-Erfassung
+- 👤 Betroffene Personen verknüpfen
+- 📷 Fotos und Dokumente anhängen
+- 🔄 Workflow-basierte Bearbeitung
+- 📊 Statistiken und Trend-Analysen
+- ⚡ EKAS-konforme Dokumentation (Schweiz)
+
+**Integration:**
+- Verknüpfung mit Projekten
+- Benachrichtigung von Verantwortlichen
+- Automatische Compliance-Checks
+
+**Details:** Siehe `docs/EHS_MODULE.md`
+
+---
+
+### Lagerbestand (Inventory)
+
+**Modul-Key:** `inventory`
+
+**Funktion:** Lagerverwaltung und Bestandsüberwachung.
+
+**Hauptfunktionen:**
+- 📦 Artikel-Bestandsverwaltung
+- 📍 Lagerorte definieren
+- ➕ Wareneingänge buchen
+- ➖ Warenausgänge tracken
+- 🔔 Mindestbestand-Warnungen
+- 📊 Bestandshistorie
+
+**Features:**
+- Chargen-Tracking
+- Seriennummern-Verwaltung
+- Automatische Nachbestellvorschläge
+- Inventur-Funktionen
+
+---
+
+### E-Learning & Schulungsmanagement
+
+**Modul-Key:** `elearning`
+
+**Funktion:** Online-Schulungen und Kursmanagement.
+
+**Hauptfunktionen:**
+- 📚 Kurs-Bibliothek erstellen
+- 📖 Lektionen mit Quiz
+- ✅ Teilnahme und Fortschritt tracken
+- 🏆 Zertifikate generieren
+- 📊 Schulungsstatistiken
+
+**Kurs-Typen:**
+- Obligatorische Schulungen (z.B. Arbeitssicherheit)
+- Optionale Weiterbildungen
+- Compliance-Trainings
+- Onboarding-Kurse
+
+**Tracking:**
+- Wer hat welche Kurse absolviert?
+- Quiz-Ergebnisse und Bestehensquoten
+- Ablaufdaten für Zertifikate
+- Erinnerungen für Auffrischung
+
+---
+
+### Onboarding & Bewerbermanagement
+
+**Modul-Key:** `onboarding`
+
+**Funktion:** Kompletter Recruiting- und Onboarding-Prozess.
+
+**Bewerbermanagement:**
+- 📨 Bewerbungen erfassen
+- 📝 Bewerberstatus verfolgen
+- 📅 Interviews planen
+- ✅ Zusagen/Absagen verwalten
+
+**Onboarding-Prozess:**
+- ✅ Checklisten für neue Mitarbeiter
+- 📋 Dokumente sammeln (Arbeitsvertrag, etc.)
+- 🎓 Schulungspläne zuweisen
+- 👥 Mentoren zuweisen
+- 📆 Einarbeitungsplan
+
+**Workflow:**
+```
+1. Bewerbung eingang → STATUS: NEW
+2. Prüfung → STATUS: REVIEWING
+3. Interview → STATUS: INTERVIEW
+4. Entscheidung → STATUS: OFFER/REJECTED
+5. Onboarding → STATUS: ONBOARDING
+6. Abschluss → STATUS: COMPLETED
+```
+
+**Details:** Siehe `docs/ONBOARDING_SYSTEM.md`
+
+---
+
+### Kostenstellen
+
+**Modul-Key:** `cost_centers`
+
+**Funktion:** Kostenstellenverwaltung für Buchhaltung.
+
+**Hauptfunktionen:**
+- 🏢 Kostenstellen definieren
+- 📊 Projekte zu Kostenstellen zuweisen
+- 💰 Kosten-Tracking
+- 📈 Budget-Überwachung
+
+**Beispiel-Kostenstellenstruktur:**
+```
+1000 - Verwaltung
+2000 - IT
+  2100 - Softwareentwicklung
+  2200 - Support
+3000 - Vertrieb
+4000 - Produktion
+```
+
+---
+
+### Projekt-Budget & Planung
+
+**Modul-Key:** `project_budget`, `project_planning`
+
+**Projekt-Budget:**
+- 💰 Budget-Planung pro Projekt
+- 📊 Ist/Soll-Vergleiche
+- 🔔 Warnungen bei Budgetüberschreitung
+- 📈 Kostenverlauf visualisieren
+
+**Projekt-Planung:**
+- 📅 Gantt-Chart Editor
+- 🎯 Meilensteine definieren
+- 👥 Ressourcen zuweisen
+- ⏱️ Zeitpläne visualisieren
+
+---
+
+### Compliance & Arbeitsrecht (Schweiz)
+
+**Modul-Key:** `compliance`
+
+**Funktion:** Überwachung der Schweizer Arbeitszeitgesetze (ArG/ArGV 1).
+
+**Automatische Prüfungen:**
+- ⏰ Max. Arbeitszeit pro Tag (10h)
+- 🌙 Ruhezeiten (mind. 11h zwischen Arbeitstagen)
+- ☕ Pflicht-Pausen (ab 6h Arbeit)
+- 📊 Wöchentliche Höchstarbeitszeit
+
+**Compliance-Violations:**
+Automatisch erstellt bei Verstößen:
+```
+Severity: HIGH
+Art:      INSUFFICIENT_REST_TIME
+Detail:   Nur 9h Ruhezeit zwischen Schichten
+Benutzer: Max Mustermann
+Datum:    15.02.2026
+```
+
+**Reports:**
+- Compliance-Status Dashboard
+- Violation-Übersicht
+- Risiko-Analyse
+
+---
+
 ## Reporting & Analytics
 
 ### Standard-Reports
@@ -848,6 +1440,123 @@ Tom K.         25          3         5        17
 ---
 
 ## System-Administration
+
+### Docker-Deployment
+
+**Standard-Deployment:**
+
+cflux wird empfohlenermaßen per Docker Compose bereitgestellt:
+
+```bash
+# System starten
+docker-compose up -d
+
+# Logs anzeigen
+docker-compose logs -f
+
+# System stoppen
+docker-compose down
+
+# System neu bauen
+docker-compose up -d --build
+```
+
+**Services:**
+- **backend** - Node.js/Express API (Port 3001)
+- **frontend** - React SPA (Port 3002)
+- **postgres** - PostgreSQL Datenbank
+- **redis** - Session-Cache (optional)
+
+**Initial-Setup:**
+
+Beim ersten Start werden automatisch:
+- ✅ Datenbank erstellt (via `prisma db push`)
+- ✅ Module eingespielt (`seedModules.ts`)
+- ✅ Admin-User erstellt (`admin@timetracking.local` / `admin123`)
+  - ⚠️ Passwort muss bei erster Anmeldung geändert werden!
+- ✅ Standard-Gruppen angelegt
+
+**URLs:**
+- Frontend: `http://localhost:3002`
+- Backend API: `http://localhost:3001/api`
+
+**Troubleshooting:**
+
+```bash
+# Container-Status prüfen
+docker ps
+
+# Backend-Logs
+docker-compose logs backend
+
+# Datenbank-Logs
+docker-compose logs postgres
+
+# Backend neu starten
+docker-compose restart backend
+
+# Alles neu bauen (bei Schema-Änderungen)
+docker-compose down
+docker-compose up -d --build
+```
+
+### Datenbank-Management
+
+**Schema-First Workflow:**
+
+cflux verwendet **Prisma** als ORM. Das Datenbank-Schema ist die Single Source of Truth:
+
+```bash
+# Schema-Datei
+backend/prisma/schema.prisma
+
+# Schema zur Datenbank pushen (ohne Migrationen)
+cd backend
+npm run prisma:push
+
+# Prisma Client neu generieren
+npm run prisma:generate
+
+# Prisma Studio öffnen (DB GUI)
+npm run prisma:studio
+```
+
+**⚠️ Wichtig:** Bei Docker-Deployment wird `prisma db push` automatisch beim Container-Start ausgeführt!
+
+**Seeding:**
+
+Module und Grunddaten werden über Seed-Scripts eingespielt:
+
+```bash
+cd backend
+
+# Alle Seeds ausführen
+npm run prisma:seed
+
+# Nur Module
+npx ts-node prisma/seedModules.ts
+
+# Zeitmodelle
+npx ts-node prisma/seedZeitmodelle.ts
+
+# Media-Modul
+npx ts-node prisma/seedMediaModule.ts
+```
+
+**Datenbank zurücksetzen:**
+
+⚠️ **Vorsicht! Alle Daten gehen verloren!**
+
+```bash
+# Container stoppen
+docker-compose down
+
+# Volume löschen
+docker volume rm cflux_postgres_data
+
+# Neu starten (DB wird neu erstellt)
+docker-compose up -d
+```
 
 ### Backup & Restore
 
@@ -1062,6 +1771,102 @@ docker exec timetracking-backend npm run maintenance:off
 - Verschlüsselung nutzen
 - Zugriffsrechte regelmäßig prüfen
 
+### Modul- und Rechteverwaltung
+
+**Benutzergruppen-Strategie:**
+
+**1. Rollen definieren:**
+```
+Hierarchie aufbauen:
+  Administratoren (voller Zugriff)
+  ↓
+  Manager (Teams/Projekte)
+  ↓
+  Power-User (erweiterte Rechte)
+  ↓
+  Basis-Mitarbeiter (grundlegende Funktionen)
+  ↓
+  Gäste/Externe (nur Lesen)
+```
+
+**2. Gruppen sinnvoll strukturieren:**
+- Nach Abteilungen (HR, IT, Buchhaltung)
+- Nach Rollen (Manager, Mitarbeiter)
+- Nach Projekten (bei Bedarf)
+- Kombinieren über Multi-Group-Membership
+
+**3. Minimal erforderliche Rechte vergeben (Principle of Least Privilege):**
+```
+❌ Falsch: Allen Mitarbeitern Delete-Rechte
+✅ Richtig: Nur Manager/Admins können löschen
+
+❌ Falsch: Jeder sieht alle Module
+✅ Richtig: Nur Module aktivieren, die gebraucht werden
+```
+
+**4. Regelmäßige Reviews:**
+- Quartalsweise Rechtevergabe prüfen
+- Ausgeschiedene Mitarbeiter entfernen
+- Ungenutzte Gruppen deaktivieren
+- Rechte anpassen bei Positionswechsel
+
+**Neue Mitarbeiter:**
+```
+1. Abteilung/Position identifizieren
+2. Zu passender Standard-Gruppe hinzufügen
+3. Bei Bedarf: Zusatzgruppen für spezielle Projekte
+4. Nach Probezeit: Rechte ggf. erweitern
+```
+
+**Beispiel-Setup für typisches Unternehmen:**
+```
+Gruppe: Mitarbeiter (Basis)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Dashboard: View
+- Zeiterfassung: View, Create, Edit
+- Projekte: View
+- Abwesenheiten: View, Create
+- Intranet: View, Create, Edit
+- E-Learning: View
+
+Gruppe: Projektmanager (erweitert)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Zusätzlich zu "Mitarbeiter":
+- Projekte: Create, Edit, Delete
+- Projekt-Budget: View, Create, Edit
+- Projekt-Reports: View, Create
+- Abwesenheiten: Edit (Freigabe)
+- Zeiterfassung: Delete (Korrektur)
+
+Gruppe: Buchhaltung
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Rechnungen: View, Create, Edit, Delete
+- Mahnungen: View, Create, Edit
+- Kostenstellen: View, Create, Edit
+- Kunden: View, Edit
+- Projekt-Budget: View
+```
+
+**Troubleshooting Rechteprobleme:**
+
+```
+Problem: Benutzer sieht Modul nicht
+→ Prüfen: 
+  1. Ist Benutzer Gruppen-Mitglied?
+  2. Hat Gruppe das Modul mit canView?
+  3. Ist Modul aktiviert?
+
+Problem: Benutzer kann nicht erstellen
+→ Prüfen:
+  1. Hat Gruppe canCreate-Recht?
+  2. Zusätzliche Validation im Code?
+
+Problem: Zu viele Rechte
+→ Lösung:
+  1. Aus falscher Gruppe entfernen
+  2. Gruppen-Rechte anpassen
+```
+
 ---
 
 ## Troubleshooting
@@ -1108,6 +1913,59 @@ docker exec timetracking-backend npm run maintenance:off
 - Datenintegrität prüfen
 - Bei Fehlern: Support kontaktieren
 
+**Problem: Benutzer hat keinen Zugriff auf Modul**
+
+**Checkliste:**
+1. ☐ Ist Benutzer aktiv?
+2. ☐ Hat Benutzer USER-Rolle? (ADMIN hat automatisch alles)
+3. ☐ Ist Benutzer Mitglied einer Gruppe?
+4. ☐ Hat die Gruppe Zugriff auf das Modul?
+5. ☐ Hat die Gruppe canView-Berechtigung?
+6. ☐ Ist das Modul aktiviert?
+
+**Lösung:**
+```bash
+1. Benutzer öffnen
+2. Tab "Gruppenmitgliedschaften" prüfen
+3. Falls keine Gruppe: Zu passender Gruppe hinzufügen
+4. Falls Gruppe vorhanden: Modul-Berechtigungen der Gruppe prüfen
+5. Falls Modul unsichtbar: Modul aktivieren unter "Verwaltung → Module"
+```
+
+**Problem: Benutzer kann nicht erstellen/bearbeiten/löschen**
+
+**Checkliste:**
+1. ☐ Hat Gruppe die entsprechende Berechtigung?
+   - canCreate für neue Einträge
+   - canEdit für Änderungen  
+   - canDelete für Löschungen
+2. ☐ Gibt es zusätzliche Business-Rules? (z.B. nur eigene Einträge)
+
+**Lösung:**
+- Gruppen-Berechtigungen anpassen
+- Oder Benutzer zu Gruppe mit erweiterten Rechten hinzufügen
+
+**Problem: Nach Docker-Update funktioniert etwas nicht**
+
+**Checkliste:**
+1. ☐ Wurden Container neu gebaut? (`--build` Flag)
+2. ☐ Ist Datenbank-Schema aktuell? (Auto-Push bei Start)
+3. ☐ Gibt es neue Module? (Seed-Script prüfen)
+4. ☐ Logs prüfen (`docker-compose logs backend`)
+
+**Lösung:**
+```bash
+# Vollständiger Neustart
+docker-compose down
+docker-compose up -d --build
+
+# Backend-Logs prüfen
+docker-compose logs -f backend
+
+# Bei Schema-Problemen: Manuell pushen
+docker exec -it cflux-backend-1 npm run prisma:push
+```
+
 ---
 
 ## Anhang
@@ -1115,20 +1973,25 @@ docker exec timetracking-backend npm run maintenance:off
 ### Checklisten
 
 **Neuer Mitarbeiter Onboarding:**
-- [ ] Benutzer anlegen
+- [ ] Benutzer anlegen (Rolle: USER)
+- [ ] Zu Benutzergruppen hinzufügen (Mitarbeiter + Abteilung)
+- [ ] Modulzugriff testen (Login-Test)
 - [ ] Urlaubskontingent setzen (Standard: 25)
 - [ ] Zu Projekten zuweisen
 - [ ] Willkommens-E-Mail mit Login-Daten
 - [ ] Einführung in cflux geben
 - [ ] Erste Zeitbuchung prüfen
+- [ ] E-Learning-Kurse zuweisen
 
 **Mitarbeiter Offboarding:**
 - [ ] Laufende Projekte abschließen
 - [ ] Letzte Zeiteinträge prüfen
 - [ ] Resturlaub auszahlen/dokumentieren
 - [ ] Final-Report erstellen
+- [ ] Aus allen Benutzergruppen entfernen
 - [ ] Benutzer deaktivieren (nicht löschen!)
-- [ ] Zugriffsrechte entziehen
+- [ ] Zugriff verifizieren (sollte gesperrt sein)
+- [ ] Dokumentation archivieren
 
 **Monatsabschluss:**
 - [ ] Alle Zeiteinträge prüfen
@@ -1150,9 +2013,48 @@ docker exec timetracking-backend npm run maintenance:off
 - GitHub: github.com/mpue/cflux
 - Issues: github.com/mpue/cflux/issues
 
+### Zusätzliche Dokumentation
+
+**System-Dokumentation:**
+- `docs/DOCKER-QUICKSTART.md` - Schnellstart mit Docker
+- `docs/MODULE_PERMISSIONS.md` - Detaillierte Modul-Berechtigungen
+- `docs/DATABASE.md` - Datenbank-Schema und Migrationen
+
+**Modul-Spezifisch:**
+- `docs/INTRANET.md` - Intranet-System
+- `docs/ORDERS_MODULE.md` - Bestellwesen
+- `docs/WORKFLOW_SYSTEM.md` - Workflow-Engine
+- `docs/ONBOARDING_SYSTEM.md` - Bewerbermanagement
+- `docs/EHS_MODULE.md` - Incident Management
+
+**Technisch:**
+- `backend/prisma/schema.prisma` - Vollständiges Datenbank-Schema (1725+ Zeilen)
+- `backend/src/index.ts` - Alle API-Routes
+- `frontend/src/App.tsx` - Frontend-Routen
+
+### Versions-Historie
+
+**Version 2.0 (Februar 2026):**
+- ✨ Modul-basiertes Berechtigungssystem
+- ✨ Multi-Group-Membership für Benutzer
+- ✨25 Module (neu: Intranet, Orders, E-Learning, Onboarding)
+- ✨ Workflow-Engine für Genehmigungen
+- ✨ EHS/Incident Management
+- ✨ Projektplanung mit Gantt-Charts
+- 🔄 Modernisierte Docker-Deployment
+- 📚 Erweiterte Dokumentation
+
+**Version 1.0 (Januar 2025):**
+- Initiale Version mit Basis-Funktionalität
+- Einfaches Rollen-System (USER/ADMIN)
+- Zeiterfassung, Projekte, Urlaub, Rechnungen
+- Compliance-Prüfung für Schweiz
+
 ---
 
 **Ende Administrator-Handbuch**
 
 Vielen Dank für Ihre Arbeit als cflux Administrator!  
 Bei Fragen steht Ihnen unser Support-Team zur Verfügung.
+
+**Version 2.0 - Februar 2026**

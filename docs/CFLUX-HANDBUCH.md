@@ -2,7 +2,7 @@
 
 <br>
 
-<img src="../web/logo.png" height="256px" align="center">
+<img src="../web/logo.png" height="512px">
 
 <br>
 
@@ -3383,13 +3383,13 @@ CFlux erfüllt die **Datenschutz-Grundverordnung (DSGVO)**:
 **CFlux ERP & Zeitmanagement System**  
 Version 2.1
 
-© 2026 CFlux Software GmbH  
+© 2026 Matthias Püski
 Alle Rechte vorbehalten.
 
 **Kontakt:**  
-E-Mail: info@cflux.ch  
-Web: www.cflux.ch  
-Telefon: +41 XX XXX XX XX
+E-Mail: info@cflux.org
+Web: www.cflux.org
+
 
 <div style="page-break-before: always;"></div>
 

@@ -23,6 +23,8 @@ const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoice, onCl
   }, [onClose]);
 
   useEffect(() => {
+    let objectUrl = '';
+
     const fetchPdf = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -42,8 +44,8 @@ const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoice, onCl
         }
 
         const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
+        objectUrl = URL.createObjectURL(blob);
+        setPdfUrl(objectUrl);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching PDF:', err);
@@ -55,11 +57,11 @@ const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoice, onCl
     fetchPdf();
 
     return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [invoice.id, pdfUrl]);
+  }, [invoice.id]);
 
   const handleDownload = () => {
     const link = document.createElement('a');
@@ -89,17 +91,15 @@ const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({ invoice, onCl
           {loading && <div style={{ padding: '20px', textAlign: 'center' }}>Lade PDF...</div>}
           {error && <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>{error}</div>}
           {pdfUrl && !loading && !error && (
-            <object
-              data={pdfUrl}
-              type="application/pdf"
+            <iframe
+              src={pdfUrl}
+              title="Rechnungsvorschau"
               style={{
                 width: '100%',
                 height: '100%',
                 border: 'none',
               }}
-            >
-              <p>Dein Browser kann PDFs nicht anzeigen. <button onClick={handleDownload}>Hier herunterladen</button></p>
-            </object>
+            />
           )}
         </div>
       </div>

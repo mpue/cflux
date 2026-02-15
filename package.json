@@ -18,7 +18,9 @@
     "test:firefox": "playwright test --project=firefox",
     "test:webkit": "playwright test --project=webkit",
     "test:report": "playwright show-report",
-    "test:codegen": "playwright codegen http://localhost:3002"
+    "test:codegen": "playwright codegen http://localhost:3002",
+    "test:screenshots": "playwright test e2e/tests/kickstart-screenshots.spec.ts --project=chromium",
+    "update:docs": "./scripts/update-screenshots-and-docs.sh"
   },
   "devDependencies": {
     "@playwright/test": "^1.41.0",

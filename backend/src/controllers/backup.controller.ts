@@ -1,12 +1,9 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
 
 const prisma = new PrismaClient();
-const execAsync = promisify(exec);
 
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(__dirname, '../../backups');
 
@@ -15,149 +12,237 @@ if (!fs.existsSync(BACKUP_DIR)) {
   fs.mkdirSync(BACKUP_DIR, { recursive: true });
 }
 
+/**
+ * Maps backup JSON key names → Prisma client accessor names.
+ * Single source of truth for all backed-up tables (99 total).
+ */
+const TABLE_MAP: Record<string, string> = {
+  // Auth & Organisation
+  systemSettings: 'systemSettings',
+  departments: 'department',
+  users: 'user',
+  userGroups: 'userGroup',
+  userGroupMemberships: 'userGroupMembership',
+  modules: 'module',
+  moduleAccess: 'moduleAccess',
+
+  // HR / Onboarding
+  employees: 'employee',
+  applicants: 'applicant',
+  applicantDocuments: 'applicantDocument',
+  applicantInterviews: 'applicantInterview',
+  applicantNotes: 'applicantNote',
+  employeeDocuments: 'employeeDocument',
+  onboardingTasks: 'onboardingTask',
+
+  // Job Functions
+  jobFunctions: 'jobFunction',
+  jobFunctionDocuments: 'jobFunctionDocument',
+
+  // Stammdaten
+  customers: 'customer',
+  suppliers: 'supplier',
+  articleGroups: 'articleGroup',
+  articles: 'article',
+  costCenters: 'costCenter',
+
+  // Inventory
+  inventoryItems: 'inventoryItem',
+  inventoryMovements: 'inventoryMovement',
+
+  // Projects
+  projects: 'project',
+  projectTasks: 'projectTask',
+  taskDependencies: 'taskDependency',
+  locations: 'location',
+  projectAssignments: 'projectAssignment',
+
+  // Time Tracking
+  timeEntries: 'timeEntry',
+  projectTimeAllocations: 'projectTimeAllocation',
+  absenceRequests: 'absenceRequest',
+  holidays: 'holiday',
+  overtimeBalances: 'overtimeBalance',
+
+  // Compliance
+  complianceViolations: 'complianceViolation',
+  complianceSettings: 'complianceSettings',
+
+  // Invoices & Reminders
+  invoiceTemplates: 'invoiceTemplate',
+  invoices: 'invoice',
+  invoiceItems: 'invoiceItem',
+  reminders: 'reminder',
+  reminderSettings: 'reminderSettings',
+
+  // Incidents
+  incidents: 'incident',
+  incidentComments: 'incidentComment',
+
+  // Automation
+  systemActions: 'systemAction',
+  workflowTriggers: 'workflowTrigger',
+  actionLogs: 'actionLog',
+
+  // Workflows
+  workflows: 'workflow',
+  workflowSteps: 'workflowStep',
+  invoiceTemplateWorkflows: 'invoiceTemplateWorkflow',
+  workflowInstances: 'workflowInstance',
+  workflowInstanceSteps: 'workflowInstanceStep',
+
+  // Payroll
+  payrollPeriods: 'payrollPeriod',
+  payrollEntries: 'payrollEntry',
+  salaryConfigurations: 'salaryConfiguration',
+
+  // Devices
+  devices: 'device',
+  deviceAssignments: 'deviceAssignment',
+
+  // Travel
+  travelExpenses: 'travelExpense',
+
+  // Messages
+  messages: 'message',
+
+  // Intranet / Documents
+  documentNodeTypeRegistries: 'documentNodeTypeRegistry',
+  documentNodes: 'documentNode',
+  documentNodeGroupPermissions: 'documentNodeGroupPermission',
+  documentVersions: 'documentVersion',
+  documentNodeAttachments: 'documentNodeAttachment',
+  documentNodeAttachmentVersions: 'documentNodeAttachmentVersion',
+
+  // Media
+  media: 'media',
+
+  // Orders
+  orders: 'order',
+  orderItems: 'orderItem',
+  orderDeliveries: 'orderDelivery',
+  orderDeliveryItems: 'orderDeliveryItem',
+
+  // EHS
+  ehsMonthlyData: 'eHSMonthlyData',
+  ehsTodos: 'eHSTodo',
+
+  // Budget
+  projectBudgets: 'projectBudget',
+  projectBudgetItems: 'projectBudgetItem',
+
+  // Dashboard
+  userDashboardLayouts: 'userDashboardLayout',
+
+  // Zeitmodelle
+  zeitmodelle: 'zeitmodell',
+  zeitmodellEintraege: 'zeitmodellEintrag',
+  mitarbeiterZeitmodelle: 'mitarbeiterZeitmodell',
+  zeitmodellAenderungen: 'zeitmodellAenderung',
+
+  // E-Learning
+  courses: 'course',
+  courseCategories: 'courseCategory',
+  lessons: 'lesson',
+  quizzes: 'quiz',
+  questions: 'question',
+  answers: 'answer',
+  enrollments: 'enrollment',
+  lessonProgress: 'lessonProgress',
+  quizAttempts: 'quizAttempt',
+  questionResponses: 'questionResponse',
+  courseAssignments: 'courseAssignment',
+
+  // Training
+  trainingCatalogs: 'trainingCatalog',
+  trainingSessions: 'trainingSession',
+  trainingCompletions: 'trainingCompletion',
+
+  // Equipment
+  equipments: 'equipment',
+  equipmentAssignments: 'equipmentAssignment',
+
+  // Checklists
+  checklistTemplates: 'checklistTemplate',
+  checklistItems: 'checklistItem',
+  checklistInstances: 'checklistInstance',
+  checklistItemCompletions: 'checklistItemCompletion',
+
+  // News
+  newsSources: 'newsSource',
+  newsItems: 'newsItem',
+};
+
+const TABLE_COUNT = Object.keys(TABLE_MAP).length;
+
+// Helper: dynamically access prisma model
+const prismaModel = (accessor: string) => (prisma as any)[accessor];
+
+// ============================================================
+// CREATE BACKUP
+// ============================================================
 export const createBackup = async (req: Request, res: Response) => {
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `backup_${timestamp}.json`;
     const filepath = path.join(BACKUP_DIR, filename);
 
-    // Export all data using Prisma - Alle Tabellen
-    const [
-      users,
-      userGroups,
-      userGroupMemberships,
-      modules,
-      moduleAccess,
-      customers,
-      suppliers,
-      articleGroups,
-      articles,
-      projects,
-      locations,
-      projectAssignments,
-      timeEntries,
-      absenceRequests,
-      holidays,
-      overtimeBalances,
-      complianceViolations,
-      complianceSettings,
-      invoiceTemplates,
-      invoices,
-      invoiceItems,
-      reminders,
-      reminderSettings,
-      incidents,
-      incidentComments,
-      workflows,
-      workflowSteps,
-      invoiceTemplateWorkflows,
-      workflowInstances,
-      workflowInstanceSteps,
-      systemSettings,
-      documentNodes,
-      documentVersions,
-      documentNodeGroupPermissions
-    ] = await Promise.all([
-      prisma.user.findMany(),
-      prisma.userGroup.findMany(),
-      prisma.userGroupMembership.findMany(),
-      prisma.module.findMany(),
-      prisma.moduleAccess.findMany(),
-      prisma.customer.findMany(),
-      prisma.supplier.findMany(),
-      prisma.articleGroup.findMany(),
-      prisma.article.findMany(),
-      prisma.project.findMany(),
-      prisma.location.findMany(),
-      prisma.projectAssignment.findMany(),
-      prisma.timeEntry.findMany(),
-      prisma.absenceRequest.findMany(),
-      prisma.holiday.findMany(),
-      prisma.overtimeBalance.findMany(),
-      prisma.complianceViolation.findMany(),
-      prisma.complianceSettings.findMany(),
-      prisma.invoiceTemplate.findMany(),
-      prisma.invoice.findMany(),
-      prisma.invoiceItem.findMany(),
-      prisma.reminder.findMany(),
-      prisma.reminderSettings.findMany(),
-      prisma.incident.findMany(),
-      prisma.incidentComment.findMany(),
-      prisma.workflow.findMany(),
-      prisma.workflowStep.findMany(),
-      prisma.invoiceTemplateWorkflow.findMany(),
-      prisma.workflowInstance.findMany(),
-      prisma.workflowInstanceStep.findMany(),
-      prisma.systemSettings.findMany(),
-      prisma.documentNode.findMany(),
-      prisma.documentVersion.findMany(),
-      prisma.documentNodeGroupPermission.findMany()
-    ]);
+    console.log(`📦 Creating backup of ${TABLE_COUNT} tables...`);
+
+    // Fetch all tables in parallel batches to avoid overwhelming the DB
+    const data: Record<string, any[]> = {};
+    const keys = Object.keys(TABLE_MAP);
+    const BATCH_SIZE = 15;
+
+    for (let i = 0; i < keys.length; i += BATCH_SIZE) {
+      const batch = keys.slice(i, i + BATCH_SIZE);
+      const results = await Promise.all(
+        batch.map(key => prismaModel(TABLE_MAP[key]).findMany())
+      );
+      batch.forEach((key, idx) => {
+        data[key] = results[idx];
+      });
+    }
 
     const backup = {
-      version: '2.0',
+      version: '3.0',
       timestamp: new Date().toISOString(),
       schemaInfo: {
-        tablesCount: 34,
-        description: 'Complete database backup including all modules and intranet'
+        tablesCount: TABLE_COUNT,
+        description: 'Complete database backup — all modules including E-Learning, Onboarding, Checklists, News, Orders, EHS, Budget, Zeitmodelle, and more'
       },
-      data: {
-        users,
-        userGroups,
-        userGroupMemberships,
-        modules,
-        moduleAccess,
-        customers,
-        suppliers,
-        articleGroups,
-        articles,
-        projects,
-        locations,
-        projectAssignments,
-        timeEntries,
-        absenceRequests,
-        holidays,
-        overtimeBalances,
-        complianceViolations,
-        complianceSettings,
-        invoiceTemplates,
-        invoices,
-        invoiceItems,
-        reminders,
-        reminderSettings,
-        incidents,
-        incidentComments,
-        workflows,
-        workflowSteps,
-        invoiceTemplateWorkflows,
-        workflowInstances,
-        workflowInstanceSteps,
-        systemSettings,
-        documentNodes,
-        documentVersions,
-        documentNodeGroupPermissions
-      },
+      data,
       statistics: {
-        usersCount: users.length,
-        userGroupsCount: userGroups.length,
-        customersCount: customers.length,
-        suppliersCount: suppliers.length,
-        articlesCount: articles.length,
-        projectsCount: projects.length,
-        locationsCount: locations.length,
-        timeEntriesCount: timeEntries.length,
-        absenceRequestsCount: absenceRequests.length,
-        invoicesCount: invoices.length,
-        incidentsCount: incidents.length,
-        workflowsCount: workflows.length,
-        documentNodesCount: documentNodes.length,
-        documentVersionsCount: documentVersions.length,
-        documentPermissionsCount: documentNodeGroupPermissions.length
+        usersCount: data.users?.length ?? 0,
+        userGroupsCount: data.userGroups?.length ?? 0,
+        employeesCount: data.employees?.length ?? 0,
+        customersCount: data.customers?.length ?? 0,
+        suppliersCount: data.suppliers?.length ?? 0,
+        articlesCount: data.articles?.length ?? 0,
+        projectsCount: data.projects?.length ?? 0,
+        locationsCount: data.locations?.length ?? 0,
+        timeEntriesCount: data.timeEntries?.length ?? 0,
+        absenceRequestsCount: data.absenceRequests?.length ?? 0,
+        invoicesCount: data.invoices?.length ?? 0,
+        incidentsCount: data.incidents?.length ?? 0,
+        workflowsCount: data.workflows?.length ?? 0,
+        ordersCount: data.orders?.length ?? 0,
+        coursesCount: data.courses?.length ?? 0,
+        applicantsCount: data.applicants?.length ?? 0,
+        documentNodesCount: data.documentNodes?.length ?? 0,
+        documentVersionsCount: data.documentVersions?.length ?? 0,
+        documentAttachmentsCount: data.documentNodeAttachments?.length ?? 0,
+        documentPermissionsCount: data.documentNodeGroupPermissions?.length ?? 0,
+        checklistTemplatesCount: data.checklistTemplates?.length ?? 0,
+        newsItemsCount: data.newsItems?.length ?? 0,
+        messagesCount: data.messages?.length ?? 0,
+        mediaCount: data.media?.length ?? 0,
       }
     };
 
-    // Write backup to file
     fs.writeFileSync(filepath, JSON.stringify(backup, null, 2), 'utf-8');
+
+    console.log(`✅ Backup created: ${filename} (${TABLE_COUNT} tables)`);
 
     res.json({
       message: 'Backup created successfully',
@@ -172,13 +257,16 @@ export const createBackup = async (req: Request, res: Response) => {
   }
 };
 
+// ============================================================
+// LIST / DOWNLOAD / DELETE BACKUPS
+// ============================================================
 export const listBackups = async (req: Request, res: Response) => {
   try {
     const files = fs.readdirSync(BACKUP_DIR)
       .filter(file => file.endsWith('.json') || file.endsWith('.sql'))
       .map(file => {
-        const filepath = path.join(BACKUP_DIR, file);
-        const stats = fs.statSync(filepath);
+        const fp = path.join(BACKUP_DIR, file);
+        const stats = fs.statSync(fp);
         return {
           filename: file,
           size: stats.size,
@@ -198,18 +286,13 @@ export const listBackups = async (req: Request, res: Response) => {
 export const downloadBackup = async (req: Request, res: Response) => {
   try {
     const { filename } = req.params;
-    
-    // Validate filename to prevent directory traversal
     if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
       return res.status(400).json({ error: 'Invalid filename' });
     }
-
     const filepath = path.join(BACKUP_DIR, filename);
-
     if (!fs.existsSync(filepath)) {
       return res.status(404).json({ error: 'Backup file not found' });
     }
-
     res.download(filepath, filename);
   } catch (error: any) {
     console.error('Download backup error:', error);
@@ -220,20 +303,14 @@ export const downloadBackup = async (req: Request, res: Response) => {
 export const deleteBackup = async (req: Request, res: Response) => {
   try {
     const { filename } = req.params;
-    
-    // Validate filename to prevent directory traversal
     if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
       return res.status(400).json({ error: 'Invalid filename' });
     }
-
     const filepath = path.join(BACKUP_DIR, filename);
-
     if (!fs.existsSync(filepath)) {
       return res.status(404).json({ error: 'Backup file not found' });
     }
-
     fs.unlinkSync(filepath);
-
     res.json({ message: 'Backup deleted successfully' });
   } catch (error: any) {
     console.error('Delete backup error:', error);
@@ -241,404 +318,496 @@ export const deleteBackup = async (req: Request, res: Response) => {
   }
 };
 
+// ============================================================
+// RESTORE BACKUP
+// ============================================================
 export const restoreBackup = async (req: Request, res: Response) => {
   try {
     const { filename } = req.params;
-    
-    // Validate filename to prevent directory traversal
     if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
       return res.status(400).json({ error: 'Invalid filename' });
     }
-
     const filepath = path.join(BACKUP_DIR, filename);
-
     if (!fs.existsSync(filepath)) {
       return res.status(404).json({ error: 'Backup file not found' });
     }
 
-    // Read and parse backup file
     const backupData = JSON.parse(fs.readFileSync(filepath, 'utf-8'));
 
     console.log('🔄 Starting database restore...');
     console.log(`📦 Backup version: ${backupData.version}`);
     console.log(`📅 Backup date: ${backupData.timestamp}`);
 
-    // Step 1: Delete all existing data (in reverse order of dependencies)
+    // ──────────────────────────────────────────────────────────
+    // STEP 1: Delete all existing data (children before parents)
+    // ──────────────────────────────────────────────────────────
     console.log('🗑️  Deleting existing data...');
-    
-    // Delete detail records with foreign keys first
+
+    // Break circular FK references on User first
+    await prisma.user.updateMany({
+      data: { jobFunctionId: null, supervisorId: null, userGroupId: null }
+    });
+
+    // Checklists
+    await prisma.checklistItemCompletion.deleteMany();
+    await prisma.checklistInstance.deleteMany();
+    await prisma.checklistItem.deleteMany();
+    await prisma.checklistTemplate.deleteMany();
+
+    // E-Learning
+    await prisma.questionResponse.deleteMany();
+    await prisma.quizAttempt.deleteMany();
+    await prisma.lessonProgress.deleteMany();
+    await prisma.enrollment.deleteMany();
+    await prisma.courseAssignment.deleteMany();
+    await prisma.answer.deleteMany();
+    await prisma.question.deleteMany();
+    await prisma.quiz.deleteMany();
+    await prisma.lesson.deleteMany();
+    await prisma.course.deleteMany();
+    await prisma.courseCategory.deleteMany();
+
+    // Onboarding / Training
+    await prisma.trainingCompletion.deleteMany();
+    await prisma.trainingSession.deleteMany();
+    await prisma.trainingCatalog.deleteMany();
+    await prisma.equipmentAssignment.deleteMany();
+    await prisma.equipment.deleteMany();
+    await prisma.onboardingTask.deleteMany();
+    await prisma.employeeDocument.deleteMany();
+    await prisma.applicantNote.deleteMany();
+    await prisma.applicantInterview.deleteMany();
+    await prisma.applicantDocument.deleteMany();
+    await prisma.applicant.deleteMany();
+
+    // Job Functions
+    await prisma.jobFunctionDocument.deleteMany();
+    await prisma.jobFunction.deleteMany();
+
+    // News
+    await prisma.newsItem.deleteMany();
+    await prisma.newsSource.deleteMany();
+
+    // Zeitmodelle
+    await prisma.zeitmodellAenderung.deleteMany();
+    await prisma.mitarbeiterZeitmodell.deleteMany();
+    await prisma.zeitmodellEintrag.deleteMany();
+    await prisma.zeitmodell.deleteMany();
+
+    // Dashboard
+    await prisma.userDashboardLayout.deleteMany();
+
+    // Budget
+    await prisma.projectBudgetItem.deleteMany();
+    await prisma.projectBudget.deleteMany();
+
+    // EHS
+    await prisma.eHSTodo.deleteMany();
+    await prisma.eHSMonthlyData.deleteMany();
+
+    // Orders
+    await prisma.orderDeliveryItem.deleteMany();
+    await prisma.orderDelivery.deleteMany();
+    await prisma.orderItem.deleteMany();
+    await prisma.order.deleteMany();
+
+    // Media
+    await prisma.media.deleteMany();
+
+    // Document Attachments
+    await prisma.documentNodeAttachmentVersion.deleteMany();
+    await prisma.documentNodeAttachment.deleteMany();
+
+    // Automation
+    await prisma.actionLog.deleteMany();
+    await prisma.workflowTrigger.deleteMany();
+    await prisma.systemAction.deleteMany();
+
+    // Workflows
     await prisma.workflowInstanceStep.deleteMany();
     await prisma.workflowInstance.deleteMany();
     await prisma.invoiceTemplateWorkflow.deleteMany();
     await prisma.workflowStep.deleteMany();
-    await prisma.workflow.deleteMany();
-    
+
+    // Incidents
     await prisma.incidentComment.deleteMany();
     await prisma.incident.deleteMany();
-    
+
+    // Reminders
     await prisma.reminderSettings.deleteMany();
     await prisma.reminder.deleteMany();
-    
+
+    // Invoices
     await prisma.invoiceItem.deleteMany();
     await prisma.invoice.deleteMany();
     await prisma.invoiceTemplate.deleteMany();
-    
+
+    // Travel, Messages, Payroll, Devices
+    await prisma.travelExpense.deleteMany();
+    await prisma.message.deleteMany();
+    await prisma.payrollEntry.deleteMany();
+    await prisma.payrollPeriod.deleteMany();
+    await prisma.salaryConfiguration.deleteMany();
+    await prisma.deviceAssignment.deleteMany();
+    await prisma.device.deleteMany();
+
+    // Compliance
     await prisma.complianceViolation.deleteMany();
     await prisma.complianceSettings.deleteMany();
-    
+
+    // Time Tracking
     await prisma.overtimeBalance.deleteMany();
     await prisma.holiday.deleteMany();
     await prisma.absenceRequest.deleteMany();
+    await prisma.projectTimeAllocation.deleteMany();
     await prisma.timeEntry.deleteMany();
-    
+
+    // Project Tasks
+    await prisma.taskDependency.deleteMany();
+    await prisma.projectTask.deleteMany();
+
+    // Projects
     await prisma.projectAssignment.deleteMany();
     await prisma.location.deleteMany();
     await prisma.project.deleteMany();
-    
+
+    // Inventory
+    await prisma.inventoryMovement.deleteMany();
+    await prisma.inventoryItem.deleteMany();
+
+    // Articles
     await prisma.article.deleteMany();
     await prisma.articleGroup.deleteMany();
-    
+
+    // Cost Centers
+    await prisma.costCenter.deleteMany();
+
+    // Suppliers / Customers
     await prisma.supplier.deleteMany();
     await prisma.customer.deleteMany();
-    
-    // Delete intranet data
+
+    // Intranet
     await prisma.documentNodeGroupPermission.deleteMany();
     await prisma.documentVersion.deleteMany();
     await prisma.documentNode.deleteMany();
-    
+    await prisma.documentNodeTypeRegistry.deleteMany();
+
+    // Workflows (parent)
+    await prisma.workflow.deleteMany();
+
+    // Auth & Module
     await prisma.moduleAccess.deleteMany();
     await prisma.module.deleteMany();
-    
     await prisma.userGroupMembership.deleteMany();
     await prisma.userGroup.deleteMany();
-    
     await prisma.systemSettings.deleteMany();
-    
-    // Delete users last
+
+    // Employee, Department, User (last)
+    await prisma.employee.deleteMany();
+    await prisma.department.deleteMany();
     await prisma.user.deleteMany();
 
     console.log('✅ All existing data deleted');
 
-    // Step 2: Restore data from backup (in correct order)
+    // ──────────────────────────────────────────────────────────
+    // STEP 2: Restore data (parents before children)
+    // ──────────────────────────────────────────────────────────
     console.log('📥 Restoring data from backup...');
-    
+
     let restoredCount = 0;
 
-    // Restore independent tables first
-    if (backupData.data.systemSettings) {
-      for (const item of backupData.data.systemSettings) {
-        await prisma.systemSettings.create({ data: item });
+    /**
+     * Restore a table from backup data.
+     */
+    const restoreTable = async (dataKey: string, accessor: string, label?: string): Promise<number> => {
+      const items = backupData.data[dataKey];
+      if (!items?.length) return 0;
+      for (const item of items) {
+        await prismaModel(accessor).create({ data: item });
       }
-      restoredCount += backupData.data.systemSettings.length;
-      console.log(`  ✓ SystemSettings: ${backupData.data.systemSettings.length}`);
-    }
+      const count = items.length;
+      console.log(`  ✓ ${label || dataKey}: ${count}`);
+      return count;
+    };
 
-    if (backupData.data.users) {
-      for (const user of backupData.data.users) {
-        await prisma.user.create({ data: user });
-      }
-      restoredCount += backupData.data.users.length;
-      console.log(`  ✓ Users: ${backupData.data.users.length}`);
-    }
+    /**
+     * Restore a self-referencing table sorted by parent hierarchy.
+     */
+    const restoreHierarchical = async (
+      dataKey: string,
+      accessor: string,
+      parentField: string = 'parentId',
+      label?: string
+    ): Promise<number> => {
+      const items = backupData.data[dataKey];
+      if (!items?.length) return 0;
 
-    if (backupData.data.userGroups) {
-      for (const group of backupData.data.userGroups) {
-        await prisma.userGroup.create({ data: group });
-      }
-      restoredCount += backupData.data.userGroups.length;
-      console.log(`  ✓ UserGroups: ${backupData.data.userGroups.length}`);
-    }
+      const sorted: any[] = [];
+      const ids = new Set(items.map((n: any) => n.id));
+      const added = new Set<string>();
 
-    if (backupData.data.userGroupMemberships) {
-      for (const membership of backupData.data.userGroupMemberships) {
-        await prisma.userGroupMembership.create({ data: membership });
-      }
-      restoredCount += backupData.data.userGroupMemberships.length;
-      console.log(`  ✓ UserGroupMemberships: ${backupData.data.userGroupMemberships.length}`);
-    }
-
-    if (backupData.data.modules) {
-      for (const module of backupData.data.modules) {
-        await prisma.module.create({ data: module });
-      }
-      restoredCount += backupData.data.modules.length;
-      console.log(`  ✓ Modules: ${backupData.data.modules.length}`);
-    }
-
-    if (backupData.data.moduleAccess) {
-      for (const access of backupData.data.moduleAccess) {
-        await prisma.moduleAccess.create({ data: access });
-      }
-      restoredCount += backupData.data.moduleAccess.length;
-      console.log(`  ✓ ModuleAccess: ${backupData.data.moduleAccess.length}`);
-    }
-
-    // Restore customers and suppliers
-    if (backupData.data.customers) {
-      for (const customer of backupData.data.customers) {
-        await prisma.customer.create({ data: customer });
-      }
-      restoredCount += backupData.data.customers.length;
-      console.log(`  ✓ Customers: ${backupData.data.customers.length}`);
-    }
-
-    if (backupData.data.suppliers) {
-      for (const supplier of backupData.data.suppliers) {
-        await prisma.supplier.create({ data: supplier });
-      }
-      restoredCount += backupData.data.suppliers.length;
-      console.log(`  ✓ Suppliers: ${backupData.data.suppliers.length}`);
-    }
-
-    // Restore articles
-    if (backupData.data.articleGroups) {
-      for (const group of backupData.data.articleGroups) {
-        await prisma.articleGroup.create({ data: group });
-      }
-      restoredCount += backupData.data.articleGroups.length;
-      console.log(`  ✓ ArticleGroups: ${backupData.data.articleGroups.length}`);
-    }
-
-    if (backupData.data.articles) {
-      for (const article of backupData.data.articles) {
-        await prisma.article.create({ data: article });
-      }
-      restoredCount += backupData.data.articles.length;
-      console.log(`  ✓ Articles: ${backupData.data.articles.length}`);
-    }
-
-    // Restore projects and locations
-    if (backupData.data.projects) {
-      for (const project of backupData.data.projects) {
-        await prisma.project.create({ data: project });
-      }
-      restoredCount += backupData.data.projects.length;
-      console.log(`  ✓ Projects: ${backupData.data.projects.length}`);
-    }
-
-    if (backupData.data.locations) {
-      for (const location of backupData.data.locations) {
-        await prisma.location.create({ data: location });
-      }
-      restoredCount += backupData.data.locations.length;
-      console.log(`  ✓ Locations: ${backupData.data.locations.length}`);
-    }
-
-    if (backupData.data.projectAssignments) {
-      for (const assignment of backupData.data.projectAssignments) {
-        await prisma.projectAssignment.create({ data: assignment });
-      }
-      restoredCount += backupData.data.projectAssignments.length;
-      console.log(`  ✓ ProjectAssignments: ${backupData.data.projectAssignments.length}`);
-    }
-
-    // Restore time entries and absences
-    if (backupData.data.timeEntries) {
-      for (const entry of backupData.data.timeEntries) {
-        await prisma.timeEntry.create({ data: entry });
-      }
-      restoredCount += backupData.data.timeEntries.length;
-      console.log(`  ✓ TimeEntries: ${backupData.data.timeEntries.length}`);
-    }
-
-    if (backupData.data.absenceRequests) {
-      for (const absence of backupData.data.absenceRequests) {
-        await prisma.absenceRequest.create({ data: absence });
-      }
-      restoredCount += backupData.data.absenceRequests.length;
-      console.log(`  ✓ AbsenceRequests: ${backupData.data.absenceRequests.length}`);
-    }
-
-    if (backupData.data.holidays) {
-      for (const holiday of backupData.data.holidays) {
-        await prisma.holiday.create({ data: holiday });
-      }
-      restoredCount += backupData.data.holidays.length;
-      console.log(`  ✓ Holidays: ${backupData.data.holidays.length}`);
-    }
-
-    if (backupData.data.overtimeBalances) {
-      for (const balance of backupData.data.overtimeBalances) {
-        await prisma.overtimeBalance.create({ data: balance });
-      }
-      restoredCount += backupData.data.overtimeBalances.length;
-      console.log(`  ✓ OvertimeBalances: ${backupData.data.overtimeBalances.length}`);
-    }
-
-    // Restore compliance data
-    if (backupData.data.complianceSettings) {
-      for (const setting of backupData.data.complianceSettings) {
-        await prisma.complianceSettings.create({ data: setting });
-      }
-      restoredCount += backupData.data.complianceSettings.length;
-      console.log(`  ✓ ComplianceSettings: ${backupData.data.complianceSettings.length}`);
-    }
-
-    if (backupData.data.complianceViolations) {
-      for (const violation of backupData.data.complianceViolations) {
-        await prisma.complianceViolation.create({ data: violation });
-      }
-      restoredCount += backupData.data.complianceViolations.length;
-      console.log(`  ✓ ComplianceViolations: ${backupData.data.complianceViolations.length}`);
-    }
-
-    // Restore invoices
-    if (backupData.data.invoiceTemplates) {
-      for (const template of backupData.data.invoiceTemplates) {
-        await prisma.invoiceTemplate.create({ data: template });
-      }
-      restoredCount += backupData.data.invoiceTemplates.length;
-      console.log(`  ✓ InvoiceTemplates: ${backupData.data.invoiceTemplates.length}`);
-    }
-
-    if (backupData.data.invoices) {
-      for (const invoice of backupData.data.invoices) {
-        await prisma.invoice.create({ data: invoice });
-      }
-      restoredCount += backupData.data.invoices.length;
-      console.log(`  ✓ Invoices: ${backupData.data.invoices.length}`);
-    }
-
-    if (backupData.data.invoiceItems) {
-      for (const item of backupData.data.invoiceItems) {
-        await prisma.invoiceItem.create({ data: item });
-      }
-      restoredCount += backupData.data.invoiceItems.length;
-      console.log(`  ✓ InvoiceItems: ${backupData.data.invoiceItems.length}`);
-    }
-
-    // Restore reminders
-    if (backupData.data.reminders) {
-      for (const reminder of backupData.data.reminders) {
-        await prisma.reminder.create({ data: reminder });
-      }
-      restoredCount += backupData.data.reminders.length;
-      console.log(`  ✓ Reminders: ${backupData.data.reminders.length}`);
-    }
-
-    if (backupData.data.reminderSettings) {
-      for (const setting of backupData.data.reminderSettings) {
-        await prisma.reminderSettings.create({ data: setting });
-      }
-      restoredCount += backupData.data.reminderSettings.length;
-      console.log(`  ✓ ReminderSettings: ${backupData.data.reminderSettings.length}`);
-    }
-
-    // Restore incidents
-    if (backupData.data.incidents) {
-      for (const incident of backupData.data.incidents) {
-        await prisma.incident.create({ data: incident });
-      }
-      restoredCount += backupData.data.incidents.length;
-      console.log(`  ✓ Incidents: ${backupData.data.incidents.length}`);
-    }
-
-    if (backupData.data.incidentComments) {
-      for (const comment of backupData.data.incidentComments) {
-        await prisma.incidentComment.create({ data: comment });
-      }
-      restoredCount += backupData.data.incidentComments.length;
-      console.log(`  ✓ IncidentComments: ${backupData.data.incidentComments.length}`);
-    }
-
-    // Restore workflows
-    if (backupData.data.workflows) {
-      for (const workflow of backupData.data.workflows) {
-        await prisma.workflow.create({ data: workflow });
-      }
-      restoredCount += backupData.data.workflows.length;
-      console.log(`  ✓ Workflows: ${backupData.data.workflows.length}`);
-    }
-
-    if (backupData.data.workflowSteps) {
-      for (const step of backupData.data.workflowSteps) {
-        await prisma.workflowStep.create({ data: step });
-      }
-      restoredCount += backupData.data.workflowSteps.length;
-      console.log(`  ✓ WorkflowSteps: ${backupData.data.workflowSteps.length}`);
-    }
-
-    if (backupData.data.invoiceTemplateWorkflows) {
-      for (const link of backupData.data.invoiceTemplateWorkflows) {
-        await prisma.invoiceTemplateWorkflow.create({ data: link });
-      }
-      restoredCount += backupData.data.invoiceTemplateWorkflows.length;
-      console.log(`  ✓ InvoiceTemplateWorkflows: ${backupData.data.invoiceTemplateWorkflows.length}`);
-    }
-
-    if (backupData.data.workflowInstances) {
-      for (const instance of backupData.data.workflowInstances) {
-        await prisma.workflowInstance.create({ data: instance });
-      }
-      restoredCount += backupData.data.workflowInstances.length;
-      console.log(`  ✓ WorkflowInstances: ${backupData.data.workflowInstances.length}`);
-    }
-
-    if (backupData.data.workflowInstanceSteps) {
-      for (const step of backupData.data.workflowInstanceSteps) {
-        await prisma.workflowInstanceStep.create({ data: step });
-      }
-      restoredCount += backupData.data.workflowInstanceSteps.length;
-      console.log(`  ✓ WorkflowInstanceSteps: ${backupData.data.workflowInstanceSteps.length}`);
-    }
-
-    // Restore intranet data (must be done in hierarchical order due to parentId constraint)
-    if (backupData.data.documentNodes) {
-      // Sort nodes by parentId (null first, then by parent hierarchy)
-      const nodes = [...backupData.data.documentNodes];
-      const sortedNodes: any[] = [];
-      const nodeMap = new Map(nodes.map(n => [n.id, n]));
-      
-      // Recursive function to add nodes in correct order
-      const addNodeWithChildren = (node: any) => {
-        if (!sortedNodes.find(n => n.id === node.id)) {
-          sortedNodes.push(node);
-          // Find and add children
-          nodes.filter(n => n.parentId === node.id).forEach(child => {
-            addNodeWithChildren(child);
-          });
+      // Add root nodes first
+      for (const node of items) {
+        if (node[parentField] === null || !ids.has(node[parentField])) {
+          sorted.push(node);
+          added.add(node.id);
         }
-      };
-      
-      // Start with root nodes (parentId = null)
-      nodes.filter(n => n.parentId === null).forEach(root => {
-        addNodeWithChildren(root);
-      });
-      
-      // Add any remaining nodes (in case of orphaned nodes)
-      nodes.forEach(node => {
-        if (!sortedNodes.find(n => n.id === node.id)) {
-          sortedNodes.push(node);
+      }
+
+      // Add children layer by layer
+      let changed = true;
+      while (changed && sorted.length < items.length) {
+        changed = false;
+        for (const node of items) {
+          if (!added.has(node.id) && (node[parentField] === null || added.has(node[parentField]))) {
+            sorted.push(node);
+            added.add(node.id);
+            changed = true;
+          }
         }
-      });
-      
-      // Create nodes in correct order
-      for (const node of sortedNodes) {
-        await prisma.documentNode.create({ data: node });
       }
-      restoredCount += backupData.data.documentNodes.length;
-      console.log(`  ✓ DocumentNodes: ${backupData.data.documentNodes.length}`);
+
+      // Append any orphaned nodes
+      for (const node of items) {
+        if (!added.has(node.id)) sorted.push(node);
+      }
+
+      for (const node of sorted) {
+        await prismaModel(accessor).create({ data: node });
+      }
+      const count = items.length;
+      console.log(`  ✓ ${label || dataKey}: ${count}`);
+      return count;
+    };
+
+    /**
+     * Restore a table, stripping certain FK fields for later application.
+     */
+    const restoreWithDeferredFKs = async (
+      dataKey: string,
+      accessor: string,
+      fieldsToStrip: string[],
+      label?: string
+    ): Promise<{ id: string; updates: Record<string, any> }[]> => {
+      const items = backupData.data[dataKey];
+      if (!items?.length) return [];
+      const deferred: { id: string; updates: Record<string, any> }[] = [];
+
+      for (const item of items) {
+        const record = { ...item };
+        const updates: Record<string, any> = {};
+        for (const field of fieldsToStrip) {
+          if (record[field] !== undefined && record[field] !== null) {
+            updates[field] = record[field];
+            record[field] = null;
+          }
+        }
+        if (Object.keys(updates).length > 0) {
+          deferred.push({ id: record.id, updates });
+        }
+        await prismaModel(accessor).create({ data: record });
+      }
+      const count = items.length;
+      console.log(`  ✓ ${label || dataKey}: ${count}`);
+      restoredCount += count;
+      return deferred;
+    };
+
+    // ── Phase 1: Independent base tables ────────────────────
+    restoredCount += await restoreTable('systemSettings', 'systemSettings', 'SystemSettings');
+    restoredCount += await restoreTable('departments', 'department', 'Departments');
+    restoredCount += await restoreTable('holidays', 'holiday', 'Holidays');
+    restoredCount += await restoreTable('complianceSettings', 'complianceSettings', 'ComplianceSettings');
+    restoredCount += await restoreTable('reminderSettings', 'reminderSettings', 'ReminderSettings');
+    restoredCount += await restoreTable('payrollPeriods', 'payrollPeriod', 'PayrollPeriods');
+    restoredCount += await restoreTable('articleGroups', 'articleGroup', 'ArticleGroups');
+    restoredCount += await restoreTable('locations', 'location', 'Locations');
+    restoredCount += await restoreTable('trainingCatalogs', 'trainingCatalog', 'TrainingCatalogs');
+    restoredCount += await restoreTable('equipments', 'equipment', 'Equipments');
+    restoredCount += await restoreTable('documentNodeTypeRegistries', 'documentNodeTypeRegistry', 'DocumentNodeTypeRegistries');
+    restoredCount += await restoreTable('invoiceTemplates', 'invoiceTemplate', 'InvoiceTemplates');
+
+    // ── Phase 2: UserGroups ─────────────────────────────────
+    restoredCount += await restoreTable('userGroups', 'userGroup', 'UserGroups');
+
+    // ── Phase 3: Users (strip circular FKs, apply later) ────
+    const userDeferredFKs = await restoreWithDeferredFKs(
+      'users', 'user',
+      ['jobFunctionId', 'supervisorId'],
+      'Users'
+    );
+
+    // ── Phase 4: UserGroupMemberships, Modules, ModuleAccess ─
+    restoredCount += await restoreTable('userGroupMemberships', 'userGroupMembership', 'UserGroupMemberships');
+    restoredCount += await restoreTable('modules', 'module', 'Modules');
+    restoredCount += await restoreTable('moduleAccess', 'moduleAccess', 'ModuleAccess');
+
+    // ── Phase 5: Employees (depends on User, Department) ─────
+    restoredCount += await restoreTable('employees', 'employee', 'Employees');
+
+    // ── Phase 6: JobFunctions (depends on User) ──────────────
+    restoredCount += await restoreTable('jobFunctions', 'jobFunction', 'JobFunctions');
+
+    // Apply deferred User FK updates (jobFunctionId, supervisorId)
+    if (userDeferredFKs.length > 0) {
+      for (const { id, updates } of userDeferredFKs) {
+        await prisma.user.update({ where: { id }, data: updates });
+      }
+      console.log(`  ✓ User FK updates applied: ${userDeferredFKs.length}`);
     }
 
-    if (backupData.data.documentVersions) {
-      for (const version of backupData.data.documentVersions) {
-        await prisma.documentVersion.create({ data: version });
+    // ── Phase 7: Customers, Suppliers, CostCenters, Articles ─
+    restoredCount += await restoreTable('customers', 'customer', 'Customers');
+    restoredCount += await restoreTable('suppliers', 'supplier', 'Suppliers');
+    restoredCount += await restoreTable('costCenters', 'costCenter', 'CostCenters');
+    restoredCount += await restoreTable('articles', 'article', 'Articles');
+
+    // ── Phase 8: Inventory ───────────────────────────────────
+    restoredCount += await restoreTable('inventoryItems', 'inventoryItem', 'InventoryItems');
+    restoredCount += await restoreTable('inventoryMovements', 'inventoryMovement', 'InventoryMovements');
+
+    // ── Phase 9: Projects ────────────────────────────────────
+    restoredCount += await restoreTable('projects', 'project', 'Projects');
+    restoredCount += await restoreTable('projectAssignments', 'projectAssignment', 'ProjectAssignments');
+    restoredCount += await restoreTable('projectTasks', 'projectTask', 'ProjectTasks');
+    restoredCount += await restoreTable('taskDependencies', 'taskDependency', 'TaskDependencies');
+
+    // ── Phase 10: Time Tracking ──────────────────────────────
+    restoredCount += await restoreTable('timeEntries', 'timeEntry', 'TimeEntries');
+    restoredCount += await restoreTable('projectTimeAllocations', 'projectTimeAllocation', 'ProjectTimeAllocations');
+    restoredCount += await restoreTable('absenceRequests', 'absenceRequest', 'AbsenceRequests');
+    restoredCount += await restoreTable('overtimeBalances', 'overtimeBalance', 'OvertimeBalances');
+
+    // ── Phase 11: Compliance ─────────────────────────────────
+    restoredCount += await restoreTable('complianceViolations', 'complianceViolation', 'ComplianceViolations');
+
+    // ── Phase 12: Invoices ───────────────────────────────────
+    restoredCount += await restoreTable('invoices', 'invoice', 'Invoices');
+    restoredCount += await restoreTable('invoiceItems', 'invoiceItem', 'InvoiceItems');
+    restoredCount += await restoreTable('reminders', 'reminder', 'Reminders');
+
+    // ── Phase 13: Incidents ──────────────────────────────────
+    restoredCount += await restoreTable('incidents', 'incident', 'Incidents');
+    restoredCount += await restoreTable('incidentComments', 'incidentComment', 'IncidentComments');
+
+    // ── Phase 14: Workflows ──────────────────────────────────
+    restoredCount += await restoreTable('workflows', 'workflow', 'Workflows');
+    restoredCount += await restoreTable('workflowSteps', 'workflowStep', 'WorkflowSteps');
+    restoredCount += await restoreTable('invoiceTemplateWorkflows', 'invoiceTemplateWorkflow', 'InvoiceTemplateWorkflows');
+    restoredCount += await restoreTable('workflowInstances', 'workflowInstance', 'WorkflowInstances');
+    restoredCount += await restoreTable('workflowInstanceSteps', 'workflowInstanceStep', 'WorkflowInstanceSteps');
+
+    // ── Phase 15: Automation ─────────────────────────────────
+    restoredCount += await restoreTable('systemActions', 'systemAction', 'SystemActions');
+    restoredCount += await restoreTable('workflowTriggers', 'workflowTrigger', 'WorkflowTriggers');
+    restoredCount += await restoreTable('actionLogs', 'actionLog', 'ActionLogs');
+
+    // ── Phase 16: Intranet / Documents ───────────────────────
+    restoredCount += await restoreHierarchical('documentNodes', 'documentNode', 'parentId', 'DocumentNodes');
+    restoredCount += await restoreTable('documentVersions', 'documentVersion', 'DocumentVersions');
+    restoredCount += await restoreTable('documentNodeGroupPermissions', 'documentNodeGroupPermission', 'DocumentNodeGroupPermissions');
+    restoredCount += await restoreTable('documentNodeAttachments', 'documentNodeAttachment', 'DocumentNodeAttachments');
+    restoredCount += await restoreTable('documentNodeAttachmentVersions', 'documentNodeAttachmentVersion', 'DocumentNodeAttachmentVersions');
+    restoredCount += await restoreTable('jobFunctionDocuments', 'jobFunctionDocument', 'JobFunctionDocuments');
+
+    // ── Phase 17: Media ──────────────────────────────────────
+    restoredCount += await restoreTable('media', 'media', 'Media');
+
+    // ── Phase 18: Orders ─────────────────────────────────────
+    restoredCount += await restoreTable('orders', 'order', 'Orders');
+    restoredCount += await restoreTable('orderItems', 'orderItem', 'OrderItems');
+    restoredCount += await restoreTable('orderDeliveries', 'orderDelivery', 'OrderDeliveries');
+    restoredCount += await restoreTable('orderDeliveryItems', 'orderDeliveryItem', 'OrderDeliveryItems');
+
+    // ── Phase 19: EHS ────────────────────────────────────────
+    restoredCount += await restoreTable('ehsMonthlyData', 'eHSMonthlyData', 'EHSMonthlyData');
+    restoredCount += await restoreTable('ehsTodos', 'eHSTodo', 'EHSTodos');
+
+    // ── Phase 20: Budget ─────────────────────────────────────
+    restoredCount += await restoreTable('projectBudgets', 'projectBudget', 'ProjectBudgets');
+    restoredCount += await restoreTable('projectBudgetItems', 'projectBudgetItem', 'ProjectBudgetItems');
+
+    // ── Phase 21: Dashboard ──────────────────────────────────
+    restoredCount += await restoreTable('userDashboardLayouts', 'userDashboardLayout', 'UserDashboardLayouts');
+
+    // ── Phase 22: Zeitmodelle ────────────────────────────────
+    restoredCount += await restoreTable('zeitmodelle', 'zeitmodell', 'Zeitmodelle');
+    restoredCount += await restoreTable('zeitmodellEintraege', 'zeitmodellEintrag', 'ZeitmodellEintraege');
+    restoredCount += await restoreTable('mitarbeiterZeitmodelle', 'mitarbeiterZeitmodell', 'MitarbeiterZeitmodelle');
+    restoredCount += await restoreTable('zeitmodellAenderungen', 'zeitmodellAenderung', 'ZeitmodellAenderungen');
+
+    // ── Phase 23: Payroll ────────────────────────────────────
+    restoredCount += await restoreTable('payrollEntries', 'payrollEntry', 'PayrollEntries');
+    restoredCount += await restoreTable('salaryConfigurations', 'salaryConfiguration', 'SalaryConfigurations');
+
+    // ── Phase 24: Devices ────────────────────────────────────
+    restoredCount += await restoreTable('devices', 'device', 'Devices');
+    restoredCount += await restoreTable('deviceAssignments', 'deviceAssignment', 'DeviceAssignments');
+
+    // ── Phase 25: Travel ─────────────────────────────────────
+    restoredCount += await restoreTable('travelExpenses', 'travelExpense', 'TravelExpenses');
+
+    // ── Phase 26: Messages (self-ref via replyToId) ──────────
+    if (backupData.data.messages?.length) {
+      const msgDeferred: { id: string; replyToId: string }[] = [];
+      for (const msg of backupData.data.messages) {
+        const record = { ...msg };
+        if (record.replyToId) {
+          msgDeferred.push({ id: record.id, replyToId: record.replyToId });
+          record.replyToId = null;
+        }
+        await prisma.message.create({ data: record });
       }
-      restoredCount += backupData.data.documentVersions.length;
-      console.log(`  ✓ DocumentVersions: ${backupData.data.documentVersions.length}`);
+      if (msgDeferred.length > 0) {
+        for (const { id, replyToId } of msgDeferred) {
+          await prisma.message.update({ where: { id }, data: { replyToId } });
+        }
+      }
+      restoredCount += backupData.data.messages.length;
+      console.log(`  ✓ Messages: ${backupData.data.messages.length}`);
     }
 
-    if (backupData.data.documentNodeGroupPermissions) {
-      for (const permission of backupData.data.documentNodeGroupPermissions) {
-        await prisma.documentNodeGroupPermission.create({ data: permission });
-      }
-      restoredCount += backupData.data.documentNodeGroupPermissions.length;
-      console.log(`  ✓ DocumentNodeGroupPermissions: ${backupData.data.documentNodeGroupPermissions.length}`);
-    }
+    // ── Phase 27: E-Learning ─────────────────────────────────
+    restoredCount += await restoreHierarchical('courseCategories', 'courseCategory', 'parentId', 'CourseCategories');
+    restoredCount += await restoreTable('courses', 'course', 'Courses');
+    restoredCount += await restoreTable('lessons', 'lesson', 'Lessons');
+    restoredCount += await restoreTable('quizzes', 'quiz', 'Quizzes');
+    restoredCount += await restoreTable('questions', 'question', 'Questions');
+    restoredCount += await restoreTable('answers', 'answer', 'Answers');
+    restoredCount += await restoreTable('courseAssignments', 'courseAssignment', 'CourseAssignments');
+    restoredCount += await restoreTable('enrollments', 'enrollment', 'Enrollments');
+    restoredCount += await restoreTable('lessonProgress', 'lessonProgress', 'LessonProgress');
+    restoredCount += await restoreTable('quizAttempts', 'quizAttempt', 'QuizAttempts');
+    restoredCount += await restoreTable('questionResponses', 'questionResponse', 'QuestionResponses');
+
+    // ── Phase 28: Onboarding ─────────────────────────────────
+    restoredCount += await restoreTable('applicants', 'applicant', 'Applicants');
+    restoredCount += await restoreTable('applicantDocuments', 'applicantDocument', 'ApplicantDocuments');
+    restoredCount += await restoreTable('applicantInterviews', 'applicantInterview', 'ApplicantInterviews');
+    restoredCount += await restoreTable('applicantNotes', 'applicantNote', 'ApplicantNotes');
+    restoredCount += await restoreTable('employeeDocuments', 'employeeDocument', 'EmployeeDocuments');
+    restoredCount += await restoreTable('onboardingTasks', 'onboardingTask', 'OnboardingTasks');
+
+    // ── Phase 29: Training ───────────────────────────────────
+    restoredCount += await restoreTable('trainingSessions', 'trainingSession', 'TrainingSessions');
+    restoredCount += await restoreTable('trainingCompletions', 'trainingCompletion', 'TrainingCompletions');
+
+    // ── Phase 30: Equipment ──────────────────────────────────
+    restoredCount += await restoreTable('equipmentAssignments', 'equipmentAssignment', 'EquipmentAssignments');
+
+    // ── Phase 31: Checklists ─────────────────────────────────
+    restoredCount += await restoreTable('checklistTemplates', 'checklistTemplate', 'ChecklistTemplates');
+    restoredCount += await restoreTable('checklistItems', 'checklistItem', 'ChecklistItems');
+    restoredCount += await restoreTable('checklistInstances', 'checklistInstance', 'ChecklistInstances');
+    restoredCount += await restoreTable('checklistItemCompletions', 'checklistItemCompletion', 'ChecklistItemCompletions');
+
+    // ── Phase 32: News ───────────────────────────────────────
+    restoredCount += await restoreTable('newsSources', 'newsSource', 'NewsSources');
+    restoredCount += await restoreTable('newsItems', 'newsItem', 'NewsItems');
 
     console.log(`✅ Restore completed! Total records restored: ${restoredCount}`);
 
-    res.json({ 
+    res.json({
       message: 'Backup restored successfully',
       restoredRecords: restoredCount,
       backupVersion: backupData.version,
@@ -650,6 +819,9 @@ export const restoreBackup = async (req: Request, res: Response) => {
   }
 };
 
+// ============================================================
+// UPLOAD BACKUP
+// ============================================================
 export const uploadBackup = async (req: Request, res: Response) => {
   try {
     if (!req.file) {
@@ -661,7 +833,6 @@ export const uploadBackup = async (req: Request, res: Response) => {
     const filename = `uploaded_backup_${timestamp}.${extension}`;
     const filepath = path.join(BACKUP_DIR, filename);
 
-    // Move uploaded file to backup directory
     fs.renameSync(req.file.path, filepath);
 
     res.json({
@@ -676,12 +847,15 @@ export const uploadBackup = async (req: Request, res: Response) => {
   }
 };
 
+// ============================================================
+// EXPORT DATA (lightweight, public-safe export without passwords)
+// ============================================================
 export const exportData = async (req: Request, res: Response) => {
   try {
-    // Export all important data as JSON (without sensitive password data)
     const [
       users,
       userGroups,
+      employees,
       projects,
       customers,
       suppliers,
@@ -690,8 +864,11 @@ export const exportData = async (req: Request, res: Response) => {
       absenceRequests,
       invoices,
       incidents,
+      orders,
       documentNodes,
-      documentVersions
+      documentVersions,
+      courses,
+      applicants,
     ] = await Promise.all([
       prisma.user.findMany({
         select: {
@@ -703,14 +880,21 @@ export const exportData = async (req: Request, res: Response) => {
           isActive: true,
           createdAt: true,
           updatedAt: true,
-          employeeProfile: {
-            select: {
-              vacationDays: true
-            }
-          }
         }
       }),
       prisma.userGroup.findMany(),
+      prisma.employee.findMany({
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          position: true,
+          department: true,
+          startDate: true,
+          isActive: true,
+        }
+      }),
       prisma.project.findMany(),
       prisma.customer.findMany(),
       prisma.supplier.findMany(),
@@ -719,15 +903,19 @@ export const exportData = async (req: Request, res: Response) => {
       prisma.absenceRequest.findMany(),
       prisma.invoice.findMany(),
       prisma.incident.findMany(),
+      prisma.order.findMany(),
       prisma.documentNode.findMany(),
-      prisma.documentVersion.findMany()
+      prisma.documentVersion.findMany(),
+      prisma.course.findMany(),
+      prisma.applicant.findMany(),
     ]);
 
     const data = {
       exportDate: new Date().toISOString(),
-      version: '2.0',
+      version: '3.0',
       users,
       userGroups,
+      employees,
       projects,
       customers,
       suppliers,
@@ -736,8 +924,11 @@ export const exportData = async (req: Request, res: Response) => {
       absenceRequests,
       invoices,
       incidents,
+      orders,
       documentNodes,
-      documentVersions
+      documentVersions,
+      courses,
+      applicants,
     };
 
     res.setHeader('Content-Type', 'application/json');

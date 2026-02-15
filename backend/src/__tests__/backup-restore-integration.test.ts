@@ -107,7 +107,7 @@ describe('Backup & Restore Integration Test', () => {
       ]);
 
       const backup = {
-        version: '2.0',
+        version: '3.0',
         timestamp: new Date().toISOString(),
         data: {
           users,
@@ -564,46 +564,171 @@ describe('Backup & Restore Integration Test', () => {
 // Helper functions
 async function cleanDatabase() {
   console.log('🧹 Cleaning database...');
-  
-  // Delete in reverse dependency order
-  // Messages commented out for now
-  // await prisma.message.deleteMany();
-  // MessageRecipients removed from schema
+
+  // Break circular FK references on User first
+  await prisma.user.updateMany({
+    data: { jobFunctionId: null, supervisorId: null, userGroupId: null }
+  });
+
+  // Checklists
+  await prisma.checklistItemCompletion.deleteMany();
+  await prisma.checklistInstance.deleteMany();
+  await prisma.checklistItem.deleteMany();
+  await prisma.checklistTemplate.deleteMany();
+
+  // E-Learning
+  await prisma.questionResponse.deleteMany();
+  await prisma.quizAttempt.deleteMany();
+  await prisma.lessonProgress.deleteMany();
+  await prisma.enrollment.deleteMany();
+  await prisma.courseAssignment.deleteMany();
+  await prisma.answer.deleteMany();
+  await prisma.question.deleteMany();
+  await prisma.quiz.deleteMany();
+  await prisma.lesson.deleteMany();
+  await prisma.course.deleteMany();
+  await prisma.courseCategory.deleteMany();
+
+  // Onboarding / Training
+  await prisma.trainingCompletion.deleteMany();
+  await prisma.trainingSession.deleteMany();
+  await prisma.trainingCatalog.deleteMany();
+  await prisma.equipmentAssignment.deleteMany();
+  await prisma.equipment.deleteMany();
+  await prisma.onboardingTask.deleteMany();
+  await prisma.employeeDocument.deleteMany();
+  await prisma.applicantNote.deleteMany();
+  await prisma.applicantInterview.deleteMany();
+  await prisma.applicantDocument.deleteMany();
+  await prisma.applicant.deleteMany();
+
+  // Job Functions
+  await prisma.jobFunctionDocument.deleteMany();
+  await prisma.jobFunction.deleteMany();
+
+  // News
+  await prisma.newsItem.deleteMany();
+  await prisma.newsSource.deleteMany();
+
+  // Zeitmodelle
+  await prisma.zeitmodellAenderung.deleteMany();
+  await prisma.mitarbeiterZeitmodell.deleteMany();
+  await prisma.zeitmodellEintrag.deleteMany();
+  await prisma.zeitmodell.deleteMany();
+
+  // Dashboard
+  await prisma.userDashboardLayout.deleteMany();
+
+  // Budget
+  await prisma.projectBudgetItem.deleteMany();
+  await prisma.projectBudget.deleteMany();
+
+  // EHS
+  await prisma.eHSTodo.deleteMany();
+  await prisma.eHSMonthlyData.deleteMany();
+
+  // Orders
+  await prisma.orderDeliveryItem.deleteMany();
+  await prisma.orderDelivery.deleteMany();
+  await prisma.orderItem.deleteMany();
+  await prisma.order.deleteMany();
+
+  // Media
+  await prisma.media.deleteMany();
+
+  // Document Attachments
+  await prisma.documentNodeAttachmentVersion.deleteMany();
+  await prisma.documentNodeAttachment.deleteMany();
+
+  // Automation
+  await prisma.actionLog.deleteMany();
+  await prisma.workflowTrigger.deleteMany();
+  await prisma.systemAction.deleteMany();
+
+  // Workflows
   await prisma.workflowInstanceStep.deleteMany();
   await prisma.workflowInstance.deleteMany();
   await prisma.invoiceTemplateWorkflow.deleteMany();
   await prisma.workflowStep.deleteMany();
-  await prisma.workflow.deleteMany();
+
+  // Incidents
   await prisma.incidentComment.deleteMany();
   await prisma.incident.deleteMany();
+
+  // Reminders
   await prisma.reminderSettings.deleteMany();
   await prisma.reminder.deleteMany();
+
+  // Invoices
   await prisma.invoiceItem.deleteMany();
   await prisma.invoice.deleteMany();
   await prisma.invoiceTemplate.deleteMany();
+
+  // Travel, Messages, Payroll, Devices
+  await prisma.travelExpense.deleteMany();
+  await prisma.message.deleteMany();
+  await prisma.payrollEntry.deleteMany();
+  await prisma.payrollPeriod.deleteMany();
+  await prisma.salaryConfiguration.deleteMany();
+  await prisma.deviceAssignment.deleteMany();
+  await prisma.device.deleteMany();
+
+  // Compliance
   await prisma.complianceViolation.deleteMany();
   await prisma.complianceSettings.deleteMany();
+
+  // Time Tracking
   await prisma.overtimeBalance.deleteMany();
   await prisma.holiday.deleteMany();
   await prisma.absenceRequest.deleteMany();
+  await prisma.projectTimeAllocation.deleteMany();
   await prisma.timeEntry.deleteMany();
+
+  // Project Tasks
+  await prisma.taskDependency.deleteMany();
+  await prisma.projectTask.deleteMany();
+
+  // Projects
   await prisma.projectAssignment.deleteMany();
   await prisma.location.deleteMany();
   await prisma.project.deleteMany();
+
+  // Inventory
+  await prisma.inventoryMovement.deleteMany();
+  await prisma.inventoryItem.deleteMany();
+
+  // Articles
   await prisma.article.deleteMany();
   await prisma.articleGroup.deleteMany();
+
+  // Cost Centers
+  await prisma.costCenter.deleteMany();
+
+  // Suppliers / Customers
   await prisma.supplier.deleteMany();
   await prisma.customer.deleteMany();
+
+  // Intranet
+  await prisma.documentNodeGroupPermission.deleteMany();
+  await prisma.documentVersion.deleteMany();
+  await prisma.documentNode.deleteMany();
+  await prisma.documentNodeTypeRegistry.deleteMany();
+
+  // Workflows (parent)
+  await prisma.workflow.deleteMany();
+
+  // Auth & Module
   await prisma.moduleAccess.deleteMany();
   await prisma.module.deleteMany();
   await prisma.userGroupMembership.deleteMany();
   await prisma.userGroup.deleteMany();
-  await prisma.documentNodeGroupPermission.deleteMany();
-  await prisma.documentVersion.deleteMany();
-  await prisma.documentNode.deleteMany();
-  await prisma.user.deleteMany();
   await prisma.systemSettings.deleteMany();
-  
+
+  // Employee, Department, User (last)
+  await prisma.employee.deleteMany();
+  await prisma.department.deleteMany();
+  await prisma.user.deleteMany();
+
   console.log('✅ Database cleaned');
 }
 
@@ -618,8 +743,6 @@ async function createTestData() {
       lastName: 'Admin',
       password: 'hashed_password',
       role: 'ADMIN',
-      weeklyHours: 40,
-      vacationDays: 25
     }
   });
 
@@ -630,8 +753,6 @@ async function createTestData() {
       lastName: 'User',
       password: 'hashed_password',
       role: 'USER',
-      weeklyHours: 40,
-      vacationDays: 25
     }
   });
 

@@ -74,8 +74,10 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
       ? `Angebot_${invoice.invoiceNumber}.pdf`
       : `Rechnung_${invoice.invoiceNumber}.pdf`;
     
+    // Use inline disposition for preview (browser embeds PDF), attachment for download
+    const disposition = req.query.download === 'true' ? 'attachment' : 'inline';
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"`);
 
     // Pipe PDF to response
     doc.pipe(res);
