@@ -24,6 +24,12 @@ export interface Incident {
   solution?: string;
   notes?: string;
   tags?: string;
+  // EHS fields
+  isEHSRelevant?: boolean;
+  ehsCategory?: string;
+  ehsSeverity?: string;
+  incidentDate?: string;
+  location?: string;
   createdAt: string;
   updatedAt: string;
   reportedBy?: {
@@ -64,6 +70,12 @@ export interface CreateIncidentDto {
   affectedSystem?: string;
   dueDate?: string;
   tags?: string[];
+  // EHS fields
+  isEHSRelevant?: boolean;
+  ehsCategory?: string;
+  ehsSeverity?: string;
+  incidentDate?: string;
+  location?: string;
 }
 
 export interface UpdateIncidentDto {
@@ -79,6 +91,12 @@ export interface UpdateIncidentDto {
   solution?: string;
   notes?: string;
   tags?: string[];
+  // EHS fields
+  isEHSRelevant?: boolean;
+  ehsCategory?: string;
+  ehsSeverity?: string;
+  incidentDate?: string;
+  location?: string;
 }
 
 export interface IncidentStatistics {
@@ -99,12 +117,14 @@ export const incidentService = {
   async getAll(
     status?: string,
     priority?: string,
-    assignedToId?: string
+    assignedToId?: string,
+    projectId?: string
   ): Promise<Incident[]> {
     const params = new URLSearchParams();
     if (status) params.append('status', status);
     if (priority) params.append('priority', priority);
     if (assignedToId) params.append('assignedToId', assignedToId);
+    if (projectId) params.append('projectId', projectId);
 
     const response = await axios.get(`${API_URL}/incidents?${params.toString()}`, {
       headers: getAuthHeader(),

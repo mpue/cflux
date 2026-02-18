@@ -14,6 +14,12 @@ export interface CreateIncidentDto {
   affectedSystem?: string;
   dueDate?: Date;
   tags?: string[];
+  // EHS fields
+  isEHSRelevant?: boolean;
+  ehsCategory?: string;
+  ehsSeverity?: string;
+  incidentDate?: Date;
+  location?: string;
 }
 
 export interface UpdateIncidentDto {
@@ -50,6 +56,12 @@ export const incidentService = {
         affectedSystem: data.affectedSystem,
         dueDate: data.dueDate,
         tags: data.tags ? JSON.stringify(data.tags) : null,
+        // EHS fields
+        isEHSRelevant: data.isEHSRelevant || false,
+        ehsCategory: data.ehsCategory as any,
+        ehsSeverity: data.ehsSeverity as any,
+        incidentDate: data.incidentDate || (data.isEHSRelevant ? new Date() : undefined),
+        location: data.location,
       },
       include: {
         reportedBy: {
@@ -83,7 +95,9 @@ export const incidentService = {
   async getAllIncidents(
     status?: IncidentStatus,
     priority?: IncidentPriority,
-    assignedToId?: string
+    assignedToId?: string,
+    year?: number,
+    projectId?: string
   ): Promise<Incident[]> {
     const where: any = {};
     
@@ -97,6 +111,30 @@ export const incidentService = {
     
     if (assignedToId) {
       where.assignedToId = assignedToId;
+    }
+
+    if (year) {
+      const startDate = new Date(year, 0, 1);
+      const endDate = new Date(year, 11, 31, 23, 59, 59);
+      where.OR = [
+        {
+          incidentDate: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        {
+          incidentDate: null,
+          reportedAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+      ];
+    }
+
+    if (projectId) {
+      where.projectId = projectId;
     }
 
     const incidents = await prisma.incident.findMany({

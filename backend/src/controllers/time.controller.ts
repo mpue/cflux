@@ -26,6 +26,72 @@ async function getEmployeeId(userId: string): Promise<string> {
   return user.employeeProfile.id;
 }
 
+// Helper: Prüfe auf überlappende Zeiteinträge
+async function checkOverlappingEntries(
+  employeeId: string, 
+  clockIn: Date, 
+  clockOut: Date | null, 
+  excludeEntryId?: string
+): Promise<{ overlapping: boolean; conflictEntry?: any }> {
+  if (!clockOut) {
+    // Aktiver Eintrag: Prüfen ob ein anderer Eintrag nach clockIn startet
+    const conflict = await prisma.timeEntry.findFirst({
+      where: {
+        employeeId,
+        id: excludeEntryId ? { not: excludeEntryId } : undefined,
+        OR: [
+          {
+            // Anderen aktiven Eintrag
+            status: { in: ['CLOCKED_IN', 'ON_PAUSE'] }
+          },
+          {
+            // Abgeschlossener Eintrag der nach unserem clockIn beginnt oder unseren clockIn überlappt
+            clockIn: { lte: clockIn },
+            clockOut: { gt: clockIn }
+          }
+        ]
+      },
+      select: {
+        id: true,
+        clockIn: true,
+        clockOut: true,
+        status: true
+      }
+    });
+    return { overlapping: !!conflict, conflictEntry: conflict };
+  }
+
+  // Abgeschlossener Eintrag: Prüfen auf jede Überlappung
+  const conflict = await prisma.timeEntry.findFirst({
+    where: {
+      employeeId,
+      id: excludeEntryId ? { not: excludeEntryId } : undefined,
+      OR: [
+        {
+          // Eintrag dessen clockIn innerhalb unseres Zeitraums liegt
+          clockIn: { gte: clockIn, lt: clockOut }
+        },
+        {
+          // Eintrag dessen clockOut innerhalb unseres Zeitraums liegt
+          clockOut: { gt: clockIn, lte: clockOut }
+        },
+        {
+          // Eintrag der unseren Zeitraum komplett umschliesst
+          clockIn: { lte: clockIn },
+          clockOut: { gte: clockOut }
+        }
+      ]
+    },
+    select: {
+      id: true,
+      clockIn: true,
+      clockOut: true,
+      status: true
+    }
+  });
+  return { overlapping: !!conflict, conflictEntry: conflict };
+}
+
 export const clockIn = async (req: AuthRequest, res: Response) => {
   try {
     const { projectId, locationId, description } = req.body;
@@ -412,6 +478,34 @@ export const updateTimeEntry = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { clockIn, clockOut, projectId, description } = req.body;
 
+    // Overlap-Validierung vor dem Update
+    if (clockIn && clockOut) {
+      const clockInDate = new Date(clockIn);
+      const clockOutDate = new Date(clockOut);
+
+      // Bestehenden Eintrag laden um employeeId zu ermitteln
+      const existingEntry = await prisma.timeEntry.findUnique({
+        where: { id },
+        select: { employeeId: true }
+      });
+
+      if (!existingEntry) {
+        return res.status(404).json({ error: 'Time entry not found' });
+      }
+
+      const { overlapping, conflictEntry } = await checkOverlappingEntries(existingEntry.employeeId, clockInDate, clockOutDate, id);
+      if (overlapping) {
+        return res.status(400).json({
+          error: 'Überlappung mit bestehendem Zeiteintrag erkannt',
+          conflictEntry: conflictEntry ? {
+            id: conflictEntry.id,
+            clockIn: conflictEntry.clockIn,
+            clockOut: conflictEntry.clockOut
+          } : undefined
+        });
+      }
+    }
+
     const timeEntry = await prisma.timeEntry.update({
       where: { id },
       data: {
@@ -460,8 +554,78 @@ export const updateTimeEntry = async (req: AuthRequest, res: Response) => {
 export const deleteTimeEntry = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.user!.id;
+
+    // Eintrag laden für Audit-Trail und Rückrechnung
+    const existingEntry = await prisma.timeEntry.findUnique({
+      where: { id },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        project: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    if (!existingEntry) {
+      return res.status(404).json({ error: 'Time entry not found' });
+    }
+
+    // Audit-Trail: Aktion loggen vor dem Löschen
+    try {
+      await actionService.triggerAction('timeentry.deleted', {
+        entityType: 'TIMEENTRY',
+        entityId: id,
+        userId: userId,
+        employeeId: existingEntry.employeeId,
+        deletedBy: userId,
+        clockIn: existingEntry.clockIn.toISOString(),
+        clockOut: existingEntry.clockOut?.toISOString(),
+        projectId: existingEntry.projectId,
+        projectName: existingEntry.project?.name,
+        employeeName: `${existingEntry.employee.firstName} ${existingEntry.employee.lastName}`,
+        pauseMinutes: existingEntry.pauseMinutes || 0,
+        description: existingEntry.description,
+        manual: true
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger timeentry.deleted:', actionError);
+    }
+
+    // Zugehörige Compliance-Violations entfernen (die durch diesen Eintrag entstanden sind)
+    try {
+      if (existingEntry.clockOut) {
+        const entryDate = new Date(existingEntry.clockIn);
+        entryDate.setHours(0, 0, 0, 0);
+        const entryDateEnd = new Date(entryDate);
+        entryDateEnd.setHours(23, 59, 59, 999);
+
+        await prisma.complianceViolation.deleteMany({
+          where: {
+            employeeId: existingEntry.employeeId,
+            date: { gte: entryDate, lte: entryDateEnd },
+            type: { in: ['MAX_DAILY_HOURS', 'MISSING_PAUSE'] }
+          }
+        });
+        console.log(`[COMPLIANCE] Removed related compliance violations for deleted time entry ${id}`);
+      }
+    } catch (complianceError) {
+      console.error('[COMPLIANCE] Failed to clean up violations:', complianceError);
+    }
 
     await prisma.timeEntry.delete({ where: { id } });
+
+    console.log(`[AUDIT] Time entry ${id} deleted by admin ${userId} (Employee: ${existingEntry.employee.firstName} ${existingEntry.employee.lastName}, ClockIn: ${existingEntry.clockIn})`);
 
     res.json({ message: 'Time entry deleted successfully' });
   } catch (error) {
@@ -645,6 +809,22 @@ export const createTimeEntry = async (req: AuthRequest, res: Response) => {
     // Validate dates
     if (clockOutDate && clockOutDate <= clockInDate) {
       return res.status(400).json({ error: 'clockOut must be after clockIn' });
+    }
+
+    // Validate: Keine Zeiteinträge in der Zukunft
+    if (clockInDate > new Date()) {
+      return res.status(400).json({ error: 'clockIn cannot be in the future' });
+    }
+
+    // Überlappungs-Prüfung
+    const { overlapping, conflictEntry } = await checkOverlappingEntries(
+      employeeId, clockInDate, clockOutDate || null
+    );
+    if (overlapping) {
+      return res.status(400).json({ 
+        error: `Überlappender Zeiteintrag gefunden (${conflictEntry?.clockIn?.toISOString()} - ${conflictEntry?.clockOut?.toISOString() || 'aktiv'})`,
+        conflictEntryId: conflictEntry?.id
+      });
     }
 
     // Determine status

@@ -16,7 +16,7 @@ export const incidentController = {
         return;
       }
 
-      const { title, description, priority, assignedToId, category, affectedSystem, dueDate, tags } = req.body;
+      const { title, description, priority, assignedToId, category, affectedSystem, dueDate, tags, isEHSRelevant, ehsCategory, ehsSeverity, incidentDate, location } = req.body;
       const reportedById = userId;
 
       if (!title || !description) {
@@ -34,6 +34,11 @@ export const incidentController = {
         affectedSystem,
         dueDate: dueDate ? new Date(dueDate) : undefined,
         tags,
+        isEHSRelevant: isEHSRelevant || false,
+        ehsCategory,
+        ehsSeverity,
+        incidentDate: incidentDate ? new Date(incidentDate) : undefined,
+        location,
       });
 
       res.status(201).json(incident);
@@ -54,12 +59,14 @@ export const incidentController = {
         return;
       }
 
-      const { status, priority, assignedToId } = req.query;
+      const { status, priority, assignedToId, year, projectId } = req.query;
 
       const incidents = await incidentService.getAllIncidents(
         status as IncidentStatus,
         priority as IncidentPriority,
-        assignedToId as string
+        assignedToId as string,
+        year ? parseInt(year as string) : undefined,
+        projectId as string
       );
 
       res.json(incidents);

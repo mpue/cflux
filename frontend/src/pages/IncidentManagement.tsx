@@ -39,6 +39,7 @@ const IncidentManagement: React.FC = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [filterPriority, setFilterPriority] = useState<string>('');
+  const [filterProject, setFilterProject] = useState<string>('');
   const [newComment, setNewComment] = useState('');
 
   const [formData, setFormData] = useState<CreateIncidentDto>({
@@ -48,6 +49,11 @@ const IncidentManagement: React.FC = () => {
     category: '',
     affectedSystem: '',
     assignedToId: '',
+    isEHSRelevant: false,
+    ehsCategory: '',
+    ehsSeverity: '',
+    incidentDate: '',
+    location: '',
   });
 
   useEffect(() => {
@@ -70,13 +76,13 @@ const IncidentManagement: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [filterStatus, filterPriority]);
+  }, [filterStatus, filterPriority, filterProject]);
 
   const loadData = async () => {
     try {
       setLoading(true);
       const [incidentsData, statsData, usersData, projectsData] = await Promise.all([
-        incidentService.getAll(filterStatus, filterPriority),
+        incidentService.getAll(filterStatus, filterPriority, undefined, filterProject),
         incidentService.getStatistics(),
         userService.getAllUsers(),
         projectService.getAllProjects(),
@@ -108,6 +114,11 @@ const IncidentManagement: React.FC = () => {
         category: '',
         affectedSystem: '',
         assignedToId: '',
+        isEHSRelevant: false,
+        ehsCategory: '',
+        ehsSeverity: '',
+        incidentDate: '',
+        location: '',
       });
       loadData();
     } catch (err: any) {
@@ -281,6 +292,19 @@ const IncidentManagement: React.FC = () => {
           <option value="MEDIUM">Mittel</option>
           <option value="LOW">Niedrig</option>
         </select>
+
+        <select
+          value={filterProject}
+          onChange={(e) => setFilterProject(e.target.value)}
+          className="filter-select"
+        >
+          <option value="">Alle Projekte</option>
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Incidents Table */}
@@ -432,6 +456,77 @@ const IncidentManagement: React.FC = () => {
                   </select>
                 </div>
               </div>
+
+              {/* EHS Section */}
+              <div className="form-group" style={{ marginTop: '10px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.isEHSRelevant || false}
+                    onChange={(e) => setFormData({ ...formData, isEHSRelevant: e.target.checked })}
+                  />
+                  EHS-relevant (für EHS-Dashboard)
+                </label>
+              </div>
+              {formData.isEHSRelevant && (
+                <>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>EHS-Kategorie *</label>
+                      <select
+                        value={formData.ehsCategory || ''}
+                        onChange={(e) => setFormData({ ...formData, ehsCategory: e.target.value })}
+                        required
+                      >
+                        <option value="">-- Kategorie wählen --</option>
+                        <option value="SAFETY_OBSERVATION">Sicherheitsbeobachtung</option>
+                        <option value="UNSAFE_CONDITION">Unsicherer Zustand</option>
+                        <option value="UNSAFE_BEHAVIOR">Unsicheres Verhalten</option>
+                        <option value="NEAR_MISS">Beinahe-Unfall</option>
+                        <option value="FIRST_AID">Erste Hilfe</option>
+                        <option value="RECORDABLE">Meldepflichtiger Unfall</option>
+                        <option value="LTI">LTI (Lost Time Injury)</option>
+                        <option value="FATALITY">Tödlicher Unfall</option>
+                        <option value="PROPERTY_DAMAGE">Sachschaden</option>
+                        <option value="ENVIRONMENT">Umweltvorfall</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Schweregrad</label>
+                      <select
+                        value={formData.ehsSeverity || ''}
+                        onChange={(e) => setFormData({ ...formData, ehsSeverity: e.target.value })}
+                      >
+                        <option value="">-- Schweregrad wählen --</option>
+                        <option value="LOW">Niedrig</option>
+                        <option value="MEDIUM">Mittel</option>
+                        <option value="HIGH">Hoch</option>
+                        <option value="CRITICAL">Kritisch</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Vorfalldatum</label>
+                      <input
+                        type="date"
+                        value={formData.incidentDate || ''}
+                        onChange={(e) => setFormData({ ...formData, incidentDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Ort des Vorfalls</label>
+                      <input
+                        type="text"
+                        value={formData.location || ''}
+                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                        placeholder="z.B. Baustelle A, Lager 3"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
               <div className="modal-actions">
                 <button type="button" onClick={() => setShowCreateModal(false)} className="btn-secondary">
                   Abbrechen
@@ -538,6 +633,80 @@ const IncidentManagement: React.FC = () => {
                         ))}
                       </select>
                     </div>
+                  </div>
+                </div>
+
+                {/* EHS Section in Detail */}
+                <div className="detail-section">
+                  <h3>EHS (Arbeitssicherheit)</h3>
+                  <div className="detail-grid">
+                    <div>
+                      <strong>EHS-relevant:</strong>{' '}
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIncident.isEHSRelevant || false}
+                          onChange={(e) =>
+                            handleUpdateIncident(selectedIncident.id, { isEHSRelevant: e.target.checked } as any)
+                          }
+                          disabled={!canEditIncidents}
+                        />
+                        Ja
+                      </label>
+                    </div>
+                    {selectedIncident.isEHSRelevant && (
+                      <>
+                        <div>
+                          <strong>EHS-Kategorie:</strong>
+                          <select
+                            value={(selectedIncident as any).ehsCategory || ''}
+                            onChange={(e) =>
+                              handleUpdateIncident(selectedIncident.id, { ehsCategory: e.target.value } as any)
+                            }
+                            className="inline-select"
+                            disabled={!canEditIncidents}
+                          >
+                            <option value="">-- Keine --</option>
+                            <option value="SAFETY_OBSERVATION">Sicherheitsbeobachtung</option>
+                            <option value="UNSAFE_CONDITION">Unsicherer Zustand</option>
+                            <option value="UNSAFE_BEHAVIOR">Unsicheres Verhalten</option>
+                            <option value="NEAR_MISS">Beinahe-Unfall</option>
+                            <option value="FIRST_AID">Erste Hilfe</option>
+                            <option value="RECORDABLE">Meldepflichtiger Unfall</option>
+                            <option value="LTI">LTI (Lost Time Injury)</option>
+                            <option value="FATALITY">Tödlicher Unfall</option>
+                            <option value="PROPERTY_DAMAGE">Sachschaden</option>
+                            <option value="ENVIRONMENT">Umweltvorfall</option>
+                          </select>
+                        </div>
+                        <div>
+                          <strong>Schweregrad:</strong>
+                          <select
+                            value={(selectedIncident as any).ehsSeverity || ''}
+                            onChange={(e) =>
+                              handleUpdateIncident(selectedIncident.id, { ehsSeverity: e.target.value } as any)
+                            }
+                            className="inline-select"
+                            disabled={!canEditIncidents}
+                          >
+                            <option value="">-- Keine --</option>
+                            <option value="LOW">Niedrig</option>
+                            <option value="MEDIUM">Mittel</option>
+                            <option value="HIGH">Hoch</option>
+                            <option value="CRITICAL">Kritisch</option>
+                          </select>
+                        </div>
+                        <div>
+                          <strong>Ort:</strong> {(selectedIncident as any).location || '-'}
+                        </div>
+                        <div>
+                          <strong>Vorfalldatum:</strong>{' '}
+                          {(selectedIncident as any).incidentDate
+                            ? new Date((selectedIncident as any).incidentDate).toLocaleDateString('de-CH')
+                            : '-'}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
