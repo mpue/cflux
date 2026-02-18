@@ -92,12 +92,13 @@ export async function checkWeeklyHoursViolation(employeeId: string, date: Date) 
       }
     });
 
-    // Gesamtarbeitszeit berechnen
+    // Gesamtarbeitszeit berechnen (Netto: minus Pausen)
     let totalHours = 0;
     entries.forEach((entry: any) => {
       if (entry.clockOut) {
-        const duration = (entry.clockOut.getTime() - entry.clockIn.getTime()) / (1000 * 60 * 60);
-        totalHours += duration;
+        const bruttoHours = (entry.clockOut.getTime() - entry.clockIn.getTime()) / (1000 * 60 * 60);
+        const pauseHours = (entry.pauseMinutes || 0) / 60;
+        totalHours += bruttoHours - pauseHours;
       }
     });
 
@@ -148,21 +149,35 @@ export async function checkWeeklyHoursViolation(employeeId: string, date: Date) 
   }
 }
 
-// Prüfe tägliche Höchstarbeitszeit (12,5h)
+// Prüfe tägliche Höchstarbeitszeit (12,5h Netto)
 export async function checkDailyHoursViolation(employeeId: string, clockIn: Date, clockOut: Date) {
   try {
-    const duration = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+    // Pause aus dem TimeEntry holen für Netto-Berechnung
+    const timeEntry = await prisma.timeEntry.findFirst({
+      where: {
+        employeeId,
+        clockIn,
+        clockOut
+      },
+      select: {
+        pauseMinutes: true
+      }
+    });
 
-    if (duration > 12.5) {
-      console.log(`[COMPLIANCE] Creating MAX_DAILY_HOURS violation for employee ${employeeId}: ${duration.toFixed(1)}h`);
+    const pauseMinutes = timeEntry?.pauseMinutes || 0;
+    const bruttoHours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+    const nettoHours = bruttoHours - (pauseMinutes / 60);
+
+    if (nettoHours > 12.5) {
+      console.log(`[COMPLIANCE] Creating MAX_DAILY_HOURS violation for employee ${employeeId}: ${nettoHours.toFixed(1)}h netto`);
       const violation = await prisma.complianceViolation.create({
         data: {
           employeeId,
           type: 'MAX_DAILY_HOURS',
           severity: 'CRITICAL',
           date: clockIn,
-          description: `Tägliche Höchstarbeitszeit überschritten: ${duration.toFixed(1)}h von max. 12,5h`,
-          actualValue: `${duration.toFixed(1)} Stunden`,
+          description: `Tägliche Höchstarbeitszeit überschritten: ${nettoHours.toFixed(1)}h netto von max. 12,5h`,
+          actualValue: `${nettoHours.toFixed(1)} Stunden (netto)`,
           requiredValue: '12,5 Stunden'
         }
       });
@@ -308,8 +323,9 @@ export async function updateOvertimeBalance(employeeId: string, date: Date) {
     let totalHours = 0;
     entries.forEach((entry: any) => {
       if (entry.clockOut) {
-        const duration = (entry.clockOut.getTime() - entry.clockIn.getTime()) / (1000 * 60 * 60);
-        totalHours += duration;
+        const bruttoHours = (entry.clockOut.getTime() - entry.clockIn.getTime()) / (1000 * 60 * 60);
+        const pauseHours = (entry.pauseMinutes || 0) / 60;
+        totalHours += bruttoHours - pauseHours;
       }
     });
 

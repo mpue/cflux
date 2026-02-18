@@ -5,17 +5,34 @@ import { generateUserReport, generateTimeBookingsReport } from '../services/pdf.
 
 const prisma = new PrismaClient();
 
-const calculateWorkHours = (clockIn: Date, clockOut: Date | null): number => {
+// Helper: Netto-Arbeitsstunden berechnen (Brutto minus Pausen)
+const calculateWorkHours = (clockIn: Date, clockOut: Date | null, pauseMinutes: number = 0): number => {
   if (!clockOut) return 0;
-  return (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+  const bruttoHours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+  return bruttoHours - (pauseMinutes / 60);
 };
+
+// Helper: employeeId aus userId ermitteln
+async function getEmployeeIdFromUserId(userId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { employeeProfile: { select: { id: true } } }
+  });
+  return user?.employeeProfile?.id || null;
+}
 
 export const getMySummary = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const { startDate, endDate } = req.query;
 
-    const where: any = { userId };
+    // employeeId aus userId ermitteln
+    const employeeId = await getEmployeeIdFromUserId(userId);
+    if (!employeeId) {
+      return res.status(404).json({ error: 'User does not have an employee profile' });
+    }
+
+    const where: any = { employeeId };
 
     if (startDate && endDate) {
       where.clockIn = {
@@ -32,7 +49,7 @@ export const getMySummary = async (req: AuthRequest, res: Response) => {
     });
 
     const totalHours = entries.reduce((sum, entry) => {
-      return sum + calculateWorkHours(entry.clockIn, entry.clockOut);
+      return sum + calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
     }, 0);
 
     const byProject: Record<string, { name: string; hours: number }> = {};
@@ -44,7 +61,7 @@ export const getMySummary = async (req: AuthRequest, res: Response) => {
             hours: 0
           };
         }
-        byProject[entry.project.id].hours += calculateWorkHours(entry.clockIn, entry.clockOut);
+        byProject[entry.project.id].hours += calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
       }
     });
 
@@ -64,7 +81,7 @@ export const getMySummary = async (req: AuthRequest, res: Response) => {
     const totalAbsenceDays = absenceRequests.reduce((sum, req) => sum + req.days, 0);
 
     res.json({
-      totalHours,
+      totalHours: Math.round(totalHours * 100) / 100,
       totalDays: (totalHours / 8).toFixed(2),
       totalAbsenceDays,
       byProject: Object.values(byProject),
@@ -95,7 +112,13 @@ export const getUserSummary = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const where: any = { userId };
+    // employeeId aus userId ermitteln
+    const employeeId = await getEmployeeIdFromUserId(userId);
+    if (!employeeId) {
+      return res.status(404).json({ error: 'User does not have an employee profile' });
+    }
+
+    const where: any = { employeeId };
 
     if (startDate && endDate) {
       where.clockIn = {
@@ -112,7 +135,7 @@ export const getUserSummary = async (req: AuthRequest, res: Response) => {
     });
 
     const totalHours = entries.reduce((sum, entry) => {
-      return sum + calculateWorkHours(entry.clockIn, entry.clockOut);
+      return sum + calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
     }, 0);
 
     const byProject: Record<string, { name: string; hours: number }> = {};
@@ -124,7 +147,7 @@ export const getUserSummary = async (req: AuthRequest, res: Response) => {
             hours: 0
           };
         }
-        byProject[entry.project.id].hours += calculateWorkHours(entry.clockIn, entry.clockOut);
+        byProject[entry.project.id].hours += calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
       }
     });
 
@@ -145,7 +168,7 @@ export const getUserSummary = async (req: AuthRequest, res: Response) => {
 
     res.json({
       user,
-      totalHours,
+      totalHours: Math.round(totalHours * 100) / 100,
       totalDays: (totalHours / 8).toFixed(2),
       totalAbsenceDays,
       byProject: Object.values(byProject),
@@ -173,7 +196,11 @@ export const getAllUsersSummary = async (req: AuthRequest, res: Response) => {
 
     const summaries = await Promise.all(
       users.map(async (user) => {
-        const where: any = { userId: user.id };
+        // employeeId aus userId ermitteln
+        const employeeId = await getEmployeeIdFromUserId(user.id);
+        if (!employeeId) return null;
+
+        const where: any = { employeeId };
 
         if (startDate && endDate) {
           where.clockIn = {
@@ -185,19 +212,20 @@ export const getAllUsersSummary = async (req: AuthRequest, res: Response) => {
         const entries = await prisma.timeEntry.findMany({ where });
 
         const totalHours = entries.reduce((sum, entry) => {
-          return sum + calculateWorkHours(entry.clockIn, entry.clockOut);
+          return sum + calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
         }, 0);
 
         return {
           user,
-          totalHours,
+          totalHours: Math.round(totalHours * 100) / 100,
           totalDays: (totalHours / 8).toFixed(2),
           entries: entries.length
         };
       })
     );
 
-    res.json(summaries);
+    // Filtere User ohne Employee-Profil heraus
+    res.json(summaries.filter(s => s !== null));
   } catch (error) {
     console.error('Get all users summary error:', error);
     res.status(500).json({ error: 'Failed to get users summary' });
@@ -241,7 +269,7 @@ export const getProjectSummary = async (req: AuthRequest, res: Response) => {
     });
 
     const totalHours = entries.reduce((sum, entry) => {
-      return sum + calculateWorkHours(entry.clockIn, entry.clockOut);
+      return sum + calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
     }, 0);
 
     const byUser: Record<string, { employee: any; hours: number }> = {};
@@ -252,12 +280,12 @@ export const getProjectSummary = async (req: AuthRequest, res: Response) => {
           hours: 0
         };
       }
-      byUser[entry.employeeId].hours += calculateWorkHours(entry.clockIn, entry.clockOut);
+      byUser[entry.employeeId].hours += calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
     });
 
     res.json({
       project,
-      totalHours,
+      totalHours: Math.round(totalHours * 100) / 100,
       totalDays: (totalHours / 8).toFixed(2),
       byUser: Object.values(byUser),
       entries: entries.length
@@ -349,7 +377,7 @@ export const getAttendanceByMonth = async (req: AuthRequest, res: Response) => {
       });
 
       const totalHours = entries.reduce((sum, entry) => {
-        return sum + calculateWorkHours(entry.clockIn, entry.clockOut);
+        return sum + calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
       }, 0);
 
       const absences = await prisma.absenceRequest.findMany({
@@ -398,8 +426,12 @@ export const getOvertimeReport = async (req: AuthRequest, res: Response) => {
 
     const overtimeData = await Promise.all(
       users.map(async (user) => {
+        // employeeId aus userId ermitteln
+        const employeeId = await getEmployeeIdFromUserId(user.id);
+        if (!employeeId) return null;
+
         const where: any = { 
-          userId: user.id,
+          employeeId,
           status: 'CLOCKED_OUT'
         };
 
@@ -413,7 +445,7 @@ export const getOvertimeReport = async (req: AuthRequest, res: Response) => {
         const entries = await prisma.timeEntry.findMany({ where });
 
         const totalHours = entries.reduce((sum, entry) => {
-          return sum + calculateWorkHours(entry.clockIn, entry.clockOut);
+          return sum + calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
         }, 0);
 
         const workDays = entries.length;
@@ -431,9 +463,10 @@ export const getOvertimeReport = async (req: AuthRequest, res: Response) => {
     );
 
     // Sortiere nach Überstunden
-    overtimeData.sort((a, b) => b.overtime - a.overtime);
+    const filteredOvertimeData = overtimeData.filter(d => d !== null);
+    filteredOvertimeData.sort((a: any, b: any) => b.overtime - a.overtime);
 
-    res.json(overtimeData);
+    res.json(filteredOvertimeData);
   } catch (error) {
     console.error('Get overtime report error:', error);
     res.status(500).json({ error: 'Failed to get overtime report' });
@@ -464,11 +497,15 @@ export const getProjectTimeByUser = async (req: AuthRequest, res: Response) => {
 
     const data = await Promise.all(
       users.map(async (user) => {
+        // employeeId aus userId ermitteln
+        const employeeId = await getEmployeeIdFromUserId(user.id);
+        if (!employeeId) return null;
+
         const projectHours: Record<string, number> = {};
         
         for (const project of projects) {
           const where: any = { 
-            userId: user.id,
+            employeeId,
             projectId: project.id,
             status: 'CLOCKED_OUT'
           };
@@ -483,7 +520,7 @@ export const getProjectTimeByUser = async (req: AuthRequest, res: Response) => {
           const entries = await prisma.timeEntry.findMany({ where });
 
           const hours = entries.reduce((sum, entry) => {
-            return sum + calculateWorkHours(entry.clockIn, entry.clockOut);
+            return sum + calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
           }, 0);
 
           if (hours > 0) {
@@ -501,8 +538,8 @@ export const getProjectTimeByUser = async (req: AuthRequest, res: Response) => {
       })
     );
 
-    // Filtere Benutzer ohne Projektzeit heraus
-    const filteredData = data.filter(d => d.totalHours > 0);
+    // Filtere Benutzer ohne Projektzeit oder ohne Employee-Profil heraus
+    const filteredData = data.filter(d => d !== null && d.totalHours > 0);
 
     res.json({ users: filteredData, projects: projects.map(p => p.name) });
   } catch (error) {
@@ -597,7 +634,14 @@ export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) =
     }
 
     if (userId) {
-      where.userId = userId;
+      // userId zu employeeId auflösen
+      const employeeId = await getEmployeeIdFromUserId(userId as string);
+      if (employeeId) {
+        where.employeeId = employeeId;
+      } else {
+        // Kein Employee-Profil gefunden, leeres Ergebnis liefern
+        return res.json({ entries: [], summary: { totalHours: 0, totalEntries: 0, totalDays: 0, byUser: [], byProject: [] } });
+      }
     }
 
     if (projectId) {
@@ -753,9 +797,17 @@ export const getUserTimeBookingsReport = async (req: AuthRequest, res: Response)
     }
 
     const where: any = {
-      userId,
       status: 'CLOCKED_OUT'
     };
+
+    // employeeId aus userId ermitteln
+    const employeeId = await getEmployeeIdFromUserId(userId);
+    if (employeeId) {
+      where.employeeId = employeeId;
+    } else {
+      // Fallback: userId direkt verwenden (Legacy-Kompatibilität)
+      where.userId = userId;
+    }
 
     if (startDate && endDate) {
       where.clockIn = {

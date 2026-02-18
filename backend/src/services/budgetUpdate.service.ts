@@ -8,8 +8,10 @@ const prisma = new PrismaClient();
  * Wird nach Clock-Out automatisch aufgerufen.
  * 
  * Logik:
- * 1. Prüft ob das Projekt ein aktives Budget hat
- * 2. Ermittelt den Stundensatz (User → Projekt → System)
+ * 1. Prüft ob ProjectTimeAllocations vorhanden sind
+ *    → JA: Budget auf ALLE zugewiesenen Projekte verteilen
+ *    → NEIN: Ganzes Budget auf TimeEntry.projectId
+ * 2. Ermittelt den Stundensatz (Zeitmodell → User → Projekt → System)
  * 3. Sucht oder erstellt eine LABOR Budget-Position für den User
  * 4. Aktualisiert actualHours und actualCost
  * 5. Berechnet das Budget neu (variance, etc.)
@@ -17,7 +19,7 @@ const prisma = new PrismaClient();
  * @param timeEntryId - ID des TimeEntry
  */
 export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<void> {
-  // 1. TimeEntry laden
+  // 1. TimeEntry laden (inkl. Allokationen)
   const timeEntry = await prisma.timeEntry.findUnique({
     where: { id: timeEntryId },
     include: {
@@ -29,6 +31,12 @@ export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<vo
           userId: true
         },
       },
+      projectTimeAllocations: {
+        select: {
+          projectId: true,
+          hours: true,
+        },
+      },
     },
   });
 
@@ -37,8 +45,8 @@ export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<vo
     return;
   }
 
-  // Nur verarbeiten wenn Projekt vorhanden und Status CLOCKED_OUT
-  if (!timeEntry.projectId || timeEntry.status !== 'CLOCKED_OUT') {
+  // Nur verarbeiten wenn Status CLOCKED_OUT
+  if (timeEntry.status !== 'CLOCKED_OUT') {
     return;
   }
 
@@ -47,13 +55,69 @@ export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<vo
     return;
   }
 
-  // 2. Aktives Budget für das Projekt suchen
+  // 2. Stundensatz ermitteln (mit Zeitmodell-Support)
+  let hourlyRate: number;
+  try {
+    const userId = timeEntry.employee.userId;
+    if (!userId) {
+      console.warn(`Employee ${timeEntry.employeeId} has no userId`);
+      return;
+    }
+    hourlyRate = await getHourlyRateForUser(
+      userId, 
+      timeEntry.projectId || undefined,
+      timeEntry.clockOut
+    );
+  } catch (error) {
+    console.error(`Fehler beim Ermitteln des Stundensatzes: ${error}`);
+    return;
+  }
+
+  const itemName = `${timeEntry.employee.firstName} ${timeEntry.employee.lastName}`;
+
+  // 3. Prüfe ob ProjectTimeAllocations vorhanden sind
+  if (timeEntry.projectTimeAllocations && timeEntry.projectTimeAllocations.length > 0) {
+    // Verteilung auf ALLE zugewiesenen Projekte
+    console.log(`[BUDGET] Verteilung auf ${timeEntry.projectTimeAllocations.length} Projekte via ProjectTimeAllocation`);
+    for (const allocation of timeEntry.projectTimeAllocations) {
+      await updateProjectBudget(allocation.projectId, allocation.hours, hourlyRate, itemName);
+    }
+  } else if (timeEntry.projectId) {
+    // Fallback: Ganzes Budget auf direktes Projekt
+    const startTime = new Date(timeEntry.clockIn).getTime();
+    const endTime = new Date(timeEntry.clockOut).getTime();
+    const pauseMinutes = timeEntry.pauseMinutes || 0;
+    const totalPauseMs = pauseMinutes * 60 * 1000;
+    const workedMs = endTime - startTime - totalPauseMs;
+    const workedHours = workedMs / (1000 * 60 * 60);
+
+    if (workedHours <= 0) {
+      return;
+    }
+
+    await updateProjectBudget(timeEntry.projectId, workedHours, hourlyRate, itemName);
+  } else {
+    // Kein Projekt zugeordnet → nichts zu tun
+    return;
+  }
+}
+
+/**
+ * Aktualisiert das Budget eines einzelnen Projekts.
+ */
+async function updateProjectBudget(
+  projectId: string, 
+  workedHours: number, 
+  hourlyRate: number, 
+  itemName: string
+): Promise<void> {
+  // Aktives Budget für das Projekt suchen
   const budget = await prisma.projectBudget.findFirst({
     where: {
-      projectId: timeEntry.projectId,
+      projectId,
       isActive: true,
       status: {
-        in: ['PLANNING', 'ACTIVE'], // Nur aktive Budgets aktualisieren
+        in: ['PLANNING', 'ACTIVE'],
       },
     },
     select: {
@@ -62,45 +126,10 @@ export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<vo
   });
 
   if (!budget) {
-    // Kein aktives Budget → nichts zu tun
-    return;
+    return; // Kein aktives Budget → nichts zu tun
   }
 
-  // 3. Stundensatz ermitteln (mit Zeitmodell-Support)
-  let hourlyRate: number;
-  try {
-    // Verwende Clock-Out Zeit für Zeitmodell-Berechnung
-    const userId = timeEntry.employee.userId;
-    if (!userId) {
-      console.warn(`Employee ${timeEntry.employeeId} has no userId`);
-      return;
-    }
-    hourlyRate = await getHourlyRateForUser(
-      userId, 
-      timeEntry.projectId,
-      timeEntry.clockOut // Timestamp für Zeitmodell-Lookup
-    );
-  } catch (error) {
-    console.error(`Fehler beim Ermitteln des Stundensatzes: ${error}`);
-    return; // Ohne Stundensatz können wir nicht weitermachen
-  }
-
-  // 4. Gebuchte Stunden berechnen
-  const startTime = new Date(timeEntry.clockIn).getTime();
-  const endTime = new Date(timeEntry.clockOut).getTime();
-  const pauseMinutes = timeEntry.pauseMinutes || 0;
-  const totalPauseMs = pauseMinutes * 60 * 1000; // Minuten in Millisekunden
-
-  const workedMs = endTime - startTime - totalPauseMs;
-  const workedHours = workedMs / (1000 * 60 * 60); // In Stunden umrechnen
-
-  if (workedHours <= 0) {
-    return; // Keine Stunden gebucht
-  }
-
-  // 5. Budget-Position für Employee finden oder erstellen
-  const itemName = `${timeEntry.employee.firstName} ${timeEntry.employee.lastName}`;
-  
+  // Budget-Position für Employee finden oder erstellen
   let budgetItem = await prisma.projectBudgetItem.findFirst({
     where: {
       budgetId: budget.id,
@@ -110,7 +139,6 @@ export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<vo
   });
 
   if (!budgetItem) {
-    // Neue Budget-Position erstellen
     budgetItem = await prisma.projectBudgetItem.create({
       data: {
         budgetId: budget.id,
@@ -129,7 +157,7 @@ export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<vo
     });
   }
 
-  // 6. Budget-Position aktualisieren (actualHours und actualCost hinzufügen)
+  // Budget-Position aktualisieren
   const newActualHours = (budgetItem.actualHours || 0) + workedHours;
   const newActualCost = newActualHours * hourlyRate;
   const plannedCost = (budgetItem.plannedHours || 0) * hourlyRate;
@@ -141,18 +169,18 @@ export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<vo
     data: {
       actualHours: newActualHours,
       actualCost: newActualCost,
-      hourlyRate: hourlyRate, // Update falls sich der Stundensatz geändert hat
+      hourlyRate: hourlyRate,
       variance: variance,
       variancePercent: variancePercent,
     },
   });
 
-  // 7. Budget neu berechnen (Summen aktualisieren)
+  // Budget neu berechnen
   await recalculateBudget(budget.id);
 
   console.log(
     `Budget aktualisiert: ${workedHours.toFixed(2)}h für ${itemName} ` +
-    `(${hourlyRate} CHF/h = ${(workedHours * hourlyRate).toFixed(2)} CHF)`
+    `auf Projekt ${projectId} (${hourlyRate} CHF/h = ${(workedHours * hourlyRate).toFixed(2)} CHF)`
   );
 }
 

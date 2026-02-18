@@ -32,10 +32,21 @@ export const getEHSKPIDashboard = async (req: AuthRequest, res: Response) => {
     const incidents = await prisma.incident.findMany({
       where: {
         isEHSRelevant: true,
-        incidentDate: {
-          gte: startDate,
-          lte: endDate,
-        },
+        OR: [
+          {
+            incidentDate: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+          {
+            incidentDate: null,
+            reportedAt: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+        ],
         ...(projectId && { projectId: projectId as string }),
       },
       include: {
@@ -239,10 +250,21 @@ export const calculateMonthlyKPIs = async (req: AuthRequest, res: Response) => {
     const incidents = await prisma.incident.findMany({
       where: {
         isEHSRelevant: true,
-        incidentDate: {
-          gte: startDate,
-          lte: endDate,
-        },
+        OR: [
+          {
+            incidentDate: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+          {
+            incidentDate: null,
+            reportedAt: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+        ],
         ...(projectId && { projectId }),
       },
     });
