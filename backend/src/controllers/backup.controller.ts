@@ -523,6 +523,9 @@ export const restoreBackup = async (req: Request, res: Response) => {
       const items = backupData.data[dataKey];
       if (!items?.length) return 0;
       for (const item of items) {
+        // Delete existing record (if any) and create new one
+        // This handles unique constraints better than upsert
+        await prismaModel(accessor).delete({ where: { id: item.id } }).catch(() => {});
         await prismaModel(accessor).create({ data: item });
       }
       const count = items.length;
@@ -573,6 +576,8 @@ export const restoreBackup = async (req: Request, res: Response) => {
       }
 
       for (const node of sorted) {
+        // Delete existing record (if any) and create new one
+        await prismaModel(accessor).delete({ where: { id: node.id } }).catch(() => {});
         await prismaModel(accessor).create({ data: node });
       }
       const count = items.length;
@@ -605,6 +610,8 @@ export const restoreBackup = async (req: Request, res: Response) => {
         if (Object.keys(updates).length > 0) {
           deferred.push({ id: record.id, updates });
         }
+        // Delete existing record (if any) and create new one
+        await prismaModel(accessor).delete({ where: { id: record.id } }).catch(() => {});
         await prismaModel(accessor).create({ data: record });
       }
       const count = items.length;
@@ -663,7 +670,16 @@ export const restoreBackup = async (req: Request, res: Response) => {
     restoredCount += await restoreTable('articles', 'article', 'Articles');
 
     // ── Phase 8: Inventory ───────────────────────────────────
-    restoredCount += await restoreTable('inventoryItems', 'inventoryItem', 'InventoryItems');
+    // InventoryItem has unique constraint on articleId - handle specially
+    const inventoryItems = backupData.data['inventoryItems'];
+    if (inventoryItems?.length) {
+      for (const item of inventoryItems) {
+        await prisma.inventoryItem.deleteMany({ where: { articleId: item.articleId } });
+        await prisma.inventoryItem.create({ data: item });
+      }
+      console.log(`  ✓ InventoryItems: ${inventoryItems.length}`);
+      restoredCount += inventoryItems.length;
+    }
     restoredCount += await restoreTable('inventoryMovements', 'inventoryMovement', 'InventoryMovements');
 
     // ── Phase 9: Projects ────────────────────────────────────
@@ -724,11 +740,30 @@ export const restoreBackup = async (req: Request, res: Response) => {
     restoredCount += await restoreTable('ehsTodos', 'eHSTodo', 'EHSTodos');
 
     // ── Phase 20: Budget ─────────────────────────────────────
-    restoredCount += await restoreTable('projectBudgets', 'projectBudget', 'ProjectBudgets');
+    // ProjectBudget has unique constraint on projectId - handle specially
+    const projectBudgetItems = backupData.data['projectBudgets'];
+    if (projectBudgetItems?.length) {
+      for (const item of projectBudgetItems) {
+        // Delete by projectId (unique constraint) instead of id
+        await prisma.projectBudget.deleteMany({ where: { projectId: item.projectId } });
+        await prisma.projectBudget.create({ data: item });
+      }
+      console.log(`  ✓ ProjectBudgets: ${projectBudgetItems.length}`);
+      restoredCount += projectBudgetItems.length;
+    }
     restoredCount += await restoreTable('projectBudgetItems', 'projectBudgetItem', 'ProjectBudgetItems');
 
     // ── Phase 21: Dashboard ──────────────────────────────────
-    restoredCount += await restoreTable('userDashboardLayouts', 'userDashboardLayout', 'UserDashboardLayouts');
+    // UserDashboardLayout has unique constraint on userId - handle specially
+    const dashboardItems = backupData.data['userDashboardLayouts'];
+    if (dashboardItems?.length) {
+      for (const item of dashboardItems) {
+        await prisma.userDashboardLayout.deleteMany({ where: { userId: item.userId } });
+        await prisma.userDashboardLayout.create({ data: item });
+      }
+      console.log(`  ✓ UserDashboardLayouts: ${dashboardItems.length}`);
+      restoredCount += dashboardItems.length;
+    }
 
     // ── Phase 22: Zeitmodelle ────────────────────────────────
     restoredCount += await restoreTable('zeitmodelle', 'zeitmodell', 'Zeitmodelle');
@@ -738,7 +773,16 @@ export const restoreBackup = async (req: Request, res: Response) => {
 
     // ── Phase 23: Payroll ────────────────────────────────────
     restoredCount += await restoreTable('payrollEntries', 'payrollEntry', 'PayrollEntries');
-    restoredCount += await restoreTable('salaryConfigurations', 'salaryConfiguration', 'SalaryConfigurations');
+    // SalaryConfiguration has unique constraint on userId - handle specially
+    const salaryConfigItems = backupData.data['salaryConfigurations'];
+    if (salaryConfigItems?.length) {
+      for (const item of salaryConfigItems) {
+        await prisma.salaryConfiguration.deleteMany({ where: { userId: item.userId } });
+        await prisma.salaryConfiguration.create({ data: item });
+      }
+      console.log(`  ✓ SalaryConfigurations: ${salaryConfigItems.length}`);
+      restoredCount += salaryConfigItems.length;
+    }
 
     // ── Phase 24: Devices ────────────────────────────────────
     restoredCount += await restoreTable('devices', 'device', 'Devices');
@@ -771,7 +815,16 @@ export const restoreBackup = async (req: Request, res: Response) => {
     restoredCount += await restoreHierarchical('courseCategories', 'courseCategory', 'parentId', 'CourseCategories');
     restoredCount += await restoreTable('courses', 'course', 'Courses');
     restoredCount += await restoreTable('lessons', 'lesson', 'Lessons');
-    restoredCount += await restoreTable('quizzes', 'quiz', 'Quizzes');
+    // Quiz has unique constraint on lessonId - handle specially
+    const quizItems = backupData.data['quizzes'];
+    if (quizItems?.length) {
+      for (const item of quizItems) {
+        await prisma.quiz.deleteMany({ where: { lessonId: item.lessonId } });
+        await prisma.quiz.create({ data: item });
+      }
+      console.log(`  ✓ Quizzes: ${quizItems.length}`);
+      restoredCount += quizItems.length;
+    }
     restoredCount += await restoreTable('questions', 'question', 'Questions');
     restoredCount += await restoreTable('answers', 'answer', 'Answers');
     restoredCount += await restoreTable('courseAssignments', 'courseAssignment', 'CourseAssignments');
@@ -833,7 +886,9 @@ export const uploadBackup = async (req: Request, res: Response) => {
     const filename = `uploaded_backup_${timestamp}.${extension}`;
     const filepath = path.join(BACKUP_DIR, filename);
 
-    fs.renameSync(req.file.path, filepath);
+    // Copy uploaded file to backup directory (use copy instead of rename for cross-volume compatibility)
+    fs.copyFileSync(req.file.path, filepath);
+    fs.unlinkSync(req.file.path); // Delete temp file
 
     res.json({
       message: 'Backup uploaded successfully',
