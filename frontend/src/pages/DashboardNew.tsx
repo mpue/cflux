@@ -9,13 +9,14 @@ import { useModules } from '../contexts/ModuleContext';
 import { useDashboardLayout } from '../hooks/useDashboardLayout';
 import { timeService } from '../services/time.service';
 import { projectService } from '../services/project.service';
+import { storyService } from '../services/story.service';
 import { absenceService } from '../services/absence.service';
 import { reportService } from '../services/report.service';
 import { locationService } from '../services/location.service';
 import { workflowService } from '../services/workflow.service';
 import projectTimeAllocationService, { AllocationInput, ProjectTimeAllocation } from '../services/projectTimeAllocation.service';
 import { getUnreadCount } from '../services/message.service';
-import { TimeEntry, Project, AbsenceRequest, Report, Location } from '../types';
+import { TimeEntry, Project, AbsenceRequest, Report, Location, Story } from '../types';
 import PDFReportModal from '../components/PDFReportModal';
 import MyPayrollEntries from '../components/MyPayrollEntries';
 import AppNavbar from '../components/AppNavbar';
@@ -63,6 +64,8 @@ const Dashboard: React.FC = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [selectedStory, setSelectedStory] = useState<string>('');
+  const [stories, setStories] = useState<Story[]>([]);
   const [absenceRequests, setAbsenceRequests] = useState<AbsenceRequest[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [report, setReport] = useState<Report | null>(null);
@@ -225,11 +228,29 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleProjectChange = async (projectId: string) => {
+    setSelectedProject(projectId);
+    setSelectedStory('');
+    if (projectId) {
+      try {
+        const projectStories = await storyService.getStoriesByProject(projectId);
+        setStories(projectStories);
+      } catch (error) {
+        console.error('Error loading stories:', error);
+        setStories([]);
+      }
+    } else {
+      setStories([]);
+    }
+  };
+
   const handleClockIn = async () => {
     try {
       await timeService.clockIn(
         selectedProject || undefined, 
-        selectedLocation || undefined
+        selectedLocation || undefined,
+        undefined,
+        selectedStory || undefined
       );
       await loadData();
     } catch (error: any) {
@@ -455,12 +476,15 @@ const Dashboard: React.FC = () => {
                       currentEntry={currentEntry}
                       projects={projects}
                       locations={locations}
+                      stories={stories}
                       selectedProject={selectedProject}
                       selectedLocation={selectedLocation}
+                      selectedStory={selectedStory}
                       currentTime={currentTime}
                       workDuration={workDuration}
-                      onProjectChange={setSelectedProject}
+                      onProjectChange={handleProjectChange}
                       onLocationChange={setSelectedLocation}
+                      onStoryChange={setSelectedStory}
                       onClockIn={handleClockIn}
                       onClockOut={handleClockOut}
                       onStartPause={handleStartPause}
@@ -690,12 +714,15 @@ const Dashboard: React.FC = () => {
                     currentEntry={currentEntry}
                     projects={projects}
                     locations={locations}
+                    stories={stories}
                     selectedProject={selectedProject}
                     selectedLocation={selectedLocation}
+                    selectedStory={selectedStory}
                     currentTime={currentTime}
                     workDuration={workDuration}
-                    onProjectChange={setSelectedProject}
+                    onProjectChange={handleProjectChange}
                     onLocationChange={setSelectedLocation}
+                    onStoryChange={setSelectedStory}
                     onClockIn={handleClockIn}
                     onClockOut={handleClockOut}
                     onStartPause={handleStartPause}

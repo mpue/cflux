@@ -236,3 +236,127 @@ async function recalculateBudget(budgetId: string): Promise<void> {
     },
   });
 }
+
+/**
+ * Macht ein Budget-Update für einen TimeEntry rückgängig.
+ * Wird beim Löschen eines TimeEntry aufgerufen.
+ * 
+ * Logik:
+ * 1. TimeEntry laden inkl. Allokationen
+ * 2. Stundensatz ermitteln
+ * 3. actualHours und actualCost vom BudgetItem abziehen
+ * 4. Budget neu berechnen
+ */
+export async function reverseBudgetFromTimeEntry(timeEntryId: string): Promise<void> {
+  const timeEntry = await prisma.timeEntry.findUnique({
+    where: { id: timeEntryId },
+    include: {
+      employee: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          userId: true
+        },
+      },
+      projectTimeAllocations: {
+        select: {
+          projectId: true,
+          hours: true,
+        },
+      },
+    },
+  });
+
+  if (!timeEntry || !timeEntry.clockIn || !timeEntry.clockOut) {
+    return;
+  }
+
+  // Stundensatz ermitteln
+  let hourlyRate: number;
+  try {
+    const userId = timeEntry.employee.userId;
+    if (!userId) return;
+    hourlyRate = await getHourlyRateForUser(
+      userId,
+      timeEntry.projectId || undefined,
+      timeEntry.clockOut
+    );
+  } catch (error) {
+    console.error(`Fehler beim Ermitteln des Stundensatzes für Reversal: ${error}`);
+    return;
+  }
+
+  const itemName = `${timeEntry.employee.firstName} ${timeEntry.employee.lastName}`;
+
+  if (timeEntry.projectTimeAllocations && timeEntry.projectTimeAllocations.length > 0) {
+    for (const allocation of timeEntry.projectTimeAllocations) {
+      await reverseProjectBudget(allocation.projectId, allocation.hours, hourlyRate, itemName);
+    }
+  } else if (timeEntry.projectId) {
+    const startTime = new Date(timeEntry.clockIn).getTime();
+    const endTime = new Date(timeEntry.clockOut).getTime();
+    const pauseMinutes = timeEntry.pauseMinutes || 0;
+    const totalPauseMs = pauseMinutes * 60 * 1000;
+    const workedMs = endTime - startTime - totalPauseMs;
+    const workedHours = workedMs / (1000 * 60 * 60);
+
+    if (workedHours <= 0) return;
+
+    await reverseProjectBudget(timeEntry.projectId, workedHours, hourlyRate, itemName);
+  }
+}
+
+/**
+ * Zieht Stunden und Kosten von einem Projekt-Budget ab.
+ */
+async function reverseProjectBudget(
+  projectId: string,
+  workedHours: number,
+  hourlyRate: number,
+  itemName: string
+): Promise<void> {
+  const budget = await prisma.projectBudget.findFirst({
+    where: {
+      projectId,
+      isActive: true,
+      status: { in: ['PLANNING', 'ACTIVE', 'EXCEEDED'] },
+    },
+    select: { id: true },
+  });
+
+  if (!budget) return;
+
+  const budgetItem = await prisma.projectBudgetItem.findFirst({
+    where: {
+      budgetId: budget.id,
+      category: 'LABOR',
+      itemName: itemName,
+    },
+  });
+
+  if (!budgetItem) return;
+
+  const newActualHours = Math.max(0, (budgetItem.actualHours || 0) - workedHours);
+  const newActualCost = newActualHours * hourlyRate;
+  const plannedCost = (budgetItem.plannedHours || 0) * hourlyRate;
+  const variance = newActualCost - plannedCost;
+  const variancePercent = plannedCost > 0 ? (variance / plannedCost) * 100 : 0;
+
+  await prisma.projectBudgetItem.update({
+    where: { id: budgetItem.id },
+    data: {
+      actualHours: newActualHours,
+      actualCost: newActualCost,
+      variance: variance,
+      variancePercent: variancePercent,
+    },
+  });
+
+  await recalculateBudget(budget.id);
+
+  console.log(
+    `[BUDGET REVERSAL] ${workedHours.toFixed(2)}h für ${itemName} ` +
+    `von Projekt ${projectId} abgezogen (${hourlyRate} CHF/h = ${(workedHours * hourlyRate).toFixed(2)} CHF)`
+  );
+}

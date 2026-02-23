@@ -113,6 +113,15 @@ export interface Project {
   isActive: boolean;
   status?: ProjectStatus;
   defaultHourlyRate?: number;
+
+  // Projektsoll-Vorgaben (für Cutting)
+  sollBeginn?: string;        // z.B. "06:00"
+  sollEnde?: string;          // z.B. "17:00"
+  sollPauseDauer?: number;    // Minuten, default 60
+  sollArbeitszeit?: number;   // Stunden, z.B. 10.0
+  cuttingAktiv?: boolean;     // Cutting aktiviert
+  cuttingTolerance?: number;  // Toleranz in Minuten
+
   startDate?: string;
   endDate?: string;
   progress?: number;
@@ -120,6 +129,20 @@ export interface Project {
   updatedAt: string;
   customer?: Customer;
   assignments?: ProjectAssignment[];
+  stories?: Story[];
+}
+
+export interface Story {
+  id: string;
+  projectId: string;
+  name: string;
+  description?: string;
+  color?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  project?: { id: string; name: string };
+  _count?: { timeEntries: number };
 }
 
 export interface Customer {
@@ -250,6 +273,7 @@ export interface TimeEntry {
   userId?: string; // DEPRECATED: For backwards compatibility
   employeeId: string;
   projectId?: string;
+  storyId?: string;
   locationId?: string;
   clockIn: string;
   clockOut?: string;
@@ -257,9 +281,33 @@ export interface TimeEntry {
   description?: string;
   pauseMinutes?: number;
   pauseStartedAt?: string;
+
+  // Projektsoll-Cutting
+  sollBeginn?: string;
+  sollEnde?: string;
+  sollPause?: number;
+  abrechenbareStunden?: number;
+  nichtAbrechenbar?: number;
+  vorSoll?: number;        // Minuten vor Soll-Beginn
+  nachSoll?: number;       // Minuten nach Soll-Ende
+
+  // Zuschlagsstunden
+  nachtStunden?: number;
+  sonntagStunden?: number;
+  feiertagStunden?: number;
+  samstagStunden?: number;
+
+  // Zuschlagsberechtigungs-Flags
+  zuschlagNacht?: boolean;
+  zuschlagSonntag?: boolean;
+  zuschlagFeiertag?: boolean;
+  zuschlagSamstag?: boolean;
+  zuschlagGrund?: string;
+
   createdAt: string;
   updatedAt: string;
   project?: Project;
+  story?: Story;
   location?: Location;
   employee?: EmployeeProfile & { id: string; firstName: string; lastName: string; email: string; userId?: string };
   user?: User; // DEPRECATED: For backwards compatibility

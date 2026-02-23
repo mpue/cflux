@@ -620,7 +620,7 @@ export const generateUserPDFReport = async (req: AuthRequest, res: Response) => 
 // Detailed Time Booking Reports
 export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) => {
   try {
-    const { startDate, endDate, userId, projectId } = req.query;
+    const { startDate, endDate, userId, projectId, storyId } = req.query;
 
     const where: any = {
       status: 'CLOCKED_OUT'
@@ -640,12 +640,16 @@ export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) =
         where.employeeId = employeeId;
       } else {
         // Kein Employee-Profil gefunden, leeres Ergebnis liefern
-        return res.json({ entries: [], summary: { totalHours: 0, totalEntries: 0, totalDays: 0, byUser: [], byProject: [] } });
+        return res.json({ entries: [], summary: { totalHours: 0, totalEntries: 0, totalDays: 0, byUser: [], byProject: [], byStory: [] } });
       }
     }
 
     if (projectId) {
       where.projectId = projectId;
+    }
+
+    if (storyId) {
+      where.storyId = storyId;
     }
 
     const entries = await prisma.timeEntry.findMany({
@@ -664,6 +668,13 @@ export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) =
             id: true,
             name: true,
             description: true
+          }
+        },
+        story: {
+          select: {
+            id: true,
+            name: true,
+            color: true
           }
         },
         location: {
@@ -690,9 +701,9 @@ export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) =
 
     // Calculate hours for each entry
     const enrichedEntries = entries.map(entry => {
-      const hours = calculateWorkHours(entry.clockIn, entry.clockOut);
+      const netHours = calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
       const pauseHours = (entry.pauseMinutes || 0) / 60;
-      const netHours = hours - pauseHours;
+      const hours = netHours + pauseHours; // Brutto-Stunden für Anzeige
 
       return {
         id: entry.id,
@@ -700,6 +711,8 @@ export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) =
         employee: entry.employee,
         projectId: entry.projectId,
         project: entry.project,
+        storyId: (entry as any).storyId,
+        story: (entry as any).story,
         location: entry.location,
         clockIn: entry.clockIn,
         clockOut: entry.clockOut,
@@ -748,6 +761,22 @@ export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) =
       }
     });
 
+    // Group by story
+    const byStory: Record<string, any> = {};
+    enrichedEntries.forEach(entry => {
+      if (entry.story) {
+        if (!byStory[entry.storyId!]) {
+          byStory[entry.storyId!] = {
+            story: entry.story,
+            totalHours: 0,
+            entries: []
+          };
+        }
+        byStory[entry.storyId!].totalHours += entry.netHours;
+        byStory[entry.storyId!].entries.push(entry);
+      }
+    });
+
     res.json({
       entries: enrichedEntries,
       summary: {
@@ -763,6 +792,11 @@ export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) =
           project: p.project,
           totalHours: Math.round(p.totalHours * 100) / 100,
           entriesCount: p.entries.length
+        })),
+        byStory: Object.values(byStory).map((s: any) => ({
+          story: s.story,
+          totalHours: Math.round(s.totalHours * 100) / 100,
+          entriesCount: s.entries.length
         }))
       }
     });
@@ -802,12 +836,10 @@ export const getUserTimeBookingsReport = async (req: AuthRequest, res: Response)
 
     // employeeId aus userId ermitteln
     const employeeId = await getEmployeeIdFromUserId(userId);
-    if (employeeId) {
-      where.employeeId = employeeId;
-    } else {
-      // Fallback: userId direkt verwenden (Legacy-Kompatibilität)
-      where.userId = userId;
+    if (!employeeId) {
+      return res.status(404).json({ error: 'User does not have an employee profile' });
     }
+    where.employeeId = employeeId;
 
     if (startDate && endDate) {
       where.clockIn = {
@@ -838,9 +870,9 @@ export const getUserTimeBookingsReport = async (req: AuthRequest, res: Response)
     let totalHours = 0;
 
     entries.forEach(entry => {
-      const hours = calculateWorkHours(entry.clockIn, entry.clockOut);
+      const netHours = calculateWorkHours(entry.clockIn, entry.clockOut, entry.pauseMinutes || 0);
       const pauseHours = (entry.pauseMinutes || 0) / 60;
-      const netHours = hours - pauseHours;
+      const hours = netHours + pauseHours; // Brutto-Stunden für Anzeige
       totalHours += netHours;
 
       // Daily breakdown

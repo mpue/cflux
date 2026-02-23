@@ -94,7 +94,7 @@ async function checkOverlappingEntries(
 
 export const clockIn = async (req: AuthRequest, res: Response) => {
   try {
-    const { projectId, locationId, description } = req.body;
+    const { projectId, storyId, locationId, description } = req.body;
     const userId = req.user!.id;
     
     // Get employeeId from user
@@ -122,6 +122,7 @@ export const clockIn = async (req: AuthRequest, res: Response) => {
       data: {
         employeeId,
         projectId,
+        storyId: storyId || undefined,
         locationId,
         clockIn: clockInTime,
         description,
@@ -129,6 +130,7 @@ export const clockIn = async (req: AuthRequest, res: Response) => {
       },
       include: {
         project: true,
+        story: true,
         location: true,
         employee: {
           select: {
@@ -195,6 +197,7 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
       },
       include: {
         project: true,
+        story: true,
         location: true,
         employee: {
           select: {
@@ -264,6 +267,7 @@ export const getCurrentTimeEntry = async (req: AuthRequest, res: Response) => {
       },
       include: {
         project: true,
+        story: true,
         location: true,
         employee: {
           select: {
@@ -302,6 +306,7 @@ export const getMyTimeEntries = async (req: AuthRequest, res: Response) => {
       where,
       include: {
         project: true,
+        story: true,
         location: true,
         employee: {
           select: {
@@ -350,6 +355,7 @@ export const getUserTimeEntries = async (req: AuthRequest, res: Response) => {
       where,
       include: {
         project: true,
+        story: true,
         employee: {
           select: {
             id: true,
@@ -372,7 +378,7 @@ export const getUserTimeEntries = async (req: AuthRequest, res: Response) => {
 export const updateMyTimeEntry = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { clockIn, clockOut, projectId, description } = req.body;
+    const { clockIn, clockOut, projectId, storyId, description } = req.body;
     const userId = req.user!.id;
     const employeeId = await getEmployeeId(userId);
 
@@ -391,15 +397,17 @@ export const updateMyTimeEntry = async (req: AuthRequest, res: Response) => {
       if (clockIn || clockOut) {
         return res.status(400).json({ error: 'Cannot edit clock times for active entry. Clock out first.' });
       }
-      // Allow only projectId and description updates for active entries
+      // Allow only projectId, storyId and description updates for active entries
       const timeEntry = await prisma.timeEntry.update({
         where: { id },
         data: {
           projectId: projectId === null ? null : projectId,
+          storyId: storyId === null ? null : storyId,
           description
         },
         include: {
           project: true,
+          story: true,
           location: true,
           employee: {
             select: {
@@ -421,10 +429,12 @@ export const updateMyTimeEntry = async (req: AuthRequest, res: Response) => {
         clockIn: clockIn ? new Date(clockIn) : undefined,
         clockOut: clockOut ? new Date(clockOut) : undefined,
         projectId: projectId === null ? null : projectId,
+        storyId: storyId === null ? null : storyId,
         description
       },
       include: {
         project: true,
+        story: true,
         location: true,
         employee: {
           select: {
@@ -452,7 +462,23 @@ export const deleteMyTimeEntry = async (req: AuthRequest, res: Response) => {
 
     // Check if the time entry belongs to the employee
     const existingEntry = await prisma.timeEntry.findFirst({
-      where: { id, employeeId }
+      where: { id, employeeId },
+      include: {
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        project: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
     });
 
     if (!existingEntry) {
@@ -464,7 +490,62 @@ export const deleteMyTimeEntry = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Cannot delete active time entry. Clock out first.' });
     }
 
+    // Audit-Trail: Aktion loggen vor dem Löschen
+    try {
+      await actionService.triggerAction('timeentry.deleted', {
+        entityType: 'TIMEENTRY',
+        entityId: id,
+        userId: userId,
+        employeeId: existingEntry.employeeId,
+        deletedBy: userId,
+        clockIn: existingEntry.clockIn.toISOString(),
+        clockOut: existingEntry.clockOut?.toISOString(),
+        projectId: existingEntry.projectId,
+        projectName: existingEntry.project?.name,
+        employeeName: `${existingEntry.employee.firstName} ${existingEntry.employee.lastName}`,
+        pauseMinutes: existingEntry.pauseMinutes || 0,
+        description: existingEntry.description,
+        selfDeleted: true
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger timeentry.deleted:', actionError);
+    }
+
+    // Budget-Rückrechnung
+    try {
+      if (existingEntry.projectId && existingEntry.clockOut) {
+        const { reverseBudgetFromTimeEntry } = require('../services/budgetUpdate.service');
+        await reverseBudgetFromTimeEntry(id);
+        console.log(`[BUDGET] Reversed budget for deleted time entry ${id}`);
+      }
+    } catch (budgetError) {
+      console.error('[BUDGET] Failed to reverse budget:', budgetError);
+    }
+
+    // Zugehörige Compliance-Violations entfernen
+    try {
+      if (existingEntry.clockOut) {
+        const entryDate = new Date(existingEntry.clockIn);
+        entryDate.setHours(0, 0, 0, 0);
+        const entryDateEnd = new Date(entryDate);
+        entryDateEnd.setHours(23, 59, 59, 999);
+
+        await prisma.complianceViolation.deleteMany({
+          where: {
+            employeeId: existingEntry.employeeId,
+            date: { gte: entryDate, lte: entryDateEnd },
+            type: { in: ['MAX_DAILY_HOURS', 'MISSING_PAUSE'] }
+          }
+        });
+        console.log(`[COMPLIANCE] Removed related compliance violations for deleted time entry ${id}`);
+      }
+    } catch (complianceError) {
+      console.error('[COMPLIANCE] Failed to clean up violations:', complianceError);
+    }
+
     await prisma.timeEntry.delete({ where: { id } });
+
+    console.log(`[AUDIT] Time entry ${id} self-deleted by user ${userId}`);
 
     res.json({ message: 'Time entry deleted successfully' });
   } catch (error) {
@@ -476,7 +557,7 @@ export const deleteMyTimeEntry = async (req: AuthRequest, res: Response) => {
 export const updateTimeEntry = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { clockIn, clockOut, projectId, description } = req.body;
+    const { clockIn, clockOut, projectId, storyId, description } = req.body;
 
     // Overlap-Validierung vor dem Update
     if (clockIn && clockOut) {
@@ -512,11 +593,13 @@ export const updateTimeEntry = async (req: AuthRequest, res: Response) => {
         clockIn: clockIn ? new Date(clockIn) : undefined,
         clockOut: clockOut ? new Date(clockOut) : undefined,
         projectId,
+        storyId: storyId !== undefined ? storyId : undefined,
         description,
         status: clockOut ? 'CLOCKED_OUT' : 'CLOCKED_IN'
       },
       include: {
         project: true,
+        story: true,
         employee: {
           select: {
             id: true,
@@ -600,6 +683,17 @@ export const deleteTimeEntry = async (req: AuthRequest, res: Response) => {
       });
     } catch (actionError) {
       console.error('[Action] Failed to trigger timeentry.deleted:', actionError);
+    }
+
+    // Budget-Rückrechnung
+    try {
+      if (existingEntry.projectId && existingEntry.clockOut) {
+        const { reverseBudgetFromTimeEntry } = require('../services/budgetUpdate.service');
+        await reverseBudgetFromTimeEntry(id);
+        console.log(`[BUDGET] Reversed budget for deleted time entry ${id}`);
+      }
+    } catch (budgetError) {
+      console.error('[BUDGET] Failed to reverse budget:', budgetError);
     }
 
     // Zugehörige Compliance-Violations entfernen (die durch diesen Eintrag entstanden sind)
@@ -786,7 +880,7 @@ export const getLoggedInUsers = async (req: AuthRequest, res: Response) => {
 // Admin: Create manual time entry
 export const createTimeEntry = async (req: AuthRequest, res: Response) => {
   try {
-    const { userId, clockIn, clockOut, projectId, description, pauseMinutes } = req.body;
+    const { userId, clockIn, clockOut, projectId, storyId, description, pauseMinutes } = req.body;
 
     if (!userId || !clockIn) {
       return res.status(400).json({ error: 'userId and clockIn are required' });
@@ -834,6 +928,7 @@ export const createTimeEntry = async (req: AuthRequest, res: Response) => {
       data: {
         employeeId,
         projectId: projectId || undefined,
+        storyId: storyId || undefined,
         clockIn: clockInDate,
         clockOut: clockOutDate,
         description,
@@ -842,6 +937,7 @@ export const createTimeEntry = async (req: AuthRequest, res: Response) => {
       },
       include: {
         project: true,
+        story: true,
         location: true,
         employee: {
           select: {

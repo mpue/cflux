@@ -19,6 +19,15 @@ const ZeitmodelleVerwaltung: React.FC = () => {
     beschreibung: '',
     gueltigVon: '',
     gueltigBis: '',
+    tagesSollStunden: 8.4,
+    projektsollAktiv: false,
+    projektsollFlexibel: true,
+    nachtBeginn: '22:00',
+    nachtEnde: '06:00',
+    nachtZuschlag: 0.25,
+    sonntagZuschlag: 0.50,
+    feiertagZuschlag: 1.00,
+    samstagZuschlag: 0.00,
     eintraege: [] as Partial<ZeitmodellEintrag>[]
   });
 
@@ -44,6 +53,15 @@ const ZeitmodelleVerwaltung: React.FC = () => {
       beschreibung: '',
       gueltigVon: new Date().toISOString().split('T')[0],
       gueltigBis: '',
+      tagesSollStunden: 8.4,
+      projektsollAktiv: false,
+      projektsollFlexibel: true,
+      nachtBeginn: '22:00',
+      nachtEnde: '06:00',
+      nachtZuschlag: 0.25,
+      sonntagZuschlag: 0.50,
+      feiertagZuschlag: 1.00,
+      samstagZuschlag: 0.00,
       eintraege: [{
         stundensatz: 95,
         startzeit: '08:00',
@@ -64,6 +82,15 @@ const ZeitmodelleVerwaltung: React.FC = () => {
       beschreibung: zeitmodell.beschreibung || '',
       gueltigVon: zeitmodell.gueltigVon.split('T')[0],
       gueltigBis: zeitmodell.gueltigBis ? zeitmodell.gueltigBis.split('T')[0] : '',
+      tagesSollStunden: zeitmodell.tagesSollStunden ?? 8.4,
+      projektsollAktiv: zeitmodell.projektsollAktiv ?? false,
+      projektsollFlexibel: zeitmodell.projektsollFlexibel ?? true,
+      nachtBeginn: zeitmodell.nachtBeginn ?? '22:00',
+      nachtEnde: zeitmodell.nachtEnde ?? '06:00',
+      nachtZuschlag: zeitmodell.nachtZuschlag ?? 0.25,
+      sonntagZuschlag: zeitmodell.sonntagZuschlag ?? 0.50,
+      feiertagZuschlag: zeitmodell.feiertagZuschlag ?? 1.00,
+      samstagZuschlag: zeitmodell.samstagZuschlag ?? 0.00,
       eintraege: zeitmodell.eintraege.map(e => ({
         id: e.id,
         stundensatz: e.stundensatz,
@@ -243,6 +270,110 @@ const ZeitmodelleVerwaltung: React.FC = () => {
                     type="date"
                     value={formData.gueltigBis}
                     onChange={(e) => setFormData({ ...formData, gueltigBis: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="form-section">
+              <h3>Projektsoll & Tages-Soll</h3>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Tages-Soll Stunden</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.tagesSollStunden}
+                    onChange={(e) => setFormData({ ...formData, tagesSollStunden: Number(e.target.value) })}
+                  />
+                </div>
+
+                <div className="form-group-checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={formData.projektsollAktiv}
+                      onChange={(e) => setFormData({ ...formData, projektsollAktiv: e.target.checked })}
+                    />
+                    Projektsoll-Cutting aktiv
+                  </label>
+                </div>
+
+                <div className="form-group-checkbox">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={formData.projektsollFlexibel}
+                      onChange={(e) => setFormData({ ...formData, projektsollFlexibel: e.target.checked })}
+                    />
+                    Flexible Projektsoll-Zeiten
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-section">
+              <h3>Zuschlagsdefinitionen</h3>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Nacht Beginn</label>
+                  <input
+                    type="time"
+                    value={formData.nachtBeginn}
+                    onChange={(e) => setFormData({ ...formData, nachtBeginn: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Nacht Ende</label>
+                  <input
+                    type="time"
+                    value={formData.nachtEnde}
+                    onChange={(e) => setFormData({ ...formData, nachtEnde: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Nachtzuschlag (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={(formData.nachtZuschlag * 100).toFixed(0)}
+                    onChange={(e) => setFormData({ ...formData, nachtZuschlag: Number(e.target.value) / 100 })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Sonntagszuschlag (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={(formData.sonntagZuschlag * 100).toFixed(0)}
+                    onChange={(e) => setFormData({ ...formData, sonntagZuschlag: Number(e.target.value) / 100 })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Feiertagszuschlag (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={(formData.feiertagZuschlag * 100).toFixed(0)}
+                    onChange={(e) => setFormData({ ...formData, feiertagZuschlag: Number(e.target.value) / 100 })}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Samstagszuschlag (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={(formData.samstagZuschlag * 100).toFixed(0)}
+                    onChange={(e) => setFormData({ ...formData, samstagZuschlag: Number(e.target.value) / 100 })}
                   />
                 </div>
               </div>

@@ -71,10 +71,11 @@ export const reportService = {
     startDate?: string,
     endDate?: string,
     userId?: string,
-    projectId?: string
+    projectId?: string,
+    storyId?: string
   ): Promise<any> => {
     const response = await api.get('/reports/time-bookings', {
-      params: { startDate, endDate, userId, projectId },
+      params: { startDate, endDate, userId, projectId, storyId },
     });
     return response.data;
   },
