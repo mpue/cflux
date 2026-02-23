@@ -41,7 +41,7 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
             name: true,
           },
         },
-        budget: {
+        budgets: {
           where: { isActive: true },
           include: {
             items: {
@@ -141,27 +141,28 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
                 name: project.customer.name,
               }
             : null,
-          budget: project.budget
+          budget: project.budgets && project.budgets.length > 0
             ? (() => {
                 // Budget-Werte verwenden die bereits im Budget-Objekt berechnet wurden
                 // Die actualCosts in ProjectBudget enthalten bereits die Summe aller Budget-Item actualCosts
                 // Diese werden durch den budgetUpdate.service.ts aktualisiert
-                const plannedCosts = project.budget.items?.reduce((sum, item) => sum + item.plannedCost, 0) || 0;
-                const actualCosts = project.budget.actualCosts || 0;
-                const remainingBudget = project.budget.totalBudget - actualCosts;
+                const budget = project.budgets[0];
+                const plannedCosts = budget.items?.reduce((sum: number, item: any) => sum + item.plannedCost, 0) || 0;
+                const actualCosts = budget.actualCosts || 0;
+                const remainingBudget = budget.totalBudget - actualCosts;
                 
                 // Auslastung = tatsächliche Kosten / Gesamtbudget * 100
-                const utilization = project.budget.totalBudget > 0 
-                  ? (actualCosts / project.budget.totalBudget) * 100 
+                const utilization = budget.totalBudget > 0 
+                  ? (actualCosts / budget.totalBudget) * 100 
                   : 0;
 
                 return {
-                  totalBudget: project.budget.totalBudget,
+                  totalBudget: budget.totalBudget,
                   plannedCosts,
                   actualCosts,
                   remainingBudget,
                   utilization,
-                  status: project.budget.status,
+                  status: budget.status,
                 };
               })()
             : timeCosts > 0 
@@ -253,7 +254,7 @@ export const getTimeTrackingReport = async (req: AuthRequest, res: Response) => 
             name: true,
           },
         },
-        budget: {
+        budgets: {
           where: { isActive: true },
           select: {
             totalBudget: true,
@@ -379,11 +380,11 @@ export const getTimeTrackingReport = async (req: AuthRequest, res: Response) => 
         id: project.id,
         name: project.name,
         customer: project.customer?.name,
-        budget: project.budget
+        budget: project.budgets && project.budgets.length > 0
           ? {
-              total: project.budget.totalBudget,
-              planned: project.budget.plannedCosts,
-              actual: project.budget.actualCosts,
+              total: project.budgets[0].totalBudget,
+              planned: project.budgets[0].plannedCosts,
+              actual: project.budgets[0].actualCosts,
             }
           : null,
       },

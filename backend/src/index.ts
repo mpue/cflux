@@ -81,6 +81,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/uploads/course-thumbnails', express.static(path.join(__dirname, '../uploads/course-thumbnails')));
 app.use('/uploads/course-content', express.static(path.join(__dirname, '../uploads/course-content')));
+app.use('/uploads/course-pdfs', express.static(path.join(__dirname, '../uploads/course-pdfs')));
 app.use('/uploads/certificates', express.static(path.join(__dirname, '../uploads/certificates')));
 app.use('/uploads/applicant-documents', express.static(path.join(__dirname, '../uploads/applicant-documents')));
 app.use('/uploads/employee-documents', express.static(path.join(__dirname, '../uploads/employee-documents')));

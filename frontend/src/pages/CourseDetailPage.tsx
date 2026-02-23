@@ -392,9 +392,24 @@ const CourseDetailPage: React.FC = () => {
 
       case 'PDF':
         return (
-          <Alert severity="info" sx={{ m: 2 }}>
-            PDF-Viewer wird in Kürze implementiert
-          </Alert>
+          <Box sx={{ p: 2 }}>
+            {selectedLesson.content ? (
+              <Box
+                component="iframe"
+                src={`${selectedLesson.content}#toolbar=1&navpanes=1&scrollbar=1`}
+                sx={{
+                  width: '100%',
+                  height: '600px',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                }}
+                title="PDF Viewer"
+              />
+            ) : (
+              <Alert severity="warning">PDF-Datei nicht verfügbar</Alert>
+            )}
+          </Box>
         );
 
       case 'QUIZ':
