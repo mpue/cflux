@@ -2,8 +2,8 @@ import api from './api';
 import { TimeEntry } from '../types';
 
 export const timeService = {
-  clockIn: async (projectId?: string, locationId?: string, description?: string): Promise<TimeEntry> => {
-    const response = await api.post('/time/clock-in', { projectId, locationId, description });
+  clockIn: async (projectId?: string, locationId?: string, description?: string, storyId?: string): Promise<TimeEntry> => {
+    const response = await api.post('/time/clock-in', { projectId, locationId, description, storyId });
     return response.data;
   },
 
@@ -73,6 +73,28 @@ export const timeService = {
     pauseMinutes?: number;
   }): Promise<TimeEntry> => {
     const response = await api.post('/time/manual-entry', data);
+    return response.data;
+  },
+
+  // Projektsoll-Cutting
+  applyCutting: async (id: string): Promise<TimeEntry> => {
+    const response = await api.post(`/time/${id}/cutting`);
+    return response.data;
+  },
+
+  autoCut: async (id: string): Promise<TimeEntry> => {
+    const response = await api.post(`/time/${id}/auto-cut`);
+    return response.data;
+  },
+
+  updateZuschlagFlags: async (id: string, flags: {
+    zuschlagNacht?: boolean;
+    zuschlagSonntag?: boolean;
+    zuschlagFeiertag?: boolean;
+    zuschlagSamstag?: boolean;
+    zuschlagGrund?: string;
+  }): Promise<TimeEntry> => {
+    const response = await api.patch(`/time/${id}/zuschlag-flags`, flags);
     return response.data;
   },
 };

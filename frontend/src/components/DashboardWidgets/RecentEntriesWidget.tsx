@@ -42,6 +42,7 @@ const RecentEntriesWidget: React.FC<RecentEntriesWidgetProps> = ({
                 <th>Einstempeln</th>
                 <th>Ausstempeln</th>
                 <th>Dauer</th>
+                <th>Projekt / Story</th>
                 <th>Standort</th>
                 <th>Beschreibung</th>
                 <th>Aktionen</th>
@@ -86,6 +87,23 @@ const RecentEntriesWidget: React.FC<RecentEntriesWidgetProps> = ({
                     )}
                   </td>
                   <td>{entry.clockOut ? formatDuration(entry.clockIn, entry.clockOut) : 'Läuft...'}</td>
+                  <td>
+                    <span>{entry.project?.name || '-'}</span>
+                    {entry.story && (
+                      <span style={{
+                        display: 'inline-block',
+                        marginLeft: '6px',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        fontWeight: '600',
+                        backgroundColor: entry.story.color || '#e0e0e0',
+                        color: '#fff',
+                      }}>
+                        {entry.story.name}
+                      </span>
+                    )}
+                  </td>
                   <td>
                     <span>{entry.location?.name || '-'}</span>
                   </td>

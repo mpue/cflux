@@ -1,18 +1,21 @@
 import React from 'react';
 import WidgetHeader from './WidgetHeader';
-import { TimeEntry, Project, Location } from '../../types';
+import { TimeEntry, Project, Location, Story } from '../../types';
 import './DashboardWidgets.css';
 
 interface TimeTrackingWidgetProps {
   currentEntry: TimeEntry | null;
   projects: Project[];
   locations: Location[];
+  stories: Story[];
   selectedProject: string;
   selectedLocation: string;
+  selectedStory: string;
   currentTime: string;
   workDuration: string;
   onProjectChange: (projectId: string) => void;
   onLocationChange: (locationId: string) => void;
+  onStoryChange: (storyId: string) => void;
   onClockIn: () => void;
   onClockOut: () => void;
   onStartPause: () => void;
@@ -24,12 +27,15 @@ const TimeTrackingWidget: React.FC<TimeTrackingWidgetProps> = ({
   currentEntry,
   projects,
   locations,
+  stories,
   selectedProject,
   selectedLocation,
+  selectedStory,
   currentTime,
   workDuration,
   onProjectChange,
   onLocationChange,
+  onStoryChange,
   onClockIn,
   onClockOut,
   onStartPause,
@@ -55,6 +61,19 @@ const TimeTrackingWidget: React.FC<TimeTrackingWidgetProps> = ({
                   <>
                     Eingestempelt seit {new Date(currentEntry.clockIn).toLocaleString('de-DE')}
                     {currentEntry.project && ` - ${currentEntry.project.name}`}
+                    {currentEntry.story && (
+                      <span style={{ 
+                        display: 'inline-block',
+                        marginLeft: '6px',
+                        padding: '1px 6px', 
+                        borderRadius: '4px', 
+                        fontSize: '11px',
+                        backgroundColor: currentEntry.story.color || '#e0e0e0',
+                        color: '#fff',
+                      }}>
+                        {currentEntry.story.name}
+                      </span>
+                    )}
                     {currentEntry.location && ` (${currentEntry.location.name})`}
                     <br />
                     <small className="hint-text">Arbeitszeit: {workDuration} | Pausen: {currentEntry.pauseMinutes || 0} Min</small>
@@ -94,6 +113,19 @@ const TimeTrackingWidget: React.FC<TimeTrackingWidgetProps> = ({
                 ))}
               </select>
             </div>
+            {selectedProject && stories.length > 0 && (
+              <div className="form-group">
+                <label>Story (optional)</label>
+                <select value={selectedStory} onChange={(e) => onStoryChange(e.target.value)}>
+                  <option value="">Keine Story</option>
+                  {stories.map((story) => (
+                    <option key={story.id} value={story.id}>
+                      {story.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="form-group">
               <label>Standort (optional)</label>
               <select value={selectedLocation} onChange={(e) => onLocationChange(e.target.value)}>

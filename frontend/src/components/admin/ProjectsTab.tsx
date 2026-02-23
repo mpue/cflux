@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Project, User, Customer } from '../../types';
+import { Project, User, Customer, Story } from '../../types';
 import { projectService } from '../../services/project.service';
 import { userService } from '../../services/user.service';
 import { getAllCustomers } from '../../services/customerService';
+import { storyService } from '../../services/story.service';
 import { BaseModal } from '../common/BaseModal';
 
 interface ProjectsTabProps {
@@ -15,6 +16,8 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({ projects, onUpdate }) 
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assigningProject, setAssigningProject] = useState<Project | null>(null);
+  const [showStoriesModal, setShowStoriesModal] = useState(false);
+  const [storiesProject, setStoriesProject] = useState<Project | null>(null);
 
   return (
     <div>
@@ -91,6 +94,16 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({ projects, onUpdate }) 
                   Zuweisen
                 </button>
                 <button
+                  className="btn"
+                  style={{ marginRight: '5px', padding: '5px 10px', fontSize: '12px', background: '#17a2b8', color: 'white' }}
+                  onClick={() => {
+                    setStoriesProject(project);
+                    setShowStoriesModal(true);
+                  }}
+                >
+                  Stories
+                </button>
+                <button
                   className="btn btn-primary"
                   style={{ marginRight: '5px', padding: '5px 10px', fontSize: '12px' }}
                   onClick={() => {
@@ -148,6 +161,16 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({ projects, onUpdate }) 
           onUpdate={onUpdate}
         />
       )}
+
+      {showStoriesModal && storiesProject && (
+        <ProjectStoriesModal
+          project={storiesProject}
+          onClose={() => {
+            setShowStoriesModal(false);
+            setStoriesProject(null);
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -165,6 +188,12 @@ const ProjectModal: React.FC<{
     status: project?.status || 'PLANNING',
     customerId: project?.customerId || '',
     defaultHourlyRate: project?.defaultHourlyRate?.toString() || '',
+    sollBeginn: project?.sollBeginn || '',
+    sollEnde: project?.sollEnde || '',
+    sollPauseDauer: project?.sollPauseDauer?.toString() || '60',
+    sollArbeitszeit: project?.sollArbeitszeit?.toString() || '',
+    cuttingAktiv: project?.cuttingAktiv ?? true,
+    cuttingTolerance: project?.cuttingTolerance?.toString() || '0',
   });
 
   useEffect(() => {
@@ -262,6 +291,77 @@ const ProjectModal: React.FC<{
               />
               Aktiv
             </label>
+          </div>
+
+          <h3 style={{ marginTop: '20px', marginBottom: '12px', fontSize: '16px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>Projektsoll (Cutting)</h3>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="form-group">
+              <label>Soll-Beginn</label>
+              <input
+                type="time"
+                value={formData.sollBeginn}
+                onChange={(e) => setFormData({ ...formData, sollBeginn: e.target.value })}
+                placeholder="06:00"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Soll-Ende</label>
+              <input
+                type="time"
+                value={formData.sollEnde}
+                onChange={(e) => setFormData({ ...formData, sollEnde: e.target.value })}
+                placeholder="17:00"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Soll-Pause (Min.)</label>
+              <input
+                type="number"
+                min="0"
+                value={formData.sollPauseDauer}
+                onChange={(e) => setFormData({ ...formData, sollPauseDauer: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Soll-Arbeitszeit (h)</label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                value={formData.sollArbeitszeit}
+                onChange={(e) => setFormData({ ...formData, sollArbeitszeit: e.target.value })}
+                placeholder="z.B. 10.0"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Cutting-Toleranz (Min.)</label>
+              <input
+                type="number"
+                min="0"
+                value={formData.cuttingTolerance}
+                onChange={(e) => setFormData({ ...formData, cuttingTolerance: e.target.value })}
+              />
+              <small style={{ color: '#666', fontSize: '12px', display: 'block', marginTop: '4px' }}>
+                Minuten bevor Cutting greift
+              </small>
+            </div>
+
+            <div className="form-group">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={formData.cuttingAktiv}
+                  onChange={(e) => setFormData({ ...formData, cuttingAktiv: e.target.checked })}
+                  style={{ width: 'auto', marginRight: '10px' }}
+                />
+                Cutting aktiviert
+              </label>
+            </div>
           </div>
 
           <div className="modal-actions">
@@ -368,5 +468,238 @@ const ProjectAssignModal: React.FC<{
           </div>
         )}
       </BaseModal>
+  );
+};
+
+const ProjectStoriesModal: React.FC<{
+  project: Project;
+  onClose: () => void;
+}> = ({ project, onClose }) => {
+  const [stories, setStories] = useState<Story[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newStoryName, setNewStoryName] = useState('');
+  const [newStoryColor, setNewStoryColor] = useState('#3b82f6');
+  const [editingStory, setEditingStory] = useState<Story | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editColor, setEditColor] = useState('');
+
+  useEffect(() => {
+    loadStories();
+  }, []);
+
+  const loadStories = async () => {
+    try {
+      const data = await storyService.getStoriesByProject(project.id, true);
+      setStories(data);
+    } catch (error) {
+      console.error('Error loading stories:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateStory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStoryName.trim()) return;
+
+    try {
+      await storyService.createStory({
+        projectId: project.id,
+        name: newStoryName.trim(),
+        color: newStoryColor,
+      });
+      setNewStoryName('');
+      setNewStoryColor('#3b82f6');
+      await loadStories();
+    } catch (error) {
+      console.error('Error creating story:', error);
+      alert('Fehler beim Erstellen der Story');
+    }
+  };
+
+  const handleUpdateStory = async () => {
+    if (!editingStory || !editName.trim()) return;
+
+    try {
+      await storyService.updateStory(editingStory.id, {
+        name: editName.trim(),
+        color: editColor,
+      });
+      setEditingStory(null);
+      await loadStories();
+    } catch (error) {
+      console.error('Error updating story:', error);
+      alert('Fehler beim Aktualisieren der Story');
+    }
+  };
+
+  const handleDeleteStory = async (story: Story) => {
+    const msg = story._count && story._count.timeEntries > 0
+      ? `Story "${story.name}" hat ${story._count.timeEntries} Zeitbuchungen und wird deaktiviert. Fortfahren?`
+      : `Story "${story.name}" wirklich löschen?`;
+
+    if (!window.confirm(msg)) return;
+
+    try {
+      await storyService.deleteStory(story.id);
+      await loadStories();
+    } catch (error) {
+      console.error('Error deleting story:', error);
+      alert('Fehler beim Löschen der Story');
+    }
+  };
+
+  const handleToggleActive = async (story: Story) => {
+    try {
+      await storyService.updateStory(story.id, { isActive: !story.isActive });
+      await loadStories();
+    } catch (error) {
+      console.error('Error toggling story:', error);
+    }
+  };
+
+  const PRESET_COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+
+  return (
+    <BaseModal isOpen={true} onClose={onClose} maxWidth="700px">
+      <h2>Stories für "{project.name}"</h2>
+      <p style={{ color: '#666', fontSize: '14px', marginBottom: '16px' }}>
+        Stories sind Tags, auf die Stunden gebucht werden können.
+      </p>
+
+      {/* New Story Form */}
+      <form onSubmit={handleCreateStory} style={{ display: 'flex', gap: '8px', marginBottom: '20px', alignItems: 'flex-end' }}>
+        <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+          <label>Neue Story</label>
+          <input
+            type="text"
+            value={newStoryName}
+            onChange={(e) => setNewStoryName(e.target.value)}
+            placeholder="Story-Name eingeben..."
+            required
+          />
+        </div>
+        <div className="form-group" style={{ marginBottom: 0, width: '50px' }}>
+          <label>Farbe</label>
+          <input
+            type="color"
+            value={newStoryColor}
+            onChange={(e) => setNewStoryColor(e.target.value)}
+            style={{ width: '40px', height: '36px', padding: '2px', cursor: 'pointer' }}
+          />
+        </div>
+        <button type="submit" className="btn btn-primary" style={{ height: '36px' }}>
+          Hinzufügen
+        </button>
+      </form>
+
+      {/* Stories List */}
+      {loading ? (
+        <p>Lädt...</p>
+      ) : stories.length === 0 ? (
+        <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
+          Keine Stories vorhanden. Erstellen Sie die erste Story oben.
+        </p>
+      ) : (
+        <table className="table">
+          <thead>
+            <tr>
+              <th style={{ width: '8px' }}></th>
+              <th>Name</th>
+              <th>Buchungen</th>
+              <th>Status</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stories.map((story) => (
+              <tr key={story.id} style={{ opacity: story.isActive ? 1 : 0.5 }}>
+                <td>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: story.color || '#999',
+                  }} />
+                </td>
+                <td>
+                  {editingStory?.id === story.id ? (
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        style={{ flex: 1, padding: '4px 8px', fontSize: '13px' }}
+                      />
+                      <input
+                        type="color"
+                        value={editColor}
+                        onChange={(e) => setEditColor(e.target.value)}
+                        style={{ width: '30px', height: '28px', padding: '1px', cursor: 'pointer' }}
+                      />
+                      <button className="btn btn-primary" style={{ padding: '4px 8px', fontSize: '12px' }} onClick={handleUpdateStory}>
+                        ✓
+                      </button>
+                      <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '12px' }} onClick={() => setEditingStory(null)}>
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    story.name
+                  )}
+                </td>
+                <td>{story._count?.timeEntries || 0}</td>
+                <td>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    backgroundColor: story.isActive ? '#d4edda' : '#f8d7da',
+                    color: story.isActive ? '#155724' : '#721c24',
+                  }}>
+                    {story.isActive ? 'Aktiv' : 'Inaktiv'}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    className="btn"
+                    style={{ marginRight: '4px', padding: '3px 8px', fontSize: '11px', background: '#6c757d', color: 'white' }}
+                    onClick={() => {
+                      setEditingStory(story);
+                      setEditName(story.name);
+                      setEditColor(story.color || '#3b82f6');
+                    }}
+                  >
+                    Bearbeiten
+                  </button>
+                  <button
+                    className="btn"
+                    style={{ marginRight: '4px', padding: '3px 8px', fontSize: '11px', background: story.isActive ? '#ffc107' : '#28a745', color: story.isActive ? '#000' : '#fff' }}
+                    onClick={() => handleToggleActive(story)}
+                  >
+                    {story.isActive ? 'Deaktivieren' : 'Aktivieren'}
+                  </button>
+                  <button
+                    className="btn btn-danger"
+                    style={{ padding: '3px 8px', fontSize: '11px' }}
+                    onClick={() => handleDeleteStory(story)}
+                  >
+                    Löschen
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <div className="modal-actions">
+        <button type="button" className="btn btn-secondary" onClick={onClose}>
+          Schließen
+        </button>
+      </div>
+    </BaseModal>
   );
 };

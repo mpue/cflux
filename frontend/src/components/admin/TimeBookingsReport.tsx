@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { User, Project } from '../../types';
+import { User, Project, Story } from '../../types';
 import { reportService } from '../../services/report.service';
 import { userService } from '../../services/user.service';
 import { projectService } from '../../services/project.service';
+import { storyService } from '../../services/story.service';
 import {
   PieChart,
   Pie,
@@ -35,6 +36,12 @@ interface TimeBookingEntry {
     name: string;
     description?: string;
   };
+  storyId?: string;
+  story?: {
+    id: string;
+    name: string;
+    color?: string;
+  };
   location?: {
     id: string;
     name: string;
@@ -66,6 +73,11 @@ interface TimeBookingsData {
       totalHours: number;
       entriesCount: number;
     }>;
+    byStory?: Array<{
+      story: any;
+      totalHours: number;
+      entriesCount: number;
+    }>;
   };
 }
 
@@ -73,6 +85,7 @@ export const TimeBookingsReport: React.FC = () => {
   const [data, setData] = useState<TimeBookingsData | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -81,6 +94,7 @@ export const TimeBookingsReport: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedStoryId, setSelectedStoryId] = useState('');
   const [viewMode, setViewMode] = useState<'entries' | 'byUser' | 'byProject'>('entries');
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#a4de6c', '#d0ed57'];
@@ -127,7 +141,8 @@ export const TimeBookingsReport: React.FC = () => {
         startDate,
         endDate,
         selectedUserId || undefined,
-        selectedProjectId || undefined
+        selectedProjectId || undefined,
+        selectedStoryId || undefined
       );
       setData(reportData);
     } catch (err) {
@@ -338,7 +353,15 @@ export const TimeBookingsReport: React.FC = () => {
             <label>Projekt</label>
             <select
               value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
+              onChange={(e) => {
+                setSelectedProjectId(e.target.value);
+                setSelectedStoryId('');
+                if (e.target.value) {
+                  storyService.getStoriesByProject(e.target.value).then(setStories).catch(() => setStories([]));
+                } else {
+                  setStories([]);
+                }
+              }}
             >
               <option value="">Alle Projekte</option>
               {projects.map(project => (
@@ -348,6 +371,23 @@ export const TimeBookingsReport: React.FC = () => {
               ))}
             </select>
           </div>
+
+          {selectedProjectId && stories.length > 0 && (
+            <div className="filter-group">
+              <label>Story</label>
+              <select
+                value={selectedStoryId}
+                onChange={(e) => setSelectedStoryId(e.target.value)}
+              >
+                <option value="">Alle Stories</option>
+                {stories.map(story => (
+                  <option key={story.id} value={story.id}>
+                    {story.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="filter-actions">
@@ -551,6 +591,7 @@ export const TimeBookingsReport: React.FC = () => {
                       <th>Pause</th>
                       <th>Netto Std.</th>
                       <th>Projekt</th>
+                      <th>Story</th>
                       <th>Standort</th>
                       <th>Beschreibung</th>
                     </tr>
@@ -567,6 +608,21 @@ export const TimeBookingsReport: React.FC = () => {
                         <td>{entry.pauseMinutes ? `${entry.pauseMinutes}m` : '-'}</td>
                         <td className="hours-cell">{formatHours(entry.netHours)}</td>
                         <td>{entry.project?.name || '-'}</td>
+                        <td>
+                          {entry.story ? (
+                            <span style={{
+                              display: 'inline-block',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: '600',
+                              backgroundColor: entry.story.color || '#e0e0e0',
+                              color: '#fff',
+                            }}>
+                              {entry.story.name}
+                            </span>
+                          ) : '-'}
+                        </td>
                         <td>{entry.location?.name || '-'}</td>
                         <td className="description-cell">{entry.description || '-'}</td>
                       </tr>

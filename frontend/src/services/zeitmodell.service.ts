@@ -20,6 +20,20 @@ export interface Zeitmodell {
   gueltigVon: string;
   gueltigBis?: string;
   version: number;
+
+  // Tages-Soll und Projektsoll-Steuerung
+  tagesSollStunden?: number;    // Standard-Tages-Soll (8.4)
+  projektsollAktiv?: boolean;   // Projektsoll-Cutting aktiviert
+  projektsollFlexibel?: boolean; // Flexible Projektsoll-Zeiten
+
+  // Zuschlagsdefinitionen
+  nachtBeginn?: string;         // z.B. "22:00"
+  nachtEnde?: string;           // z.B. "06:00"
+  nachtZuschlag?: number;       // 0.25 = 25%
+  sonntagZuschlag?: number;     // 0.50 = 50%
+  feiertagZuschlag?: number;    // 1.00 = 100%
+  samstagZuschlag?: number;     // CH: 0.00, DE: 0.50
+
   createdAt: string;
   updatedAt: string;
   updatedBy?: string;

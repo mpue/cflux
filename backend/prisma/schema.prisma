@@ -411,6 +411,15 @@ model Project {
   isActive    Boolean      @default(true)
   status      ProjectStatus @default(PLANNING)
   defaultHourlyRate Float?   // Default-Stundensatz für dieses Projekt (CHF/h)
+
+  // Projektsoll-Vorgaben (für Cutting)
+  sollBeginn       String?         // Soll-Beginn z.B. "06:00"
+  sollEnde         String?         // Soll-Ende z.B. "17:00"
+  sollPauseDauer   Int?    @default(60)  // Soll-Pause in Minuten
+  sollArbeitszeit  Decimal?        // Soll-Arbeitszeit in Stunden z.B. 10.0
+  cuttingAktiv     Boolean @default(true)  // Cutting aktiviert
+  cuttingTolerance Int     @default(0)     // Toleranz in Minuten
+
   startDate   DateTime?    // Geplantes Startdatum für Gantt-Chart
   endDate     DateTime?    // Geplantes Enddatum für Gantt-Chart
   progress    Int          @default(0) // Fortschritt in Prozent (0-100)
@@ -428,8 +437,26 @@ model Project {
   budgets     ProjectBudget[]
   tasks       ProjectTask[]
   checklistInstances ChecklistInstance[]
+  stories     Story[]
 
   @@map("projects")
+}
+
+model Story {
+  id          String    @id @default(uuid())
+  projectId   String
+  name        String
+  description String?
+  color       String?   // Optionale Farbe für UI-Darstellung z.B. "#FF5733"
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  timeEntries TimeEntry[]
+
+  @@index([projectId])
+  @@map("stories")
 }
 
 enum TaskStatus {
@@ -526,6 +553,7 @@ model TimeEntry {
   userId      String?          // DEPRECATED: Use employeeId instead (for migration)
   employeeId  String           // Primary relation to Employee
   projectId   String?
+  storyId     String?          // Story/Tag für Stundenbuchung
   locationId  String?
   costCenterId String?
   clockIn     DateTime
@@ -534,16 +562,41 @@ model TimeEntry {
   description String?
   pauseMinutes Int?            @default(0) // Pausenzeit in Minuten
   pauseStartedAt DateTime?     // Timestamp wenn aktuelle Pause gestartet wurde
+
+  // Projektsoll-Cutting
+  sollBeginn          DateTime?     // Soll-Beginn aus Projektvorgabe
+  sollEnde            DateTime?     // Soll-Ende aus Projektvorgabe
+  sollPause           Int?          // Soll-Pause in Minuten
+  abrechenbareStunden Decimal?      // Abrechenbare Stunden nach Cutting
+  nichtAbrechenbar    Decimal?      // Nicht-abrechenbare Stunden
+  vorSoll             Int?          // Minuten vor Soll-Beginn gestempelt
+  nachSoll            Int?          // Minuten nach Soll-Ende gestempelt
+
+  // Zuschlagsstunden
+  nachtStunden    Decimal?  @default(0)   // Nachtarbeitsstunden (22:00-06:00)
+  sonntagStunden  Decimal?  @default(0)   // Sonntagsarbeitsstunden
+  feiertagStunden Decimal?  @default(0)   // Feiertagsarbeitsstunden
+  samstagStunden  Decimal?  @default(0)   // Samstagsarbeitsstunden
+
+  // Zuschlagsberechtigungs-Flags
+  zuschlagNacht    Boolean  @default(true)  // Nachtzuschlag berechtigt
+  zuschlagSonntag  Boolean  @default(true)  // Sonntagszuschlag berechtigt
+  zuschlagFeiertag Boolean  @default(true)  // Feiertagszuschlag berechtigt
+  zuschlagSamstag  Boolean  @default(true)  // Samstagszuschlag berechtigt
+  zuschlagGrund    String?                  // Grund wenn nicht berechtigt
+
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
   employee Employee  @relation("EmployeeTimeEntries", fields: [employeeId], references: [id], onDelete: Cascade)
   project  Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  story    Story?    @relation(fields: [storyId], references: [id], onDelete: SetNull)
   location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
   costCenter CostCenter? @relation(fields: [costCenterId], references: [id], onDelete: SetNull)
   projectTimeAllocations ProjectTimeAllocation[]
 
   @@index([employeeId, clockIn])
+  @@index([storyId])
   @@map("time_entries")
 }
 
@@ -2179,6 +2232,19 @@ model Zeitmodell {
   gueltigBis      DateTime?
   version         Int      @default(1)
   
+  // Tages-Soll und Projektsoll-Steuerung
+  tagesSollStunden     Decimal?  @default(8.4)   // Standard-Tages-Soll in Stunden
+  projektsollAktiv     Boolean   @default(false)  // Projektsoll-Cutting aktiviert
+  projektsollFlexibel  Boolean   @default(true)   // Flexible Projektsoll-Zeiten
+
+  // Zuschlagsdefinitionen
+  nachtBeginn         String?   @default("22:00")  // Beginn Nachtarbeit
+  nachtEnde           String?   @default("06:00")  // Ende Nachtarbeit
+  nachtZuschlag       Decimal?  @default(0.25)     // Nachtzuschlag (25%)
+  sonntagZuschlag     Decimal?  @default(0.50)     // Sonntagszuschlag (50%)
+  feiertagZuschlag    Decimal?  @default(1.00)     // Feiertagszuschlag (100%)
+  samstagZuschlag     Decimal?  @default(0.00)     // CH: 0%, DE: 0.50
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   updatedBy       String?
