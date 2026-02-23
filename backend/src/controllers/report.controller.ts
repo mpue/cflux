@@ -837,12 +837,10 @@ export const getUserTimeBookingsReport = async (req: AuthRequest, res: Response)
 
     // employeeId aus userId ermitteln
     const employeeId = await getEmployeeIdFromUserId(userId);
-    if (employeeId) {
-      where.employeeId = employeeId;
-    } else {
-      // Fallback: userId direkt verwenden (Legacy-Kompatibilität)
-      where.userId = userId;
+    if (!employeeId) {
+      return res.status(404).json({ error: 'User does not have an employee profile' });
     }
+    where.employeeId = employeeId;
 
     if (startDate && endDate) {
       where.clockIn = {
