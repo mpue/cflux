@@ -131,8 +131,11 @@ export const getProjectBudgetByProjectId = async (req: AuthRequest, res: Respons
   try {
     const { projectId } = req.params;
 
-    const budget = await prisma.projectBudget.findUnique({
-      where: { projectId },
+    const budget = await prisma.projectBudget.findFirst({
+      where: { 
+        projectId,
+        isActive: true 
+      },
       include: {
         project: true,
         costCenter: true,
@@ -195,9 +198,12 @@ export const createProjectBudget = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Projekt nicht gefunden' });
     }
 
-    // Prüfen ob bereits Budget existiert
-    const existingBudget = await prisma.projectBudget.findUnique({
-      where: { projectId },
+    // Prüfen ob bereits ein aktives Budget existiert
+    const existingBudget = await prisma.projectBudget.findFirst({
+      where: { 
+        projectId,
+        isActive: true 
+      },
     });
 
     if (existingBudget) {

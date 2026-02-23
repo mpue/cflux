@@ -425,7 +425,7 @@ model Project {
   orders      Order[]
   ehsMonthlyData EHSMonthlyData[]
   ehsTodos    EHSTodo[]
-  budget      ProjectBudget?
+  budgets     ProjectBudget[]
   tasks       ProjectTask[]
   checklistInstances ChecklistInstance[]
 
@@ -2061,7 +2061,7 @@ model EHSTodo {
 
 model ProjectBudget {
   id                String   @id @default(uuid())
-  projectId         String   @unique
+  projectId         String
   costCenterId      String?
   
   // Budget-Informationen
