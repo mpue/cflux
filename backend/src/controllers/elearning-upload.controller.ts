@@ -9,9 +9,10 @@ import { v4 as uuidv4 } from 'uuid';
 const uploadsBaseDir = path.join(__dirname, '../../uploads');
 const thumbnailsDir = path.join(uploadsBaseDir, 'course-thumbnails');
 const contentImagesDir = path.join(uploadsBaseDir, 'course-content');
+const pdfFilesDir = path.join(uploadsBaseDir, 'course-pdfs');
 
 // Ensure directories exist
-[thumbnailsDir, contentImagesDir].forEach(dir => {
+[thumbnailsDir, contentImagesDir, pdfFilesDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -41,6 +42,18 @@ const contentImageStorage = multer.diskStorage({
   },
 });
 
+// Storage configuration for PDF files
+const pdfStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, pdfFilesDir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const filename = `pdf-${uuidv4()}${ext}`;
+    cb(null, filename);
+  },
+});
+
 // File filter for images
 const imageFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/svg+xml'];
@@ -48,6 +61,16 @@ const imageFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFil
     cb(null, true);
   } else {
     cb(new Error('Nur Bilddateien (PNG, JPG, GIF, WebP, SVG) sind erlaubt'));
+  }
+};
+
+// File filter for PDFs
+const pdfFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedTypes = ['application/pdf'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Nur PDF-Dateien sind erlaubt'));
   }
 };
 
@@ -65,6 +88,14 @@ export const uploadContentImage = multer({
   fileFilter: imageFileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB max for content images
+  },
+});
+
+export const uploadPdf = multer({
+  storage: pdfStorage,
+  fileFilter: pdfFileFilter,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB max for PDF files
   },
 });
 
@@ -112,13 +143,36 @@ export const uploadLessonContentImage = async (req: AuthRequest, res: Response) 
   }
 };
 
+// Upload PDF file for lesson content
+export const uploadLessonPdf = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Keine Datei hochgeladen' });
+    }
+
+    // Return relative URL path
+    const fileUrl = `/uploads/course-pdfs/${req.file.filename}`;
+
+    res.json({
+      url: fileUrl,
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+    });
+  } catch (error) {
+    console.error('Error uploading PDF:', error);
+    res.status(500).json({ error: 'Fehler beim Hochladen der PDF-Datei' });
+  }
+};
+
 // Delete uploaded file (thumbnail or content image)
 export const deleteElearningUpload = async (req: AuthRequest, res: Response) => {
   try {
     const { type, filename } = req.params;
 
     // Validate type
-    if (!['thumbnail', 'content'].includes(type)) {
+    if (!['thumbnail', 'content', 'pdf'].includes(type)) {
       return res.status(400).json({ error: 'Ungültiger Upload-Typ' });
     }
 
@@ -127,7 +181,15 @@ export const deleteElearningUpload = async (req: AuthRequest, res: Response) => 
       return res.status(400).json({ error: 'Ungültiger Dateiname' });
     }
 
-    const dir = type === 'thumbnail' ? thumbnailsDir : contentImagesDir;
+    let dir: string;
+    if (type === 'thumbnail') {
+      dir = thumbnailsDir;
+    } else if (type === 'pdf') {
+      dir = pdfFilesDir;
+    } else {
+      dir = contentImagesDir;
+    }
+    
     const filePath = path.join(dir, filename);
 
     // Check if file exists

@@ -33,6 +33,7 @@ import {
   Link as LinkIcon,
   ArrowUpward as UpIcon,
   ArrowDownward as DownIcon,
+  CloudUpload as UploadIcon,
 } from '@mui/icons-material';
 import api from '../../services/api';
 import RichTextEditor from './RichTextEditor';
@@ -70,6 +71,10 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
   const [videoUrl, setVideoUrl] = useState('');
   const [duration, setDuration] = useState<number | ''>('');
   const [isOptional, setIsOptional] = useState(false);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState('');
+  const [pdfFileName, setPdfFileName] = useState('');
 
   useEffect(() => {
     loadLessons();
@@ -98,6 +103,18 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
       setVideoUrl(lesson.videoUrl || '');
       setDuration(lesson.duration || '');
       setIsOptional(lesson.isOptional);
+      
+      // Load PDF URL if content type is PDF
+      if (lesson.contentType === 'PDF' && lesson.content) {
+        setPdfUrl(lesson.content);
+        // Extract filename from URL if possible
+        const parts = lesson.content.split('/');
+        setPdfFileName(parts[parts.length - 1] || 'PDF-Dokument');
+      } else {
+        setPdfUrl('');
+        setPdfFileName('');
+      }
+      setPdfFile(null);
     } else {
       setEditingLesson(null);
       setTitle('');
@@ -107,6 +124,9 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
       setVideoUrl('');
       setDuration('');
       setIsOptional(false);
+      setPdfFile(null);
+      setPdfUrl('');
+      setPdfFileName('');
     }
     setDialogOpen(true);
   };
@@ -115,6 +135,47 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
     setDialogOpen(false);
     setEditingLesson(null);
     setError(null);
+    setPdfFile(null);
+    setPdfUrl('');
+    setPdfFileName('');
+  };
+
+  const handlePdfUpload = async (file: File) => {
+    try {
+      setUploadingPdf(true);
+      setError(null);
+
+      const formData = new FormData();
+      formData.append('pdf', file);
+
+      const response = await api.post('/elearning/upload/pdf', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      setPdfUrl(response.data.url);
+      setPdfFileName(response.data.originalName || file.name);
+      setContent(response.data.url); // Store PDF URL in content field
+    } catch (err: any) {
+      console.error('Error uploading PDF:', err);
+      setError(err.response?.data?.error || 'Fehler beim Hochladen der PDF-Datei');
+      setPdfFile(null);
+    } finally {
+      setUploadingPdf(false);
+    }
+  };
+
+  const handlePdfFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        setError('Bitte wählen Sie eine PDF-Datei aus');
+        return;
+      }
+      setPdfFile(file);
+      handlePdfUpload(file);
+    }
   };
 
   const handleSave = async () => {
@@ -417,6 +478,62 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="https://..."
                 />
+              </Grid>
+            )}
+
+            {contentType === 'PDF' && (
+              <Grid item xs={12}>
+                <Box>
+                  <Typography variant="body2" color="textSecondary" gutterBottom>
+                    PDF-Dokument hochladen
+                  </Typography>
+                  
+                  {pdfUrl && (
+                    <Box sx={{ mb: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PdfIcon color="error" />
+                        <Typography variant="body2">
+                          {pdfFileName || 'PDF-Dokument'}
+                        </Typography>
+                      </Box>
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => {
+                          setPdfUrl('');
+                          setPdfFileName('');
+                          setContent('');
+                          setPdfFile(null);
+                        }}
+                        sx={{ mt: 1 }}
+                      >
+                        Entfernen
+                      </Button>
+                    </Box>
+                  )}
+                  
+                  {!pdfUrl && (
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      startIcon={<UploadIcon />}
+                      disabled={uploadingPdf}
+                      fullWidth
+                    >
+                      {uploadingPdf ? 'Wird hochgeladen...' : 'PDF-Datei auswählen'}
+                      <input
+                        type="file"
+                        hidden
+                        accept="application/pdf"
+                        onChange={handlePdfFileChange}
+                      />
+                    </Button>
+                  )}
+                  
+                  <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
+                    Erlaubte Dateigröße: max. 50 MB
+                  </Typography>
+                </Box>
               </Grid>
             )}
 
