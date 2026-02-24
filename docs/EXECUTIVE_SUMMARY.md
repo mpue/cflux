@@ -3,15 +3,15 @@
 # cflux - Micro ERP and Swiss Compliant Time Tracking System
 ## Executive Summary für die Geschäftsleitung
 
-**Berichtsdatum:** 14. Februar 2026  
-**Version:** 1.4  
-**Status:** Production with Org Management & Avatar Support
+**Berichtsdatum:** 23. Februar 2026  
+**Version:** 1.5  
+**Status:** Production with Stories, E-Learning PDF Upload & Org Management
 
 ---
 
 ## Management Summary
 
-**cflux** ist ein umfassendes Zeiterfassungs- und Projekt-Management-System, das speziell auf die Anforderungen des Schweizer Arbeitsrechts (ArG/ArGV 1) ausgerichtet ist. Das System integriert Zeiterfassung, Projektmanagement, Budget-Kontrolle, Compliance-Überwachung, **Onboarding & HR-Prozesse**, **E-Learning-System**, **Abteilungsverwaltung mit Organigramm** sowie umfangreiche Reporting-Funktionen in einer modernen Web-Anwendung.
+**cflux** ist ein umfassendes Zeiterfassungs- und Projekt-Management-System, das speziell auf die Anforderungen des Schweizer Arbeitsrechts (ArG/ArGV 1) ausgerichtet ist. Das System integriert Zeiterfassung, Projektmanagement, Budget-Kontrolle, Compliance-Überwachung, **Onboarding & HR-Prozesse**, **E-Learning-System mit PDF-Upload**, **Story-Tags für Projekt-Zeitbuchungen**, **Abteilungsverwaltung mit Organigramm** sowie umfangreiche Reporting-Funktionen in einer modernen Web-Anwendung.
 
 ### Kernziele
 - 🕐 **Rechtssichere Zeiterfassung** nach Schweizer Arbeitsrecht
@@ -20,8 +20,9 @@
 - 📊 **Professionelle Reports** für Kunden und Management
 - 🔐 **Modulares Berechtigungssystem** für unterschiedliche Benutzergruppen
 - 🏢 **Abteilungen & Organigramm** mit Vorgesetzten-Hierarchie und Cross-Department-Visualisierung (NEU Februar 2026)
+- 🏷️ **Story-Tags** pro Projekt für granulare Zeitbuchung und Reporting (NEU Februar 2026)
 - 👤 **Digitales Onboarding** für neue Mitarbeiter (NEU Januar 2026)
-- 🎓 **E-Learning & Schulungsmanagement** mit Compliance-Integration (NEU Dezember 2025)
+- 🎓 **E-Learning & Schulungsmanagement** mit Compliance-Integration und PDF-Upload (Dezember 2025 / Update Februar 2026)
 
 ---
 
@@ -41,10 +42,10 @@
 
 ### Für Mitarbeiter
 - **Einfache Zeiterfassung** via Web oder Desktop-App (optional)
-- **Projekt-Zuordnung** der geleisteten Arbeitszeit
+- **Projekt-Zuordnung** der geleisteten Arbeitszeit mit optionaler **Story-Auswahl** (NEU)
 - **Abwesenheits-Management** (Ferien, Krankheit, etc.)
 - **Selbstauskunft** über geleistete Stunden und Überstunden
-- **E-Learning-Zugang** für Schulungen im eigenen Tempo (NEU)
+- **E-Learning-Zugang** für Schulungen im eigenen Tempo mit PDF-Materialien (NEU)
 - **Onboarding-Dashboard** mit transparenter Aufgabenverfolgung (NEU)
 
 ### Für HR/Administration
@@ -101,6 +102,7 @@
 - Clock-In / Clock-Out mit sekundengenauen Zeitstempeln
 - Pausenzeiten-Erfassung
 - Projekt-Zuordnung der Arbeitszeit
+- **Story-Tags pro Projekt** für granulare Zeitbuchung (NEU Februar 2026)
 - Mobile-optimierte Oberfläche
 - Optional: Desktop-App für Windows
 
@@ -114,6 +116,7 @@
 - Monatliche Zeiterfassungs-Reports (PDF)
 - Überstunden-Auswertung
 - Projekt-Zeit-Aufschlüsselung
+- **Story-Filter** für granulare Auswertung (NEU Februar 2026)
 - Export für Lohnabrechnung
 
 ---
@@ -127,6 +130,7 @@
 - Team-Mitglieder-Zuordnung
 - Projekt-spezifische Stundensätze
 - Standort-Zuordnung
+- **Story-Verwaltung** pro Projekt (Tags mit Farben, aktivieren/deaktivieren) (NEU Februar 2026)
 
 **Vorteile:**
 - Zentrale Übersicht aller Projekte
@@ -314,12 +318,26 @@ Vollständiges LMS (Learning Management System) für Online-Schulungen, Complian
 
 #### B) Inhalts-Erstellung (Multi-Content-Type)
 - **VIDEO**: Video-Lektionen mit Progress-Tracking
-- **PDF**: Dokumenten-Upload und -Anzeige
+- **PDF**: Dokumenten-Upload und -Anzeige (NEU: Upload bis 50 MB, Februar 2026)
+  - Dedizierter Upload-Endpunkt (`POST /elearning/upload/pdf`)
+  - Speicherung in `uploads/course-pdfs/` mit UUID-basierten Dateinamen
+  - Berechtigungsprüfung via `requireModuleAccess('elearning', 'canCreate')`
+  - Löschen hochgeladener PDFs mit Pfad-Traversal-Schutz
 - **HTML**: Rich-Text-Content mit Editor
 - **QUIZ**: Interaktive Tests mit 5 Fragetypen
 - **SCORM**: SCORM-Package-Support (geplant)
 - **EXTERNAL_LINK**: Externe Lern-Ressourcen
 - **Reihenfolge:** Lessons mit definierbarer Reihenfolge und Dauer
+
+#### B2) Upload-System (NEU: Februar 2026)
+- **3 Upload-Typen:**
+  - Kurs-Thumbnail (max. 5 MB, PNG/JPG/GIF/WebP/SVG)
+  - Content-Bild (max. 10 MB, PNG/JPG/GIF/WebP/SVG)
+  - Lektion-PDF (max. 50 MB, nur PDF)
+- **Dedizierter Upload-Controller** mit Multer-Integration
+- **UUID-basierte Dateinamen** zur Vermeidung von Konflikten
+- **Löschen** mit Validierung und Pfad-Traversal-Schutz
+- **Frontend-Integration:** PDF-Auswahl im Lektion-Editor mit Dateiname-Anzeige und Entfernen-Button
 
 #### C) Quiz-System
 **5 Fragetypen:**
@@ -397,12 +415,18 @@ Vollständiges LMS (Learning Management System) für Online-Schulungen, Complian
 - `/api/elearning/quiz-attempts` - Versuchs-Tracking & Bewertung
 - `/api/elearning/assignments` - Automatische Zuweisungen
 - `/api/elearning/analytics` - Statistiken & Reports
+- `/api/elearning/upload/pdf` - PDF-Upload für Lektionen (NEU)
+- `/api/elearning/upload/thumbnail` - Kurs-Thumbnail-Upload (NEU)
+- `/api/elearning/upload/content-image` - Content-Bild-Upload (NEU)
+- `/api/elearning/upload/:type/:filename` - Upload löschen (NEU)
 
 **Technische Highlights:**
 - **12 Datenbank-Modelle:** Course, Lesson, Quiz, Question, Answer, Enrollment, LessonProgress, QuizAttempt, etc.
 - **TypeScript end-to-end** mit vollständiger Typsicherheit
 - **Automatische Bewertung** mit detailliertem Feedback
-- **Media-Integration** für Videos und PDFs
+- **Media-Integration** für Videos und PDFs (inkl. Upload-Controller)
+- **Dedizierter Upload-Controller** mit 3 Upload-Typen (PDF, Thumbnail, Content-Bild)
+- **Zertifikats-PDF-Generierung** mit PDFKit
 - **Responsive Design** für mobile Nutzung
 
 **Geschäftlicher Nutzen:**
@@ -871,7 +895,7 @@ Vollständige Organisations-Verwaltung mit Abteilungen, Vorgesetzten-Hierarchie 
 - **Dateien:** 880 Dateien gesamt
 - **Datenbank:** 100+ Tabellen (Prisma Schema ~2'100 Zeilen)
 - **Module:** 26+ implementierte Module
-- **API-Endpoints:** 200+ REST-Endpunkte
+- **API-Endpoints:** 210+ REST-Endpunkte
 - **Tests:** 
   - Jest Unit-Tests
   - Integration-Tests
@@ -939,7 +963,59 @@ Vollständige Organisations-Verwaltung mit Abteilungen, Vorgesetzten-Hierarchie 
 
 ## Letzte Updates (Februar 2026)
 
-### 🏢 Abteilungen & Organigramm (12.02.2026)
+### �️ Story-Tags für Zeitbuchungen (23.02.2026)
+- **Neues Story-Modell** als projektbezogene Tags für granulare Zeitbuchungen
+- **Vollständige CRUD-Verwaltung** pro Projekt (Name, Farbe, Beschreibung, aktiv/inaktiv)
+- **Integration in Zeiterfassung:**
+  - Story-Dropdown bei Clock-In (erscheint bei Projektauswahl, wenn Stories vorhanden)
+  - Farbige Story-Badges in laufendem Timer und letzten Buchungen
+  - Story-Zuordnung bei manuellen Zeiteinträgen und Bearbeitung
+- **Integration in Reporting:**
+  - Story-Filter im Zeitbuchungs-Report (filterbar nach Projekt und Story)
+  - Story-Spalte in Report-Tabellen mit farbigen Badges
+  - Zusammenfassung nach Story in Report-Summary (`byStory`-Gruppierung)
+- **Projekt-Verwaltung:** Stories-Button in Projekt-Administration mit Modal-Dialog
+- **Smart Delete:** Soft-Delete (Deaktivierung) wenn Zeitbuchungen vorhanden, Hard-Delete sonst
+- **Farbverwaltung:** 8 vordefinierte Farben + benutzerdefinierte Farbauswahl
+
+**Business Value:**
+- Granulare Zeiterfassung auf Story/Task-Ebene innerhalb von Projekten
+- Bessere Analyse der Zeitverteilung pro User Story / Arbeitspaket
+- Kundengerechte Reports mit Story-Aufschlüsselung
+- Flexible Tag-Verwaltung durch Projektadministratoren
+
+**Technische Details:**
+- Prisma: `Story`-Modell mit Cascade-Delete von Project, SetNull auf TimeEntry
+- REST API: `GET/POST/PUT/DELETE /api/stories/*` mit 5 Endpunkten
+- Frontend: Story-Service, angepasste Widgets (TimeTrackingWidget, RecentEntriesWidget, TimeBookingsReport)
+- Index auf `storyId` in TimeEntry für performante Abfragen
+
+### 📄 E-Learning PDF-Upload (23.02.2026)
+- **Dedizierter Upload-Controller** für E-Learning-Inhalte (3 Upload-Typen)
+- **PDF-Upload für Lektionen** (bis 50 MB) mit UUID-basierten Dateinamen
+- **Kurs-Thumbnails** (bis 5 MB, Bild-Formate)
+- **Content-Bilder** (bis 10 MB, Bild-Formate)
+- **Frontend-Integration im Lektion-Editor:**
+  - PDF-Auswahl-Button mit Dateiname-Anzeige
+  - Upload-Fortschrittsanzeige
+  - Entfernen-Funktion für hochgeladene PDFs
+  - Hinweis auf maximale Dateigröße
+- **Sicherheit:** Dateityp-Validierung, UUID-Dateinamen, Pfad-Traversal-Schutz beim Löschen
+- **Zertifikats-PDF-Generierung** mit PDFKit bei Kursabschluss
+
+**Business Value:**
+- Schulungsmaterialien direkt als PDF hochladen und einbinden
+- Breitere Content-Möglichkeiten für Kursersteller
+- Sichere Dateiverwaltung mit automatischer Bereinigung
+
+**Technische Details:**
+- Dedizierter Controller: `elearning-upload.controller.ts`
+- Multer-basierte Uploads mit `diskStorage` und Dateifilter
+- 3 Endpunkte: `POST /elearning/upload/{thumbnail,content-image,pdf}`
+- Delete: `DELETE /elearning/upload/:type/:filename` mit Berechtigungsprüfung
+- Speicherung in organisierten Unterverzeichnissen (`uploads/course-pdfs/`, `uploads/course-thumbnails/`, `uploads/course-content/`)
+
+### �🏢 Abteilungen & Organigramm (12.02.2026)
 - Neues Department-Modell mit vollständiger CRUD-Verwaltung
 - Vorgesetzten-Beziehung (self-referencing supervisorId auf User)
 - Interaktives Organigramm mit Drag & Drop, Pan & Zoom
@@ -1078,6 +1154,7 @@ Vollständige Organisations-Verwaltung mit Abteilungen, Vorgesetzten-Hierarchie 
   - Equipment & Schulungsverwaltung
 - [ ] **E-Learning Phase 2**
   - Certificate Templates & PDF-Generierung
+  - ~~PDF-Upload für Lektionen~~ (ERLEDIGT Februar 2026)
   - Video-Player mit integr iertem Progress-Tracking
   - SCORM-Package-Support
   - Course Editor (WYSIWYG)
@@ -1748,7 +1825,7 @@ Eine vollständige, interaktive Präsentation mit allen Screenshots ist verfügb
 
 ---
 
-**Erstellt am:** 14. Februar 2026  
-**Version:** 1.4  
+**Erstellt am:** 23. Februar 2026  
+**Version:** 1.5  
 **Autor:** Matthias Püski / Aquist GmbH Schweiz  
-**Status:** Production with Org Management
+**Status:** Production with Stories, E-Learning PDF Upload & Org Management
