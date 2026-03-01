@@ -244,10 +244,10 @@ class ZeitmodellService {
       .join(', ');
   }
 
-  formatStundensatz(betrag: number): string {
+  formatStundensatz(betrag: number, currency: string = 'CHF'): string {
     return new Intl.NumberFormat('de-CH', {
       style: 'currency',
-      currency: 'CHF'
+      currency: currency
     }).format(betrag);
   }
 

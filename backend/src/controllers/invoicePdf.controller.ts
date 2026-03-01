@@ -32,6 +32,10 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Invoice not found' });
     }
 
+    // Load system settings for currency
+    const systemSettings = await prisma.systemSettings.findFirst();
+    const currency = systemSettings?.currency || 'CHF';
+
     console.log('Invoice Customer Data:', {
       id: invoice.customer.id,
       name: invoice.customer.name,
@@ -260,8 +264,8 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
        .text('Beschreibung', descX, tableTop, { width: descWidth })
        .text('Menge', qtyX, tableTop, { width: qtyWidth, align: 'right' })
        .text('Einheit', unitX, tableTop, { width: unitWidth })
-       .text('Preis (CHF)', priceX, tableTop, { width: priceWidth, align: 'right' })
-       .text('Betrag (CHF)', totalX, tableTop, { width: totalWidth, align: 'right' });
+       .text(`Preis (${currency})`, priceX, tableTop, { width: priceWidth, align: 'right' })
+       .text(`Betrag (${currency})`, totalX, tableTop, { width: totalWidth, align: 'right' });
 
     // Draw line under header
     doc.strokeColor(primaryColor)
@@ -293,8 +297,8 @@ export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
            .text('Beschreibung', descX, currentY, { width: descWidth })
            .text('Menge', qtyX, currentY, { width: qtyWidth, align: 'right' })
            .text('Einheit', unitX, currentY, { width: unitWidth })
-           .text('Preis (CHF)', priceX, currentY, { width: priceWidth, align: 'right' })
-           .text('Betrag (CHF)', totalX, currentY, { width: totalWidth, align: 'right' });
+           .text(`Preis (${currency})`, priceX, currentY, { width: priceWidth, align: 'right' })
+           .text(`Betrag (${currency})`, totalX, currentY, { width: totalWidth, align: 'right' });
         
         // Draw line under header
         doc.strokeColor(primaryColor)

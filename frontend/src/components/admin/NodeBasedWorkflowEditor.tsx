@@ -31,6 +31,7 @@ import LogicNode from './nodes/LogicNode';
 import WorkflowTestDialog from './WorkflowTestDialog';
 import { workflowService, Workflow } from '../../services/workflow.service';
 import { userService } from '../../services/user.service';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface NodeBasedWorkflowEditorProps {
   workflow: Workflow | null;
@@ -72,6 +73,7 @@ const NodeBasedWorkflowEditor: React.FC<NodeBasedWorkflowEditorProps> = ({
   onSave,
   onCancel,
 }) => {
+  const { currency } = useCurrency();
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [name, setName] = useState('');
@@ -533,6 +535,7 @@ const NodePropertiesEditor: React.FC<NodePropertiesEditorProps> = ({
   onUpdate,
   onDelete,
 }) => {
+  const { currency } = useCurrency();
   const config = node.data.config || {};
 
   const handleChange = (field: string, value: any) => {
@@ -741,7 +744,7 @@ const NodePropertiesEditor: React.FC<NodePropertiesEditorProps> = ({
               </select>
             </div>
             <div className="form-group">
-              <label>Wert (CHF)</label>
+              <label>Wert ({currency})</label>
               <input
                 type="number"
                 step="0.01"

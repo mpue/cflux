@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Article, ArticleGroup } from '../../types';
 import * as articleService from '../../services/articleService';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface ArticlesTabProps {
   articles: Article[];
@@ -9,6 +10,7 @@ interface ArticlesTabProps {
 }
 
 const ArticlesTab: React.FC<ArticlesTabProps> = ({ articles, articleGroups, onUpdate }) => {
+  const { currency } = useCurrency();
   const [showModal, setShowModal] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -105,7 +107,7 @@ const ArticlesTab: React.FC<ArticlesTabProps> = ({ articles, articleGroups, onUp
                 </td>
                 <td>{article.articleGroup?.name || '-'}</td>
                 <td style={{ textAlign: 'right' }}>
-                  CHF {article.price.toFixed(2)}
+                  {currency} {article.price.toFixed(2)}
                 </td>
                 <td>{article.unit}</td>
                 <td style={{ textAlign: 'right' }}>{article.vatRate}%</td>
@@ -184,6 +186,7 @@ const ArticleModal: React.FC<{
   onClose: () => void;
   onSave: (data: any) => Promise<void>;
 }> = ({ article, articleGroups, onClose, onSave }) => {
+  const { currency } = useCurrency();
   const [formData, setFormData] = useState({
     articleNumber: article?.articleNumber || '',
     name: article?.name || '',
@@ -263,7 +266,7 @@ const ArticleModal: React.FC<{
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
             <div className="form-group">
-              <label>Preis (CHF) *</label>
+              <label>Preis ({currency}) *</label>
               <input
                 type="number"
                 step="0.01"

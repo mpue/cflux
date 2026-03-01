@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TravelExpense, travelExpenseService } from '../../services/travelExpense.service';
 import { User } from '../../types';
 import { workflowService, WorkflowInstance } from '../../services/workflow.service';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface TravelExpensesTabProps {
   expenses: TravelExpense[];
@@ -10,6 +11,7 @@ interface TravelExpensesTabProps {
 }
 
 export const TravelExpensesTab: React.FC<TravelExpensesTabProps> = ({ expenses, users, onUpdate }) => {
+  const { currency } = useCurrency();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
@@ -163,7 +165,7 @@ export const TravelExpensesTab: React.FC<TravelExpensesTabProps> = ({ expenses, 
             {totalPending}
           </div>
           <div style={{ fontSize: '0.85em', color: '#92400e', marginTop: '5px' }}>
-            {totalPendingAmount.toFixed(2)} CHF
+            {totalPendingAmount.toFixed(2)} {currency}
           </div>
         </div>
 
@@ -177,7 +179,7 @@ export const TravelExpensesTab: React.FC<TravelExpensesTabProps> = ({ expenses, 
             Genehmigte Kosten
           </div>
           <div style={{ fontSize: '1.8em', fontWeight: 'bold', color: '#065f46' }}>
-            {totalApproved.toFixed(2)} CHF
+            {totalApproved.toFixed(2)} {currency}
           </div>
         </div>
 

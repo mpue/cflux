@@ -34,6 +34,7 @@ import {
 } from '@mui/icons-material';
 import { JobFunction } from '../types';
 import api from '../services/api';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -51,6 +52,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const JobFunctionsPage: React.FC = () => {
+  const { currency: systemCurrency } = useCurrency();
   const [jobFunctions, setJobFunctions] = useState<JobFunction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +79,7 @@ const JobFunctionsPage: React.FC = () => {
     category: '',
     salaryMin: '',
     salaryMax: '',
-    salaryCurrency: 'CHF',
+    salaryCurrency: systemCurrency,
     isActive: true,
   });
 
@@ -120,7 +122,7 @@ const JobFunctionsPage: React.FC = () => {
         category: jobFunction.category || '',
         salaryMin: jobFunction.salaryMin?.toString() || '',
         salaryMax: jobFunction.salaryMax?.toString() || '',
-        salaryCurrency: jobFunction.salaryCurrency || 'CHF',
+        salaryCurrency: jobFunction.salaryCurrency || systemCurrency,
         isActive: jobFunction.isActive,
       });
       setSelectedJobFunction(jobFunction);
@@ -141,7 +143,7 @@ const JobFunctionsPage: React.FC = () => {
         category: '',
         salaryMin: '',
         salaryMax: '',
-        salaryCurrency: 'CHF',
+        salaryCurrency: systemCurrency,
         isActive: true,
       });
       setSelectedJobFunction(null);
@@ -212,7 +214,7 @@ const JobFunctionsPage: React.FC = () => {
     }
   };
 
-  const formatCurrency = (min?: number, max?: number, currency: string = 'CHF') => {
+  const formatCurrency = (min?: number, max?: number, currency: string = systemCurrency) => {
     if (!min && !max) return '-';
     if (min && max) {
       return `${min.toLocaleString('de-CH')} - ${max.toLocaleString('de-CH')} ${currency}`;

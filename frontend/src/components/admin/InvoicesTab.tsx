@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Invoice, Customer, Article } from '../../types';
 import * as invoiceService from '../../services/invoiceService';
 import InvoicePreviewModal from '../InvoicePreviewModal';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface InvoicesTabProps {
   invoices: Invoice[];
@@ -11,6 +12,7 @@ interface InvoicesTabProps {
 }
 
 const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles, onUpdate }) => {
+  const { currency } = useCurrency();
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [initialDocumentType, setInitialDocumentType] = useState<'INVOICE' | 'QUOTE'>('INVOICE');
@@ -166,9 +168,9 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
                     }
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <strong>CHF {invoice.totalAmount.toFixed(2)}</strong>
+                    <strong>{currency} {invoice.totalAmount.toFixed(2)}</strong>
                     <div style={{ fontSize: '0.85em', color: '#666' }}>
-                      Netto: CHF {invoice.subtotal.toFixed(2)}
+                      Netto: {currency} {invoice.subtotal.toFixed(2)}
                     </div>
                   </td>
                   <td>
@@ -321,6 +323,7 @@ const InvoiceModal: React.FC<{
   onClose: () => void;
   onSave: (data: any) => Promise<void>;
 }> = ({ invoice, initialDocumentType = 'INVOICE', customers, articles, onClose, onSave }) => {
+  const { currency } = useCurrency();
   const [formData, setFormData] = useState({
     documentType: invoice?.documentType || initialDocumentType,
     invoiceNumber: invoice?.invoiceNumber || '',
@@ -704,7 +707,7 @@ const InvoiceModal: React.FC<{
                       />
                     </td>
                     <td style={{ textAlign: 'right', fontSize: '12px' }}>
-                      CHF {item.totalPrice.toFixed(2)}
+                      {currency} {item.totalPrice.toFixed(2)}
                     </td>
                     <td>
                       <button
@@ -724,13 +727,13 @@ const InvoiceModal: React.FC<{
 
           <div style={{ textAlign: 'right', marginBottom: '20px', paddingRight: '20px' }}>
             <div style={{ marginBottom: '5px' }}>
-              <strong>Zwischensumme:</strong> <span style={{ display: 'inline-block', width: '120px', textAlign: 'right' }}>CHF {subtotal.toFixed(2)}</span>
+              <strong>Zwischensumme:</strong> <span style={{ display: 'inline-block', width: '120px', textAlign: 'right' }}>{currency} {subtotal.toFixed(2)}</span>
             </div>
             <div style={{ marginBottom: '5px' }}>
-              <strong>MwSt:</strong> <span style={{ display: 'inline-block', width: '120px', textAlign: 'right' }}>CHF {vatAmount.toFixed(2)}</span>
+              <strong>MwSt:</strong> <span style={{ display: 'inline-block', width: '120px', textAlign: 'right' }}>{currency} {vatAmount.toFixed(2)}</span>
             </div>
             <div style={{ fontSize: '1.2em', marginTop: '10px', paddingTop: '10px', borderTop: '2px solid #333' }}>
-              <strong>Gesamtbetrag:</strong> <span style={{ display: 'inline-block', width: '140px', textAlign: 'right' }}>CHF {totalAmount.toFixed(2)}</span>
+              <strong>Gesamtbetrag:</strong> <span style={{ display: 'inline-block', width: '140px', textAlign: 'right' }}>{currency} {totalAmount.toFixed(2)}</span>
             </div>
           </div>
 

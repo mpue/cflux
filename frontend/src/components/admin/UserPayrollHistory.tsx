@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import { User, PayrollEntry } from '../../types';
 import PayrollEntryDetail from './PayrollEntryDetail';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -33,6 +34,7 @@ interface UserPayrollHistoryProps {
 }
 
 const UserPayrollHistory: React.FC<UserPayrollHistoryProps> = ({ open, onClose, user }) => {
+  const { currency } = useCurrency();
   const [entries, setEntries] = useState<PayrollEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +66,7 @@ const UserPayrollHistory: React.FC<UserPayrollHistoryProps> = ({ open, onClose, 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-CH', {
       style: 'currency',
-      currency: 'CHF'
+      currency: currency
     }).format(amount);
   };
 

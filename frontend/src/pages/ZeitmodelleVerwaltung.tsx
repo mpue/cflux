@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { zeitmodellService, Zeitmodell, ZeitmodellEintrag } from '../services/zeitmodell.service';
 import ZeitmodellZuweisung from '../components/ZeitmodellZuweisung';
 import './ZeitmodelleVerwaltung.css';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 const ZeitmodelleVerwaltung: React.FC = () => {
+  const { currency } = useCurrency();
   const [zeitmodelle, setZeitmodelle] = useState<Zeitmodell[]>([]);
   const [selectedZeitmodell, setSelectedZeitmodell] = useState<Zeitmodell | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -404,7 +406,7 @@ const ZeitmodelleVerwaltung: React.FC = () => {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Stundensatz (CHF) *</label>
+                      <label>Stundensatz ({currency}) *</label>
                       <input
                         type="number"
                         step="0.01"
@@ -544,7 +546,7 @@ const ZeitmodelleVerwaltung: React.FC = () => {
                   <h4>Einträge:</h4>
                   {zeitmodell.eintraege.map((eintrag) => (
                     <div key={eintrag.id} className="eintrag-preview">
-                      <span className="stundensatz">{zeitmodellService.formatStundensatz(eintrag.stundensatz)}</span>
+                      <span className="stundensatz">{zeitmodellService.formatStundensatz(eintrag.stundensatz, currency)}</span>
                       <span className="zeit">
                         {zeitmodellService.formatTimeForDisplay(eintrag.startzeit)} - {zeitmodellService.formatTimeForDisplay(eintrag.endzeit)}
                       </span>

@@ -18,6 +18,7 @@ import {
 import { PayrollEntry } from '../../types';
 import axios from 'axios';
 import '../../styles/PayrollEntryDetail.css';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -36,6 +37,7 @@ interface PayrollEntryDetailProps {
 }
 
 const PayrollEntryDetail: React.FC<PayrollEntryDetailProps> = ({ open, onClose, entry }) => {
+  const { currency } = useCurrency();
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const token = localStorage.getItem('token');
 
@@ -61,7 +63,7 @@ const PayrollEntryDetail: React.FC<PayrollEntryDetailProps> = ({ open, onClose, 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-CH', {
       style: 'currency',
-      currency: 'CHF'
+      currency: currency
     }).format(amount);
   };
 

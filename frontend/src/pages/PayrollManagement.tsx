@@ -27,6 +27,7 @@ import {
 } from '@mui/material';
 import { PayrollPeriod, PayrollEntry, PayrollStatus } from '../types';
 import './PayrollManagement.css';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 // Check if running in Electron and use injected backend URL
 const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
@@ -35,6 +36,7 @@ const API_URL = electronBackendUrl
   : (process.env.REACT_APP_API_URL || 'http://localhost:3001/api');
 
 const PayrollManagement: React.FC = () => {
+  const { currency } = useCurrency();
   const [periods, setPeriods] = useState<PayrollPeriod[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<PayrollPeriod | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -221,7 +223,7 @@ const PayrollManagement: React.FC = () => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-CH', {
       style: 'currency',
-      currency: 'CHF'
+      currency: currency
     }).format(amount);
   };
 

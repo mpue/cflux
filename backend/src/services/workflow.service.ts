@@ -1210,9 +1210,12 @@ export const workflowService = {
         comment: step.comment,
       }));
 
+      const wfSettings = await systemSettingsService.getSettings();
+      const wfCurrency = wfSettings?.currency || 'CHF';
+
       return {
         success: true,
-        message: `Workflow wurde erfolgreich ausgeführt mit Rechnung ${invoice.invoiceNumber} (CHF ${invoice.totalAmount})`,
+        message: `Workflow wurde erfolgreich ausgeführt mit Rechnung ${invoice.invoiceNumber} (${wfCurrency} ${invoice.totalAmount})`,
         invoice: {
           invoiceNumber: invoice.invoiceNumber,
           totalAmount: invoice.totalAmount,

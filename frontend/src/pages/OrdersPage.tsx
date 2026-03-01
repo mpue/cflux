@@ -5,8 +5,10 @@ import { getAllSuppliers } from '../services/supplierService';
 import { Supplier } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import './OrdersPage.css';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 const OrdersPage: React.FC = () => {
+  const { currency } = useCurrency();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -159,7 +161,7 @@ const OrdersPage: React.FC = () => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-CH', {
       style: 'currency',
-      currency: 'CHF',
+      currency: currency,
     }).format(amount);
   };
 

@@ -5,8 +5,10 @@ import { costCenterService } from '../../services/costCenter.service';
 import { inventoryService } from '../../services/inventory.service';
 import { BaseModal } from '../common/BaseModal';
 import './ProjectBudgetTab.css';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 const ProjectBudgetTab: React.FC = () => {
+  const { currency } = useCurrency();
   const [budgets, setBudgets] = useState<ProjectBudget[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [costCenters, setCostCenters] = useState<any[]>([]);
@@ -325,7 +327,7 @@ const ProjectBudgetTab: React.FC = () => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-CH', {
       style: 'currency',
-      currency: 'CHF',
+      currency: currency,
     }).format(amount);
   };
 
@@ -519,7 +521,7 @@ const ProjectBudgetTab: React.FC = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Gesamtbudget (CHF) *</label>
+              <label>Gesamtbudget ({currency}) *</label>
               <input
                 type="number"
                 step="0.01"
@@ -674,7 +676,7 @@ const ProjectBudgetTab: React.FC = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Stundensatz (CHF)</label>
+                  <label>Stundensatz ({currency})</label>
                   <input
                     type="number"
                     step="0.01"
@@ -698,7 +700,7 @@ const ProjectBudgetTab: React.FC = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Tatsächlicher Stundensatz (CHF)</label>
+                  <label>Tatsächlicher Stundensatz ({currency})</label>
                   <input
                     type="number"
                     step="0.01"
@@ -726,7 +728,7 @@ const ProjectBudgetTab: React.FC = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Einzelpreis (CHF)</label>
+                  <label>Einzelpreis ({currency})</label>
                   <input
                     type="number"
                     step="0.01"
@@ -750,7 +752,7 @@ const ProjectBudgetTab: React.FC = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Tatsächlicher Einzelpreis (CHF)</label>
+                  <label>Tatsächlicher Einzelpreis ({currency})</label>
                   <input
                     type="number"
                     step="0.01"

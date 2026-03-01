@@ -5,6 +5,7 @@ import { userService } from '../../services/user.service';
 import { getAllCustomers } from '../../services/customerService';
 import { storyService } from '../../services/story.service';
 import { BaseModal } from '../common/BaseModal';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface ProjectsTabProps {
   projects: Project[];
@@ -180,6 +181,7 @@ const ProjectModal: React.FC<{
   onClose: () => void;
   onSave: (data: any) => Promise<void>;
 }> = ({ project, onClose, onSave }) => {
+  const { currency } = useCurrency();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [formData, setFormData] = useState({
     name: project?.name || '',
@@ -267,7 +269,7 @@ const ProjectModal: React.FC<{
           </div>
 
           <div className="form-group">
-            <label>Standard-Stundensatz (CHF/h)</label>
+            <label>Standard-Stundensatz ({currency}/h)</label>
             <input
               type="number"
               step="0.01"

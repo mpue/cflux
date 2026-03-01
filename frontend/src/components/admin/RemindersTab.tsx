@@ -9,6 +9,7 @@ import {
   ReminderStatusLabels
 } from '../../types/reminder.types';
 import { reminderService } from '../../services/reminder.service';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface RemindersTabProps {
   reminders: Reminder[];
@@ -23,6 +24,7 @@ export const RemindersTab: React.FC<RemindersTabProps> = ({
   stats,
   onUpdate
 }) => {
+  const { currency } = useCurrency();
   const [view, setView] = useState<'overview' | 'reminders' | 'overdue' | 'settings'>('overview');
   const [selectedInvoices, setSelectedInvoices] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -32,7 +34,7 @@ export const RemindersTab: React.FC<RemindersTabProps> = ({
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-CH', {
       style: 'currency',
-      currency: 'CHF'
+      currency: currency
     }).format(amount);
   };
 
@@ -532,7 +534,7 @@ export const RemindersTab: React.FC<RemindersTabProps> = ({
               </div>
 
               <div style={{ background: '#f7fafc', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-                <h3 style={{ marginTop: 0 }}>Mahngebühren (CHF)</h3>
+                <h3 style={{ marginTop: 0 }}>Mahngebühren ({currency})</h3>
                 <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '15px' }}>
                   Gebühren, die zusätzlich zum Rechnungsbetrag berechnet werden.
                 </p>
@@ -547,7 +549,7 @@ export const RemindersTab: React.FC<RemindersTabProps> = ({
                       min="0"
                       step="0.50"
                     />
-                    <small style={{ color: '#6b7280' }}>CHF</small>
+                    <small style={{ color: '#6b7280' }}>{currency}</small>
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>2. Mahnung</label>
@@ -559,7 +561,7 @@ export const RemindersTab: React.FC<RemindersTabProps> = ({
                       min="0"
                       step="0.50"
                     />
-                    <small style={{ color: '#6b7280' }}>CHF</small>
+                    <small style={{ color: '#6b7280' }}>{currency}</small>
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>3. Mahnung</label>
@@ -571,7 +573,7 @@ export const RemindersTab: React.FC<RemindersTabProps> = ({
                       min="0"
                       step="0.50"
                     />
-                    <small style={{ color: '#6b7280' }}>CHF</small>
+                    <small style={{ color: '#6b7280' }}>{currency}</small>
                   </div>
                 </div>
               </div>

@@ -20,6 +20,7 @@ import orderService from '../../services/order.service';
 import { projectService } from '../../services/project.service';
 import { userService } from '../../services/user.service';
 import '../../styles/BusinessReport.css';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface BusinessMetrics {
   revenue: {
@@ -56,6 +57,7 @@ interface BusinessMetrics {
 }
 
 export const BusinessReportTab: React.FC = () => {
+  const { currency } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [metrics, setMetrics] = useState<BusinessMetrics | null>(null);
   const [startDate, setStartDate] = useState('');
@@ -213,7 +215,7 @@ export const BusinessReportTab: React.FC = () => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-CH', {
       style: 'currency',
-      currency: 'CHF'
+      currency: currency
     }).format(amount);
   };
 

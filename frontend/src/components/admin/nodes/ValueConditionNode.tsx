@@ -1,8 +1,10 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
+import { useCurrency } from '../../../contexts/CurrencyContext';
 import './CustomNodes.css';
 
 const ValueConditionNode = ({ data }: any) => {
+  const { currency } = useCurrency();
   const getOperatorLabel = (operator: string) => {
     const labels: { [key: string]: string } = {
       greater: '>',
@@ -42,7 +44,7 @@ const ValueConditionNode = ({ data }: any) => {
             {getOperatorLabel(data.config?.operator || 'greater')}
           </span>
           <span className="condition-value">
-            CHF {data.config?.value?.toFixed(2) || '0.00'}
+            {currency} {data.config?.value?.toFixed(2) || '0.00'}
           </span>
         </div>
       </div>

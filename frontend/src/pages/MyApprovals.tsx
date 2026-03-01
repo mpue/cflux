@@ -4,6 +4,7 @@ import { workflowService } from '../services/workflow.service';
 import { useAuth } from '../contexts/AuthContext';
 import AppNavbar from '../components/AppNavbar';
 import './MyApprovals.css';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 interface PendingApproval {
   id: string;
@@ -46,6 +47,7 @@ interface PendingApproval {
 }
 
 const MyApprovals: React.FC = () => {
+  const { currency } = useCurrency();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [approvals, setApprovals] = useState<PendingApproval[]>([]);
@@ -121,7 +123,7 @@ const MyApprovals: React.FC = () => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-CH', {
       style: 'currency',
-      currency: 'CHF',
+      currency: currency,
     }).format(amount);
   };
 

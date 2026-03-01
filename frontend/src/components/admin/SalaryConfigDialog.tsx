@@ -14,6 +14,7 @@ import {
   InputAdornment
 } from '@mui/material';
 import { User, SalaryConfiguration } from '../../types';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
@@ -30,6 +31,7 @@ const SalaryConfigDialog: React.FC<SalaryConfigDialogProps> = ({
   user,
   onSuccess
 }) => {
+  const { currency } = useCurrency();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -141,7 +143,7 @@ const SalaryConfigDialog: React.FC<SalaryConfigDialogProps> = ({
                 onChange={(e) => setConfig({ ...config, monthlySalary: parseFloat(e.target.value) })}
                 onBlur={calculateHourlyFromMonthly}
                 InputProps={{
-                  endAdornment: <InputAdornment position="end">CHF</InputAdornment>,
+                  endAdornment: <InputAdornment position="end">{currency}</InputAdornment>,
                 }}
               />
             </Grid>
@@ -153,7 +155,7 @@ const SalaryConfigDialog: React.FC<SalaryConfigDialogProps> = ({
                 value={config.hourlySalary}
                 onChange={(e) => setConfig({ ...config, hourlySalary: parseFloat(e.target.value) })}
                 InputProps={{
-                  endAdornment: <InputAdornment position="end">CHF</InputAdornment>,
+                  endAdornment: <InputAdornment position="end">{currency}</InputAdornment>,
                 }}
               />
             </Grid>

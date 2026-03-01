@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertTriangle, DollarSign } from 'lucide-react';
 import api from '../../services/api';
 import WidgetHeader from './WidgetHeader';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import './DashboardWidgets.css';
 
 interface ProjectBudgetData {
@@ -21,6 +22,7 @@ interface BudgetWidgetProps {
 }
 
 const BudgetWidget: React.FC<BudgetWidgetProps> = ({ onRemove }) => {
+  const { currency } = useCurrency();
   const [projects, setProjects] = useState<ProjectBudgetData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -123,19 +125,19 @@ const BudgetWidget: React.FC<BudgetWidgetProps> = ({ onRemove }) => {
                   <div className="budget-amount">
                     <span className="budget-label">Budget:</span>
                     <span className="budget-value">
-                      CHF {project.budget.totalBudget.toLocaleString('de-CH', { minimumFractionDigits: 2 })}
+                      {currency} {project.budget.totalBudget.toLocaleString('de-CH', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="budget-amount">
                     <span className="budget-label">Kosten:</span>
                     <span className="budget-value">
-                      CHF {project.budget.actualCosts.toLocaleString('de-CH', { minimumFractionDigits: 2 })}
+                      {currency} {project.budget.actualCosts.toLocaleString('de-CH', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="budget-amount">
                     <span className="budget-label">Rest:</span>
                     <span className={`budget-value ${project.budget.remainingBudget < 0 ? 'negative' : ''}`}>
-                      CHF {project.budget.remainingBudget.toLocaleString('de-CH', { minimumFractionDigits: 2 })}
+                      {currency} {project.budget.remainingBudget.toLocaleString('de-CH', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>

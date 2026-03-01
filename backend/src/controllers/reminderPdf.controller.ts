@@ -30,6 +30,10 @@ export const generateReminderPdf = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Invoice not found' });
     }
 
+    // Load system settings for currency
+    const systemSettings = await prisma.systemSettings.findFirst();
+    const currency = systemSettings?.currency || 'CHF';
+
     // PDF erstellen
     const doc = new PDFDocument({ 
       size: 'A4', 
@@ -163,20 +167,20 @@ export const generateReminderPdf = async (req: Request, res: Response) => {
     // Ursprünglicher Rechnungsbetrag
     doc.fontSize(10);
     doc.text('Rechnungsbetrag', 50, currentY);
-    doc.text(`CHF ${reminder.originalAmount.toFixed(2)}`, 450, currentY, { align: 'right' });
+    doc.text(`${currency} ${reminder.originalAmount.toFixed(2)}`, 450, currentY, { align: 'right' });
     currentY += lineHeight;
 
     // Mahngebühr
     if (reminder.reminderFee > 0) {
       doc.text('Mahngebühr', 50, currentY);
-      doc.text(`CHF ${reminder.reminderFee.toFixed(2)}`, 450, currentY, { align: 'right' });
+      doc.text(`${currency} ${reminder.reminderFee.toFixed(2)}`, 450, currentY, { align: 'right' });
       currentY += lineHeight;
     }
 
     // Verzugszinsen
     if (reminder.interestAmount > 0) {
       doc.text(`Verzugszinsen (${reminder.interestRate}%)`, 50, currentY);
-      doc.text(`CHF ${reminder.interestAmount.toFixed(2)}`, 450, currentY, { align: 'right' });
+      doc.text(`${currency} ${reminder.interestAmount.toFixed(2)}`, 450, currentY, { align: 'right' });
       currentY += lineHeight;
     }
 
@@ -189,7 +193,7 @@ export const generateReminderPdf = async (req: Request, res: Response) => {
     doc.fontSize(12);
     doc.font('Helvetica-Bold');
     doc.text('Zu zahlender Gesamtbetrag:', 50, currentY);
-    doc.text(`CHF ${reminder.totalAmount.toFixed(2)}`, 450, currentY, { align: 'right' });
+    doc.text(`${currency} ${reminder.totalAmount.toFixed(2)}`, 450, currentY, { align: 'right' });
     doc.font('Helvetica');
 
     // Zahlungsinformationen

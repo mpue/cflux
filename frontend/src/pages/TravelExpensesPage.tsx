@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TravelExpense, TravelExpenseType, travelExpenseService } from '../services/travelExpense.service';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 interface TravelExpensesPageProps {
   expenses: TravelExpense[];
@@ -8,6 +9,7 @@ interface TravelExpensesPageProps {
 }
 
 export const TravelExpensesPage: React.FC<TravelExpensesPageProps> = ({ expenses, isAdmin, onUpdate }) => {
+  const { currency: systemCurrency } = useCurrency();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<TravelExpense | null>(null);
   const [filterStatus, setFilterStatus] = useState('ALL');
@@ -21,7 +23,7 @@ export const TravelExpensesPage: React.FC<TravelExpensesPageProps> = ({ expenses
     distance: '',
     vehicleType: '',
     amount: '',
-    currency: 'CHF',
+    currency: systemCurrency,
     notes: ''
   });
 
@@ -61,7 +63,7 @@ export const TravelExpensesPage: React.FC<TravelExpensesPageProps> = ({ expenses
         distance: '',
         vehicleType: '',
         amount: '',
-        currency: 'CHF',
+        currency: systemCurrency,
         notes: ''
       });
     }
@@ -198,7 +200,7 @@ export const TravelExpensesPage: React.FC<TravelExpensesPageProps> = ({ expenses
           <div>
             <div style={{ fontSize: '0.9em', color: '#666' }}>Genehmigte Kosten</div>
             <div style={{ fontSize: '1.5em', fontWeight: 'bold', color: '#0369a1' }}>
-              {totalAmount.toFixed(2)} CHF
+              {totalAmount.toFixed(2)} {systemCurrency}
             </div>
           </div>
           <div>

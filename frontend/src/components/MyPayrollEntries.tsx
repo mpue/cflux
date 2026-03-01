@@ -19,10 +19,12 @@ import {
 } from '@mui/material';
 import { PayrollEntry } from '../types';
 import PayrollEntryDetail from './admin/PayrollEntryDetail';
+import { useCurrency } from '../contexts/CurrencyContext';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 
 const MyPayrollEntries: React.FC = () => {
+  const { currency } = useCurrency();
   const [entries, setEntries] = useState<PayrollEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +54,7 @@ const MyPayrollEntries: React.FC = () => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-CH', {
       style: 'currency',
-      currency: 'CHF'
+      currency: currency
     }).format(amount);
   };
 

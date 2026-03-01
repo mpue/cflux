@@ -4,6 +4,7 @@ import orderService, { Order, OrderStatistics } from '../../services/order.servi
 import { costCenterService, CostCenter } from '../../services/costCenter.service';
 import { Supplier } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface OrdersTabProps {
   suppliers: Supplier[];
@@ -13,6 +14,7 @@ interface OrdersTabProps {
 export const OrdersTab: React.FC<OrdersTabProps> = ({ suppliers, onUpdate }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { currency } = useCurrency();
   const [orders, setOrders] = useState<Order[]>([]);
   const [statistics, setStatistics] = useState<OrderStatistics | null>(null);
   const [loading, setLoading] = useState(false);
@@ -164,7 +166,7 @@ export const OrdersTab: React.FC<OrdersTabProps> = ({ suppliers, onUpdate }) => 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('de-CH', {
       style: 'currency',
-      currency: 'CHF',
+      currency: currency,
     }).format(amount);
   };
 
@@ -467,6 +469,7 @@ const OrderModal: React.FC<{
   onClose: () => void;
   onSuccess: () => void;
 }> = ({ suppliers, onClose, onSuccess }) => {
+  const { currency } = useCurrency();
   const navigate = useNavigate();
   const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
   
@@ -707,7 +710,7 @@ const OrderModal: React.FC<{
                     />
                   </td>
                   <td style={{ textAlign: 'right', fontWeight: 'bold' }}>
-                    {(item.quantity * item.unitPrice).toFixed(2)} CHF
+                    {(item.quantity * item.unitPrice).toFixed(2)} {currency}
                   </td>
                   <td>
                     {formData.items.length > 1 && (
@@ -727,7 +730,7 @@ const OrderModal: React.FC<{
               <tr>
                 <td colSpan={5} style={{ textAlign: 'right', fontWeight: 'bold' }}>Gesamtsumme:</td>
                 <td style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '1.1em' }}>
-                  {totalAmount.toFixed(2)} CHF
+                  {totalAmount.toFixed(2)} {currency}
                 </td>
                 <td></td>
               </tr>

@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ModuleProvider, useModules } from './contexts/ModuleContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { CurrencyProvider } from './contexts/CurrencyContext';
 import ThemeToggle from './components/ThemeToggle';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -85,6 +86,7 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <CurrencyProvider>
         <ModuleProvider>
           <Router>
             <Routes>
@@ -418,6 +420,7 @@ function App() {
           </Routes>
         </Router>
       </ModuleProvider>
+        </CurrencyProvider>
     </AuthProvider>
   </ThemeProvider>
   );

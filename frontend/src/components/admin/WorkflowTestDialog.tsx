@@ -3,6 +3,7 @@ import { invoiceService } from '../../services/invoiceService';
 import { workflowService } from '../../services/workflow.service';
 import { Invoice } from '../../types';
 import './WorkflowTestDialog.css';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface WorkflowTestDialogProps {
   workflowId: string;
@@ -27,6 +28,7 @@ const WorkflowTestDialog: React.FC<WorkflowTestDialogProps> = ({
   workflowName,
   onClose,
 }) => {
+  const { currency } = useCurrency();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -134,7 +136,7 @@ const WorkflowTestDialog: React.FC<WorkflowTestDialogProps> = ({
                 <option value="">-- Rechnung auswählen --</option>
                 {invoices.map((invoice) => (
                   <option key={invoice.id} value={invoice.id}>
-                    {invoice.invoiceNumber} - {invoice.customer?.name || 'N/A'} - CHF {invoice.totalAmount}
+                    {invoice.invoiceNumber} - {invoice.customer?.name || 'N/A'} - {currency} {invoice.totalAmount}
                     {' '}({new Date(invoice.invoiceDate).toLocaleDateString('de-CH')})
                   </option>
                 ))}

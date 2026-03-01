@@ -4,6 +4,7 @@ import { BarChart, Bar, PieChart as RechartsPie, Pie, Cell, LineChart, Line, XAx
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import api from '../../services/api';
+import { useCurrency } from '../../contexts/CurrencyContext';
 import './ProjectReportsTab.css';
 
 interface ProjectOverviewData {
@@ -91,6 +92,7 @@ interface TimeTrackingResponse {
 }
 
 const ProjectReportsTab: React.FC = () => {
+  const { currency } = useCurrency();
   const [activeTab, setActiveTab] = useState<'overview' | 'time'>('overview');
   const overviewContentRef = useRef<HTMLDivElement>(null);
   const timeContentRef = useRef<HTMLDivElement>(null);
@@ -247,8 +249,8 @@ const ProjectReportsTab: React.FC = () => {
         const summaryData = [
           ['Gesamt Projekte:', `${overviewData.summary.totalProjects}`],
           ['Aktive Projekte:', `${overviewData.summary.activeProjects}`],
-          ['Gesamtbudget:', `CHF ${overviewData.summary.totalBudget.toLocaleString('de-CH')}`],
-          ['Gesamtkosten:', `CHF ${overviewData.summary.totalActualCosts.toLocaleString('de-CH')}`],
+          ['Gesamtbudget:', `${currency} ${overviewData.summary.totalBudget.toLocaleString('de-CH')}`],
+          ['Gesamtkosten:', `${currency} ${overviewData.summary.totalActualCosts.toLocaleString('de-CH')}`],
           ['Gesamt Stunden:', `${overviewData.summary.totalHours.toFixed(1)} h`],
         ];
 
@@ -386,7 +388,7 @@ const ProjectReportsTab: React.FC = () => {
         const timeSummary = [
           ['Zeitraum:', `${timeTrackingData.summary.period.from} - ${timeTrackingData.summary.period.to}`],
           ['Gesamt Stunden:', `${timeTrackingData.summary.totalHours.toFixed(1)} h`],
-          ['Gesamt Kosten:', `CHF ${timeTrackingData.summary.totalCost.toLocaleString('de-CH')}`],
+          ['Gesamt Kosten:', `${currency} ${timeTrackingData.summary.totalCost.toLocaleString('de-CH')}`],
           ['Anzahl Einträge:', `${timeTrackingData.summary.entryCount}`],
         ];
 
@@ -469,7 +471,7 @@ const ProjectReportsTab: React.FC = () => {
         pdf.rect(margin, yPosition - 4, contentWidth, 6, 'F');
         
         const colWidths = [70, 30, 40, 30];
-        const headers = [groupBy === 'user' ? 'Benutzer' : 'Zeitraum', 'Stunden', 'Kosten (CHF)', 'Einträge'];
+        const headers = [groupBy === 'user' ? 'Benutzer' : 'Zeitraum', 'Stunden', `Kosten (${currency})`, 'Einträge'];
         let xPos = margin;
         
         pdf.setFont('helvetica', 'bold');
@@ -631,7 +633,7 @@ const ProjectReportsTab: React.FC = () => {
                   </div>
                   <div className="card-content">
                     <div className="card-label">Gesamtbudget</div>
-                    <div className="card-value">CHF {overviewData.summary.totalBudget.toLocaleString('de-CH')}</div>
+                    <div className="card-value">{currency} {overviewData.summary.totalBudget.toLocaleString('de-CH')}</div>
                   </div>
                 </div>
                 <div className="summary-card">
@@ -640,7 +642,7 @@ const ProjectReportsTab: React.FC = () => {
                   </div>
                   <div className="card-content">
                     <div className="card-label">Kosten</div>
-                    <div className="card-value">CHF {overviewData.summary.totalActualCosts.toLocaleString('de-CH')}</div>
+                    <div className="card-value">{currency} {overviewData.summary.totalActualCosts.toLocaleString('de-CH')}</div>
                   </div>
                 </div>
                 <div className="summary-card">
@@ -673,7 +675,7 @@ const ProjectReportsTab: React.FC = () => {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={(entry) => `${entry.name}: CHF ${entry.value.toLocaleString('de-CH', { maximumFractionDigits: 0 })}`}
+                          label={(entry) => `${entry.name}: ${currency} ${entry.value.toLocaleString('de-CH', { maximumFractionDigits: 0 })}`}
                           outerRadius={80}
                           fill="#8884d8"
                           dataKey="value"
@@ -682,7 +684,7 @@ const ProjectReportsTab: React.FC = () => {
                             <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#8DD1E1'][index % 8]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value) => typeof value === 'number' ? `CHF ${value.toLocaleString('de-CH')}` : ''} />
+                        <Tooltip formatter={(value) => typeof value === 'number' ? `${currency} ${value.toLocaleString('de-CH')}` : ''} />
                       </RechartsPie>
                     </ResponsiveContainer>
                   </div>
@@ -705,7 +707,7 @@ const ProjectReportsTab: React.FC = () => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
                         <YAxis />
-                        <Tooltip formatter={(value) => typeof value === 'number' ? `CHF ${value.toLocaleString('de-CH')}` : ''} />
+                        <Tooltip formatter={(value) => typeof value === 'number' ? `${currency} ${value.toLocaleString('de-CH')}` : ''} />
                         <Legend />
                         <Bar dataKey="budget" fill="#82ca9d" name="Budget" />
                         <Bar dataKey="kosten" fill="#8884d8" name="Kosten" />
@@ -871,9 +873,9 @@ const ProjectReportsTab: React.FC = () => {
                              'Planung'}
                           </span>
                         </td>
-                        <td>{project.budget ? `CHF ${project.budget.totalBudget.toLocaleString('de-CH')}` : '-'}</td>
-                        <td>{project.budget ? `CHF ${project.budget.actualCosts.toLocaleString('de-CH')}` : '-'}</td>
-                        <td>{project.budget ? `CHF ${project.budget.remainingBudget.toLocaleString('de-CH')}` : '-'}</td>
+                        <td>{project.budget ? `${currency} ${project.budget.totalBudget.toLocaleString('de-CH')}` : '-'}</td>
+                        <td>{project.budget ? `${currency} ${project.budget.actualCosts.toLocaleString('de-CH')}` : '-'}</td>
+                        <td>{project.budget ? `${currency} ${project.budget.remainingBudget.toLocaleString('de-CH')}` : '-'}</td>
                         <td>
                           {project.budget ? (
                             <div className="utilization-bar">
@@ -958,8 +960,8 @@ const ProjectReportsTab: React.FC = () => {
                 {timeTrackingData.project.customer && <p>Kunde: {timeTrackingData.project.customer}</p>}
                 {timeTrackingData.project.budget && (
                   <div className="budget-info">
-                    <span>Budget: CHF {timeTrackingData.project.budget.total.toLocaleString('de-CH')}</span>
-                    <span>Kosten: CHF {timeTrackingData.project.budget.actual.toLocaleString('de-CH')}</span>
+                    <span>Budget: {currency} {timeTrackingData.project.budget.total.toLocaleString('de-CH')}</span>
+                    <span>Kosten: {currency} {timeTrackingData.project.budget.actual.toLocaleString('de-CH')}</span>
                   </div>
                 )}
               </div>
@@ -981,7 +983,7 @@ const ProjectReportsTab: React.FC = () => {
                   </div>
                   <div className="card-content">
                     <div className="card-label">Kosten</div>
-                    <div className="card-value">CHF {timeTrackingData.summary.totalCost.toLocaleString('de-CH')}</div>
+                    <div className="card-value">{currency} {timeTrackingData.summary.totalCost.toLocaleString('de-CH')}</div>
                   </div>
                 </div>
                 <div className="summary-card">
@@ -1017,7 +1019,7 @@ const ProjectReportsTab: React.FC = () => {
                         <Tooltip />
                         <Legend />
                         <Bar yAxisId="left" dataKey="stunden" fill="#8884d8" name="Stunden" />
-                        <Bar yAxisId="right" dataKey="kosten" fill="#82ca9d" name="Kosten (CHF)" />
+                        <Bar yAxisId="right" dataKey="kosten" fill="#82ca9d" name={`Kosten (${currency})`} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -1035,7 +1037,7 @@ const ProjectReportsTab: React.FC = () => {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={(entry) => entry.value > 0 ? `${entry.name}: CHF ${entry.value.toLocaleString('de-CH', { maximumFractionDigits: 0 })}` : ''}
+                          label={(entry) => entry.value > 0 ? `${entry.name}: ${currency} ${entry.value.toLocaleString('de-CH', { maximumFractionDigits: 0 })}` : ''}
                           outerRadius={80}
                           fill="#8884d8"
                           dataKey="value"
@@ -1044,7 +1046,7 @@ const ProjectReportsTab: React.FC = () => {
                             <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#8DD1E1'][index % 8]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value) => typeof value === 'number' ? `CHF ${value.toLocaleString('de-CH')}` : ''} />
+                        <Tooltip formatter={(value) => typeof value === 'number' ? `${currency} ${value.toLocaleString('de-CH')}` : ''} />
                       </RechartsPie>
                     </ResponsiveContainer>
                   </div>
@@ -1068,7 +1070,7 @@ const ProjectReportsTab: React.FC = () => {
                       <tr key={idx}>
                         <td>{row.userName || row.key}</td>
                         <td>{row.hours.toFixed(2)} h</td>
-                        <td>CHF {row.cost.toLocaleString('de-CH')}</td>
+                        <td>{currency} {row.cost.toLocaleString('de-CH')}</td>
                         <td>{row.entries}</td>
                       </tr>
                     ))}

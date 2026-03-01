@@ -1,6 +1,7 @@
 import React from 'react';
 import { InvoiceTemplateFormData } from '../types/invoiceTemplate';
 import { normalizeUploadUrl } from '../services/api';
+import { useCurrency } from '../contexts/CurrencyContext';
 import '../styles/InvoicePreview.css';
 
 interface InvoicePreviewProps {
@@ -9,6 +10,7 @@ interface InvoicePreviewProps {
 }
 
 const InvoicePreview: React.FC<InvoicePreviewProps> = ({ template, onLogoPositionChange }) => {
+  const { currency } = useCurrency();
   const [isDragging, setIsDragging] = React.useState(false);
   const [isResizing, setIsResizing] = React.useState(false);
   
@@ -257,10 +259,10 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ template, onLogoPositio
                 <td style={{ padding: '6px' }}>{item.description}</td>
                 <td style={{ textAlign: 'right', padding: '6px' }}>{item.quantity}</td>
                 <td style={{ textAlign: 'right', padding: '6px' }}>{item.unit}</td>
-                <td style={{ textAlign: 'right', padding: '6px' }}>CHF {item.unitPrice.toFixed(2)}</td>
+                <td style={{ textAlign: 'right', padding: '6px' }}>{currency} {item.unitPrice.toFixed(2)}</td>
                 <td style={{ textAlign: 'right', padding: '6px' }}>{item.vatRate}%</td>
                 <td style={{ textAlign: 'right', padding: '6px' }}>
-                  CHF {(item.quantity * item.unitPrice).toFixed(2)}
+                  {currency} {(item.quantity * item.unitPrice).toFixed(2)}
                 </td>
               </tr>
             ))}
@@ -270,20 +272,20 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ template, onLogoPositio
               <td colSpan={5} style={{ textAlign: 'right', padding: '6px', fontWeight: 'bold' }}>
                 Zwischentotal:
               </td>
-              <td style={{ textAlign: 'right', padding: '6px' }}>CHF {subtotal.toFixed(2)}</td>
+              <td style={{ textAlign: 'right', padding: '6px' }}>{currency} {subtotal.toFixed(2)}</td>
             </tr>
             <tr>
               <td colSpan={5} style={{ textAlign: 'right', padding: '6px' }}>
                 MwSt. 7.7%:
               </td>
-              <td style={{ textAlign: 'right', padding: '6px' }}>CHF {vat.toFixed(2)}</td>
+              <td style={{ textAlign: 'right', padding: '6px' }}>{currency} {vat.toFixed(2)}</td>
             </tr>
             <tr style={{ fontWeight: 'bold', backgroundColor: '#f9fafb' }}>
               <td colSpan={5} style={{ textAlign: 'right', padding: '8px', color: template.primaryColor }}>
-                Total CHF:
+                Total {currency}:
               </td>
               <td style={{ textAlign: 'right', padding: '8px', color: template.primaryColor }}>
-                CHF {total.toFixed(2)}
+                {currency} {total.toFixed(2)}
               </td>
             </tr>
           </tfoot>

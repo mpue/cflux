@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { JobFunction } from '../../types';
 import api from '../../services/api';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface JobFunctionsTabProps {
   onUpdate?: () => void;
 }
 
 const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
+  const { currency: systemCurrency } = useCurrency();
   const [jobFunctions, setJobFunctions] = useState<JobFunction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +41,7 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
     category: '',
     salaryMin: '',
     salaryMax: '',
-    salaryCurrency: 'CHF',
+    salaryCurrency: systemCurrency,
     isActive: true,
   });
 
@@ -82,7 +84,7 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
         category: jobFunction.category || '',
         salaryMin: jobFunction.salaryMin?.toString() || '',
         salaryMax: jobFunction.salaryMax?.toString() || '',
-        salaryCurrency: jobFunction.salaryCurrency || 'CHF',
+        salaryCurrency: jobFunction.salaryCurrency || systemCurrency,
         isActive: jobFunction.isActive,
       });
       setSelectedJobFunction(jobFunction);
@@ -103,7 +105,7 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
         category: '',
         salaryMin: '',
         salaryMax: '',
-        salaryCurrency: 'CHF',
+        salaryCurrency: systemCurrency,
         isActive: true,
       });
       setSelectedJobFunction(null);
@@ -243,7 +245,7 @@ const JobFunctionsTab: React.FC<JobFunctionsTabProps> = ({ onUpdate }) => {
     }
   };
 
-  const formatCurrency = (min?: number, max?: number, currency: string = 'CHF') => {
+  const formatCurrency = (min?: number, max?: number, currency: string = systemCurrency) => {
     if (!min && !max) return '-';
     if (min && max) {
       return `${min.toLocaleString('de-CH')} - ${max.toLocaleString('de-CH')} ${currency}`;
