@@ -76,6 +76,19 @@ export const timeService = {
     return response.data;
   },
 
+  createMyManualEntry: async (data: {
+    clockIn: string;
+    clockOut?: string;
+    projectId?: string;
+    storyId?: string;
+    locationId?: string;
+    description?: string;
+    pauseMinutes?: number;
+  }): Promise<TimeEntry> => {
+    const response = await api.post('/time/my-manual-entry', data);
+    return response.data;
+  },
+
   // Projektsoll-Cutting
   applyCutting: async (id: string): Promise<TimeEntry> => {
     const response = await api.post(`/time/${id}/cutting`);

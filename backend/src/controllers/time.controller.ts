@@ -989,3 +989,109 @@ export const createTimeEntry = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to create time entry' });
   }
 };
+
+/**
+ * Create a manual time entry for the current (authenticated) user.
+ * No ADMIN role required — users can only create entries for themselves.
+ */
+export const createMyManualEntry = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { clockIn, clockOut, projectId, storyId, locationId, description, pauseMinutes } = req.body;
+
+    if (!clockIn) {
+      return res.status(400).json({ error: 'clockIn is required' });
+    }
+
+    // Get employeeId from userId
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { employeeProfile: true }
+    });
+
+    if (!user?.employeeProfile) {
+      return res.status(400).json({ error: 'User does not have an employee profile' });
+    }
+
+    const employeeId = user.employeeProfile.id;
+    const clockInDate = new Date(clockIn);
+    const clockOutDate = clockOut ? new Date(clockOut) : undefined;
+
+    // Validate dates
+    if (clockOutDate && clockOutDate <= clockInDate) {
+      return res.status(400).json({ error: 'Ausstempeln muss nach Einstempeln liegen' });
+    }
+    if (clockInDate > new Date()) {
+      return res.status(400).json({ error: 'Einstempeln darf nicht in der Zukunft liegen' });
+    }
+
+    // Overlap check
+    const { overlapping, conflictEntry } = await checkOverlappingEntries(
+      employeeId, clockInDate, clockOutDate || null
+    );
+    if (overlapping) {
+      return res.status(400).json({
+        error: `Überlappender Zeiteintrag gefunden (${conflictEntry?.clockIn?.toISOString()} - ${conflictEntry?.clockOut?.toISOString() || 'aktiv'})`,
+        conflictEntryId: conflictEntry?.id
+      });
+    }
+
+    const status = clockOutDate ? 'CLOCKED_OUT' : 'CLOCKED_IN';
+
+    const timeEntry = await prisma.timeEntry.create({
+      data: {
+        employeeId,
+        projectId: projectId || undefined,
+        storyId: storyId || undefined,
+        locationId: locationId || undefined,
+        clockIn: clockInDate,
+        clockOut: clockOutDate,
+        description,
+        pauseMinutes: pauseMinutes || 0,
+        status
+      },
+      include: {
+        project: true,
+        story: true,
+        location: true,
+        employee: {
+          select: { id: true, userId: true, firstName: true, lastName: true, email: true }
+        }
+      }
+    });
+
+    // Run compliance checks if completed
+    if (clockOutDate) {
+      try {
+        await checkDailyHoursViolation(employeeId, clockInDate, clockOutDate);
+        await checkWeeklyHoursViolation(employeeId, clockInDate);
+        await checkMissingPauseViolation(employeeId, clockInDate, clockOutDate);
+        await updateOvertimeBalance(employeeId, clockInDate);
+      } catch (complianceError) {
+        console.error('[COMPLIANCE] Error during compliance checks:', complianceError);
+      }
+    }
+
+    try {
+      await actionService.triggerAction('timeentry.created', {
+        entityType: 'TIMEENTRY',
+        entityId: timeEntry.id,
+        userId,
+        employeeId,
+        targetUserId: userId,
+        startTime: clockInDate.toISOString(),
+        endTime: clockOutDate?.toISOString(),
+        projectId,
+        description,
+        manual: true
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger timeentry.created:', actionError);
+    }
+
+    res.status(201).json(timeEntry);
+  } catch (error) {
+    console.error('Create my manual entry error:', error);
+    res.status(500).json({ error: 'Failed to create manual time entry' });
+  }
+};

@@ -16,6 +16,7 @@ router.get('/current', timeController.getCurrentTimeEntry);
 router.get('/logged-in-users', timeController.getLoggedInUsers);
 router.put('/my-entries/:id', timeController.updateMyTimeEntry);
 router.delete('/my-entries/:id', timeController.deleteMyTimeEntry);
+router.post('/my-manual-entry', timeController.createMyManualEntry);
 
 // Admin time corrections
 router.post('/manual-entry', authorize('ADMIN'), timeController.createTimeEntry);

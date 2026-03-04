@@ -292,6 +292,19 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleManualEntry = async (data: {
+    clockIn: string;
+    clockOut?: string;
+    projectId?: string;
+    storyId?: string;
+    locationId?: string;
+    description?: string;
+    pauseMinutes?: number;
+  }) => {
+    await timeService.createMyManualEntry(data);
+    await loadData();
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -489,6 +502,7 @@ const Dashboard: React.FC = () => {
                       onClockOut={handleClockOut}
                       onStartPause={handleStartPause}
                       onEndPause={handleEndPause}
+                      onManualEntry={handleManualEntry}
                       onRemove={() => removeWidget(widget.id)}
                     />
                   </div>
@@ -727,6 +741,7 @@ const Dashboard: React.FC = () => {
                     onClockOut={handleClockOut}
                     onStartPause={handleStartPause}
                     onEndPause={handleEndPause}
+                    onManualEntry={handleManualEntry}
                   />
                 </div>
                 <div style={{ marginTop: '20px' }}>
