@@ -52,6 +52,7 @@ const TABLE_MAP: Record<string, string> = {
 
   // Projects
   projects: 'project',
+  stories: 'story',
   projectTasks: 'projectTask',
   taskDependencies: 'taskDependency',
   locations: 'location',
@@ -462,6 +463,9 @@ export const restoreBackup = async (req: Request, res: Response) => {
     await prisma.projectTimeAllocation.deleteMany();
     await prisma.timeEntry.deleteMany();
 
+    // Stories (depends on Project, referenced by TimeEntry)
+    await prisma.story.deleteMany();
+
     // Project Tasks
     await prisma.taskDependency.deleteMany();
     await prisma.projectTask.deleteMany();
@@ -688,7 +692,23 @@ export const restoreBackup = async (req: Request, res: Response) => {
     restoredCount += await restoreTable('projectTasks', 'projectTask', 'ProjectTasks');
     restoredCount += await restoreTable('taskDependencies', 'taskDependency', 'TaskDependencies');
 
+    // ── Phase 9b: Stories (depends on Project, needed by TimeEntry) ─
+    restoredCount += await restoreTable('stories', 'story', 'Stories');
+
     // ── Phase 10: Time Tracking ──────────────────────────────
+    // Build set of known story IDs so we can null-out orphaned storyId refs
+    // (handles backups created before stories were included)
+    const knownStoryIds = new Set(
+      (backupData.data.stories ?? []).map((s: any) => s.id)
+    );
+    const timeEntryItems = backupData.data['timeEntries'];
+    if (timeEntryItems?.length) {
+      for (const item of timeEntryItems) {
+        if (item.storyId && !knownStoryIds.has(item.storyId)) {
+          item.storyId = null;
+        }
+      }
+    }
     restoredCount += await restoreTable('timeEntries', 'timeEntry', 'TimeEntries');
     restoredCount += await restoreTable('projectTimeAllocations', 'projectTimeAllocation', 'ProjectTimeAllocations');
     restoredCount += await restoreTable('absenceRequests', 'absenceRequest', 'AbsenceRequests');
