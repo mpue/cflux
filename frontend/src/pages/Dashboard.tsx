@@ -9,8 +9,9 @@ import { reportService } from '../services/report.service';
 import { locationService } from '../services/location.service';
 import { workflowService } from '../services/workflow.service';
 import projectTimeAllocationService, { AllocationInput, ProjectTimeAllocation } from '../services/projectTimeAllocation.service';
+import { storyService } from '../services/story.service';
 import { getUnreadCount } from '../services/message.service';
-import { TimeEntry, Project, AbsenceRequest, Report, Location } from '../types';
+import { TimeEntry, Project, AbsenceRequest, Report, Location, Story } from '../types';
 import PDFReportModal from '../components/PDFReportModal';
 import MyPayrollEntries from '../components/MyPayrollEntries';
 import AppNavbar from '../components/AppNavbar';
@@ -259,16 +260,17 @@ const Dashboard: React.FC = () => {
       if (existing.length > 0) {
         setAllocations(existing.map(a => ({
           projectId: a.projectId,
+          storyId: a.storyId || '',
           hours: a.hours,
           description: a.description
         })));
       } else {
         // Initialize with one empty allocation
-        setAllocations([{ projectId: '', hours: 0, description: '' }]);
+        setAllocations([{ projectId: '', storyId: '', hours: 0, description: '' }]);
       }
     } catch (error) {
       console.error('Error loading allocations:', error);
-      setAllocations([{ projectId: '', hours: 0, description: '' }]);
+      setAllocations([{ projectId: '', storyId: '', hours: 0, description: '' }]);
     }
   };
 
@@ -316,7 +318,7 @@ const Dashboard: React.FC = () => {
   };
 
   const addAllocationRow = () => {
-    setAllocations([...allocations, { projectId: '', hours: 0, description: '' }]);
+    setAllocations([...allocations, { projectId: '', storyId: '', hours: 0, description: '' }]);
   };
 
   const removeAllocationRow = (index: number) => {
@@ -324,9 +326,11 @@ const Dashboard: React.FC = () => {
   };
 
   const updateAllocation = (index: number, field: keyof AllocationInput, value: any) => {
-    const updated = [...allocations];
-    updated[index] = { ...updated[index], [field]: value };
-    setAllocations(updated);
+    setAllocations(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
   };
 
   const formatDuration = (clockIn: string, clockOut?: string) => {
@@ -1078,6 +1082,36 @@ const AllocationModal: React.FC<{
   onSave,
   totalWorkedHours
 }) => {
+  const [storiesByProject, setStoriesByProject] = useState<Record<string, Story[]>>({});
+
+  // Load stories when a project is selected
+  const loadStoriesForProject = async (projectId: string) => {
+    if (!projectId || storiesByProject[projectId]) return;
+    try {
+      const stories = await storyService.getStoriesByProject(projectId);
+      setStoriesByProject(prev => ({ ...prev, [projectId]: stories }));
+    } catch (error) {
+      console.error('Error loading stories:', error);
+    }
+  };
+
+  // Load stories for all projects that already have allocations
+  useEffect(() => {
+    if (show) {
+      const projectIds = [...new Set(allocations.map(a => a.projectId).filter(Boolean))];
+      projectIds.forEach(pid => loadStoriesForProject(pid));
+    }
+  }, [show]);
+
+  const handleProjectChange = (index: number, projectId: string) => {
+    onUpdateAllocation(index, 'projectId', projectId);
+    // Reset story when project changes
+    onUpdateAllocation(index, 'storyId', '');
+    if (projectId) {
+      loadStoriesForProject(projectId);
+    }
+  };
+
   if (!show || !timeEntry) return null;
 
   const totalAllocated = allocations.reduce((sum, a) => sum + (a.hours || 0), 0);
@@ -1089,8 +1123,8 @@ const AllocationModal: React.FC<{
         className="modal-content" 
         onClick={(e) => e.stopPropagation()} 
         style={{ 
-          maxWidth: '1000px', 
-          width: '90%',
+          maxWidth: '1100px', 
+          width: '95%',
           padding: '30px',
           maxHeight: '90vh',
           overflowY: 'auto'
@@ -1117,61 +1151,82 @@ const AllocationModal: React.FC<{
           <thead>
             <tr>
               <th>Projekt</th>
+              <th>Story</th>
               <th>Stunden</th>
               <th>Beschreibung</th>
               <th>Aktionen</th>
             </tr>
           </thead>
           <tbody>
-            {allocations.map((alloc, index) => (
-              <tr key={index}>
-                <td style={{ padding: '12px' }}>
-                  <select
-                    value={alloc.projectId}
-                    onChange={(e) => onUpdateAllocation(index, 'projectId', e.target.value)}
-                    style={{ width: '100%', padding: '8px', fontSize: '14px' }}
-                  >
-                    <option value="">Projekt wählen...</option>
-                    {projects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
+            {allocations.map((alloc, index) => {
+              const projectStories = alloc.projectId ? (storiesByProject[alloc.projectId] || []) : [];
+              return (
+                <tr key={index}>
+                  <td style={{ padding: '12px' }}>
+                    <select
+                      value={alloc.projectId}
+                      onChange={(e) => handleProjectChange(index, e.target.value)}
+                      style={{ width: '100%', padding: '8px', fontSize: '14px' }}
+                    >
+                      <option value="">Projekt wählen...</option>
+                      {projects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <select
+                      value={alloc.storyId || ''}
+                      onChange={(e) => onUpdateAllocation(index, 'storyId', e.target.value)}
+                      style={{ width: '100%', padding: '8px', fontSize: '14px' }}
+                      disabled={!alloc.projectId || projectStories.length === 0}
+                    >
+                      <option value="">
+                        {!alloc.projectId ? '—' : projectStories.length === 0 ? 'Keine Stories' : 'Story wählen...'}
                       </option>
-                    ))}
-                  </select>
-                </td>
-                <td style={{ padding: '12px' }}>
-                  <input
-                    type="number"
-                    step="0.25"
-                    min="0"
-                    max={totalWorkedHours}
-                    value={alloc.hours || 0}
-                    onChange={(e) => onUpdateAllocation(index, 'hours', parseFloat(e.target.value) || 0)}
-                    style={{ width: '100px', padding: '8px', fontSize: '14px' }}
-                  />
-                </td>
-                <td style={{ padding: '12px' }}>
-                  <input
-                    type="text"
-                    value={alloc.description || ''}
-                    onChange={(e) => onUpdateAllocation(index, 'description', e.target.value)}
-                    placeholder="Was wurde gemacht..."
-                    style={{ width: '100%', padding: '8px', fontSize: '14px' }}
-                  />
-                </td>
-                <td style={{ padding: '12px' }}>
-                  <button
-                    type="button"
-                    className="btn btn-small btn-danger"
-                    onClick={() => onRemoveRow(index)}
-                    disabled={allocations.length === 1}
-                    style={{ fontSize: '14px', padding: '6px 12px' }}
-                  >
-                    ✕
-                  </button>
-                </td>
-              </tr>
-            ))}
+                      {projectStories.map((story) => (
+                        <option key={story.id} value={story.id}>
+                          {story.color ? `● ` : ''}{story.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <input
+                      type="number"
+                      step="0.25"
+                      min="0"
+                      max={totalWorkedHours}
+                      value={alloc.hours || 0}
+                      onChange={(e) => onUpdateAllocation(index, 'hours', parseFloat(e.target.value) || 0)}
+                      style={{ width: '100px', padding: '8px', fontSize: '14px' }}
+                    />
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <input
+                      type="text"
+                      value={alloc.description || ''}
+                      onChange={(e) => onUpdateAllocation(index, 'description', e.target.value)}
+                      placeholder="Was wurde gemacht..."
+                      style={{ width: '100%', padding: '8px', fontSize: '14px' }}
+                    />
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-small btn-danger"
+                      onClick={() => onRemoveRow(index)}
+                      disabled={allocations.length === 1}
+                      style={{ fontSize: '14px', padding: '6px 12px' }}
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 

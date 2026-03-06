@@ -4,6 +4,7 @@ export interface ProjectTimeAllocation {
   id: string;
   timeEntryId: string;
   projectId: string;
+  storyId?: string;
   hours: number;
   description?: string;
   createdAt: string;
@@ -13,10 +14,16 @@ export interface ProjectTimeAllocation {
     name: string;
     description?: string;
   };
+  story?: {
+    id: string;
+    name: string;
+    color?: string;
+  };
 }
 
 export interface AllocationInput {
   projectId: string;
+  storyId?: string;
   hours: number;
   description?: string;
 }

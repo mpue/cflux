@@ -454,6 +454,7 @@ model Story {
 
   project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   timeEntries TimeEntry[]
+  projectTimeAllocations ProjectTimeAllocation[]
 
   @@index([projectId])
   @@map("stories")
@@ -604,6 +605,7 @@ model ProjectTimeAllocation {
   id          String   @id @default(uuid())
   timeEntryId String
   projectId   String
+  storyId     String?  // Optionale Story/Tag für die Zuordnung
   hours       Float    // Stunden für dieses Projekt
   description String?  // Optionale Beschreibung der Tätigkeit
   createdAt   DateTime @default(now())
@@ -611,9 +613,11 @@ model ProjectTimeAllocation {
 
   timeEntry TimeEntry @relation(fields: [timeEntryId], references: [id], onDelete: Cascade)
   project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  story     Story?    @relation(fields: [storyId], references: [id], onDelete: SetNull)
 
   @@index([timeEntryId])
   @@index([projectId])
+  @@index([storyId])
   @@map("project_time_allocations")
 }
 

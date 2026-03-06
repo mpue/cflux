@@ -36,6 +36,13 @@ export const getAllocationsForTimeEntry = async (req: AuthRequest, res: Response
             name: true,
             description: true
           }
+        },
+        story: {
+          select: {
+            id: true,
+            name: true,
+            color: true
+          }
         }
       },
       orderBy: { createdAt: 'asc' }
@@ -125,6 +132,7 @@ export const setAllocationsForTimeEntry = async (req: AuthRequest, res: Response
         data: allocations.map((alloc: any) => ({
           timeEntryId,
           projectId: alloc.projectId,
+          storyId: alloc.storyId || null,
           hours: alloc.hours,
           description: alloc.description || null
         }))
@@ -140,6 +148,13 @@ export const setAllocationsForTimeEntry = async (req: AuthRequest, res: Response
             id: true,
             name: true,
             description: true
+          }
+        },
+        story: {
+          select: {
+            id: true,
+            name: true,
+            color: true
           }
         }
       },
