@@ -3,8 +3,64 @@ import { TimeEntry, User, Project } from '../../types';
 import { userService } from '../../services/user.service';
 import { projectService } from '../../services/project.service';
 import { timeService } from '../../services/time.service';
+import SollIstVergleichTab from './SollIstVergleichTab';
+
+type SubTab = 'entries' | 'sollIst';
 
 export const TimeEntriesTab: React.FC = () => {
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('entries');
+
+  return (
+    <div>
+      <h2>Zeiteinträge & Korrekturen</h2>
+      <div style={{
+        display: 'flex',
+        borderBottom: '2px solid #e0e0e0',
+        marginBottom: '20px',
+        marginTop: '10px',
+        gap: '0'
+      }}>
+        <button
+          onClick={() => setActiveSubTab('entries')}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            borderBottom: activeSubTab === 'entries' ? '3px solid #1976d2' : '3px solid transparent',
+            backgroundColor: activeSubTab === 'entries' ? '#e3f2fd' : 'transparent',
+            color: activeSubTab === 'entries' ? '#1976d2' : '#666',
+            fontWeight: activeSubTab === 'entries' ? 600 : 400,
+            cursor: 'pointer',
+            fontSize: '14px',
+            transition: 'all 0.2s',
+          }}
+        >
+          ⏱️ Zeiteinträge
+        </button>
+        <button
+          onClick={() => setActiveSubTab('sollIst')}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            borderBottom: activeSubTab === 'sollIst' ? '3px solid #1976d2' : '3px solid transparent',
+            backgroundColor: activeSubTab === 'sollIst' ? '#e3f2fd' : 'transparent',
+            color: activeSubTab === 'sollIst' ? '#1976d2' : '#666',
+            fontWeight: activeSubTab === 'sollIst' ? 600 : 400,
+            cursor: 'pointer',
+            fontSize: '14px',
+            transition: 'all 0.2s',
+          }}
+        >
+          📊 Soll-Ist Vergleich
+        </button>
+      </div>
+
+      {activeSubTab === 'entries' && <TimeEntriesContent />}
+      {activeSubTab === 'sollIst' && <SollIstVergleichTab />}
+    </div>
+  );
+};
+
+const TimeEntriesContent: React.FC = () => {
   const [userId, setUserId] = useState('');
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -63,8 +119,7 @@ export const TimeEntriesTab: React.FC = () => {
 
   return (
     <div>
-      <h2>Zeiteinträge & Korrekturen</h2>
-      <div style={{ display: 'flex', gap: '20px', marginTop: '20px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', gap: '20px', marginTop: '10px', marginBottom: '20px' }}>
         <div className="form-group" style={{ flex: 1, maxWidth: '400px' }}>
           <label>Benutzer auswählen</label>
           <select value={userId} onChange={(e) => setUserId(e.target.value)}>

@@ -23,5 +23,7 @@ router.post('/manual-entry', authorize('ADMIN'), timeController.createTimeEntry)
 router.put('/:id', authorize('ADMIN'), timeController.updateTimeEntry);
 router.delete('/:id', authorize('ADMIN'), timeController.deleteTimeEntry);
 router.get('/user/:userId', authorize('ADMIN'), timeController.getUserTimeEntries);
+router.get('/user/:userId/soll-ist', authorize('ADMIN'), timeController.getSollIstComparison);
+router.put('/:id/allocations', authorize('ADMIN'), timeController.updateTimeAllocations);
 
 export default router;

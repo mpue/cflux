@@ -110,4 +110,22 @@ export const timeService = {
     const response = await api.patch(`/time/${id}/zuschlag-flags`, flags);
     return response.data;
   },
+
+  // Soll-Ist Vergleich
+  getSollIstComparison: async (userId: string, startDate?: string, endDate?: string): Promise<any[]> => {
+    const response = await api.get(`/time/user/${userId}/soll-ist`, {
+      params: { startDate, endDate },
+    });
+    return response.data;
+  },
+
+  updateTimeAllocations: async (id: string, data: {
+    allocations?: { projectId: string; hours: number; description?: string }[];
+    clockIn?: string;
+    clockOut?: string;
+    pauseMinutes?: number;
+  }): Promise<any> => {
+    const response = await api.put(`/time/${id}/allocations`, data);
+    return response.data;
+  },
 };

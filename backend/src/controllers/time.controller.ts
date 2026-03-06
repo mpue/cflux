@@ -1095,3 +1095,159 @@ export const createMyManualEntry = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to create manual time entry' });
   }
 };
+
+// Soll-Ist Vergleich: Gestempelte Zeit vs. auf Projekte gebuchte Zeit
+export const getSollIstComparison = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { employeeProfile: true }
+    });
+
+    if (!user?.employeeProfile) {
+      return res.status(404).json({ error: 'User does not have an employee profile' });
+    }
+
+    const where: any = {
+      employeeId: user.employeeProfile.id,
+      status: 'CLOCKED_OUT',
+    };
+
+    if (startDate && endDate) {
+      where.clockIn = {
+        gte: new Date(startDate as string),
+        lte: new Date(endDate as string)
+      };
+    }
+
+    const entries = await prisma.timeEntry.findMany({
+      where,
+      include: {
+        project: { select: { id: true, name: true } },
+        story: { select: { id: true, name: true, projectId: true } },
+        employee: {
+          select: { id: true, firstName: true, lastName: true, email: true }
+        },
+        projectTimeAllocations: {
+          include: {
+            project: { select: { id: true, name: true } }
+          }
+        }
+      },
+      orderBy: { clockIn: 'desc' }
+    });
+
+    const result = entries.map(entry => {
+      const clockInDate = new Date(entry.clockIn);
+      const clockOutDate = entry.clockOut ? new Date(entry.clockOut) : null;
+      const totalMinutes = clockOutDate
+        ? (clockOutDate.getTime() - clockInDate.getTime()) / (1000 * 60)
+        : 0;
+      const pauseMin = entry.pauseMinutes || 0;
+      const netMinutes = totalMinutes - pauseMin;
+      const stamped = parseFloat((netMinutes / 60).toFixed(2));
+
+      const bookedHours = entry.projectTimeAllocations.reduce(
+        (sum: number, a: any) => sum + a.hours, 0
+      );
+      const booked = parseFloat(bookedHours.toFixed(2));
+      const diff = parseFloat((stamped - booked).toFixed(2));
+
+      return {
+        id: entry.id,
+        date: entry.clockIn,
+        clockIn: entry.clockIn,
+        clockOut: entry.clockOut,
+        pauseMinutes: entry.pauseMinutes,
+        stampedHours: stamped,
+        bookedHours: booked,
+        difference: diff,
+        projectId: entry.projectId,
+        projectName: entry.project?.name || null,
+        storyId: entry.storyId,
+        storyName: entry.story?.name || null,
+        description: entry.description,
+        employee: entry.employee,
+        allocations: entry.projectTimeAllocations.map((a: any) => ({
+          id: a.id,
+          projectId: a.projectId,
+          projectName: a.project?.name || '',
+          hours: a.hours,
+          description: a.description
+        }))
+      };
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('Get Soll-Ist comparison error:', error);
+    res.status(500).json({ error: 'Failed to get Soll-Ist comparison' });
+  }
+};
+
+// Update Projekt-Zeitbuchungen (Allocations) für einen Zeiteintrag
+export const updateTimeAllocations = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { allocations, clockIn, clockOut, pauseMinutes } = req.body;
+
+    const entry = await prisma.timeEntry.findUnique({ where: { id } });
+    if (!entry) {
+      return res.status(404).json({ error: 'Time entry not found' });
+    }
+
+    // Update time entry fields if provided
+    const updateData: any = {};
+    if (clockIn !== undefined) updateData.clockIn = new Date(clockIn);
+    if (clockOut !== undefined) updateData.clockOut = new Date(clockOut);
+    if (pauseMinutes !== undefined) updateData.pauseMinutes = pauseMinutes;
+
+    if (Object.keys(updateData).length > 0) {
+      await prisma.timeEntry.update({
+        where: { id },
+        data: updateData
+      });
+    }
+
+    // Replace allocations if provided
+    if (allocations && Array.isArray(allocations)) {
+      await prisma.projectTimeAllocation.deleteMany({
+        where: { timeEntryId: id }
+      });
+
+      if (allocations.length > 0) {
+        await prisma.projectTimeAllocation.createMany({
+          data: allocations.map((a: { projectId: string; hours: number; description?: string }) => ({
+            timeEntryId: id,
+            projectId: a.projectId,
+            hours: a.hours,
+            description: a.description || null
+          }))
+        });
+      }
+    }
+
+    // Re-fetch the updated entry
+    const updated = await prisma.timeEntry.findUnique({
+      where: { id },
+      include: {
+        project: { select: { id: true, name: true } },
+        story: { select: { id: true, name: true, projectId: true } },
+        employee: {
+          select: { id: true, firstName: true, lastName: true, email: true }
+        },
+        projectTimeAllocations: {
+          include: { project: { select: { id: true, name: true } } }
+        }
+      }
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Update time allocations error:', error);
+    res.status(500).json({ error: 'Failed to update time allocations' });
+  }
+};
