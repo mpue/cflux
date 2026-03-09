@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cflux – Testfeedback</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --dark:    #0D2233;
+    --teal:    #028090;
+    --mint:    #02C39A;
+    --white:   #ffffff;
+    --off:     #F4F8F9;
+    --gray:    #64748B;
+    --light:   #E2E8F0;
+    --red:     #C0392B;
+    --orange:  #E67E22;
+    --green:   #27AE60;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--off);
+    color: var(--dark);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .page {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  header {
+    background: var(--dark);
+    border-radius: 12px 12px 0 0;
+    padding: 2rem 2rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--teal), var(--mint));
+  }
+
+  .logo {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--mint);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  header h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--white);
+    line-height: 1.2;
+  }
+
+  header p {
+    margin-top: 0.4rem;
+    font-size: 0.9rem;
+    color: #94a3b8;
+  }
+
+  .body {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 4px 24px rgba(13,34,51,0.08);
+  }
+
+  .section {
+    margin-bottom: 2rem;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 1rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--light);
+  }
+
+  .field {
+    margin-bottom: 1.2rem;
+  }
+
+  label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--dark);
+    margin-bottom: 0.35rem;
+  }
+
+  label .req {
+    color: var(--teal);
+    margin-left: 2px;
+  }
+
+  label .hint {
+    font-weight: 400;
+    color: var(--gray);
+    font-size: 0.8rem;
+    margin-left: 0.3rem;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  select,
+  textarea {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1.5px solid var(--light);
+    border-radius: 7px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    color: var(--dark);
+    background: var(--off);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(2,128,144,0.12);
+    background: var(--white);
+  }
+
+  textarea { resize: vertical; min-height: 90px; }
+
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  /* Testfall-Picker */
+  .tf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+  }
+
+  .tf-btn {
+    padding: 0.4rem 0.3rem;
+    border: 1.5px solid var(--light);
+    border-radius: 6px;
+    background: var(--off);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--gray);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.12s;
+    user-select: none;
+  }
+  .tf-btn:hover { border-color: var(--teal); color: var(--teal); }
+  .tf-btn.selected {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: var(--white);
+    font-weight: 500;
+  }
+
+  /* Severity */
+  .severity-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+    flex-wrap: wrap;
+  }
+  .sev-btn {
+    padding: 0.45rem 1rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--light);
+    background: var(--off);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s;
+    color: var(--gray);
+  }
+  .sev-btn:hover { opacity: 0.85; }
+  .sev-btn.sel-kritisch  { background: var(--red);    border-color: var(--red);    color: #fff; }
+  .sev-btn.sel-mittel    { background: var(--orange);  border-color: var(--orange);  color: #fff; }
+  .sev-btn.sel-gering    { background: var(--green);   border-color: var(--green);   color: #fff; }
+  .sev-btn.sel-lob       { background: var(--teal);    border-color: var(--teal);    color: #fff; }
+
+  /* Rating */
+  .stars {
+    display: flex;
+    gap: 0.3rem;
+    margin-top: 0.35rem;
+  }
+  .star {
+    font-size: 1.6rem;
+    cursor: pointer;
+    color: var(--light);
+    transition: color 0.1s, transform 0.1s;
+    line-height: 1;
+  }
+  .star:hover, .star.active { color: #F59E0B; }
+  .star:hover { transform: scale(1.15); }
+
+  .submit-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--light);
+  }
+
+  button[type="submit"] {
+    background: linear-gradient(135deg, var(--teal), var(--mint));
+    color: var(--white);
+    border: none;
+    padding: 0.8rem 2rem;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.01em;
+  }
+  button[type="submit"]:hover { opacity: 0.9; transform: translateY(-1px); }
+  button[type="submit"]:active { transform: translateY(0); }
+
+  .submit-note {
+    font-size: 0.8rem;
+    color: var(--gray);
+    line-height: 1.4;
+  }
+
+  .notice {
+    background: #EFF9F7;
+    border: 1px solid #A7E3D8;
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    font-size: 0.85rem;
+    color: #0D5C4A;
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+  }
+  .notice-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+  @media (max-width: 500px) {
+    .row-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="logo">cflux · Testphase 2026</div>
+    <h1>Testfeedback einreichen</h1>
+    <p>Zeiterfassung · LOTOTO-Team</p>
+  </header>
+
+  <div class="body">
+
+    <div class="notice">
+      <span class="notice-icon">ℹ️</span>
+      <span>Bitte für jeden Fehler oder jedes Feedback ein <strong>eigenes Formular</strong> absenden. Beim Klick auf „Absenden" öffnet sich dein E-Mail-Programm mit dem ausgefüllten Bericht.</span>
+    </div>
+
+    <!-- Tester -->
+    <div class="section">
+      <div class="section-label">01 · Tester</div>
+      <div class="row-2">
+        <div class="field">
+          <label>Name <span class="req">*</span></label>
+          <input type="text" id="name" placeholder="Max Muster" required>
+        </div>
+        <div class="field">
+          <label>Datum <span class="req">*</span></label>
+          <input type="text" id="datum" placeholder="TT.MM.JJJJ">
+        </div>
+      </div>
+    </div>
+
+    <!-- Testfall -->
+    <div class="section">
+      <div class="section-label">02 · Testfall</div>
+      <div class="field">
+        <label>Welchen Testfall hast du durchgeführt? <span class="req">*</span><span class="hint">(mehrere möglich)</span></label>
+        <div class="tf-grid" id="tfGrid"></div>
+        <input type="hidden" id="tfSelected">
+      </div>
+    </div>
+
+    <!-- Was passiert -->
+    <div class="section">
+      <div class="section-label">03 · Beschreibung</div>
+      <div class="field">
+        <label>Was habe ich getan? <span class="req">*</span></label>
+        <textarea id="getan" placeholder="z.B. Neuen Zeiteintrag angelegt mit Startzeit 08:00 und Endzeit 12:00, dann auf Speichern geklickt."></textarea>
+      </div>
+      <div class="field">
+        <label>Was ist passiert? <span class="req">*</span></label>
+        <textarea id="passiert" placeholder="z.B. Eintrag erscheint nicht in der Übersicht. Seite bleibt leer."></textarea>
+      </div>
+      <div class="field">
+        <label>Was hätte passieren sollen?</label>
+        <textarea id="sollen" placeholder="z.B. Eintrag sollte sofort in der Liste erscheinen mit korrekter Stundenzahl."></textarea>
+      </div>
+    </div>
+
+    <!-- Schweregrad -->
+    <div class="section">
+      <div class="section-label">04 · Einschätzung</div>
+      <div class="field">
+        <label>Schweregrad <span class="req">*</span></label>
+        <div class="severity-row">
+          <div class="sev-btn" data-sev="Kritisch" onclick="selectSev(this)">🔴 Kritisch</div>
+          <div class="sev-btn" data-sev="Mittel"   onclick="selectSev(this)">🟠 Mittel</div>
+          <div class="sev-btn" data-sev="Gering"   onclick="selectSev(this)">🟢 Gering</div>
+          <div class="sev-btn" data-sev="Lob / positives Feedback" onclick="selectSev(this)">💙 Lob</div>
+        </div>
+        <input type="hidden" id="schweregrad">
+      </div>
+      <div class="field">
+        <label>Gesamteindruck <span class="hint">(1 = schlecht, 5 = sehr gut)</span></label>
+        <div class="stars" id="stars">
+          <span class="star" data-v="1" onclick="selectStar(1)">★</span>
+          <span class="star" data-v="2" onclick="selectStar(2)">★</span>
+          <span class="star" data-v="3" onclick="selectStar(3)">★</span>
+          <span class="star" data-v="4" onclick="selectStar(4)">★</span>
+          <span class="star" data-v="5" onclick="selectStar(5)">★</span>
+        </div>
+        <input type="hidden" id="rating">
+      </div>
+      <div class="field">
+        <label>Sonstiges / Screenshot-Hinweis</label>
+        <textarea id="sonstiges" placeholder="Optionale Anmerkungen. Screenshots bitte als Anhang zur E-Mail hinzufügen."></textarea>
+      </div>
+    </div>
+
+    <div class="submit-bar">
+      <button type="submit" onclick="absenden()">Absenden →</button>
+      <span class="submit-note">Öffnet dein E-Mail-Programm<br>mit dem ausgefüllten Bericht.</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Testfälle
+  const tfs = Array.from({length: 19}, (_, i) => `TF-${String(i+1).padStart(2,'0')}`);
+  const grid = document.getElementById('tfGrid');
+  const selected = new Set();
+
+  tfs.forEach(tf => {
+    const btn = document.createElement('div');
+    btn.className = 'tf-btn';
+    btn.textContent = tf;
+    btn.onclick = () => {
+      if (selected.has(tf)) { selected.delete(tf); btn.classList.remove('selected'); }
+      else { selected.add(tf); btn.classList.add('selected'); }
+      document.getElementById('tfSelected').value = [...selected].join(', ');
+    };
+    grid.appendChild(btn);
+  });
+
+  // Datum auto
+  const today = new Date();
+  document.getElementById('datum').value =
+    String(today.getDate()).padStart(2,'0') + '.' +
+    String(today.getMonth()+1).padStart(2,'0') + '.' +
+    today.getFullYear();
+
+  // Schweregrad
+  let sevVal = '';
+  function selectSev(el) {
+    document.querySelectorAll('.sev-btn').forEach(b => {
+      b.className = 'sev-btn';
+    });
+    sevVal = el.dataset.sev;
+    el.classList.add('sel-' + sevVal.split(' ')[0].toLowerCase());
+    document.getElementById('schweregrad').value = sevVal;
+  }
+
+  // Stars
+  let starVal = 0;
+  function selectStar(v) {
+    starVal = v;
+    document.getElementById('rating').value = v;
+    document.querySelectorAll('.star').forEach(s => {
+      s.classList.toggle('active', parseInt(s.dataset.v) <= v);
+    });
+  }
+
+  // Absenden
+  function absenden() {
+    const name      = document.getElementById('name').value.trim();
+    const datum     = document.getElementById('datum').value.trim();
+    const tf        = document.getElementById('tfSelected').value.trim();
+    const getan     = document.getElementById('getan').value.trim();
+    const passiert  = document.getElementById('passiert').value.trim();
+    const sollen    = document.getElementById('sollen').value.trim();
+    const schwere   = document.getElementById('schweregrad').value;
+    const rating    = document.getElementById('rating').value;
+    const sonstiges = document.getElementById('sonstiges').value.trim();
+
+    if (!name || !getan || !passiert || !schwere || !tf) {
+      alert('Bitte fülle alle Pflichtfelder aus (Name, Testfall, Beschreibung, Schweregrad).');
+      return;
+    }
+
+    const betreff = encodeURIComponent(`[cflux Test] ${schwere} · ${tf} · ${name}`);
+
+    const body = encodeURIComponent(
+`cflux Testbericht
+=================
+Tester:      ${name}
+Datum:       ${datum}
+Testfall(e): ${tf}
+Schweregrad: ${schwere}
+Bewertung:   ${rating ? rating + '/5' : 'nicht angegeben'}
+
+WAS HABE ICH GETAN?
+${getan}
+
+WAS IST PASSIERT?
+${passiert}
+
+WAS HÄTTE PASSIEREN SOLLEN?
+${sollen || '(nicht ausgefüllt)'}
+
+SONSTIGES / HINWEISE
+${sonstiges || '(keine)'}
+
+---
+Gesendet via cflux Testformular`
+    );
+
+    // E-Mail-Adresse hier eintragen
+    const empfaenger = 'matthias.pueski@aquist.ch';
+    window.location.href = `mailto:${empfaenger}?subject=${betreff}&body=${body}`;
+  }
+</script>
+</body>
+</html>

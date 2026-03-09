@@ -2,10 +2,12 @@ import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import fs from 'fs';
+import AdmZip from 'adm-zip';
 
 const prisma = new PrismaClient();
 
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(__dirname, '../../backups');
+const UPLOADS_DIR = path.join(__dirname, '../../uploads');
 
 // Ensure backup directory exists
 if (!fs.existsSync(BACKUP_DIR)) {
@@ -241,15 +243,47 @@ export const createBackup = async (req: Request, res: Response) => {
       }
     };
 
-    fs.writeFileSync(filepath, JSON.stringify(backup, null, 2), 'utf-8');
+    // Write JSON first
+    const jsonContent = JSON.stringify(backup, null, 2);
+    fs.writeFileSync(filepath, jsonContent, 'utf-8');
 
-    console.log(`✅ Backup created: ${filename} (${TABLE_COUNT} tables)`);
+    // Create ZIP archive with JSON + uploaded files
+    const zipFilename = `backup_${timestamp}.zip`;
+    const zipFilepath = path.join(BACKUP_DIR, zipFilename);
+    const zip = new AdmZip();
+
+    // Add the JSON backup
+    zip.addFile('backup.json', Buffer.from(jsonContent, 'utf-8'));
+
+    // Add all uploaded files (avatars, documents, course thumbnails, etc.)
+    if (fs.existsSync(UPLOADS_DIR)) {
+      const addDirToZip = (dirPath: string, zipPath: string) => {
+        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dirPath, entry.name);
+          const entryZipPath = path.join(zipPath, entry.name);
+          if (entry.isDirectory()) {
+            addDirToZip(fullPath, entryZipPath);
+          } else if (entry.isFile()) {
+            zip.addLocalFile(fullPath, path.dirname(entryZipPath));
+          }
+        }
+      };
+      addDirToZip(UPLOADS_DIR, 'uploads');
+    }
+
+    zip.writeZip(zipFilepath);
+
+    // Remove the standalone JSON (the ZIP contains it)
+    fs.unlinkSync(filepath);
+
+    console.log(`✅ Backup created: ${zipFilename} (${TABLE_COUNT} tables + uploaded files)`);
 
     res.json({
       message: 'Backup created successfully',
-      filename,
+      filename: zipFilename,
       timestamp: new Date().toISOString(),
-      size: fs.statSync(filepath).size,
+      size: fs.statSync(zipFilepath).size,
       statistics: backup.statistics
     });
   } catch (error: any) {
@@ -264,7 +298,7 @@ export const createBackup = async (req: Request, res: Response) => {
 export const listBackups = async (req: Request, res: Response) => {
   try {
     const files = fs.readdirSync(BACKUP_DIR)
-      .filter(file => file.endsWith('.json') || file.endsWith('.sql'))
+      .filter(file => file.endsWith('.json') || file.endsWith('.sql') || file.endsWith('.zip'))
       .map(file => {
         const fp = path.join(BACKUP_DIR, file);
         const stats = fs.statSync(fp);
@@ -333,7 +367,20 @@ export const restoreBackup = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Backup file not found' });
     }
 
-    const backupData = JSON.parse(fs.readFileSync(filepath, 'utf-8'));
+    let backupData: any;
+    let zipRef: AdmZip | null = null;
+
+    if (filename.endsWith('.zip')) {
+      // Extract JSON from ZIP
+      zipRef = new AdmZip(filepath);
+      const jsonEntry = zipRef.getEntry('backup.json');
+      if (!jsonEntry) {
+        return res.status(400).json({ error: 'ZIP does not contain backup.json' });
+      }
+      backupData = JSON.parse(zipRef.readAsText(jsonEntry));
+    } else {
+      backupData = JSON.parse(fs.readFileSync(filepath, 'utf-8'));
+    }
 
     console.log('🔄 Starting database restore...');
     console.log(`📦 Backup version: ${backupData.version}`);
@@ -878,11 +925,40 @@ export const restoreBackup = async (req: Request, res: Response) => {
     restoredCount += await restoreTable('newsSources', 'newsSource', 'NewsSources');
     restoredCount += await restoreTable('newsItems', 'newsItem', 'NewsItems');
 
-    console.log(`✅ Restore completed! Total records restored: ${restoredCount}`);
+    // ── Restore uploaded files from ZIP ───────────────────
+    let filesRestored = 0;
+    if (zipRef) {
+      console.log('📂 Restoring uploaded files from ZIP...');
+      const zipEntries = zipRef.getEntries();
+      for (const entry of zipEntries) {
+        if (entry.entryName.startsWith('uploads/') && !entry.isDirectory) {
+          // Strip leading 'uploads/' and place relative to UPLOADS_DIR
+          const relativePath = entry.entryName.substring('uploads/'.length);
+          const targetPath = path.join(UPLOADS_DIR, relativePath);
+          // Security: ensure target is within UPLOADS_DIR
+          const resolvedTarget = path.resolve(targetPath);
+          const resolvedUploads = path.resolve(UPLOADS_DIR);
+          if (!resolvedTarget.startsWith(resolvedUploads + path.sep)) {
+            console.warn(`  ⚠ Skipping suspicious path: ${entry.entryName}`);
+            continue;
+          }
+          const targetDir = path.dirname(targetPath);
+          if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
+          }
+          fs.writeFileSync(targetPath, entry.getData());
+          filesRestored++;
+        }
+      }
+      console.log(`  ✓ Files restored: ${filesRestored}`);
+    }
+
+    console.log(`✅ Restore completed! Total records restored: ${restoredCount}, files restored: ${filesRestored}`);
 
     res.json({
       message: 'Backup restored successfully',
       restoredRecords: restoredCount,
+      filesRestored,
       backupVersion: backupData.version,
       backupTimestamp: backupData.timestamp
     });
@@ -902,7 +978,8 @@ export const uploadBackup = async (req: Request, res: Response) => {
     }
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const extension = req.file.originalname.endsWith('.json') ? 'json' : 'sql';
+    const origName = req.file.originalname.toLowerCase();
+    const extension = origName.endsWith('.json') ? 'json' : origName.endsWith('.zip') ? 'zip' : 'sql';
     const filename = `uploaded_backup_${timestamp}.${extension}`;
     const filepath = path.join(BACKUP_DIR, filename);
 

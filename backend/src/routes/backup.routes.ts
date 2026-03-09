@@ -18,16 +18,19 @@ const router = Router();
 const upload = multer({
   dest: path.join(__dirname, '../../uploads'),
   limits: {
-    fileSize: 100 * 1024 * 1024 // 100MB limit
+    fileSize: 500 * 1024 * 1024 // 500MB limit (ZIP with uploads can be large)
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'application/json' || 
         file.mimetype === 'application/sql' || 
+        file.mimetype === 'application/zip' ||
+        file.mimetype === 'application/x-zip-compressed' ||
         file.originalname.endsWith('.json') || 
-        file.originalname.endsWith('.sql')) {
+        file.originalname.endsWith('.sql') ||
+        file.originalname.endsWith('.zip')) {
       cb(null, true);
     } else {
-      cb(new Error('Only .sql and .json files are allowed'));
+      cb(new Error('Only .sql, .json and .zip files are allowed'));
     }
   }
 });
