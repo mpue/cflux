@@ -54,7 +54,7 @@ export const getMyProjects = async (req: AuthRequest, res: Response) => {
 
 export const createProject = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description, status, customerId, defaultHourlyRate } = req.body;
+    const { name, description, status, customerId, defaultHourlyRate, sollBeginn, sollEnde, sollPauseDauer, sollArbeitszeit, cuttingAktiv, cuttingTolerance } = req.body;
 
     const project = await prisma.project.create({
       data: {
@@ -62,7 +62,13 @@ export const createProject = async (req: AuthRequest, res: Response) => {
         description,
         status: status || 'PLANNING',
         customerId: customerId || null,
-        defaultHourlyRate: defaultHourlyRate ? parseFloat(defaultHourlyRate) : null
+        defaultHourlyRate: defaultHourlyRate ? parseFloat(defaultHourlyRate) : null,
+        sollBeginn: sollBeginn || null,
+        sollEnde: sollEnde || null,
+        sollPauseDauer: sollPauseDauer !== undefined && sollPauseDauer !== '' ? parseInt(sollPauseDauer.toString()) : 60,
+        sollArbeitszeit: sollArbeitszeit !== undefined && sollArbeitszeit !== '' ? parseFloat(sollArbeitszeit.toString()) : null,
+        cuttingAktiv: cuttingAktiv !== undefined ? cuttingAktiv : true,
+        cuttingTolerance: cuttingTolerance !== undefined && cuttingTolerance !== '' ? parseFloat(cuttingTolerance.toString()) : 0,
       }
     });
 
@@ -76,7 +82,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
 export const updateProject = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, isActive, status, customerId, defaultHourlyRate, startDate, endDate, progress } = req.body;
+    const { name, description, isActive, status, customerId, defaultHourlyRate, startDate, endDate, progress, sollBeginn, sollEnde, sollPauseDauer, sollArbeitszeit, cuttingAktiv, cuttingTolerance } = req.body;
 
     const updateData: any = {};
     
@@ -89,6 +95,12 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
     if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
     if (progress !== undefined) updateData.progress = progress !== null ? parseInt(progress.toString()) : 0;
+    if (sollBeginn !== undefined) updateData.sollBeginn = sollBeginn || null;
+    if (sollEnde !== undefined) updateData.sollEnde = sollEnde || null;
+    if (sollPauseDauer !== undefined) updateData.sollPauseDauer = sollPauseDauer !== '' ? parseInt(sollPauseDauer.toString()) : 60;
+    if (sollArbeitszeit !== undefined) updateData.sollArbeitszeit = sollArbeitszeit !== '' ? parseFloat(sollArbeitszeit.toString()) : null;
+    if (cuttingAktiv !== undefined) updateData.cuttingAktiv = cuttingAktiv;
+    if (cuttingTolerance !== undefined) updateData.cuttingTolerance = cuttingTolerance !== '' ? parseFloat(cuttingTolerance.toString()) : 0;
 
     const project = await prisma.project.update({
       where: { id },

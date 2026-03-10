@@ -166,6 +166,67 @@ export const rejectAbsenceRequest = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const createManualAbsence = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId, type, startDate, endDate, days, reason, status } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const reviewerId = req.user!.id;
+    const finalStatus = status || 'APPROVED';
+
+    const absenceRequest = await prisma.absenceRequest.create({
+      data: {
+        userId,
+        type,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        days,
+        reason,
+        status: finalStatus,
+        reviewedBy: finalStatus !== 'PENDING' ? reviewerId : undefined,
+        reviewedAt: finalStatus !== 'PENDING' ? new Date() : undefined,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    // Update vacation days if approved vacation
+    if (finalStatus === 'APPROVED' && type === 'VACATION') {
+      const targetUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { employeeProfile: { select: { id: true } } }
+      });
+      if (targetUser?.employeeProfile?.id) {
+        await prisma.employee.update({
+          where: { id: targetUser.employeeProfile.id },
+          data: { vacationDays: { decrement: days } }
+        });
+      }
+    }
+
+    res.status(201).json(absenceRequest);
+  } catch (error) {
+    console.error('Create manual absence error:', error);
+    res.status(500).json({ error: 'Failed to create manual absence' });
+  }
+};
+
 export const deleteAbsenceRequest = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;

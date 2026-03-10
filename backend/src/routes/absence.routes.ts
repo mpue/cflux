@@ -12,6 +12,7 @@ router.get('/my-requests', absenceController.getMyAbsenceRequests);
 
 // Admin absence management
 router.get('/', authorize('ADMIN'), absenceController.getAllAbsenceRequests);
+router.post('/manual', authorize('ADMIN'), absenceController.createManualAbsence);
 router.put('/:id/approve', authorize('ADMIN'), absenceController.approveAbsenceRequest);
 router.put('/:id/reject', authorize('ADMIN'), absenceController.rejectAbsenceRequest);
 router.delete('/:id', authorize('ADMIN'), absenceController.deleteAbsenceRequest);
