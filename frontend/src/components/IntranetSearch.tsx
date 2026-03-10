@@ -118,7 +118,7 @@ const IntranetSearch: React.FC<IntranetSearchProps> = ({ onResultClick }) => {
         {/* Search Input */}
         <TextField
           fullWidth
-          placeholder="Durchsuche Intranet, Dokumente, Anhänge..."
+          placeholder="Durchsuche Dokumente, Anhänge..."
           value={searchQuery}
           onChange={handleSearchChange}
           InputProps={{

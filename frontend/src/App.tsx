@@ -26,7 +26,6 @@ import { TravelExpensesPageWrapper } from './pages/TravelExpensesPageWrapper';
 import MessagesPage from './pages/MessagesPage';
 import MessageDetail from './pages/MessageDetail';
 import ComposeMessage from './pages/ComposeMessage';
-import IntranetPage from './pages/Intranet/IntranetPage';
 import { MediaPageWrapper } from './pages/MediaPageWrapper';
 import OrdersPage from './pages/OrdersPage';
 import CostCentersPage from './pages/CostCentersPage';
@@ -251,9 +250,7 @@ function App() {
             <Route
               path="/intranet"
               element={
-                <PrivateRoute>
-                  <IntranetPage />
-                </PrivateRoute>
+                <Navigate to="/admin?tab=dokumente" replace />
               }
             />
             <Route

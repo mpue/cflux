@@ -187,11 +187,11 @@ function seedModules() {
                             sortOrder: 15,
                         },
                         {
-                            name: 'Intranet',
+                            name: 'Dokumente',
                             key: 'intranet',
-                            description: 'Intranet und Wissensdatenbank',
+                            description: 'Dokumentenverwaltung und Wissensdatenbank',
                             icon: 'folder_shared',
-                            route: '/intranet',
+                            route: '/admin?tab=dokumente',
                             sortOrder: 16,
                         },
                         {

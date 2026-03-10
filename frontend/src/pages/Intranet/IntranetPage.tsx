@@ -55,9 +55,11 @@ import IntranetSearch from '../../components/IntranetSearch';
 import DocumentApprovalPanel from '../../components/intranet/DocumentApprovalPanel';
 import DraggableTreeNode from '../../components/DraggableTreeNode';
 
-interface IntranetPageProps { }
+interface IntranetPageProps {
+  embedded?: boolean;
+}
 
-const IntranetPage: React.FC<IntranetPageProps> = () => {
+const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
   const { user, logout } = useAuth();
   const { canEdit } = useModules();
   const navigate = useNavigate();
@@ -544,11 +546,13 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
   if (loading) {
     return (
       <>
-        <AppNavbar
-          title="Intranet"
-          currentTime={currentTime}
-          onLogout={handleLogout}
-        />
+        {!embedded && (
+          <AppNavbar
+            title="Dokumente"
+            currentTime={currentTime}
+            onLogout={handleLogout}
+          />
+        )}
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
           <CircularProgress />
         </Box>
@@ -558,12 +562,14 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
 
   return (
     <>
-      <AppNavbar
-        title="Intranet"
-        currentTime={currentTime}
-        onLogout={handleLogout}
-      />
-      <Box sx={{ p: 2, pb: 0, height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+      {!embedded && (
+        <AppNavbar
+          title="Dokumente"
+          currentTime={currentTime}
+          onLogout={handleLogout}
+        />
+      )}
+      <Box sx={{ p: embedded ? 0 : 2, pb: 0, height: embedded ? 'calc(100vh - 200px)' : 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
         {/* Modern Toolbar */}
         <Paper
           elevation={0}
@@ -580,7 +586,7 @@ const IntranetPage: React.FC<IntranetPageProps> = () => {
           }}
         >
           <Typography variant="h5" sx={{ fontWeight: 500, color: 'text.primary' }}>
-            Intranet
+            Dokumente
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             {canEditIntranet && (

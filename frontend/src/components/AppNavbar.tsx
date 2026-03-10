@@ -108,7 +108,7 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
       'time_tracking', 'absences', 'projects', 'invoices',
       'customers', 'suppliers', 'orders', 'articles',
       'inventory', 'devices', 'cost_centers', 'reminders',
-      'zeitmodelle', 'incidents', 'media', 'intranet', 'checklists'
+      'zeitmodelle', 'incidents', 'media', 'intranet', 'checklists', 'dokumente'
     ];
     
     return modules.some(module => 
@@ -281,9 +281,9 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
             </MenuItem>
           )}
           {hasModuleAccess('intranet') && (
-            <MenuItem onClick={() => navigateTo('/intranet')}>
+            <MenuItem onClick={() => navigateTo('/admin?tab=dokumente')}>
               <IntranetIcon sx={{ mr: 1 }} />
-              Intranet
+              Dokumente
             </MenuItem>
           )}
           {hasModuleAccess('media') && (
