@@ -159,8 +159,14 @@ const Dashboard: React.FC = () => {
     
     const workHours = workMinutes / 60;
     const entryId = currentEntry.id;
-    const totalPause = currentEntry.pauseMinutes || 0;
+    // Total pause = already accumulated pause minutes + any currently running pause
+    let totalPause = currentEntry.pauseMinutes || 0;
+    if (currentEntry.pauseStartedAt) {
+      const pauseStart = new Date(currentEntry.pauseStartedAt);
+      totalPause += Math.floor((new Date().getTime() - pauseStart.getTime()) / (1000 * 60));
+    }
 
+    // Don't show reminders if user has already taken sufficient pause
     if (workHours >= 5.5 && totalPause < 15 && !pauseCheckDone.has(`${entryId}-5.5`)) {
       setPauseReminderMessage('Du hast jetzt 5,5 Stunden gearbeitet. Bitte mache eine 15-minütige Pause! 🕒');
       setShowPauseReminderModal(true);
