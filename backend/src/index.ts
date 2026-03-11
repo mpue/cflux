@@ -1,7 +1,9 @@
 import express from 'express';
 import cors from 'cors';
+import http from 'http';
 import dotenv from 'dotenv';
 import path from 'path';
+import { initSocketServer } from './websocket/socketServer';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import userGroupRoutes from './routes/userGroup.routes';
@@ -52,7 +54,11 @@ import checklistRoutes from './routes/checklist.routes';
 import newsRoutes from './routes/news.routes';
 import departmentRoutes from './routes/department.routes';
 import storyRoutes from './routes/story.routes';
+import chatRoutes from './routes/chat.routes';
+import notificationRoutes from './routes/notification.routes';
+import scheduledTaskRoutes from './routes/scheduledTask.routes';
 import { errorHandler } from './middleware/errorHandler';
+import { initScheduler } from './services/scheduler.service';
 
 dotenv.config();
 
@@ -141,6 +147,9 @@ app.use('/api/checklists', checklistRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/stories', storyRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/scheduled-tasks', scheduledTaskRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -150,6 +159,15 @@ app.get('/health', (req, res) => {
 // Error handling
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+// Create HTTP server and attach Socket.IO
+const server = http.createServer(app);
+initSocketServer(server, allowedOrigins);
+
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Initialize scheduler after server is listening
+  initScheduler().catch((err) => {
+    console.error('[SCHEDULER] Failed to initialize scheduler:', err);
+  });
 });

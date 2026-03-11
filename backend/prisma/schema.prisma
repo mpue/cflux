@@ -69,6 +69,18 @@ enum MessageFolder {
   TRASH
 }
 
+enum ChatRoomType {
+  DIRECT    // 1:1 Chat
+  GROUP     // Gruppenchat
+}
+
+enum NotificationType {
+  CHAT_MESSAGE
+  MESSAGE         // Normale Nachricht (bestehend)
+  WORKFLOW
+  SYSTEM
+}
+
 enum DocumentContentType {
   MARKDOWN
   HTML
@@ -185,6 +197,16 @@ model User {
   supervisorId    String?
   supervisor      User?   @relation("UserSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
   subordinates    User[]  @relation("UserSupervisor")
+  
+  // Chat
+  chatRoomMemberships ChatRoomMember[]
+  chatMessagesSent    ChatMessage[] @relation("ChatMessagesSent")
+  
+  // Notifications
+  notifications       Notification[]
+  
+  // Scheduled Tasks
+  scheduledTasksCreated ScheduledTask[] @relation("ScheduledTaskCreator")
   
   @@index([userGroupId])
   @@index([jobFunctionId])
@@ -585,6 +607,9 @@ model TimeEntry {
   zuschlagFeiertag Boolean  @default(true)  // Feiertagszuschlag berechtigt
   zuschlagSamstag  Boolean  @default(true)  // Samstagszuschlag berechtigt
   zuschlagGrund    String?                  // Grund wenn nicht berechtigt
+
+  // Auto Clock-Out
+  autoClockOut Boolean  @default(false)  // Wurde automatisch ausgestempelt
 
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
@@ -3460,4 +3485,122 @@ model Department {
   employees   Employee[]
 
   @@map("departments")
+}
+
+// ===== CHAT SYSTEM =====
+
+model ChatRoom {
+  id          String       @id @default(uuid())
+  name        String?      // null for direct chats, name for group chats
+  type        ChatRoomType @default(DIRECT)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  members     ChatRoomMember[]
+  messages    ChatMessage[]
+
+  @@map("chat_rooms")
+}
+
+model ChatRoomMember {
+  id         String   @id @default(uuid())
+  roomId     String
+  userId     String
+  joinedAt   DateTime @default(now())
+  lastReadAt DateTime @default(now())
+
+  room       ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([userId])
+  @@index([roomId])
+  @@map("chat_room_members")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  roomId    String
+  senderId  String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  room      ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender    User     @relation("ChatMessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+  @@index([senderId])
+  @@map("chat_messages")
+}
+
+// ===== NOTIFICATION SYSTEM =====
+
+model Notification {
+  id         String           @id @default(uuid())
+  userId     String
+  type       NotificationType
+  title      String
+  body       String           @db.Text
+  isRead     Boolean          @default(false)
+  readAt     DateTime?
+  linkUrl    String?          // e.g. /messages/123 or /chat/room-id
+  createdAt  DateTime         @default(now())
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+// ===== SCHEDULED TASKS (Geplante Aufgaben) =====
+
+enum ScheduledTaskStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  FAILED
+}
+
+model ScheduledTask {
+  id            String              @id @default(uuid())
+  name          String              // z.B. "Auto Clock-Out"
+  description   String?
+  taskType      String              // z.B. "AUTO_CLOCK_OUT", "CLEANUP", etc.
+  cronExpression String             // Cron-Ausdruck, z.B. "0 18 * * *"
+  status        ScheduledTaskStatus @default(ACTIVE)
+  isSystemTask  Boolean             @default(false) // System-Tasks können nicht gelöscht werden
+  config        Json?               // Zusätzliche Konfiguration als JSON
+  lastRunAt     DateTime?
+  lastRunStatus String?             // "SUCCESS", "FAILED", "SKIPPED"
+  lastRunMessage String?
+  nextRunAt     DateTime?
+  runCount      Int                 @default(0)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  createdById   String?
+
+  createdBy     User?               @relation("ScheduledTaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  executions    ScheduledTaskExecution[]
+
+  @@index([taskType])
+  @@index([status])
+  @@map("scheduled_tasks")
+}
+
+model ScheduledTaskExecution {
+  id            String   @id @default(uuid())
+  taskId        String
+  startedAt     DateTime @default(now())
+  completedAt   DateTime?
+  status        String   // "SUCCESS", "FAILED", "RUNNING"
+  message       String?
+  details       Json?    // Detaillierte Ausführungsinformationen
+  affectedCount Int      @default(0) // Anzahl betroffener Datensätze
+
+  task          ScheduledTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, startedAt])
+  @@map("scheduled_task_executions")
 }

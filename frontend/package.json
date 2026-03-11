@@ -45,6 +45,7 @@
     "react-scripts": "^5.0.1",
     "reactflow": "^11.11.4",
     "recharts": "^3.6.0",
+    "socket.io-client": "^4.8.3",
     "turndown": "^7.1.2",
     "typescript": "^4.9.5"
   },

@@ -43,6 +43,8 @@ services:
       NODE_ENV: "${NODE_ENV}"
       CORS_ORIGIN: "${CORS_ORIGIN}"
       FRONTEND_URL: "${FRONTEND_URL}"
+      AUTO_CLOCK_OUT_ENABLED: "${AUTO_CLOCK_OUT_ENABLED:-true}"
+      AUTO_CLOCK_OUT_TIME: "${AUTO_CLOCK_OUT_TIME:-18:00}"
     depends_on:
       db:
         condition: service_healthy

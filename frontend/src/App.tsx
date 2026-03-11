@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ModuleProvider, useModules } from './contexts/ModuleContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { CurrencyProvider } from './contexts/CurrencyContext';
+import { SocketProvider } from './contexts/SocketContext';
 import ThemeToggle from './components/ThemeToggle';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -49,6 +50,7 @@ import ChecklistInstanceDetailPage from './pages/ChecklistInstanceDetailPage';
 import ChecklistTemplateFormPage from './pages/ChecklistTemplateFormPage';
 import ChecklistInstanceFormPage from './pages/ChecklistInstanceFormPage';
 import NewsManagement from './pages/NewsManagement';
+import ChatPage from './pages/ChatPage';
 import './App.css';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; allowModuleAccess?: boolean }> = ({ 
@@ -87,6 +89,7 @@ function App() {
       <AuthProvider>
         <CurrencyProvider>
         <ModuleProvider>
+          <SocketProvider>
           <Router>
             <Routes>
               {/* Public Routes */}
@@ -411,11 +414,28 @@ function App() {
                 </PrivateRoute>
               }
             />
+            <Route
+              path="/chat"
+              element={
+                <PrivateRoute>
+                  <ChatPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/chat/:roomId"
+              element={
+                <PrivateRoute>
+                  <ChatPage />
+                </PrivateRoute>
+              }
+            />
             {/* Root Route - Landing Page */}
             <Route path="/" element={<LandingPage />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Router>
+          </SocketProvider>
       </ModuleProvider>
         </CurrencyProvider>
     </AuthProvider>

@@ -3,7 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useModules } from '../contexts/ModuleContext';
 import { useTheme as useCustomTheme } from '../contexts/ThemeContext';
+import { useSocket } from '../contexts/SocketContext';
 import { getUnreadCount } from '../services/message.service';
+import { getUnreadChatCount } from '../services/chat.service';
+import NotificationCenter from './NotificationCenter';
 import {
   AppBar,
   Toolbar,
@@ -23,6 +26,7 @@ import {
 import {
   Notifications as NotificationsIcon,
   Message as MessageIcon,
+  Chat as ChatBubbleIcon,
   AttachMoney as MoneyIcon,
   Warning as IncidentIcon,
   MenuBook as IntranetIcon,
@@ -60,19 +64,36 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
   const { user, logout } = useAuth();
   const { modules, hasModuleAccess } = useModules();
   const { theme, toggleTheme } = useCustomTheme();
+  const { socket } = useSocket();
   const navigate = useNavigate();
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
+  const [unreadChatCount, setUnreadChatCount] = useState<number>(0);
   const [displayTime, setDisplayTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [moreMenuAnchor, setMoreMenuAnchor] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
     loadUnreadCount();
+    loadUnreadChatCount();
     const timer = setInterval(() => {
       setDisplayTime(new Date().toLocaleTimeString('de-DE'));
     }, 1000);
-    return () => clearInterval(timer);
+    // Polling only as fallback - 60s interval
+    const unreadTimer = setInterval(() => {
+      loadUnreadCount();
+      loadUnreadChatCount();
+    }, 60000);
+    return () => { clearInterval(timer); clearInterval(unreadTimer); };
   }, []);
+
+  // Refresh counts on real-time events
+  useEffect(() => {
+    if (!socket) return;
+    const refresh = () => { loadUnreadCount(); loadUnreadChatCount(); };
+    socket.on('chat:message', refresh);
+    socket.on('notification:new', refresh);
+    return () => { socket.off('chat:message', refresh); socket.off('notification:new', refresh); };
+  }, [socket]);
 
   const loadUnreadCount = async () => {
     try {
@@ -80,6 +101,15 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
       setUnreadMessagesCount(count);
     } catch (error) {
       console.error('Error loading unread count:', error);
+    }
+  };
+
+  const loadUnreadChatCount = async () => {
+    try {
+      const count = await getUnreadChatCount();
+      setUnreadChatCount(count);
+    } catch (error) {
+      console.error('Error loading chat unread count:', error);
     }
   };
 
@@ -200,9 +230,15 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
         )}
 
         {hasModuleAccess('workflow') && (
-          <Tooltip title="Genehmigungen">
-            <IconButton color="inherit" onClick={() => navigateTo('/my-approvals')} size={isMobile ? 'small' : 'medium'}>
-              <NotificationsIcon fontSize={isMobile ? 'small' : 'medium'} />
+          <NotificationCenter />
+        )}
+
+        {hasModuleAccess('chat') && (
+          <Tooltip title="Chat">
+            <IconButton color="inherit" onClick={() => navigateTo('/chat')} size={isMobile ? 'small' : 'medium'}>
+              <Badge badgeContent={unreadChatCount} color="error">
+                <ChatBubbleIcon fontSize={isMobile ? 'small' : 'medium'} />
+              </Badge>
             </IconButton>
           </Tooltip>
         )}
@@ -260,6 +296,12 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
             <MenuItem onClick={() => navigateTo('/travel-expenses')}>
               <MoneyIcon sx={{ mr: 1 }} />
               Reisekosten
+            </MenuItem>
+          )}
+          {hasModuleAccess('chat') && (
+            <MenuItem onClick={() => navigateTo('/chat')}>
+              <ChatBubbleIcon sx={{ mr: 1 }} />
+              Chat
             </MenuItem>
           )}
           {hasModuleAccess('incidents') && (

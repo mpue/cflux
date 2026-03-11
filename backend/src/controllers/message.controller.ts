@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { PrismaClient } from '@prisma/client';
+import { notifyNewMessage } from '../services/notification.service';
 
 const prisma = new PrismaClient();
 
@@ -189,6 +190,13 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
     });
 
     console.log(`[MESSAGE] User ${userId} sent message to ${receiverId}: ${subject}`);
+
+    // Send browser notification
+    const senderName = `${message.sender?.firstName} ${message.sender?.lastName}`;
+    notifyNewMessage(receiverId, senderName, subject, message.id).catch(err =>
+      console.error('[MESSAGE] Notification error:', err)
+    );
+
     res.status(201).json(message);
   } catch (error) {
     console.error('Error sending message:', error);

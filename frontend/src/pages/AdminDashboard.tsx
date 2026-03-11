@@ -62,6 +62,7 @@ import ProjectBudgetTab from '../components/tabs/ProjectBudgetTab';
 import ProjectReportsTab from '../components/tabs/ProjectReportsTab';
 import ProjectPlanningTab from '../components/tabs/ProjectPlanningTab';
 import SystemSettingsTab from '../components/admin/SystemSettingsTab';
+import ScheduledTasksTab from '../components/admin/ScheduledTasksTab';
 import ModulesPage from './ModulesPage';
 import ModulePermissionsPage from './ModulePermissionsPage';
 import PayrollManagement from './PayrollManagement';
@@ -69,7 +70,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'scheduledTasks';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -191,7 +192,8 @@ const AdminDashboard: React.FC = () => {
       jobFunctions: 'Funktionen',
       checklists: 'Checklisten',
       news: 'News',
-      dokumente: 'Dokumente'
+      dokumente: 'Dokumente',
+      scheduledTasks: 'Geplante Aufgaben'
     };
     return titles[tab] || tab;
   };
@@ -800,7 +802,7 @@ const AdminDashboard: React.FC = () => {
 
             {/* System & Konfiguration */}
             {(() => {
-              const groupCheck = shouldShowGroup('System Konfiguration', ['Workflows', 'Module', 'Berechtigungen', 'Einstellungen', 'E-Learning', 'Onboarding', 'Funktionen', 'Checklisten', 'News', 'Dokumente', 'Backup']);
+              const groupCheck = shouldShowGroup('System Konfiguration', ['Workflows', 'Module', 'Berechtigungen', 'Einstellungen', 'Geplante Aufgaben', 'E-Learning', 'Onboarding', 'Funktionen', 'Checklisten', 'News', 'Dokumente', 'Backup']);
               return groupCheck.show && (
             <div className="tab-group">
               <div 
@@ -854,6 +856,13 @@ const AdminDashboard: React.FC = () => {
                       active={activeTab === 'settings'}
                       onClick={() => changeTab('settings')}
                       label="⚙️ Einstellungen"
+                    />
+                  )}
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Geplante Aufgaben')) && (
+                    <TabButton
+                      active={activeTab === 'scheduledTasks'}
+                      onClick={() => changeTab('scheduledTasks')}
+                      label="⏰ Geplante Aufgaben"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('elearning')) && (groupCheck.showAll || matchesSearch('E-Learning')) && (
@@ -966,6 +975,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'workflowActions' && <WorkflowActionsTab />}
             {activeTab === 'systemLogs' && <SystemLogsTab />}
             {activeTab === 'settings' && <SystemSettingsTab />}
+            {activeTab === 'scheduledTasks' && <ScheduledTasksTab />}
             {activeTab === 'payroll' && <PayrollManagement />}
             {activeTab === 'zeitmodelle' && <ZeitmodelleVerwaltung />}
             {activeTab === 'dokumente' && <IntranetPage embedded />}

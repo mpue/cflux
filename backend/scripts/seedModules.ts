@@ -305,6 +305,38 @@ async function seedModules() {
       route: '/admin?tab=holidays',
       sortOrder: 35,
     },
+    {
+      name: 'Chat',
+      key: 'chat',
+      description: 'Echtzeit-Chat mit Kollegen',
+      icon: 'chat',
+      route: '/chat',
+      sortOrder: 36,
+    },
+    {
+      name: 'Nachrichten',
+      key: 'messages',
+      description: 'Internes Nachrichtensystem',
+      icon: 'mail',
+      route: '/messages',
+      sortOrder: 37,
+    },
+    {
+      name: 'Genehmigungen',
+      key: 'workflow',
+      description: 'Genehmigungen und Workflow-Aufgaben',
+      icon: 'approval',
+      route: '/my-approvals',
+      sortOrder: 38,
+    },
+    {
+      name: 'Geplante Aufgaben',
+      key: 'scheduled_tasks',
+      description: 'Automatisierte Aufgaben und Cron-Jobs verwalten',
+      icon: 'schedule_send',
+      route: '/admin?tab=scheduledTasks',
+      sortOrder: 39,
+    },
   ];
 
   for (const module of modules) {
