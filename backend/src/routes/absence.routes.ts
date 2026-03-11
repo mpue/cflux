@@ -9,6 +9,8 @@ router.use(authenticate);
 // User absence requests
 router.post('/', absenceController.createAbsenceRequest);
 router.get('/my-requests', absenceController.getMyAbsenceRequests);
+router.put('/my-requests/:id', absenceController.updateMyAbsenceRequest);
+router.delete('/my-requests/:id', absenceController.deleteMyAbsenceRequest);
 
 // Admin absence management
 router.get('/', authorize('ADMIN'), absenceController.getAllAbsenceRequests);

@@ -378,7 +378,7 @@ export const getUserTimeEntries = async (req: AuthRequest, res: Response) => {
 export const updateMyTimeEntry = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { clockIn, clockOut, projectId, storyId, description } = req.body;
+    const { clockIn, clockOut, projectId, storyId, description, status, pauseMinutes } = req.body;
     const userId = req.user!.id;
     const employeeId = await getEmployeeId(userId);
 
@@ -393,7 +393,49 @@ export const updateMyTimeEntry = async (req: AuthRequest, res: Response) => {
 
     // Allow project and description updates for active entries
     // Only restrict clockIn/clockOut changes for active entries
-    if (existingEntry.status === 'CLOCKED_IN') {
+    if (existingEntry.status === 'CLOCKED_IN' || existingEntry.status === 'ON_PAUSE') {
+      // Check if this is a missed clock-out from a previous day
+      const entryDate = new Date(existingEntry.clockIn).toDateString();
+      const today = new Date().toDateString();
+      const isMissedClockOut = entryDate !== today && clockOut && status === 'CLOCKED_OUT';
+
+      if (isMissedClockOut) {
+        // Allow retroactive clock-out for missed entries from previous days
+        const timeEntry = await prisma.timeEntry.update({
+          where: { id },
+          data: {
+            clockOut: new Date(clockOut),
+            status: 'CLOCKED_OUT',
+            pauseMinutes: pauseMinutes || 0,
+          },
+          include: {
+            project: true,
+            story: true,
+            location: true,
+            employee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            }
+          }
+        });
+
+        // Run compliance checks for the retroactive clock-out
+        try {
+          await checkDailyHoursViolation(employeeId, existingEntry.clockIn, new Date(clockOut));
+          await checkMissingPauseViolation(employeeId, existingEntry.clockIn, new Date(clockOut));
+          await checkWeeklyHoursViolation(employeeId, new Date(clockOut));
+          await updateOvertimeBalance(employeeId, new Date(clockOut));
+        } catch (complianceError) {
+          console.error('[COMPLIANCE] Error during retroactive clock-out compliance check:', complianceError);
+        }
+
+        return res.json(timeEntry);
+      }
+
       if (clockIn || clockOut) {
         return res.status(400).json({ error: 'Cannot edit clock times for active entry. Clock out first.' });
       }
@@ -430,7 +472,8 @@ export const updateMyTimeEntry = async (req: AuthRequest, res: Response) => {
         clockOut: clockOut ? new Date(clockOut) : undefined,
         projectId: projectId === null ? null : projectId,
         storyId: storyId === null ? null : storyId,
-        description
+        description,
+        pauseMinutes: pauseMinutes !== undefined ? pauseMinutes : undefined,
       },
       include: {
         project: true,

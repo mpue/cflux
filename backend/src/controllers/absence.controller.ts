@@ -239,3 +239,65 @@ export const deleteAbsenceRequest = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Failed to delete absence request' });
   }
 };
+
+export const updateMyAbsenceRequest = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+    const { type, startDate, endDate, days, reason } = req.body;
+
+    const existing = await prisma.absenceRequest.findFirst({
+      where: { id, userId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Absence request not found or access denied' });
+    }
+
+    if (existing.status !== 'PENDING') {
+      return res.status(400).json({ error: 'Only pending requests can be edited' });
+    }
+
+    const updated = await prisma.absenceRequest.update({
+      where: { id },
+      data: {
+        type,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        days,
+        reason,
+      },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Update my absence request error:', error);
+    res.status(500).json({ error: 'Failed to update absence request' });
+  }
+};
+
+export const deleteMyAbsenceRequest = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+
+    const existing = await prisma.absenceRequest.findFirst({
+      where: { id, userId }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Absence request not found or access denied' });
+    }
+
+    if (existing.status !== 'PENDING') {
+      return res.status(400).json({ error: 'Only pending requests can be deleted' });
+    }
+
+    await prisma.absenceRequest.delete({ where: { id } });
+
+    res.json({ message: 'Absence request deleted successfully' });
+  } catch (error) {
+    console.error('Delete my absence request error:', error);
+    res.status(500).json({ error: 'Failed to delete absence request' });
+  }
+};

@@ -70,6 +70,7 @@ const Dashboard: React.FC = () => {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [report, setReport] = useState<Report | null>(null);
   const [showAbsenceModal, setShowAbsenceModal] = useState(false);
+  const [editingAbsence, setEditingAbsence] = useState<AbsenceRequest | null>(null);
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [showPauseReminderModal, setShowPauseReminderModal] = useState(false);
   const [pauseReminderMessage, setPauseReminderMessage] = useState<string>('');
@@ -86,6 +87,8 @@ const Dashboard: React.FC = () => {
   const [allocations, setAllocations] = useState<AllocationInput[]>([]);
   const [existingAllocations, setExistingAllocations] = useState<ProjectTimeAllocation[]>([]);
   const [loggedInUsers, setLoggedInUsers] = useState<any[]>([]);
+  const [showMissedClockOutModal, setShowMissedClockOutModal] = useState(false);
+  const [missedClockOutEntry, setMissedClockOutEntry] = useState<TimeEntry | null>(null);
 
   useEffect(() => {
     document.title = 'CFlux - Dashboard';
@@ -197,6 +200,17 @@ const Dashboard: React.FC = () => {
       const approvals = results[6].status === 'fulfilled' ? results[6].value : [];
       const unreadCount = results[7].status === 'fulfilled' ? results[7].value : 0;
 
+      // Detect missed clock-out from a previous day
+      if (current && (current.status === 'CLOCKED_IN' || current.status === 'ON_PAUSE')) {
+        const clockInDate = new Date(current.clockIn);
+        const today = new Date();
+        const isFromPreviousDay = clockInDate.toDateString() !== today.toDateString() && clockInDate < today;
+        if (isFromPreviousDay) {
+          setMissedClockOutEntry(current);
+          setShowMissedClockOutModal(true);
+        }
+      }
+
       setCurrentEntry(current);
       setProjects(projectsData);
       setLocations(locationsData);
@@ -255,6 +269,22 @@ const Dashboard: React.FC = () => {
       await loadData();
     } catch (error: any) {
       alert(error.response?.data?.error || 'Einstempeln fehlgeschlagen');
+    }
+  };
+
+  const handleMissedClockOut = async (clockOutTime: string, pauseMins: number) => {
+    if (!missedClockOutEntry) return;
+    try {
+      await timeService.updateMyTimeEntry(missedClockOutEntry.id, {
+        clockOut: clockOutTime,
+        status: 'CLOCKED_OUT',
+        pauseMinutes: pauseMins,
+      } as any);
+      setShowMissedClockOutModal(false);
+      setMissedClockOutEntry(null);
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Nachtragen der Ausstempelung');
     }
   };
 
@@ -425,12 +455,34 @@ const Dashboard: React.FC = () => {
 
   const handleSubmitAbsence = async (formData: any) => {
     try {
-      await absenceService.createAbsenceRequest(formData);
-      setShowAbsenceModal(false);
-      await loadData();
-      alert('Abwesenheitsantrag erfolgreich erstellt');
+      if (editingAbsence) {
+        await absenceService.updateMyAbsenceRequest(editingAbsence.id, formData);
+        setEditingAbsence(null);
+        setShowAbsenceModal(false);
+        await loadData();
+        alert('Abwesenheitsantrag erfolgreich aktualisiert');
+      } else {
+        await absenceService.createAbsenceRequest(formData);
+        setShowAbsenceModal(false);
+        await loadData();
+        alert('Abwesenheitsantrag erfolgreich erstellt');
+      }
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Fehler beim Erstellen des Antrags');
+      alert(error.response?.data?.error || 'Fehler beim Speichern des Antrags');
+    }
+  };
+
+  const handleEditAbsence = (request: AbsenceRequest) => {
+    setEditingAbsence(request);
+    setShowAbsenceModal(true);
+  };
+
+  const handleDeleteAbsence = async (id: string) => {
+    try {
+      await absenceService.deleteMyAbsenceRequest(id);
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Löschen des Antrags');
     }
   };
 
@@ -546,7 +598,9 @@ const Dashboard: React.FC = () => {
                   <div key={widget.id}>
                     <AbsenceRequestsWidget
                       absenceRequests={absenceRequests}
-                      onNewRequest={() => setShowAbsenceModal(true)}
+                      onNewRequest={() => { setEditingAbsence(null); setShowAbsenceModal(true); }}
+                      onEditRequest={handleEditAbsence}
+                      onDeleteRequest={handleDeleteAbsence}
                       onRemove={() => removeWidget(widget.id)}
                     />
                   </div>
@@ -753,7 +807,9 @@ const Dashboard: React.FC = () => {
                 <div style={{ marginTop: '20px' }}>
                   <AbsenceRequestsWidget
                     absenceRequests={absenceRequests}
-                    onNewRequest={() => setShowAbsenceModal(true)}
+                    onNewRequest={() => { setEditingAbsence(null); setShowAbsenceModal(true); }}
+                    onEditRequest={handleEditAbsence}
+                    onDeleteRequest={handleDeleteAbsence}
                   />
                 </div>
                 <div style={{ marginTop: '20px' }}>
@@ -806,8 +862,9 @@ const Dashboard: React.FC = () => {
 
       {showAbsenceModal && (
         <AbsenceModal
-          onClose={() => setShowAbsenceModal(false)}
+          onClose={() => { setShowAbsenceModal(false); setEditingAbsence(null); }}
           onSubmit={handleSubmitAbsence}
+          editingRequest={editingAbsence}
         />
       )}
 
@@ -817,6 +874,17 @@ const Dashboard: React.FC = () => {
           onConfirm={confirmClockOut}
           pauseMinutes={pauseMinutes}
           setPauseMinutes={setPauseMinutes}
+        />
+      )}
+
+      {showMissedClockOutModal && missedClockOutEntry && (
+        <MissedClockOutModal
+          entry={missedClockOutEntry}
+          onClose={() => {
+            setShowMissedClockOutModal(false);
+            setMissedClockOutEntry(null);
+          }}
+          onConfirm={handleMissedClockOut}
         />
       )}
 
@@ -914,6 +982,110 @@ const PauseReminderModal: React.FC<{
               style={{ flex: '1' }}
             >
               Später
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MissedClockOutModal: React.FC<{
+  entry: TimeEntry;
+  onClose: () => void;
+  onConfirm: (clockOutTime: string, pauseMinutes: number) => Promise<void>;
+}> = ({ entry, onClose, onConfirm }) => {
+  const clockInDate = new Date(entry.clockIn);
+  const defaultClockOut = new Date(clockInDate);
+  defaultClockOut.setHours(17, 0, 0, 0);
+
+  const [clockOutTime, setClockOutTime] = useState(defaultClockOut.toTimeString().slice(0, 5));
+  const [pauseMins, setPauseMins] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  const handleSubmit = async () => {
+    setSaving(true);
+    try {
+      const [hours, minutes] = clockOutTime.split(':');
+      const newClockOut = new Date(clockInDate);
+      newClockOut.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      // If clock-out time is before clock-in time, assume next day
+      if (newClockOut <= clockInDate) {
+        newClockOut.setDate(newClockOut.getDate() + 1);
+      }
+      await onConfirm(newClockOut.toISOString(), pauseMins);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+        <h2>⚠️ Vergessenes Ausstempeln</h2>
+
+        <div style={{ padding: '10px 0 20px 0' }}>
+          <div style={{
+            background: '#fff3cd',
+            border: '1px solid #ffc107',
+            padding: '15px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px',
+          }}>
+            <p style={{ margin: 0 }}>
+              Du hast dich am <strong>{clockInDate.toLocaleDateString('de-DE')}</strong> um{' '}
+              <strong>{clockInDate.toLocaleTimeString('de-DE')}</strong> eingestempelt, 
+              aber nicht mehr ausgestempelt.
+              {entry.project && <> (Projekt: <strong>{entry.project.name}</strong>)</>}
+            </p>
+          </div>
+
+          <p style={{ marginBottom: '20px', fontSize: '14px' }}>
+            Bitte trage deine Ausstempelzeit für den {clockInDate.toLocaleDateString('de-DE')} nach:
+          </p>
+
+          <div className="form-group">
+            <label>Ausstempelzeit</label>
+            <input
+              type="time"
+              value={clockOutTime}
+              onChange={(e) => setClockOutTime(e.target.value)}
+              style={{ fontSize: '16px', padding: '8px' }}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Pausenzeit (Minuten, optional)</label>
+            <input
+              type="number"
+              min="0"
+              max="999"
+              value={pauseMins}
+              onChange={(e) => setPauseMins(parseInt(e.target.value) || 0)}
+              placeholder="z.B. 30"
+            />
+          </div>
+
+          <div className="modal-actions" style={{ marginTop: '20px' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Später
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleSubmit}
+              disabled={saving}
+            >
+              {saving ? 'Speichern...' : 'Ausstempelung nachtragen'}
             </button>
           </div>
         </div>
@@ -1028,13 +1200,14 @@ const PauseModal: React.FC<{
 const AbsenceModal: React.FC<{
   onClose: () => void;
   onSubmit: (data: any) => Promise<void>;
-}> = ({ onClose, onSubmit }) => {
+  editingRequest?: AbsenceRequest | null;
+}> = ({ onClose, onSubmit, editingRequest }) => {
   const [formData, setFormData] = useState({
-    type: 'VACATION',
-    startDate: '',
-    endDate: '',
-    days: 1,
-    reason: '',
+    type: editingRequest?.type || 'VACATION',
+    startDate: editingRequest ? new Date(editingRequest.startDate).toISOString().slice(0, 10) : '',
+    endDate: editingRequest ? new Date(editingRequest.endDate).toISOString().slice(0, 10) : '',
+    days: editingRequest?.days || 1,
+    reason: editingRequest?.reason || '',
   });
 
   useEffect(() => {
@@ -1055,19 +1228,20 @@ const AbsenceModal: React.FC<{
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Abwesenheitsantrag erstellen</h2>
+        <h2>{editingRequest ? 'Abwesenheitsantrag bearbeiten' : 'Abwesenheitsantrag erstellen'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Typ</label>
             <select
               value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value as AbsenceRequest['type'] })}
               required
             >
               <option value="VACATION">Urlaub</option>
               <option value="SICK_LEAVE">Krankheit</option>
               <option value="PERSONAL_LEAVE">Persönlich</option>
               <option value="UNPAID_LEAVE">Unbezahlt</option>
+              <option value="OVERTIME_REDUCTION">Überstundenabbau</option>
               <option value="OTHER">Sonstiges</option>
             </select>
           </div>
@@ -1117,7 +1291,7 @@ const AbsenceModal: React.FC<{
               Abbrechen
             </button>
             <button type="submit" className="btn btn-primary">
-              Antrag stellen
+              {editingRequest ? 'Änderungen speichern' : 'Antrag stellen'}
             </button>
           </div>
         </form>

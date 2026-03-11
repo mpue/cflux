@@ -316,7 +316,7 @@ export interface TimeEntry {
 export interface AbsenceRequest {
   id: string;
   userId: string;
-  type: 'VACATION' | 'SICK_LEAVE' | 'PERSONAL_LEAVE' | 'UNPAID_LEAVE' | 'OTHER';
+  type: 'VACATION' | 'SICK_LEAVE' | 'PERSONAL_LEAVE' | 'UNPAID_LEAVE' | 'OVERTIME_REDUCTION' | 'OTHER';
   startDate: string;
   endDate: string;
   days: number;

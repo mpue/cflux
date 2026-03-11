@@ -18,6 +18,21 @@ export const absenceService = {
     return response.data;
   },
 
+  updateMyAbsenceRequest: async (id: string, data: {
+    type: string;
+    startDate: string;
+    endDate: string;
+    days: number;
+    reason?: string;
+  }): Promise<AbsenceRequest> => {
+    const response = await api.put(`/absences/my-requests/${id}`, data);
+    return response.data;
+  },
+
+  deleteMyAbsenceRequest: async (id: string): Promise<void> => {
+    await api.delete(`/absences/my-requests/${id}`);
+  },
+
   getAllAbsenceRequests: async (status?: string): Promise<AbsenceRequest[]> => {
     const response = await api.get('/absences', { params: { status } });
     return response.data;
