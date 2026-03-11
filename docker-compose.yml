@@ -41,8 +41,6 @@ services:
       JWT_EXPIRES_IN: "${JWT_EXPIRES_IN}"
       PORT: ${PORT}
       NODE_ENV: "${NODE_ENV}"
-      CORS_ORIGIN: "${CORS_ORIGIN}"
-      FRONTEND_URL: "${FRONTEND_URL}"
     depends_on:
       db:
         condition: service_healthy

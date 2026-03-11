@@ -12,7 +12,7 @@ export const projectService = {
     return response.data;
   },
 
-  createProject: async (data: { name: string; description?: string }): Promise<Project> => {
+  createProject: async (data: Partial<Project> & { name: string }): Promise<Project> => {
     const response = await api.post('/projects', data);
     return response.data;
   },

@@ -517,6 +517,7 @@ const Dashboard: React.FC = () => {
                     <LoggedUsersWidget 
                       loggedInUsers={loggedInUsers}
                       onRemove={() => removeWidget(widget.id)}
+                      isAdmin={user?.role === 'ADMIN'}
                     />
                   </div>
                 );
@@ -725,7 +726,7 @@ const Dashboard: React.FC = () => {
 
             {activeTab === 'timetracking' && (
               <div>
-                <LoggedUsersWidget loggedInUsers={loggedInUsers} />
+                <LoggedUsersWidget loggedInUsers={loggedInUsers} isAdmin={user?.role === 'ADMIN'} />
                 <div style={{ marginTop: '20px' }}>
                   <TimeTrackingWidget
                     currentEntry={currentEntry}

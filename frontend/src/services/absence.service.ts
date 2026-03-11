@@ -36,4 +36,17 @@ export const absenceService = {
   deleteAbsenceRequest: async (id: string): Promise<void> => {
     await api.delete(`/absences/${id}`);
   },
+
+  createManualAbsence: async (data: {
+    userId: string;
+    type: string;
+    startDate: string;
+    endDate: string;
+    days: number;
+    reason?: string;
+    status?: string;
+  }): Promise<AbsenceRequest> => {
+    const response = await api.post('/absences/manual', data);
+    return response.data;
+  },
 };
