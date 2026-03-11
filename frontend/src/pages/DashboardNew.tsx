@@ -529,10 +529,12 @@ const Dashboard: React.FC = () => {
                       timeEntries={timeEntries}
                       editingEntry={editingEntry}
                       existingAllocations={existingAllocations}
+                      projects={projects}
                       onEditToggle={(id) => setEditingEntry(editingEntry === id ? null : id)}
                       onUpdateEntry={handleUpdateEntry}
                       onDeleteEntry={handleDeleteEntry}
                       onOpenAllocation={openAllocationModal}
+                      onLoadStories={(projectId) => storyService.getStoriesByProject(projectId)}
                       formatDuration={formatDuration}
                       onRemove={() => removeWidget(widget.id)}
                     />
@@ -759,10 +761,12 @@ const Dashboard: React.FC = () => {
                     timeEntries={timeEntries}
                     editingEntry={editingEntry}
                     existingAllocations={existingAllocations}
+                    projects={projects}
                     onEditToggle={(id) => setEditingEntry(editingEntry === id ? null : id)}
                     onUpdateEntry={handleUpdateEntry}
                     onDeleteEntry={handleDeleteEntry}
                     onOpenAllocation={openAllocationModal}
+                    onLoadStories={(projectId) => storyService.getStoriesByProject(projectId)}
                     formatDuration={formatDuration}
                   />
                 </div>
