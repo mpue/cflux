@@ -104,10 +104,10 @@ export const setAllocationsForTimeEntry = async (req: AuthRequest, res: Response
 
     const totalAllocatedHours = allocations.reduce((sum: number, alloc: any) => sum + (alloc.hours || 0), 0);
     
-    // Allow small rounding differences (0.1 hours = 6 minutes)
-    if (Math.abs(totalAllocatedHours - totalWorkedHours) > 0.1) {
+    // Allow partial allocation but not overbooking (0.1 hours = 6 minutes tolerance)
+    if (totalAllocatedHours > totalWorkedHours + 0.1) {
       return res.status(400).json({ 
-        error: `Total allocated hours (${totalAllocatedHours.toFixed(2)}h) must equal worked hours (${totalWorkedHours.toFixed(2)}h)`,
+        error: `Total allocated hours (${totalAllocatedHours.toFixed(2)}h) must not exceed worked hours (${totalWorkedHours.toFixed(2)}h)`,
         totalWorkedHours: parseFloat(totalWorkedHours.toFixed(2)),
         totalAllocatedHours: parseFloat(totalAllocatedHours.toFixed(2))
       });

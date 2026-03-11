@@ -397,8 +397,8 @@ const Dashboard: React.FC = () => {
       return;
     }
 
-    if (Math.abs(totalAllocatedHours - totalWorkedHours) > 0.1) {
-      alert(`Die Summe der zugeteilten Stunden (${totalAllocatedHours.toFixed(2)}h) muss der Arbeitszeit (${totalWorkedHours.toFixed(2)}h) entsprechen.`);
+    if (totalAllocatedHours > totalWorkedHours + 0.1) {
+      alert(`Die zugeteilten Stunden (${totalAllocatedHours.toFixed(2)}h) dürfen die Arbeitszeit (${totalWorkedHours.toFixed(2)}h) nicht überschreiten.`);
       return;
     }
 
@@ -1385,7 +1385,7 @@ const AllocationModal: React.FC<{
         
         <div style={{ 
           padding: '15px 20px', 
-          background: remaining === 0 ? '#d4edda' : remaining < 0 ? '#f8d7da' : '#fff3cd',
+          background: remaining < -0.1 ? '#f8d7da' : remaining <= 0.1 ? '#d4edda' : '#fff3cd',
           borderRadius: '8px',
           marginBottom: '25px',
           fontSize: '16px'
@@ -1494,7 +1494,7 @@ const AllocationModal: React.FC<{
             type="button" 
             className="btn btn-primary" 
             onClick={onSave}
-            disabled={Math.abs(remaining) > 0.1}
+            disabled={remaining < -0.1}
             style={{ fontSize: '15px', padding: '10px 25px' }}
           >
             Speichern
