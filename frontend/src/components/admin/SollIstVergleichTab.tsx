@@ -51,6 +51,11 @@ const SollIstVergleichTab: React.FC = () => {
 
   const loadUsers = async () => {
     const data = await userService.getAllUsersAdmin();
+    data.sort((a: User, b: User) => {
+      const nameA = `${a.lastName} ${a.firstName}`.toLowerCase();
+      const nameB = `${b.lastName} ${b.firstName}`.toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
     setUsers(data);
   };
 

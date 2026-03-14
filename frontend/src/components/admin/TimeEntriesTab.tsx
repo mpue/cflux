@@ -77,6 +77,7 @@ const TimeEntriesContent: React.FC = () => {
 
   const loadUsers = async () => {
     const usersData = await userService.getAllUsersAdmin();
+    usersData.sort((a: User, b: User) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
     setUsers(usersData);
   };
 

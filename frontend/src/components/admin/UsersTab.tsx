@@ -214,7 +214,7 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
     const matchesActive = showInactive || user.isActive;
     
     return matchesSearch && matchesActive;
-  });
+  }).sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
 
   return (
     <div>

@@ -255,6 +255,7 @@ const AdminDashboard: React.FC = () => {
       switch (activeTab) {
         case 'users':
           const usersData = await userService.getAllUsersAdmin();
+          usersData.sort((a: User, b: User) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
           setUsers(usersData);
           break;
         case 'projects':
@@ -320,6 +321,7 @@ const AdminDashboard: React.FC = () => {
           setDevices(devicesData);
           // Load users needed for device assignment
           const deviceUsers = await userService.getAllUsersAdmin();
+          deviceUsers.sort((a: User, b: User) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
           setUsers(deviceUsers);
           break;
         case 'travelExpenses':
