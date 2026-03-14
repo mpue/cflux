@@ -132,19 +132,42 @@ const RecentEntriesWidget: React.FC<RecentEntriesWidgetProps> = ({
                   </td>
                   <td>
                     {editingEntry === entry.id && entry.clockOut ? (
-                      <input
-                        type="time"
-                        defaultValue={new Date(entry.clockOut).toTimeString().slice(0, 5)}
-                        onBlur={async (e) => {
-                          const [hours, minutes] = e.target.value.split(':');
-                          const newClockOut = new Date(entry.clockOut!);
-                          newClockOut.setHours(parseInt(hours), parseInt(minutes));
-                          await onUpdateEntry(entry.id, 'clockOut', newClockOut.toISOString());
-                        }}
-                        style={{ padding: '4px', fontSize: '12px', width: '80px' }}
-                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <input
+                          type="date"
+                          defaultValue={new Date(entry.clockOut).toISOString().slice(0, 10)}
+                          onBlur={async (e) => {
+                            const newDate = new Date(e.target.value);
+                            if (isNaN(newDate.getTime())) return;
+                            const newClockOut = new Date(entry.clockOut!);
+                            newClockOut.setFullYear(newDate.getFullYear(), newDate.getMonth(), newDate.getDate());
+                            await onUpdateEntry(entry.id, 'clockOut', newClockOut.toISOString());
+                          }}
+                          style={{ padding: '4px', fontSize: '12px', width: '130px' }}
+                        />
+                        <input
+                          type="time"
+                          defaultValue={new Date(entry.clockOut).toTimeString().slice(0, 5)}
+                          onBlur={async (e) => {
+                            const [hours, minutes] = e.target.value.split(':');
+                            const newClockOut = new Date(entry.clockOut!);
+                            newClockOut.setHours(parseInt(hours), parseInt(minutes));
+                            await onUpdateEntry(entry.id, 'clockOut', newClockOut.toISOString());
+                          }}
+                          style={{ padding: '4px', fontSize: '12px', width: '80px' }}
+                        />
+                      </div>
                     ) : (
-                      entry.clockOut ? new Date(entry.clockOut).toLocaleTimeString('de-DE') : '-'
+                      entry.clockOut ? (
+                        <span>
+                          {new Date(entry.clockOut).toLocaleDateString('de-DE') !== new Date(entry.clockIn).toLocaleDateString('de-DE') && (
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                              {new Date(entry.clockOut).toLocaleDateString('de-DE')}{' '}
+                            </span>
+                          )}
+                          {new Date(entry.clockOut).toLocaleTimeString('de-DE')}
+                        </span>
+                      ) : '-'
                     )}
                   </td>
                   <td>{entry.clockOut ? formatDuration(entry.clockIn, entry.clockOut) : 'Läuft...'}</td>

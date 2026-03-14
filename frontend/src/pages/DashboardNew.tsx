@@ -1342,13 +1342,20 @@ const AllocationModal: React.FC<{
     }
   };
 
-  // Load stories for all projects that already have allocations
+  // Reset stories cache when modal opens
   useEffect(() => {
     if (show) {
+      setStoriesByProject({});
+    }
+  }, [show]);
+
+  // Load stories for all projects that already have allocations
+  useEffect(() => {
+    if (show && allocations.length > 0) {
       const projectIds = [...new Set(allocations.map(a => a.projectId).filter(Boolean))];
       projectIds.forEach(pid => loadStoriesForProject(pid));
     }
-  }, [show]);
+  }, [show, allocations]);
 
   const handleProjectChange = (index: number, projectId: string) => {
     onUpdateAllocation(index, 'projectId', projectId);

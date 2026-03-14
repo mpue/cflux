@@ -163,8 +163,16 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
   const [payrollHistoryUser, setPayrollHistoryUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showInactive, setShowInactive] = useState(false);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>(() => {
+    const saved = localStorage.getItem('usersTab_viewMode');
+    return saved === 'table' || saved === 'cards' ? saved : 'cards';
+  });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleViewMode = (mode: 'table' | 'cards') => {
+    setViewMode(mode);
+    localStorage.setItem('usersTab_viewMode', mode);
+  };
 
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -278,7 +286,7 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
         <div style={{ display: 'flex', gap: '2px', border: '1px solid #ccc', borderRadius: '6px', overflow: 'hidden' }}>
           <button
             className={`btn btn-small ${viewMode === 'table' ? 'btn-primary' : ''}`}
-            onClick={() => setViewMode('table')}
+            onClick={() => handleViewMode('table')}
             title="Tabellenansicht"
             style={{ borderRadius: 0, border: 'none', padding: '6px 10px', fontSize: '16px', minWidth: '36px' }}
           >
@@ -286,7 +294,7 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
           </button>
           <button
             className={`btn btn-small ${viewMode === 'cards' ? 'btn-primary' : ''}`}
-            onClick={() => setViewMode('cards')}
+            onClick={() => handleViewMode('cards')}
             title="Kartenansicht"
             style={{ borderRadius: 0, border: 'none', padding: '6px 10px', fontSize: '16px', minWidth: '36px' }}
           >
