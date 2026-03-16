@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Responsive } from 'react-grid-layout';
 import type { Layout } from 'react-grid-layout';
@@ -89,6 +89,15 @@ const Dashboard: React.FC = () => {
   const [loggedInUsers, setLoggedInUsers] = useState<any[]>([]);
   const [showMissedClockOutModal, setShowMissedClockOutModal] = useState(false);
   const [missedClockOutEntry, setMissedClockOutEntry] = useState<TimeEntry | null>(null);
+  const [showBreakTimeWarning, setShowBreakTimeWarning] = useState(false);
+  const [breakTimeWarningInfo, setBreakTimeWarningInfo] = useState<{ workedHours: number; requiredMinutes: number; actualMinutes: number } | null>(null);
+
+  // Refs to allow the 1-second timer callback to read current modal state
+  // (avoids stale closure values inside setInterval)
+  const showPauseModalRef = useRef(false);
+  showPauseModalRef.current = showPauseModal;
+  const showMissedClockOutModalRef = useRef(false);
+  showMissedClockOutModalRef.current = showMissedClockOutModal;
 
   useEffect(() => {
     document.title = 'CFlux - Dashboard';
@@ -156,6 +165,9 @@ const Dashboard: React.FC = () => {
 
   const checkPauseReminder = (workMinutes: number) => {
     if (!currentEntry || currentEntry.status !== 'CLOCKED_IN') return;
+
+    // Don't show reminders while another modal is open (uses refs to avoid stale closure)
+    if (showPauseModalRef.current || showMissedClockOutModalRef.current) return;
     
     const workHours = workMinutes / 60;
     const entryId = currentEntry.id;
@@ -266,8 +278,47 @@ const Dashboard: React.FC = () => {
 
   const handleClockIn = async () => {
     try {
+      // Per ablauf_zeiterfassung.md Step 2: Check if user was already clocked in today
+      const today = new Date().toDateString();
+      const todayCompletedEntries = timeEntries.filter(e =>
+        new Date(e.clockIn).toDateString() === today && e.status === 'CLOCKED_OUT' && e.clockOut
+      );
+
+      if (todayCompletedEntries.length > 0) {
+        // Step 2b: User returning from break – check legal break time (Art. 15 ArGV 1)
+        const lastEntry = todayCompletedEntries.sort((a, b) =>
+          new Date(b.clockOut!).getTime() - new Date(a.clockOut!).getTime()
+        )[0];
+
+        const lastClockOut = new Date(lastEntry.clockOut!);
+        const breakMinutes = (Date.now() - lastClockOut.getTime()) / (1000 * 60);
+
+        // Total net work time today
+        const totalWorkedMinutes = todayCompletedEntries.reduce((sum, e) => {
+          if (!e.clockOut) return sum;
+          const dur = (new Date(e.clockOut).getTime() - new Date(e.clockIn).getTime()) / (1000 * 60);
+          return sum + dur - (e.pauseMinutes || 0);
+        }, 0);
+
+        const totalWorkedHours = totalWorkedMinutes / 60;
+        let requiredBreakMinutes = 0;
+        if (totalWorkedHours >= 9) requiredBreakMinutes = 60;
+        else if (totalWorkedHours >= 7) requiredBreakMinutes = 30;
+        else if (totalWorkedHours >= 5.5) requiredBreakMinutes = 15;
+
+        if (requiredBreakMinutes > 0 && breakMinutes < requiredBreakMinutes) {
+          setBreakTimeWarningInfo({
+            workedHours: totalWorkedHours,
+            requiredMinutes: requiredBreakMinutes,
+            actualMinutes: Math.floor(breakMinutes),
+          });
+          setShowBreakTimeWarning(true);
+          return;
+        }
+      }
+
       await timeService.clockIn(
-        selectedProject || undefined, 
+        selectedProject || undefined,
         selectedLocation || undefined,
         undefined,
         selectedStory || undefined
@@ -289,6 +340,18 @@ const Dashboard: React.FC = () => {
       setShowMissedClockOutModal(false);
       setMissedClockOutEntry(null);
       await loadData();
+      // Per ablauf_zeiterfassung.md: After recording missed clock-out, auto-clock-in
+      try {
+        await timeService.clockIn(
+          selectedProject || undefined,
+          selectedLocation || undefined,
+          undefined,
+          selectedStory || undefined
+        );
+        await loadData();
+      } catch (_) {
+        // Auto-clock-in may fail (e.g. rest time violation) – user can clock in manually
+      }
     } catch (error: any) {
       alert(error.response?.data?.error || 'Fehler beim Nachtragen der Ausstempelung');
     }
@@ -874,6 +937,13 @@ const Dashboard: React.FC = () => {
         />
       )}
 
+      {showBreakTimeWarning && breakTimeWarningInfo && (
+        <BreakTimeWarningModal
+          info={breakTimeWarningInfo}
+          onClose={() => { setShowBreakTimeWarning(false); setBreakTimeWarningInfo(null); }}
+        />
+      )}
+
       {showPauseModal && (
         <PauseModal
           onClose={() => setShowPauseModal(false)}
@@ -988,6 +1058,77 @@ const PauseReminderModal: React.FC<{
               style={{ flex: '1' }}
             >
               Später
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const BreakTimeWarningModal: React.FC<{
+  info: { workedHours: number; requiredMinutes: number; actualMinutes: number };
+  onClose: () => void;
+}> = ({ info, onClose }) => {
+  const remaining = Math.ceil(info.requiredMinutes - info.actualMinutes);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+        <h2>⚠️ Gesetzliche Pausenzeit nicht eingehalten</h2>
+
+        <div style={{ padding: '20px 0' }}>
+          <p style={{ fontSize: '16px', lineHeight: '1.6', marginBottom: '20px' }}>
+            Du hast heute bereits <strong>{info.workedHours.toFixed(1)} Stunden</strong> gearbeitet
+            und benötigst mindestens <strong>{info.requiredMinutes} Minuten</strong> Pause
+            (Art.&nbsp;15 ArGV&nbsp;1).
+          </p>
+
+          <div style={{
+            background: '#fee2e2',
+            border: '1px solid #fca5a5',
+            padding: '15px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px',
+          }}>
+            <p style={{ margin: 0 }}>
+              Bisherige Pause: <strong>{info.actualMinutes} Minuten</strong><br />
+              Erforderlich: <strong>{info.requiredMinutes} Minuten</strong><br />
+              Verbleibend: <strong>mindestens {remaining} Minuten</strong>
+            </p>
+          </div>
+
+          <div style={{
+            background: '#f0f7ff',
+            padding: '15px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px',
+          }}>
+            <strong>📋 Gesetzliche Pausenpflicht (Art. 15 ArGV 1):</strong>
+            <ul style={{ marginTop: '10px', marginBottom: '0', paddingLeft: '20px' }}>
+              <li>Ab 5,5 Stunden: mindestens 15 Minuten</li>
+              <li>Ab 7 Stunden: mindestens 30 Minuten</li>
+              <li>Ab 9 Stunden: mindestens 60 Minuten</li>
+            </ul>
+          </div>
+
+          <p style={{ fontSize: '14px', color: '#666' }}>
+            Bitte warte noch mindestens {remaining} Minuten, bevor du dich wieder einstempelst.
+          </p>
+
+          <div className="modal-actions" style={{ marginTop: '20px' }}>
+            <button type="button" className="btn btn-primary" onClick={onClose}>
+              Verstanden
             </button>
           </div>
         </div>

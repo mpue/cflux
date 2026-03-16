@@ -100,11 +100,11 @@ export const clockIn = async (req: AuthRequest, res: Response) => {
     // Get employeeId from user
     const employeeId = await getEmployeeId(userId);
 
-    // Check if employee is already clocked in
+    // Check if employee is already clocked in or on pause
     const existingEntry = await prisma.timeEntry.findFirst({
       where: {
         employeeId,
-        status: 'CLOCKED_IN'
+        status: { in: ['CLOCKED_IN', 'ON_PAUSE'] }
       }
     });
 
