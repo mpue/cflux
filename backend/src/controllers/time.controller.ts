@@ -1154,6 +1154,24 @@ export const getSollIstComparison = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'User does not have an employee profile' });
     }
 
+    // Load user's Zeitmodell to get tagesSollStunden
+    const mitarbeiterZeitmodelle = await prisma.mitarbeiterZeitmodell.findMany({
+      where: {
+        mitarbeiterId: userId,
+        gueltigVon: { lte: new Date() },
+        OR: [
+          { gueltigBis: null },
+          { gueltigBis: { gte: new Date() } }
+        ]
+      },
+      include: { zeitmodell: true },
+      orderBy: { gueltigVon: 'desc' },
+      take: 1
+    });
+    const defaultSollStunden = mitarbeiterZeitmodelle.length > 0 && mitarbeiterZeitmodelle[0].zeitmodell.tagesSollStunden
+      ? Number(mitarbeiterZeitmodelle[0].zeitmodell.tagesSollStunden)
+      : 8.4;
+
     const where: any = {
       employeeId: user.employeeProfile.id,
       status: 'CLOCKED_OUT',
@@ -1199,6 +1217,11 @@ export const getSollIstComparison = async (req: AuthRequest, res: Response) => {
       const booked = parseFloat(bookedHours.toFixed(2));
       const diff = parseFloat((stamped - booked).toFixed(2));
 
+      // Determine Soll hours for this entry's weekday (skip weekends)
+      const dayOfWeek = clockInDate.getDay(); // 0=Sunday, 6=Saturday
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const sollHours = isWeekend ? 0 : defaultSollStunden;
+
       return {
         id: entry.id,
         date: entry.clockIn,
@@ -1207,6 +1230,7 @@ export const getSollIstComparison = async (req: AuthRequest, res: Response) => {
         pauseMinutes: entry.pauseMinutes,
         stampedHours: stamped,
         bookedHours: booked,
+        sollHours,
         difference: diff,
         projectId: entry.projectId,
         projectName: entry.project?.name || null,

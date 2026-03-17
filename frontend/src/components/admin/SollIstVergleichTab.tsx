@@ -20,6 +20,7 @@ interface SollIstEntry {
   pauseMinutes: number;
   stampedHours: number;
   bookedHours: number;
+  sollHours: number;
   difference: number;
   projectId: string | null;
   projectName: string | null;
@@ -95,6 +96,7 @@ const SollIstVergleichTab: React.FC = () => {
 
   const totalStamped = entries.reduce((sum, e) => sum + e.stampedHours, 0);
   const totalBooked = entries.reduce((sum, e) => sum + e.bookedHours, 0);
+  const totalSoll = entries.reduce((sum, e) => sum + (e.sollHours || 0), 0);
   const totalDiff = parseFloat((totalStamped - totalBooked).toFixed(2));
 
   return (
@@ -139,6 +141,7 @@ const SollIstVergleichTab: React.FC = () => {
         <>
           {/* Summary cards */}
           <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+            <SummaryCard label="Soll Stunden" value={totalSoll.toFixed(2)} unit="h" color="#ff9800" />
             <SummaryCard label="Gestempelte Stunden" value={totalStamped.toFixed(2)} unit="h" color="#2196f3" />
             <SummaryCard label="Gebuchte Stunden" value={totalBooked.toFixed(2)} unit="h" color="#9c27b0" />
             <SummaryCard
@@ -157,6 +160,7 @@ const SollIstVergleichTab: React.FC = () => {
                 <th>Einstempeln</th>
                 <th>Ausstempeln</th>
                 <th>Pause</th>
+                <th style={{ textAlign: 'right' }}>Soll (h)</th>
                 <th style={{ textAlign: 'right' }}>Gestempelt (h)</th>
                 <th style={{ textAlign: 'right' }}>Gebucht (h)</th>
                 <th style={{ textAlign: 'right' }}>Differenz (h)</th>
@@ -179,6 +183,7 @@ const SollIstVergleichTab: React.FC = () => {
                     <td>{new Date(entry.clockIn).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</td>
                     <td>{entry.clockOut ? new Date(entry.clockOut).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '-'}</td>
                     <td>{entry.pauseMinutes || 0} min</td>
+                    <td style={{ textAlign: 'right', fontWeight: 500, color: '#ff9800' }}>{(entry.sollHours || 0).toFixed(2)}</td>
                     <td style={{ textAlign: 'right', fontWeight: 500 }}>{entry.stampedHours.toFixed(2)}</td>
                     <td style={{ textAlign: 'right', fontWeight: 500 }}>{entry.bookedHours.toFixed(2)}</td>
                     <td style={{
@@ -227,6 +232,7 @@ const SollIstVergleichTab: React.FC = () => {
             <tfoot>
               <tr style={{ fontWeight: 700, backgroundColor: '#f5f5f5' }}>
                 <td colSpan={4}>Gesamt</td>
+                <td style={{ textAlign: 'right', color: '#ff9800' }}>{totalSoll.toFixed(2)}</td>
                 <td style={{ textAlign: 'right' }}>{totalStamped.toFixed(2)}</td>
                 <td style={{ textAlign: 'right' }}>{totalBooked.toFixed(2)}</td>
                 <td style={{ textAlign: 'right', color: getBarColor(totalDiff) }}>

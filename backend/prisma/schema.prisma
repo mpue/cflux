@@ -182,6 +182,10 @@ model User {
   createdNewsItems NewsItem[] @relation("NewsItemCreator")
   readNewsItems    NewsItem[] @relation("NewsItemReads")
   
+  // Werkzeuge
+  assignedTools    Tool[]             @relation("ToolAssignedTo")
+  toolAssignments  ToolAssignment[]   @relation("ToolAssignments")
+  
   // Vorgesetzter (Supervisor)
   supervisorId    String?
   supervisor      User?   @relation("UserSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
@@ -3461,4 +3465,48 @@ model Department {
   employees   Employee[]
 
   @@map("departments")
+}
+
+model Tool {
+  id              String    @id @default(uuid())
+  name            String
+  inventoryNumber String?   @unique   // Inventarnummer
+  manufacturer    String?
+  model           String?
+  category        String?             // z.B. "Handwerkzeug", "Elektrowerkzeug", "Messwerkzeug"
+  location        String?             // Lagerort / Standort
+  purchaseDate    DateTime?
+  lastInspection  DateTime?           // Letzte Prüfung
+  nextInspection  DateTime?           // Nächste Prüfung
+  condition       String?   @default("gut")  // Zustand: gut, beschädigt, defekt, ausgemustert
+  notes           String?
+  isActive        Boolean   @default(true)
+  assignedToId    String?             // Aktuell zugewiesen an
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  assignedTo      User?     @relation("ToolAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignments     ToolAssignment[]
+
+  @@index([assignedToId])
+  @@index([inventoryNumber])
+  @@index([category])
+  @@map("tools")
+}
+
+model ToolAssignment {
+  id            String    @id @default(uuid())
+  toolId        String
+  userId        String
+  assignedAt    DateTime  @default(now())
+  returnedAt    DateTime?
+  notes         String?
+
+  tool          Tool      @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  assignedUser  User      @relation("ToolAssignments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+  @@index([userId])
+  @@map("tool_assignments")
 }

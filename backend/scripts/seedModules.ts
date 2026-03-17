@@ -305,6 +305,22 @@ async function seedModules() {
       route: '/admin?tab=holidays',
       sortOrder: 35,
     },
+    {
+      name: 'Werkzeuge',
+      key: 'tools',
+      description: 'Werkzeugverwaltung und -zuweisung',
+      icon: 'build',
+      route: '/admin?tab=werkzeuge',
+      sortOrder: 36,
+    },
+    {
+      name: 'Hilfsmittel',
+      key: 'hilfsmittel',
+      description: 'Hilfreiche Werkzeuge wie Passwort-Generator',
+      icon: 'handyman',
+      route: '/admin?tab=hilfsmittel',
+      sortOrder: 37,
+    },
   ];
 
   for (const module of modules) {

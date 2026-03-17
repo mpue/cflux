@@ -52,6 +52,7 @@ import checklistRoutes from './routes/checklist.routes';
 import newsRoutes from './routes/news.routes';
 import departmentRoutes from './routes/department.routes';
 import storyRoutes from './routes/story.routes';
+import werkzeugeRoutes from './routes/werkzeuge.routes';
 import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
@@ -141,6 +142,7 @@ app.use('/api/checklists', checklistRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/stories', storyRoutes);
+app.use('/api/werkzeuge', werkzeugeRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

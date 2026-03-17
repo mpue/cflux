@@ -16,6 +16,7 @@ import * as articleService from '../services/articleService';
 import * as invoiceService from '../services/invoiceService';
 import { reminderService } from '../services/reminder.service';
 import { deviceService, Device } from '../services/device.service';
+import { werkzeugeService, Tool } from '../services/werkzeuge.service';
 import { travelExpenseService } from '../services/travelExpense.service';
 import { User, Project, AbsenceRequest, Report, Location, Customer, Supplier, ArticleGroup, Article, Invoice, ComplianceViolation, ComplianceStats } from '../types';
 import { Reminder, OverdueInvoice, ReminderStats } from '../types/reminder.types';
@@ -49,6 +50,8 @@ import OrgChartTab from '../components/admin/OrgChartTab';
 import ChecklistsTab from '../components/admin/ChecklistsTab';
 import JobFunctionsTab from '../components/admin/JobFunctionsTab';
 import NewsTab from '../components/AdminTabs/NewsTab';
+import { WerkzeugeTab } from '../components/admin/WerkzeugeTab';
+import HilfsmittelTab from '../components/admin/HilfsmittelTab';
 import IntranetPage from './Intranet/IntranetPage';
 import { TimeBookingsReport } from '../components/admin/TimeBookingsReport';
 import { UserTimeBookingsReport } from '../components/admin/UserTimeBookingsReport';
@@ -69,7 +72,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -96,6 +99,7 @@ const AdminDashboard: React.FC = () => {
   const [violationFilter, setViolationFilter] = useState<'all' | 'unresolved' | 'critical'>('unresolved');
   const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
   const [devices, setDevices] = useState<Device[]>([]);
+  const [tools, setTools] = useState<Tool[]>([]);
   const [travelExpenses, setTravelExpenses] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -191,7 +195,9 @@ const AdminDashboard: React.FC = () => {
       jobFunctions: 'Funktionen',
       checklists: 'Checklisten',
       news: 'News',
-      dokumente: 'Dokumente'
+      dokumente: 'Dokumente',
+      werkzeuge: 'Werkzeuge',
+      hilfsmittel: 'Hilfsmittel'
     };
     return titles[tab] || tab;
   };
@@ -323,6 +329,14 @@ const AdminDashboard: React.FC = () => {
           const deviceUsers = await userService.getAllUsersAdmin();
           deviceUsers.sort((a: User, b: User) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
           setUsers(deviceUsers);
+          break;
+        case 'werkzeuge':
+          const toolsData = await werkzeugeService.getAllTools();
+          setTools(toolsData);
+          // Load users needed for tool assignment
+          const toolUsers = await userService.getAllUsersAdmin();
+          toolUsers.sort((a: User, b: User) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
+          setUsers(toolUsers);
           break;
         case 'travelExpenses':
           const expensesData = await travelExpenseService.getAllTravelExpenses();
@@ -610,7 +624,7 @@ const AdminDashboard: React.FC = () => {
 
             {/* Stammdaten */}
             {(() => {
-              const groupCheck = shouldShowGroup('Stammdaten', ['Kunden', 'Lieferanten', 'Abteilungen', 'Bestellungen', 'Artikelgruppen', 'Artikel', 'Geräte', 'Kostenstellen', 'Lagerbestand', 'Inventar']);
+              const groupCheck = shouldShowGroup('Stammdaten', ['Kunden', 'Lieferanten', 'Abteilungen', 'Bestellungen', 'Artikelgruppen', 'Artikel', 'Geräte', 'Werkzeuge', 'Kostenstellen', 'Lagerbestand', 'Inventar']);
               return groupCheck.show && (
             <div className="tab-group">
               <div 
@@ -672,6 +686,13 @@ const AdminDashboard: React.FC = () => {
                       active={activeTab === 'devices'}
                       onClick={() => changeTab('devices')}
                       label="💻 Geräte"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('tools')) && (groupCheck.showAll || matchesSearch('Werkzeuge')) && (
+                    <TabButton
+                      active={activeTab === 'werkzeuge'}
+                      onClick={() => changeTab('werkzeuge')}
+                      label="🔧 Werkzeuge"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('cost_centers')) && (groupCheck.showAll || matchesSearch('Kostenstellen')) && (
@@ -802,7 +823,7 @@ const AdminDashboard: React.FC = () => {
 
             {/* System & Konfiguration */}
             {(() => {
-              const groupCheck = shouldShowGroup('System Konfiguration', ['Workflows', 'Module', 'Berechtigungen', 'Einstellungen', 'E-Learning', 'Onboarding', 'Funktionen', 'Checklisten', 'News', 'Dokumente', 'Backup']);
+              const groupCheck = shouldShowGroup('System Konfiguration', ['Workflows', 'Module', 'Berechtigungen', 'Einstellungen', 'E-Learning', 'Onboarding', 'Funktionen', 'Checklisten', 'News', 'Dokumente', 'Hilfsmittel', 'Backup']);
               return groupCheck.show && (
             <div className="tab-group">
               <div 
@@ -907,6 +928,13 @@ const AdminDashboard: React.FC = () => {
                       label="💾 Backup"
                     />
                   )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('hilfsmittel')) && (groupCheck.showAll || matchesSearch('Hilfsmittel')) && (
+                    <TabButton
+                      active={activeTab === 'hilfsmittel'}
+                      onClick={() => changeTab('hilfsmittel')}
+                      label="🛠️ Hilfsmittel"
+                    />
+                  )}
                 </>
               )}
             </div>
@@ -920,6 +948,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'projects' && <ProjectsTab projects={projects} onUpdate={loadData} />}
             {activeTab === 'locations' && <LocationsTab locations={locations} onUpdate={loadData} />}
             {activeTab === 'devices' && <DevicesTab devices={devices} users={users} onUpdate={loadData} />}
+            {activeTab === 'werkzeuge' && <WerkzeugeTab tools={tools} users={users} onUpdate={loadData} />}
             {activeTab === 'travelExpenses' && <TravelExpensesTab expenses={travelExpenses} users={users} onUpdate={loadData} />}
             {activeTab === 'costCenters' && <CostCentersTab onUpdate={loadData} />}
             {activeTab === 'inventory' && <InventoryTab onUpdate={loadData} />}
@@ -971,6 +1000,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'payroll' && <PayrollManagement />}
             {activeTab === 'zeitmodelle' && <ZeitmodelleVerwaltung />}
             {activeTab === 'dokumente' && <IntranetPage embedded />}
+            {activeTab === 'hilfsmittel' && <HilfsmittelTab onUpdate={loadData} />}
           </div>
         </div>
       </div>
