@@ -9,6 +9,8 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
+  const [lockedSeconds, setLockedSeconds] = useState(0);
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
   const { login, user, refreshUser } = useAuth();
   const navigate = useNavigate();
@@ -17,19 +19,42 @@ const Login: React.FC = () => {
     document.title = 'CFlux - Anmelden';
   }, []);
 
+  // Countdown timer for lockout
+  React.useEffect(() => {
+    if (lockedSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setLockedSeconds(prev => {
+        if (prev <= 1) {
+          setError('');
+          setAttemptsLeft(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockedSeconds]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (lockedSeconds > 0) return;
     setError('');
+    setAttemptsLeft(null);
 
     try {
       await login(email, password);
-      // Login successful, now check if we're in the auth context
-      // We need to wait a bit for the user state to update
-      setTimeout(() => {
-        // Check will happen in useEffect
-      }, 100);
+      setLockedSeconds(0);
+      setAttemptsLeft(null);
+      setTimeout(() => {}, 100);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login fehlgeschlagen');
+      const data = err.response?.data;
+      if (data?.throttled && data?.lockedUntil) {
+        setLockedSeconds(data.lockedUntil);
+        setAttemptsLeft(0);
+      } else if (data?.attemptsLeft !== undefined) {
+        setAttemptsLeft(data.attemptsLeft);
+      }
+      setError(data?.error || 'Login fehlgeschlagen');
     }
   };
 
@@ -82,15 +107,25 @@ const Login: React.FC = () => {
 
         {error && (
           <div style={{
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
-            color: '#dc2626',
+            backgroundColor: lockedSeconds > 0 ? '#fef3c7' : '#fef2f2',
+            border: `1px solid ${lockedSeconds > 0 ? '#fcd34d' : '#fecaca'}`,
+            color: lockedSeconds > 0 ? '#92400e' : '#dc2626',
             padding: '12px 16px',
             borderRadius: '8px',
             marginBottom: '16px',
             fontSize: '14px'
           }}>
-            {error}
+            <div>{error}</div>
+            {lockedSeconds > 0 && (
+              <div style={{ marginTop: '8px', fontWeight: 600 }}>
+                ⏱️ Entsperrt in {Math.floor(lockedSeconds / 60)}:{String(lockedSeconds % 60).padStart(2, '0')}
+              </div>
+            )}
+            {attemptsLeft !== null && attemptsLeft > 0 && (
+              <div style={{ marginTop: '6px', fontSize: '13px', opacity: 0.85 }}>
+                Noch {attemptsLeft} Versuch{attemptsLeft > 1 ? 'e' : ''} übrig
+              </div>
+            )}
           </div>
         )}
 
@@ -166,7 +201,8 @@ const Login: React.FC = () => {
           </div>
 
           <button 
-            type="submit" 
+            type="submit"
+            disabled={lockedSeconds > 0}
             style={{
               width: '100%',
               padding: '10px 16px',
@@ -175,9 +211,10 @@ const Login: React.FC = () => {
               color: 'white',
               fontWeight: '500',
               fontSize: '15px',
-              background: 'linear-gradient(to right, #10b981, #0ea5e9)',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
+              background: lockedSeconds > 0 ? '#9ca3af' : 'linear-gradient(to right, #10b981, #0ea5e9)',
+              cursor: lockedSeconds > 0 ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              opacity: lockedSeconds > 0 ? 0.7 : 1
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';

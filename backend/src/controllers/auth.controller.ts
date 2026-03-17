@@ -10,6 +10,74 @@ import crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
+// --- Login Throttling (Brute Force Protection) ---
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // cleanup every 10 minutes
+
+interface LoginAttempt {
+  count: number;
+  firstAttempt: number;
+  lockedUntil: number | null;
+}
+
+const loginAttempts = new Map<string, LoginAttempt>();
+
+// Periodic cleanup of expired entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, attempt] of loginAttempts.entries()) {
+    if (attempt.lockedUntil && attempt.lockedUntil < now) {
+      loginAttempts.delete(key);
+    } else if (now - attempt.firstAttempt > LOCKOUT_DURATION_MS) {
+      loginAttempts.delete(key);
+    }
+  }
+}, CLEANUP_INTERVAL_MS);
+
+function getThrottleKey(email: string, ip: string): string {
+  return `${email.toLowerCase()}::${ip}`;
+}
+
+function checkThrottle(key: string): { blocked: boolean; remainingSeconds: number; attempts: number } {
+  const attempt = loginAttempts.get(key);
+  if (!attempt) return { blocked: false, remainingSeconds: 0, attempts: 0 };
+
+  const now = Date.now();
+  if (attempt.lockedUntil && attempt.lockedUntil > now) {
+    return { blocked: true, remainingSeconds: Math.ceil((attempt.lockedUntil - now) / 1000), attempts: attempt.count };
+  }
+
+  // Reset if lock expired
+  if (attempt.lockedUntil && attempt.lockedUntil <= now) {
+    loginAttempts.delete(key);
+    return { blocked: false, remainingSeconds: 0, attempts: 0 };
+  }
+
+  return { blocked: false, remainingSeconds: 0, attempts: attempt.count };
+}
+
+function recordFailedAttempt(key: string): { locked: boolean; remainingSeconds: number; attemptsLeft: number } {
+  const now = Date.now();
+  const attempt = loginAttempts.get(key) || { count: 0, firstAttempt: now, lockedUntil: null };
+
+  attempt.count += 1;
+
+  if (attempt.count >= MAX_ATTEMPTS) {
+    attempt.lockedUntil = now + LOCKOUT_DURATION_MS;
+    loginAttempts.set(key, attempt);
+    return { locked: true, remainingSeconds: Math.ceil(LOCKOUT_DURATION_MS / 1000), attemptsLeft: 0 };
+  }
+
+  loginAttempts.set(key, attempt);
+  return { locked: false, remainingSeconds: 0, attemptsLeft: MAX_ATTEMPTS - attempt.count };
+}
+
+function clearAttempts(key: string): void {
+  loginAttempts.delete(key);
+}
+// --- End Login Throttling ---
+
 export const register = async (req: AuthRequest, res: Response) => {
   try {
     const errors = validationResult(req);
@@ -175,10 +243,34 @@ export const login = async (req: AuthRequest, res: Response) => {
     }
 
     const { email, password } = req.body;
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    const throttleKey = getThrottleKey(email, clientIp);
+
+    // Check if this email+IP combination is throttled
+    const throttle = checkThrottle(throttleKey);
+    if (throttle.blocked) {
+      const minutes = Math.ceil(throttle.remainingSeconds / 60);
+      return res.status(429).json({
+        error: `Zu viele fehlgeschlagene Anmeldeversuche. Bitte warten Sie ${minutes} Minute${minutes > 1 ? 'n' : ''}.`,
+        lockedUntil: throttle.remainingSeconds,
+        throttled: true
+      });
+    }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      const result = recordFailedAttempt(throttleKey);
+      if (result.locked) {
+        return res.status(429).json({
+          error: `Zu viele fehlgeschlagene Anmeldeversuche. Konto für 15 Minuten gesperrt.`,
+          lockedUntil: result.remainingSeconds,
+          throttled: true
+        });
+      }
+      return res.status(401).json({
+        error: 'Invalid credentials',
+        attemptsLeft: result.attemptsLeft
+      });
     }
 
     if (!user.isActive) {
@@ -187,8 +279,22 @@ export const login = async (req: AuthRequest, res: Response) => {
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      const result = recordFailedAttempt(throttleKey);
+      if (result.locked) {
+        return res.status(429).json({
+          error: `Zu viele fehlgeschlagene Anmeldeversuche. Konto für 15 Minuten gesperrt.`,
+          lockedUntil: result.remainingSeconds,
+          throttled: true
+        });
+      }
+      return res.status(401).json({
+        error: 'Invalid credentials',
+        attemptsLeft: result.attemptsLeft
+      });
     }
+
+    // Successful login — clear throttle counter
+    clearAttempts(throttleKey);
 
     const jwtOptions: SignOptions = {
       expiresIn: '7d'
