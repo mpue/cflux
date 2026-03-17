@@ -9,6 +9,7 @@ RUN apk add --no-cache openssl openssl-dev python3 make g++
 # Copy package files
 COPY package*.json ./
 COPY tsconfig.json ./
+COPY version.json ./
 COPY prisma ./prisma/
 
 # Install dependencies
@@ -52,6 +53,9 @@ RUN npm install -D typescript @types/node ts-node
 
 # Compile setup scripts to JavaScript (only scripts that don't depend on src/)
 RUN npx tsc scripts/setup-admin.ts scripts/install.ts --outDir dist/scripts --module commonjs --esModuleInterop --skipLibCheck --resolveJsonModule
+
+# Copy version file
+COPY version.json ./
 
 # Copy built application from builder
 COPY --from=builder /app/dist ./dist

@@ -321,6 +321,14 @@ async function seedModules() {
       route: '/admin?tab=hilfsmittel',
       sortOrder: 37,
     },
+    {
+      name: 'Informationen',
+      key: 'informationen',
+      description: 'Systeminformationen und Versionierung',
+      icon: 'info',
+      route: '/admin?tab=informationen',
+      sortOrder: 38,
+    },
   ];
 
   for (const module of modules) {

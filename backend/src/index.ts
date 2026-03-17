@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import userGroupRoutes from './routes/userGroup.routes';
@@ -54,8 +55,12 @@ import departmentRoutes from './routes/department.routes';
 import storyRoutes from './routes/story.routes';
 import werkzeugeRoutes from './routes/werkzeuge.routes';
 import { errorHandler } from './middleware/errorHandler';
+import { PrismaClient } from '@prisma/client';
+import { authenticate } from './middleware/auth';
 
 dotenv.config();
+
+const prismaStats = new PrismaClient();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -143,6 +148,88 @@ app.use('/api/news', newsRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/werkzeuge', werkzeugeRoutes);
+
+// Version endpoint
+app.get('/api/version', (req, res) => {
+  try {
+    const versionPath = path.join(__dirname, '..', 'version.json');
+    const version = JSON.parse(fs.readFileSync(versionPath, 'utf8'));
+    res.json({
+      version: `${version.major}.${version.minor}.${version.patch}`,
+      build: version.build,
+      display: `${version.major}.${version.minor}.${version.patch} Build ${version.build}`
+    });
+  } catch {
+    res.json({ version: '0.0.0', build: 0, display: 'unknown' });
+  }
+});
+
+// System statistics endpoint (authenticated)
+app.get('/api/system-stats', authenticate as any, async (req, res) => {
+  try {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const [
+      totalUsers,
+      activeUsers,
+      totalProjects,
+      activeProjects,
+      totalTimeEntries,
+      timeEntriesToday,
+      totalInvoices,
+      totalOrders,
+      totalIncidents,
+      openIncidents,
+      totalDocuments,
+      totalMessages,
+      unreadMessages,
+      recentActions,
+      actionsToday,
+      totalModules,
+      totalUserGroups,
+      currentlyClockedIn,
+    ] = await Promise.all([
+      prismaStats.user.count(),
+      prismaStats.user.count({ where: { isActive: true } }),
+      prismaStats.project.count(),
+      prismaStats.project.count({ where: { status: 'ACTIVE' } }),
+      prismaStats.timeEntry.count(),
+      prismaStats.timeEntry.count({ where: { clockIn: { gte: today } } }),
+      prismaStats.invoice.count(),
+      prismaStats.order.count(),
+      prismaStats.incident.count(),
+      prismaStats.incident.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
+      prismaStats.documentNode.count({ where: { deletedAt: null } }),
+      prismaStats.message.count(),
+      prismaStats.message.count({ where: { isRead: false } }),
+      prismaStats.actionLog.count({ where: { createdAt: { gte: last30Days } } }),
+      prismaStats.actionLog.count({ where: { createdAt: { gte: today } } }),
+      prismaStats.module.count(),
+      prismaStats.userGroup.count(),
+      prismaStats.timeEntry.count({ where: { status: 'CLOCKED_IN' } }),
+    ]);
+
+    res.json({
+      users: { total: totalUsers, active: activeUsers },
+      projects: { total: totalProjects, active: activeProjects },
+      timeEntries: { total: totalTimeEntries, today: timeEntriesToday, currentlyClockedIn },
+      invoices: { total: totalInvoices },
+      orders: { total: totalOrders },
+      incidents: { total: totalIncidents, open: openIncidents },
+      documents: { total: totalDocuments },
+      messages: { total: totalMessages, unread: unreadMessages },
+      actions: { last30Days: recentActions, today: actionsToday },
+      modules: { total: totalModules },
+      userGroups: { total: totalUserGroups },
+    });
+  } catch (error) {
+    console.error('Error fetching system stats:', error);
+    res.status(500).json({ error: 'Fehler beim Laden der Systemstatistiken' });
+  }
+});
 
 // Health check
 app.get('/health', (req, res) => {

@@ -52,6 +52,7 @@ import JobFunctionsTab from '../components/admin/JobFunctionsTab';
 import NewsTab from '../components/AdminTabs/NewsTab';
 import { WerkzeugeTab } from '../components/admin/WerkzeugeTab';
 import HilfsmittelTab from '../components/admin/HilfsmittelTab';
+import InformationenTab from '../components/admin/InformationenTab';
 import IntranetPage from './Intranet/IntranetPage';
 import { TimeBookingsReport } from '../components/admin/TimeBookingsReport';
 import { UserTimeBookingsReport } from '../components/admin/UserTimeBookingsReport';
@@ -72,7 +73,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel' | 'informationen';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -197,7 +198,8 @@ const AdminDashboard: React.FC = () => {
       news: 'News',
       dokumente: 'Dokumente',
       werkzeuge: 'Werkzeuge',
-      hilfsmittel: 'Hilfsmittel'
+      hilfsmittel: 'Hilfsmittel',
+      informationen: 'Informationen'
     };
     return titles[tab] || tab;
   };
@@ -935,6 +937,13 @@ const AdminDashboard: React.FC = () => {
                       label="🛠️ Hilfsmittel"
                     />
                   )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('informationen')) && (groupCheck.showAll || matchesSearch('Informationen')) && (
+                    <TabButton
+                      active={activeTab === 'informationen'}
+                      onClick={() => changeTab('informationen')}
+                      label="ℹ️ Informationen"
+                    />
+                  )}
                 </>
               )}
             </div>
@@ -1001,6 +1010,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'zeitmodelle' && <ZeitmodelleVerwaltung />}
             {activeTab === 'dokumente' && <IntranetPage embedded />}
             {activeTab === 'hilfsmittel' && <HilfsmittelTab onUpdate={loadData} />}
+            {activeTab === 'informationen' && <InformationenTab />}
           </div>
         </div>
       </div>
