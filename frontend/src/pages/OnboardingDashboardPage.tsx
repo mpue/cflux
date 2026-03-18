@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { onboardingService } from '../services/onboardingService';
 import { OnboardingDashboardItem } from '../types/onboarding';
+import OnboardingEditModal from '../components/admin/OnboardingEditModal';
 import {
   Container,
   Typography,
@@ -19,6 +20,7 @@ import { Warning, CheckCircle } from '@mui/icons-material';
 const OnboardingDashboardPage: React.FC = () => {
   const [dashboard, setDashboard] = useState<OnboardingDashboardItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editEmployee, setEditEmployee] = useState<{ id: string; name: string } | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -106,7 +108,13 @@ const OnboardingDashboardPage: React.FC = () => {
         {/* Employee Progress */}
         {dashboard.map((item) => (
           <Grid item xs={12} md={6} key={item.employee.id}>
-            <Paper sx={{ p: 3 }}>
+            <Paper
+              onDoubleClick={() => setEditEmployee({
+                id: item.employee.id,
+                name: `${item.employee.firstName} ${item.employee.lastName}`
+              })}
+              sx={{ p: 3, cursor: 'pointer', '&:hover': { boxShadow: 4 } }}
+            >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Box>
                   <Typography variant="h6">
@@ -175,6 +183,16 @@ const OnboardingDashboardPage: React.FC = () => {
           </Grid>
         )}
       </Grid>
+
+      {editEmployee && (
+        <OnboardingEditModal
+          open={!!editEmployee}
+          employeeId={editEmployee.id}
+          employeeName={editEmployee.name}
+          onClose={() => setEditEmployee(null)}
+          onUpdated={loadDashboard}
+        />
+      )}
     </Container>
   );
 };

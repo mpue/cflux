@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { onboardingService } from '../../services/onboardingService';
 import { OnboardingDashboardItem } from '../../types/onboarding';
+import OnboardingEditModal from './OnboardingEditModal';
 import {
   Typography,
   Paper,
@@ -13,13 +14,16 @@ import {
   Button,
   CircularProgress,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 import { Warning, CheckCircle, People, Assignment, Error, Description } from '@mui/icons-material';
 
-const OnboardingDashboardTab: React.FC = () => {
+interface OnboardingDashboardTabProps {
+  onNavigate?: (subtab: string) => void;
+}
+
+const OnboardingDashboardTab: React.FC<OnboardingDashboardTabProps> = ({ onNavigate }) => {
   const [dashboard, setDashboard] = useState<OnboardingDashboardItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [editEmployee, setEditEmployee] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadDashboard();
@@ -77,9 +81,9 @@ const OnboardingDashboardTab: React.FC = () => {
               </Typography>
               <Button
                 variant="contained"
-                color="inherit"
                 size="small"
-                onClick={() => navigate('/admin?tab=onboarding&subtab=templates')}
+                sx={{ bgcolor: 'white', color: 'info.dark', '&:hover': { bgcolor: 'grey.100' } }}
+                onClick={() => onNavigate?.('templates')}
               >
                 Zu den Vorlagen
               </Button>
@@ -128,11 +132,16 @@ const OnboardingDashboardTab: React.FC = () => {
         {dashboard.map((item) => (
           <Grid item xs={12} md={6} lg={4} key={item.employee.id}>
             <Paper 
+              onDoubleClick={() => setEditEmployee({
+                id: item.employee.id,
+                name: `${item.employee.firstName} ${item.employee.lastName}`
+              })}
               sx={{ 
                 p: 3, 
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
+                cursor: 'pointer',
                 transition: 'transform 0.2s, box-shadow 0.2s',
                 '&:hover': {
                   transform: 'translateY(-4px)',
@@ -202,13 +211,23 @@ const OnboardingDashboardTab: React.FC = () => {
               <Typography variant="body2" color="textSecondary" paragraph>
                 Es gibt derzeit keine Mitarbeiter im Onboarding-Prozess.
               </Typography>
-              <Button variant="contained" onClick={() => navigate('/admin/onboarding/applicants')}>
+              <Button variant="contained" onClick={() => onNavigate?.('applicants')}>
                 Zu den Bewerbern
               </Button>
             </Paper>
           </Grid>
         )}
       </Grid>
+
+      {editEmployee && (
+        <OnboardingEditModal
+          open={!!editEmployee}
+          employeeId={editEmployee.id}
+          employeeName={editEmployee.name}
+          onClose={() => setEditEmployee(null)}
+          onUpdated={loadDashboard}
+        />
+      )}
     </Box>
   );
 };
