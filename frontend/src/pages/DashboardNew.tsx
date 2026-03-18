@@ -430,11 +430,24 @@ const Dashboard: React.FC = () => {
           description: a.description
         })));
       } else {
-        setAllocations([{ projectId: '', storyId: '', hours: 0, description: '' }]);
+        // Pre-fill from clock-in project/story if available
+        const totalHours = entry.clockOut ? parseFloat(((new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime()) / (1000 * 60 * 60) - (entry.pauseMinutes || 0) / 60).toFixed(2)) : 0;
+        setAllocations([{
+          projectId: entry.projectId || '',
+          storyId: entry.storyId || '',
+          hours: entry.projectId ? Math.max(totalHours, 0) : 0,
+          description: entry.description || ''
+        }]);
       }
     } catch (error) {
       console.error('Error loading allocations:', error);
-      setAllocations([{ projectId: '', storyId: '', hours: 0, description: '' }]);
+      const totalHours = entry.clockOut ? parseFloat(((new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime()) / (1000 * 60 * 60) - (entry.pauseMinutes || 0) / 60).toFixed(2)) : 0;
+      setAllocations([{
+        projectId: entry.projectId || '',
+        storyId: entry.storyId || '',
+        hours: entry.projectId ? Math.max(totalHours, 0) : 0,
+        description: entry.description || ''
+      }]);
     }
   };
 

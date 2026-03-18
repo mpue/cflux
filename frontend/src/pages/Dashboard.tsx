@@ -27,6 +27,8 @@ const Dashboard: React.FC = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [selectedStory, setSelectedStory] = useState<string>('');
+  const [stories, setStories] = useState<Story[]>([]);
   const [absenceRequests, setAbsenceRequests] = useState<AbsenceRequest[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [report, setReport] = useState<Report | null>(null);
@@ -192,11 +194,23 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Load stories when project changes
+  useEffect(() => {
+    if (selectedProject) {
+      storyService.getStoriesByProject(selectedProject).then(setStories).catch(() => setStories([]));
+    } else {
+      setStories([]);
+      setSelectedStory('');
+    }
+  }, [selectedProject]);
+
   const handleClockIn = async () => {
     try {
       await timeService.clockIn(
         selectedProject || undefined, 
-        selectedLocation || undefined
+        selectedLocation || undefined,
+        undefined,
+        selectedStory || undefined
       );
       await loadData();
     } catch (error: any) {
@@ -265,12 +279,24 @@ const Dashboard: React.FC = () => {
           description: a.description
         })));
       } else {
-        // Initialize with one empty allocation
-        setAllocations([{ projectId: '', storyId: '', hours: 0, description: '' }]);
+        // Pre-fill from clock-in project/story if available
+        const totalHours = entry.clockOut ? parseFloat(((new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime()) / (1000 * 60 * 60) - (entry.pauseMinutes || 0) / 60).toFixed(2)) : 0;
+        setAllocations([{
+          projectId: entry.projectId || '',
+          storyId: entry.storyId || '',
+          hours: entry.projectId ? Math.max(totalHours, 0) : 0,
+          description: entry.description || ''
+        }]);
       }
     } catch (error) {
       console.error('Error loading allocations:', error);
-      setAllocations([{ projectId: '', storyId: '', hours: 0, description: '' }]);
+      const totalHours = entry.clockOut ? parseFloat(((new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime()) / (1000 * 60 * 60) - (entry.pauseMinutes || 0) / 60).toFixed(2)) : 0;
+      setAllocations([{
+        projectId: entry.projectId || '',
+        storyId: entry.storyId || '',
+        hours: entry.projectId ? Math.max(totalHours, 0) : 0,
+        description: entry.description || ''
+      }]);
     }
   };
 
@@ -511,6 +537,19 @@ const Dashboard: React.FC = () => {
                   ))}
                 </select>
               </div>
+              {selectedProject && stories.length > 0 && (
+                <div className="form-group">
+                  <label>Story (optional)</label>
+                  <select value={selectedStory} onChange={(e) => setSelectedStory(e.target.value)}>
+                    <option value="">Keine Story</option>
+                    {stories.map((story) => (
+                      <option key={story.id} value={story.id}>
+                        {story.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="form-group">
                 <label>Standort (optional)</label>
                 <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)}>
