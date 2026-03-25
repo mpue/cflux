@@ -153,7 +153,8 @@ export const createTravelExpense = async (req: AuthRequest, res: Response) => {
         await workflowService.createWorkflowInstance(
           settings.travelExpenseDefaultWorkflowId, 
           expense.id, 
-          'TRAVEL_EXPENSE'
+          'TRAVEL_EXPENSE',
+          userId
         );
       }
     } catch (workflowError) {

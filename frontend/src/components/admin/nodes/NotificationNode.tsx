@@ -4,6 +4,7 @@ import './CustomNodes.css';
 
 const NotificationNode = ({ data }: any) => {
   const recipientCount = data.config?.recipients?.length || 0;
+  const sendToTriggerUser = data.config?.sendToTriggerUser || false;
 
   return (
     <div className="custom-node notification-node">
@@ -16,6 +17,7 @@ const NotificationNode = ({ data }: any) => {
         <div className="node-name">{data.config?.name || 'Unbenannt'}</div>
         <div className="node-info">
           <span className="info-badge">{recipientCount} Empfänger</span>
+          {sendToTriggerUser && <span className="info-badge">+ Auslöser</span>}
         </div>
       </div>
       <Handle type="source" position={Position.Bottom} className="custom-handle" />

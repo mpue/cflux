@@ -186,6 +186,9 @@ model User {
   assignedTools    Tool[]             @relation("ToolAssignedTo")
   toolAssignments  ToolAssignment[]   @relation("ToolAssignments")
   
+  // Workflows
+  triggeredWorkflows WorkflowInstance[] @relation("WorkflowTriggeredBy")
+  
   // Vorgesetzter (Supervisor)
   supervisorId    String?
   supervisor      User?   @relation("UserSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
@@ -1254,6 +1257,8 @@ model WorkflowInstance {
   status          WorkflowInstanceStatus    @default(PENDING)
   currentStepId   String?                   // Aktueller Workflow-Schritt
   
+  triggeredById   String?
+  
   startedAt       DateTime                  @default(now())
   completedAt     DateTime?
   
@@ -1262,12 +1267,14 @@ model WorkflowInstance {
   
   workflow        Workflow                  @relation(fields: [workflowId], references: [id], onDelete: Restrict)
   invoice         Invoice?                  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  triggeredBy     User?                     @relation("WorkflowTriggeredBy", fields: [triggeredById], references: [id], onDelete: SetNull)
   steps           WorkflowInstanceStep[]
   
   @@index([workflowId])
   @@index([invoiceId])
   @@index([entityType, entityId])
   @@index([status])
+  @@index([triggeredById])
   @@map("workflow_instances")
 }
 

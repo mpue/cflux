@@ -167,8 +167,20 @@ export const actionService = {
       throw new Error('System Action nicht gefunden');
     }
 
-    return await prisma.workflowTrigger.create({
-      data: {
+    return await prisma.workflowTrigger.upsert({
+      where: {
+        workflowId_actionKey: {
+          workflowId: data.workflowId,
+          actionKey: data.actionKey,
+        },
+      },
+      update: {
+        timing: data.timing || 'AFTER',
+        condition: data.condition ? JSON.stringify(data.condition) : null,
+        priority: data.priority || 100,
+        isActive: true,
+      },
+      create: {
         workflowId: data.workflowId,
         actionKey: data.actionKey,
         timing: data.timing || 'AFTER',
@@ -204,7 +216,6 @@ export const actionService = {
     return await prisma.workflowTrigger.findMany({
       where: { 
         actionKey,
-        isActive: true,
       },
       include: {
         workflow: true,
@@ -338,7 +349,8 @@ export const actionService = {
           const instance = await workflowService.createWorkflowInstance(
             trigger.workflowId,
             context.entityId,
-            context.entityType
+            context.entityType,
+            context.userId
           );
 
           triggeredWorkflows.push(instance.id);

@@ -320,6 +320,22 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave, onCan
                   {step.type === 'NOTIFICATION' && (
                     <>
                       <div className="form-group">
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            checked={getStepConfig(index).sendToTriggerUser || false}
+                            onChange={(e) =>
+                              updateStepConfig(index, { sendToTriggerUser: e.target.checked })
+                            }
+                          />
+                          An den auslösenden Benutzer senden
+                        </label>
+                        <div style={{ fontSize: '0.85em', color: '#666', marginTop: '4px' }}>
+                          Sendet die Benachrichtigung automatisch an den Benutzer, der den Workflow ausgelöst hat.
+                        </div>
+                      </div>
+
+                      <div className="form-group">
                         <label>Empfänger auswählen</label>
                         <div className="approvers-list">
                           {users.map((user) => {

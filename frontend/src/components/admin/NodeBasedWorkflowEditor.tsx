@@ -828,6 +828,19 @@ const NodePropertiesEditor: React.FC<NodePropertiesEditorProps> = ({
               />
             </div>
             <div className="form-group">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={config.sendToTriggerUser || false}
+                  onChange={(e) => handleChange('sendToTriggerUser', e.target.checked)}
+                />
+                An den auslösenden Benutzer senden
+              </label>
+              <small style={{ color: '#666', fontSize: '0.85em', display: 'block', marginTop: '4px' }}>
+                Sendet die Benachrichtigung automatisch an den Benutzer, der den Workflow ausgelöst hat.
+              </small>
+            </div>
+            <div className="form-group">
               <label>Empfänger</label>
               <select
                 multiple

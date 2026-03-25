@@ -301,7 +301,8 @@ export const workflowService = {
   async createWorkflowInstance(
     workflowId: string, 
     entityId: string, 
-    entityType: string = 'INVOICE'
+    entityType: string = 'INVOICE',
+    triggeredById?: string
   ) {
     const workflow = await prisma.workflow.findUnique({
       where: { id: workflowId },
@@ -378,6 +379,7 @@ export const workflowService = {
         entityType,
         entityId,
         invoiceId: entityType === 'INVOICE' ? entityId : null, // For backwards compatibility
+        triggeredById: triggeredById || null,
         status: 'IN_PROGRESS',
         currentStepId: workflow.steps[0]?.id || null,
       },
@@ -1291,9 +1293,10 @@ export const workflowService = {
     try {
       const config = JSON.parse(step.config || '{}');
       const recipients = config.recipients || [];
+      const sendToTriggerUser = config.sendToTriggerUser || false;
       let message = config.message || 'Sie haben eine neue Workflow-Benachrichtigung.';
       
-      if (recipients.length === 0) {
+      if (recipients.length === 0 && !sendToTriggerUser) {
         console.log('[WORKFLOW] No recipients configured for notification');
         return false;
       }
@@ -1366,7 +1369,16 @@ export const workflowService = {
       });
 
       // Send message to each recipient
-      for (const recipientId of recipients) {
+      const allRecipients = [...recipients];
+      
+      // Add trigger user if configured
+      if (sendToTriggerUser && workflowInstance.triggeredById) {
+        if (!allRecipients.includes(workflowInstance.triggeredById)) {
+          allRecipients.push(workflowInstance.triggeredById);
+        }
+      }
+
+      for (const recipientId of allRecipients) {
         const subject = `🔔 ${workflowName}: ${step.name || 'Benachrichtigung'}`;
         const body = `<p>${message}</p>
                       <p style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 0.9em; color: #666;">
@@ -1384,7 +1396,7 @@ export const workflowService = {
         );
       }
 
-      console.log(`[WORKFLOW] Notifications sent to ${recipients.length} recipients`);
+      console.log(`[WORKFLOW] Notifications sent to ${allRecipients.length} recipients`);
       return true;
     } catch (error) {
       console.error('Error sending workflow notifications:', error);

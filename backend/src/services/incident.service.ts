@@ -89,6 +89,23 @@ export const incidentService = {
       },
     });
 
+    // Trigger incident.created action
+    try {
+      await actionService.triggerAction('incident.created', {
+        entityType: 'INCIDENT',
+        entityId: incident.id,
+        userId: data.reportedById,
+        entityData: {
+          title: incident.title,
+          priority: incident.priority,
+          category: incident.category,
+          isEHSRelevant: incident.isEHSRelevant,
+        },
+      });
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger incident.created:', actionError);
+    }
+
     return incident;
   },
 
