@@ -118,6 +118,14 @@ describe('User Controller', () => {
       };
 
       (prisma.user.update as jest.Mock).mockResolvedValue(updatedUser);
+      // user controller syncs employee profile on update
+      (prisma.employee.findUnique as jest.Mock).mockResolvedValue({ id: 'emp-1', userId: 'user-1' });
+      (prisma.employee.update as jest.Mock).mockResolvedValue({});
+      // user controller fetches complete user at the end
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+        ...updatedUser,
+        employeeProfile: { id: 'emp-1', userId: 'user-1' },
+      });
 
       const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
@@ -212,7 +220,7 @@ describe('Absence Controller', () => {
     });
   });
 
-  describe('PUT /api/absences/:id/review (Admin)', () => {
+  describe('PUT /api/absences/:id/approve and reject (Admin)', () => {
     it('should approve absence request', async () => {
       const mockAbsence = {
         id: 'absence-1',
@@ -244,9 +252,9 @@ describe('Absence Controller', () => {
 
       const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
-        .put('/api/absences/absence-1/review')
+        .put('/api/absences/absence-1/approve')
         .set('Authorization', `Bearer ${token}`)
-        .send({ status: 'APPROVED' });
+        .send({});
 
       expect(response.status).toBe(200);
       expect(response.body.status).toBe('APPROVED');
@@ -271,26 +279,16 @@ describe('Absence Controller', () => {
 
       const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
       const response = await request(app)
-        .put('/api/absences/absence-1/review')
+        .put('/api/absences/absence-1/reject')
         .set('Authorization', `Bearer ${token}`)
-        .send({ status: 'REJECTED' });
+        .send({});
 
       expect(response.status).toBe(200);
       expect(response.body.status).toBe('REJECTED');
     });
-
-    it('should return 400 for invalid status', async () => {
-      const token = generateTestToken('admin-1', 'test@example.com', 'ADMIN');
-      const response = await request(app)
-        .put('/api/absences/absence-1/review')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ status: 'INVALID_STATUS' });
-
-      expect(response.status).toBe(400);
-    });
   });
 
-  describe('DELETE /api/absences/:id', () => {
+  describe('DELETE /api/absences/my-requests/:id', () => {
     it('should delete own absence request if pending', async () => {
       const mockAbsence = {
         id: 'absence-1',
@@ -298,12 +296,12 @@ describe('Absence Controller', () => {
         status: 'PENDING',
       };
 
-      (prisma.absenceRequest.findUnique as jest.Mock).mockResolvedValue(mockAbsence);
+      (prisma.absenceRequest.findFirst as jest.Mock).mockResolvedValue(mockAbsence);
       (prisma.absenceRequest.delete as jest.Mock).mockResolvedValue(mockAbsence);
 
       const token = generateTestToken('user-1', 'test@example.com', 'USER');
       const response = await request(app)
-        .delete('/api/absences/absence-1')
+        .delete('/api/absences/my-requests/absence-1')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(200);
@@ -316,11 +314,11 @@ describe('Absence Controller', () => {
         status: 'APPROVED',
       };
 
-      (prisma.absenceRequest.findUnique as jest.Mock).mockResolvedValue(mockAbsence);
+      (prisma.absenceRequest.findFirst as jest.Mock).mockResolvedValue(mockAbsence);
 
       const token = generateTestToken('user-1', 'test@example.com', 'USER');
       const response = await request(app)
-        .delete('/api/absences/absence-1')
+        .delete('/api/absences/my-requests/absence-1')
         .set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(400);

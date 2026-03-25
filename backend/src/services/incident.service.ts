@@ -1,7 +1,7 @@
-import { PrismaClient, Incident, IncidentPriority, IncidentStatus } from '@prisma/client';
+import { Incident, IncidentPriority, IncidentStatus } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { actionService } from './action.service';
 
-const prisma = new PrismaClient();
 
 export interface CreateIncidentDto {
   title: string;

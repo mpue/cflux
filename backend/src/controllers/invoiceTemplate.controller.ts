@@ -1,8 +1,7 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../types/auth';
 
-const prisma = new PrismaClient();
 
 // Get all invoice templates
 export const getAllTemplates = async (req: AuthRequest, res: Response) => {

@@ -23,20 +23,41 @@ app.delete('/api/invoices/:id', deleteInvoice);
 const prisma = new PrismaClient();
 
 jest.mock('@prisma/client', () => {
+  const crudMock = () => ({
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    deleteMany: jest.fn(),
+    count: jest.fn(),
+  });
   const mockPrisma = {
-    invoice: {
-      create: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    },
-    customer: {
-      findUnique: jest.fn(),
-    },
+    invoice: crudMock(),
+    invoiceItem: crudMock(),
+    customer: crudMock(),
+    actionDefinition: crudMock(),
+    actionLog: crudMock(),
+    workflow: crudMock(),
+    workflowStep: crudMock(),
+    workflowInstance: crudMock(),
+    workflowInstanceStep: crudMock(),
+    invoiceTemplateWorkflow: crudMock(),
+    invoiceTemplate: crudMock(),
+    $transaction: jest.fn(),
   };
   return {
     PrismaClient: jest.fn(() => mockPrisma),
+    InvoiceStatus: {
+      DRAFT: 'DRAFT',
+      SENT: 'SENT',
+      PAID: 'PAID',
+      OVERDUE: 'OVERDUE',
+      CANCELLED: 'CANCELLED',
+      ACCEPTED: 'ACCEPTED',
+      DECLINED: 'DECLINED',
+    },
   };
 });
 

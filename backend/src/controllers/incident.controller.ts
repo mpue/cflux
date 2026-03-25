@@ -16,7 +16,7 @@ export const incidentController = {
         return;
       }
 
-      const { title, description, priority, assignedToId, category, affectedSystem, dueDate, tags, isEHSRelevant, ehsCategory, ehsSeverity, incidentDate, location } = req.body;
+      const { title, description, priority, assignedToId, projectId, category, affectedSystem, dueDate, tags, isEHSRelevant, ehsCategory, ehsSeverity, incidentDate, location } = req.body;
       const reportedById = userId;
 
       if (!title || !description) {
@@ -39,6 +39,7 @@ export const incidentController = {
         ehsSeverity,
         incidentDate: incidentDate ? new Date(incidentDate) : undefined,
         location,
+        projectId,
       });
 
       res.status(201).json(incident);

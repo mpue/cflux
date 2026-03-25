@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import Parser from 'rss-parser';
 
-const prisma = new PrismaClient();
 const rssParser = new Parser();
 
 interface NewsSourceInput {

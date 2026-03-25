@@ -1,8 +1,7 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 
-const prisma = new PrismaClient();
 
 export const getAllProjects = async (req: AuthRequest, res: Response) => {
   try {
@@ -55,6 +54,10 @@ export const getMyProjects = async (req: AuthRequest, res: Response) => {
 export const createProject = async (req: AuthRequest, res: Response) => {
   try {
     const { name, description, status, customerId, defaultHourlyRate, sollBeginn, sollEnde, sollPauseDauer, sollArbeitszeit, cuttingAktiv, cuttingTolerance } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Project name is required' });
+    }
 
     const project = await prisma.project.create({
       data: {

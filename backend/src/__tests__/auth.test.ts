@@ -27,7 +27,12 @@ describe('Auth Controller', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.user.findUnique as jest.Mock)
+        .mockResolvedValueOnce(null) // First call: check if email exists
+        .mockResolvedValueOnce({     // Second call: fetch profile after create
+          ...mockUser,
+          employeeProfile: { vacationDays: 30 },
+        });
       (prisma.user.create as jest.Mock).mockResolvedValue(mockUser);
 
       const response = await request(app)

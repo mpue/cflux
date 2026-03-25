@@ -1,8 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
 
 // Feiertage für ein bestimmtes Jahr und Kanton abrufen
 export const getHolidays = async (req: AuthRequest, res: Response) => {

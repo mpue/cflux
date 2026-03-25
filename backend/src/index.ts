@@ -55,12 +55,11 @@ import departmentRoutes from './routes/department.routes';
 import storyRoutes from './routes/story.routes';
 import werkzeugeRoutes from './routes/werkzeuge.routes';
 import { errorHandler } from './middleware/errorHandler';
-import { PrismaClient } from '@prisma/client';
 import { authenticate } from './middleware/auth';
+import { backupScheduler } from './services/backupScheduler.service';
+import { prisma } from './lib/prisma';
 
 dotenv.config();
-
-const prismaStats = new PrismaClient();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -192,24 +191,24 @@ app.get('/api/system-stats', authenticate as any, async (req, res) => {
       totalUserGroups,
       currentlyClockedIn,
     ] = await Promise.all([
-      prismaStats.user.count(),
-      prismaStats.user.count({ where: { isActive: true } }),
-      prismaStats.project.count(),
-      prismaStats.project.count({ where: { status: 'ACTIVE' } }),
-      prismaStats.timeEntry.count(),
-      prismaStats.timeEntry.count({ where: { clockIn: { gte: today } } }),
-      prismaStats.invoice.count(),
-      prismaStats.order.count(),
-      prismaStats.incident.count(),
-      prismaStats.incident.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
-      prismaStats.documentNode.count({ where: { deletedAt: null } }),
-      prismaStats.message.count(),
-      prismaStats.message.count({ where: { isRead: false } }),
-      prismaStats.actionLog.count({ where: { createdAt: { gte: last30Days } } }),
-      prismaStats.actionLog.count({ where: { createdAt: { gte: today } } }),
-      prismaStats.module.count(),
-      prismaStats.userGroup.count(),
-      prismaStats.timeEntry.count({ where: { status: 'CLOCKED_IN' } }),
+      prisma.user.count(),
+      prisma.user.count({ where: { isActive: true } }),
+      prisma.project.count(),
+      prisma.project.count({ where: { status: 'ACTIVE' } }),
+      prisma.timeEntry.count(),
+      prisma.timeEntry.count({ where: { clockIn: { gte: today } } }),
+      prisma.invoice.count(),
+      prisma.order.count(),
+      prisma.incident.count(),
+      prisma.incident.count({ where: { status: { in: ['OPEN', 'IN_PROGRESS'] } } }),
+      prisma.documentNode.count({ where: { deletedAt: null } }),
+      prisma.message.count(),
+      prisma.message.count({ where: { isRead: false } }),
+      prisma.actionLog.count({ where: { createdAt: { gte: last30Days } } }),
+      prisma.actionLog.count({ where: { createdAt: { gte: today } } }),
+      prisma.module.count(),
+      prisma.userGroup.count(),
+      prisma.timeEntry.count({ where: { status: 'CLOCKED_IN' } }),
     ]);
 
     res.json({
@@ -241,4 +240,9 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Start automatic backup scheduler
+  backupScheduler.start().catch(err => {
+    console.error('Failed to start backup scheduler:', err);
+  });
 });

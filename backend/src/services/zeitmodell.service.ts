@@ -1,6 +1,6 @@
-import { PrismaClient, Zeitmodell, ZeitmodellEintrag, AenderungsTyp } from '@prisma/client';
+import { Zeitmodell, ZeitmodellEintrag, AenderungsTyp } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
 
 export interface ZeitmodellWithEintraege extends Zeitmodell {
   eintraege: ZeitmodellEintrag[];

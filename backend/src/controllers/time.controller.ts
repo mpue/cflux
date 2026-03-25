@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { 
   checkRestTimeViolation, 
@@ -10,7 +10,6 @@ import {
 } from '../services/compliance.service';
 import { actionService } from '../services/action.service';
 
-const prisma = new PrismaClient();
 
 // Helper function to get employeeId from userId
 async function getEmployeeId(userId: string): Promise<string> {

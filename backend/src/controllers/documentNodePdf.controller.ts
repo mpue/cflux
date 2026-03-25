@@ -2,10 +2,9 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import PDFDocument from 'pdfkit';
 import MarkdownIt from 'markdown-it';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { JSDOM } from 'jsdom';
 
-const prisma = new PrismaClient();
 const md = new MarkdownIt({ html: true, breaks: true });
 
 /**

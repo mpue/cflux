@@ -1,9 +1,9 @@
 import { Response } from 'express';
-import { PrismaClient, OrderStatus, OrderPriority } from '@prisma/client';
+import { OrderStatus, OrderPriority } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../types/auth';
 import { actionService } from '../services/action.service';
 
-const prisma = new PrismaClient();
 
 // Get all orders
 export const getAllOrders = async (req: AuthRequest, res: Response) => {

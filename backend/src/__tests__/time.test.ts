@@ -19,6 +19,14 @@ describe('Time Entry Controller', () => {
 
   const token = generateTestToken('user-1', 'USER');
 
+  beforeEach(() => {
+    // getEmployeeId() needs user.findUnique to return an employeeProfile
+    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+      id: 'user-1',
+      employeeProfile: { id: 'emp-1' },
+    });
+  });
+
   describe('POST /api/time/clock-in', () => {
     it('should clock in user successfully', async () => {
       const mockTimeEntry = {
@@ -190,11 +198,13 @@ describe('Time Entry Controller', () => {
       expect(response.status).toBe(404);
     });
 
-    it('should return 400 if trying to edit active entry', async () => {
+    it('should return 400 if trying to edit clock times on active entry', async () => {
       (prisma.timeEntry.findFirst as jest.Mock).mockResolvedValue({
         id: 'entry-1',
         userId: 'user-1',
+        employeeId: 'emp-1',
         status: 'CLOCKED_IN',
+        clockIn: new Date(),
       });
 
       const token = generateTestToken('user-1');
@@ -202,11 +212,11 @@ describe('Time Entry Controller', () => {
         .put('/api/time/my-entries/entry-1')
         .set('Authorization', `Bearer ${token}`)
         .send({
-          description: 'Updated description',
+          clockIn: new Date().toISOString(),
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error).toContain('Cannot edit active time entry');
+      expect(response.body.error).toContain('Cannot edit clock times for active entry');
     });
   });
 

@@ -1,10 +1,9 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import path from 'path';
 import fs from 'fs';
 import AdmZip from 'adm-zip';
 
-const prisma = new PrismaClient();
 
 const BACKUP_DIR = process.env.BACKUP_DIR || path.join(__dirname, '../../backups');
 const UPLOADS_DIR = path.join(__dirname, '../../uploads');

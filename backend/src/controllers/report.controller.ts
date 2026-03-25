@@ -1,9 +1,8 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { generateUserReport, generateTimeBookingsReport } from '../services/pdf.service';
 
-const prisma = new PrismaClient();
 
 // Helper: Netto-Arbeitsstunden berechnen (Brutto minus Pausen)
 const calculateWorkHours = (clockIn: Date, clockOut: Date | null, pauseMinutes: number = 0): number => {
@@ -707,8 +706,8 @@ export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) =
 
       return {
         id: entry.id,
-        employeeId: entry.employeeId,
-        employee: entry.employee,
+        userId: entry.employeeId,
+        user: entry.employee,
         projectId: entry.projectId,
         project: entry.project,
         storyId: (entry as any).storyId,
@@ -731,18 +730,18 @@ export const getDetailedTimeBookings = async (req: AuthRequest, res: Response) =
     const totalHours = enrichedEntries.reduce((sum, entry) => sum + entry.netHours, 0);
     const totalEntries = enrichedEntries.length;
 
-    // Group by employee
+    // Group by user
     const byUser: Record<string, any> = {};
     enrichedEntries.forEach(entry => {
-      if (!byUser[entry.employeeId]) {
-        byUser[entry.employeeId] = {
-          employee: entry.employee,
+      if (!byUser[entry.userId]) {
+        byUser[entry.userId] = {
+          user: entry.user,
           totalHours: 0,
           entries: []
         };
       }
-      byUser[entry.employeeId].totalHours += entry.netHours;
-      byUser[entry.employeeId].entries.push(entry);
+      byUser[entry.userId].totalHours += entry.netHours;
+      byUser[entry.userId].entries.push(entry);
     });
 
     // Group by project

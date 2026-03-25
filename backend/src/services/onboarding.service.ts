@@ -1,7 +1,7 @@
-import { PrismaClient, ApplicantStatus, DocumentStatus, OnboardingTaskStatus, OnboardingDocumentType } from '@prisma/client';
+import { ApplicantStatus, DocumentStatus, OnboardingTaskStatus, OnboardingDocumentType } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import crypto from 'crypto';
 
-const prisma = new PrismaClient();
 
 /**
  * Onboarding Service

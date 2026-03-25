@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { getHourlyRateForUser } from './hourlyRate.service';
 
-const prisma = new PrismaClient();
 
 /**
  * Aktualisiert das Projekt-Budget basierend auf einem TimeEntry.

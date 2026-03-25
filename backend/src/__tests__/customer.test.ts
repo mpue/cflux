@@ -158,7 +158,7 @@ describe('Customer Controller', () => {
 
   describe('DELETE /api/customers/:id', () => {
     it('should delete customer', async () => {
-      (prisma.customer.findUnique as jest.Mock).mockResolvedValue({ id: '1' });
+      (prisma.customer.findUnique as jest.Mock).mockResolvedValue({ id: '1', projects: [] });
       (prisma.customer.delete as jest.Mock).mockResolvedValue({ id: '1' });
 
       const response = await request(app)

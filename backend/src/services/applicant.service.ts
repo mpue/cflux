@@ -1,9 +1,9 @@
-import { PrismaClient, ApplicantStatus, InterviewType, OnboardingDocumentType } from '@prisma/client';
+import { ApplicantStatus, InterviewType, OnboardingDocumentType } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import crypto from 'crypto';
 import { emailService } from './email.service';
 import { systemSettingsService } from './systemSettings.service';
 
-const prisma = new PrismaClient();
 
 /**
  * Applicant Service

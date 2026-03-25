@@ -1,7 +1,7 @@
-import { PrismaClient, ActionCategory, ActionTriggerTiming } from '@prisma/client';
+import { ActionCategory, ActionTriggerTiming } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { workflowService } from './workflow.service';
 
-const prisma = new PrismaClient();
 
 interface SystemActionData {
   actionKey: string;

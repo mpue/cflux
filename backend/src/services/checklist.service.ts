@@ -1,6 +1,6 @@
-import { PrismaClient, ChecklistType, ChecklistItemType, ChecklistStatus } from '@prisma/client';
+import { ChecklistType, ChecklistItemType, ChecklistStatus } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
 
 export interface CreateTemplateDto {
   name: string;

@@ -1,10 +1,9 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import AdmZip from 'adm-zip';
 import path from 'path';
 import { marked } from 'marked';
 
-const prisma = new PrismaClient();
 
 // Format filename to title
 function formatTitle(filename: string): string {

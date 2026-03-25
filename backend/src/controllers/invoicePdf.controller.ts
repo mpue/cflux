@@ -1,12 +1,11 @@
 import { Response } from 'express';
 import PDFDocument from 'pdfkit';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../types/auth';
 import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
 
-const prisma = new PrismaClient();
 
 export const generateInvoicePdf = async (req: AuthRequest, res: Response) => {
   try {

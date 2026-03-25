@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { systemSettingsService } from '../services/systemSettings.service';
+import { backupScheduler } from '../services/backupScheduler.service';
 
 export const getSystemSettings = async (req: Request, res: Response) => {
   try {
@@ -22,6 +23,19 @@ export const getPublicSettings = async (req: Request, res: Response) => {
 export const updateSystemSettings = async (req: Request, res: Response) => {
   try {
     const settings = await systemSettingsService.updateSettings(req.body);
+
+    // Reschedule backup if backup-related settings changed
+    if (
+      req.body.autoBackupEnabled !== undefined ||
+      req.body.backupInterval !== undefined ||
+      req.body.backupTime !== undefined ||
+      req.body.backupRetention !== undefined
+    ) {
+      backupScheduler.reschedule().catch(err => {
+        console.error('Failed to reschedule backup:', err);
+      });
+    }
+
     res.json(settings);
   } catch (error: any) {
     res.status(500).json({ error: error.message });

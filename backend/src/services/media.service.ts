@@ -1,6 +1,6 @@
-import { PrismaClient, Media, MediaType } from '@prisma/client';
+import { Media, MediaType } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
 
 export interface CreateMediaDto {
   filename: string;

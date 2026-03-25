@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import bcrypt from 'bcrypt';
 import { actionService } from '../services/action.service';
@@ -7,7 +7,6 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
 
-const prisma = new PrismaClient();
 
 export const getCurrentUser = async (req: AuthRequest, res: Response) => {
   try {

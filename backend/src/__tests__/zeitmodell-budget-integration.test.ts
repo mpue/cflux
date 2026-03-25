@@ -58,7 +58,7 @@ describe('Zeitmodell-Budget Integration', () => {
       // Mock User mit hourlyRate
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: userId,
-        hourlyRate: 85,
+        employeeProfile: { hourlyRate: 85 },
       });
 
       const result = await getHourlyRateForUser(userId, projectId, timestamp);
@@ -67,7 +67,7 @@ describe('Zeitmodell-Budget Integration', () => {
       expect(mockGetStundensatz).toHaveBeenCalled();
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { id: userId },
-        select: { hourlyRate: true },
+        select: { employeeProfile: { select: { hourlyRate: true } } },
       });
     });
 
@@ -86,7 +86,7 @@ describe('Zeitmodell-Budget Integration', () => {
       // Mock User ohne hourlyRate
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: userId,
-        hourlyRate: null,
+        employeeProfile: { hourlyRate: null },
       });
 
       // Mock Project mit defaultHourlyRate
@@ -119,7 +119,7 @@ describe('Zeitmodell-Budget Integration', () => {
       // Mock User ohne hourlyRate
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: userId,
-        hourlyRate: null,
+        employeeProfile: { hourlyRate: null },
       });
 
       // Mock Project ohne defaultHourlyRate
@@ -154,7 +154,7 @@ describe('Zeitmodell-Budget Integration', () => {
       }));
 
       // Mock alle Fallbacks als null
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ hourlyRate: null });
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ employeeProfile: { hourlyRate: null } });
       (prisma.project.findUnique as jest.Mock).mockResolvedValue({ defaultHourlyRate: null });
       (prisma.systemSettings.findFirst as jest.Mock).mockResolvedValue({ defaultHourlyRate: null });
 
@@ -167,7 +167,7 @@ describe('Zeitmodell-Budget Integration', () => {
       // Kein timestamp → kein Zeitmodell-Lookup
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: userId,
-        hourlyRate: 90,
+        employeeProfile: { hourlyRate: 90 },
       });
 
       const result = await getHourlyRateForUser(userId, projectId);
@@ -189,17 +189,19 @@ describe('Zeitmodell-Budget Integration', () => {
       // Mock TimeEntry
       (prisma.timeEntry.findUnique as jest.Mock).mockResolvedValue({
         id: timeEntryId,
-        userId,
+        employeeId: 'emp-123',
         projectId,
         clockIn,
         clockOut,
         status: 'CLOCKED_OUT',
         pauseMinutes: 0,
-        user: {
-          id: userId,
+        employee: {
+          id: 'emp-123',
           firstName: 'Max',
           lastName: 'Mustermann',
+          userId,
         },
+        projectTimeAllocations: [],
       });
 
       // Mock Budget existiert
@@ -281,17 +283,19 @@ describe('Zeitmodell-Budget Integration', () => {
       // Mock TimeEntry
       (prisma.timeEntry.findUnique as jest.Mock).mockResolvedValue({
         id: timeEntryId,
-        userId,
+        employeeId: 'emp-124',
         projectId,
         clockIn,
         clockOut,
         status: 'CLOCKED_OUT',
         pauseMinutes: 60, // 1 Stunde Pause
-        user: {
-          id: userId,
+        employee: {
+          id: 'emp-124',
           firstName: 'Anna',
           lastName: 'Schmidt',
+          userId,
         },
+        projectTimeAllocations: [],
       });
 
       // Mock Budget existiert
@@ -311,7 +315,7 @@ describe('Zeitmodell-Budget Integration', () => {
       // Mock User mit Standard-Stundensatz
       (prisma.user.findUnique as jest.Mock).mockResolvedValue({
         id: userId,
-        hourlyRate: 80,
+        employeeProfile: { hourlyRate: 80 },
       });
 
       // Mock Budget-Item
@@ -366,12 +370,13 @@ describe('Zeitmodell-Budget Integration', () => {
 
       (prisma.timeEntry.findUnique as jest.Mock).mockResolvedValue({
         id: timeEntryId,
-        userId: 'user-123',
+        employeeId: 'emp-123',
         projectId: 'project-999',
         clockIn: new Date(),
         clockOut: new Date(),
         status: 'CLOCKED_OUT',
-        user: { firstName: 'Test', lastName: 'User' },
+        employee: { id: 'emp-123', firstName: 'Test', lastName: 'User', userId: 'user-123' },
+        projectTimeAllocations: [],
       });
 
       // Kein Budget gefunden
@@ -389,12 +394,13 @@ describe('Zeitmodell-Budget Integration', () => {
 
       (prisma.timeEntry.findUnique as jest.Mock).mockResolvedValue({
         id: timeEntryId,
-        userId: 'user-123',
+        employeeId: 'emp-123',
         projectId: 'project-456',
         clockIn: new Date(),
         clockOut: null, // Noch nicht ausgeclockt
         status: 'CLOCKED_IN',
-        user: { firstName: 'Test', lastName: 'User' },
+        employee: { id: 'emp-123', firstName: 'Test', lastName: 'User', userId: 'user-123' },
+        projectTimeAllocations: [],
       });
 
       await updateBudgetFromTimeEntry(timeEntryId);

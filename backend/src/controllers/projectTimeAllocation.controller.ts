@@ -1,8 +1,7 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 
-const prisma = new PrismaClient();
 
 // Get allocations for a time entry
 export const getAllocationsForTimeEntry = async (req: AuthRequest, res: Response) => {

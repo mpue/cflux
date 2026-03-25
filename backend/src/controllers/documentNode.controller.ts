@@ -1,10 +1,9 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { checkModulePermission } from '../services/module.service';
 import { actionService } from '../services/action.service';
 
-const prisma = new PrismaClient();
 
 /**
  * Helper function to check if a user has access to a specific node based on group permissions

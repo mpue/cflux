@@ -2,13 +2,12 @@ import { Response } from 'express';
 import { validationResult } from 'express-validator';
 import bcrypt from 'bcrypt';
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { actionService } from '../services/action.service';
 import { emailService } from '../services/email.service';
 import crypto from 'crypto';
 
-const prisma = new PrismaClient();
 
 // --- Login Throttling (Brute Force Protection) ---
 const MAX_ATTEMPTS = 5;

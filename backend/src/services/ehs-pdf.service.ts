@@ -1,7 +1,7 @@
 import PDFDocument from 'pdfkit';
-import { PrismaClient, EHSCategory } from '@prisma/client';
+import { EHSCategory } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
 
 interface EHSReportData {
   year: number;

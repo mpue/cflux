@@ -1,8 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
 
 // Alle Nachrichten des Benutzers nach Ordner abrufen
 export const getMessages = async (req: AuthRequest, res: Response) => {

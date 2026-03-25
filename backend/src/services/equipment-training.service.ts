@@ -1,9 +1,9 @@
-import { PrismaClient, EquipmentCondition, TrainingStatus } from '@prisma/client';
+import { EquipmentCondition, TrainingStatus } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 
-const prisma = new PrismaClient();
 
 /**
  * Equipment Service

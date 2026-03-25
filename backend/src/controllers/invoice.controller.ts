@@ -1,10 +1,10 @@
 import { Response } from 'express';
-import { PrismaClient, InvoiceStatus } from '@prisma/client';
+import { InvoiceStatus } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../types/auth';
 import { workflowService } from '../services/workflow.service';
 import { actionService } from '../services/action.service';
 
-const prisma = new PrismaClient();
 
 // Get all invoices
 export const getAllInvoices = async (req: AuthRequest, res: Response) => {

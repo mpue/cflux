@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient, ReminderLevel, ReminderStatus } from '@prisma/client';
+import { ReminderLevel, ReminderStatus } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
 
 // Alle Mahnungen abrufen
 export const getAllReminders = async (req: Request, res: Response) => {

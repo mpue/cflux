@@ -64,7 +64,7 @@ describe('Article Controller', () => {
         .post('/api/articles')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          number: 'ART-001',
+          articleNumber: 'ART-001',
           name: 'Test Article',
           description: 'Test Description',
           unit: 'hours',

@@ -1,9 +1,8 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { workflowService } from '../services/workflow.service';
 
-const prisma = new PrismaClient();
 
 // Get all travel expenses (Admin) or own travel expenses (User)
 export const getAllTravelExpenses = async (req: AuthRequest, res: Response) => {

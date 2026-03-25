@@ -1,9 +1,9 @@
-import { PrismaClient, CourseStatus, CourseType, EnrollmentStatus, QuestionType } from '@prisma/client';
+import { CourseStatus, CourseType, EnrollmentStatus, QuestionType } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 
-const prisma = new PrismaClient();
 
 /**
  * E-Learning Service

@@ -1,11 +1,10 @@
 import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { checkModulePermission } from '../services/module.service';
 import fs from 'fs';
 import path from 'path';
 
-const prisma = new PrismaClient();
 
 /**
  * Check if user has write access to a specific document node

@@ -49,6 +49,7 @@ services:
     volumes:
       - ./backend/prisma:/app/prisma
       - backend_uploads:/app/uploads
+      - backend_backups:/app/backups
 
   # Frontend
   frontend:
@@ -77,4 +78,6 @@ volumes:
   postgres_data:
     driver: local
   backend_uploads:
+    driver: local
+  backend_backups:
     driver: local

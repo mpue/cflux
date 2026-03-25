@@ -1,8 +1,8 @@
-import { PrismaClient, WorkflowStepType } from '@prisma/client';
+import { WorkflowStepType } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { systemSettingsService } from './systemSettings.service';
 import { sendSystemMessage } from '../controllers/message.controller';
 
-const prisma = new PrismaClient();
 
 interface WorkflowData {
   name: string;

@@ -1,9 +1,9 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import { PrismaClient, Incident } from '@prisma/client';
+import { Incident } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 import { generateEHSReport } from '../services/ehs-pdf.service';
 
-const prisma = new PrismaClient();
 
 // Get EHS KPI Dashboard Data
 export const getEHSKPIDashboard = async (req: AuthRequest, res: Response) => {
