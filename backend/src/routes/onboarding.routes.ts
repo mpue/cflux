@@ -194,6 +194,43 @@ router.delete(
 
 // ==================== EMPLOYEES ====================
 
+router.get(
+  '/jobs',
+  authenticate,
+  requireModuleAccess('onboarding', 'canView'),
+  onboardingController.getOnboardingJobs
+);
+
+router.get(
+  '/jobs/:jobId',
+  authenticate,
+  requireModuleAccess('onboarding', 'canView'),
+  onboardingController.getOnboardingJobById
+);
+
+router.post(
+  '/jobs',
+  authenticate,
+  requireModuleAccess('onboarding', 'canCreate'),
+  onboardingController.createOnboardingJob
+);
+
+router.put(
+  '/jobs/:jobId',
+  authenticate,
+  requireModuleAccess('onboarding', 'canEdit'),
+  onboardingController.updateOnboardingJob
+);
+
+router.delete(
+  '/jobs/:jobId',
+  authenticate,
+  requireModuleAccess('onboarding', 'canDelete'),
+  onboardingController.deleteOnboardingJob
+);
+
+// ==================== EMPLOYEES ====================
+
 // Hire applicant (create employee record)
 router.post(
   '/hire',

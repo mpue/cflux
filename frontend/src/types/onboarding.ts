@@ -259,6 +259,26 @@ export interface OnboardingDashboardItem {
   };
 }
 
+export interface OnboardingJob {
+  id: string;
+  title: string;
+  description?: string;
+  department?: string;
+  employmentType?: string;
+  location?: string;
+  workload?: string;
+  requirements?: string;
+  responsibilities?: string;
+  benefits?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  salaryCurrency: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ==================== EQUIPMENT ====================
 
 export interface Equipment {
@@ -394,6 +414,23 @@ export interface TaskFormData {
   category: string;
   assignedToId?: string;
   dueDate?: string;
+}
+
+export interface OnboardingJobFormData {
+  title: string;
+  description?: string;
+  department?: string;
+  employmentType?: string;
+  location?: string;
+  workload?: string;
+  requirements?: string;
+  responsibilities?: string;
+  benefits?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  salaryCurrency?: string;
+  isActive?: boolean;
+  sortOrder?: number;
 }
 
 export interface EquipmentFormData {

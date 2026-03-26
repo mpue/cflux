@@ -2,6 +2,97 @@ import { Request, Response } from 'express';
 import * as onboardingService from '../services/onboarding.service';
 import { DocumentStatus, OnboardingTaskStatus } from '@prisma/client';
 
+function normalizeOptionalNumber(value: unknown) {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function normalizeJobPayload(body: any) {
+  return {
+    title: body.title,
+    description: body.description,
+    department: body.department,
+    employmentType: body.employmentType,
+    location: body.location,
+    workload: body.workload,
+    requirements: body.requirements,
+    responsibilities: body.responsibilities,
+    benefits: body.benefits,
+    salaryMin: normalizeOptionalNumber(body.salaryMin),
+    salaryMax: normalizeOptionalNumber(body.salaryMax),
+    salaryCurrency: body.salaryCurrency,
+    isActive: body.isActive,
+    sortOrder: normalizeOptionalNumber(body.sortOrder),
+  };
+}
+
+// ==================== ONBOARDING JOBS ====================
+
+export async function getOnboardingJobs(req: Request, res: Response) {
+  try {
+    const { isActive } = req.query;
+    const jobs = await onboardingService.getOnboardingJobs({
+      isActive: isActive !== undefined ? isActive === 'true' : undefined,
+    });
+    res.json(jobs);
+  } catch (error: any) {
+    console.error('Error fetching onboarding jobs:', error);
+    res.status(500).json({ error: 'Failed to fetch onboarding jobs', details: error.message });
+  }
+}
+
+export async function getOnboardingJobById(req: Request, res: Response) {
+  try {
+    const { jobId } = req.params;
+    const job = await onboardingService.getOnboardingJobById(jobId);
+
+    if (!job) {
+      return res.status(404).json({ error: 'Onboarding job not found' });
+    }
+
+    res.json(job);
+  } catch (error: any) {
+    console.error('Error fetching onboarding job:', error);
+    res.status(500).json({ error: 'Failed to fetch onboarding job', details: error.message });
+  }
+}
+
+export async function createOnboardingJob(req: Request, res: Response) {
+  try {
+    const job = await onboardingService.createOnboardingJob(normalizeJobPayload(req.body));
+    res.status(201).json(job);
+  } catch (error: any) {
+    console.error('Error creating onboarding job:', error);
+    res.status(500).json({ error: 'Failed to create onboarding job', details: error.message });
+  }
+}
+
+export async function updateOnboardingJob(req: Request, res: Response) {
+  try {
+    const { jobId } = req.params;
+    const job = await onboardingService.updateOnboardingJob(jobId, normalizeJobPayload(req.body));
+    res.json(job);
+  } catch (error: any) {
+    console.error('Error updating onboarding job:', error);
+    res.status(500).json({ error: 'Failed to update onboarding job', details: error.message });
+  }
+}
+
+export async function deleteOnboardingJob(req: Request, res: Response) {
+  try {
+    const { jobId } = req.params;
+    await onboardingService.deleteOnboardingJob(jobId);
+    res.status(204).send();
+  } catch (error: any) {
+    console.error('Error deleting onboarding job:', error);
+    res.status(500).json({ error: 'Failed to delete onboarding job', details: error.message });
+  }
+}
+
 // ==================== EMPLOYEES ====================
 
 export async function hireApplicant(req: Request, res: Response) {

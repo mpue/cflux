@@ -179,6 +179,78 @@ export async function updateEmployee(employeeId: string, data: any) {
   });
 }
 
+// ==================== ONBOARDING JOBS ====================
+
+export async function getOnboardingJobs(filters?: { isActive?: boolean }) {
+  return prisma.onboardingJob.findMany({
+    where: {
+      ...(filters?.isActive !== undefined && { isActive: filters.isActive }),
+    },
+    orderBy: [
+      { sortOrder: 'asc' },
+      { title: 'asc' },
+    ],
+  });
+}
+
+export async function getOnboardingJobById(jobId: string) {
+  return prisma.onboardingJob.findUnique({
+    where: { id: jobId },
+  });
+}
+
+export async function createOnboardingJob(data: {
+  title: string;
+  description?: string;
+  department?: string;
+  employmentType?: string;
+  location?: string;
+  workload?: string;
+  requirements?: string;
+  responsibilities?: string;
+  benefits?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  salaryCurrency?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}) {
+  return prisma.onboardingJob.create({
+    data,
+  });
+}
+
+export async function updateOnboardingJob(
+  jobId: string,
+  data: {
+    title?: string;
+    description?: string;
+    department?: string;
+    employmentType?: string;
+    location?: string;
+    workload?: string;
+    requirements?: string;
+    responsibilities?: string;
+    benefits?: string;
+    salaryMin?: number;
+    salaryMax?: number;
+    salaryCurrency?: string;
+    isActive?: boolean;
+    sortOrder?: number;
+  }
+) {
+  return prisma.onboardingJob.update({
+    where: { id: jobId },
+    data,
+  });
+}
+
+export async function deleteOnboardingJob(jobId: string) {
+  return prisma.onboardingJob.delete({
+    where: { id: jobId },
+  });
+}
+
 // ==================== EMPLOYEE DOCUMENTS ====================
 
 export async function uploadEmployeeDocument(data: {

@@ -9,6 +9,7 @@ import {
   OnboardingTask,
   OnboardingProgress,
   OnboardingDashboardItem,
+  OnboardingJob,
   Equipment,
   EquipmentAssignment,
   TrainingCatalog,
@@ -17,6 +18,7 @@ import {
   ApplicantFormData,
   EmployeeFormData,
   TaskFormData,
+  OnboardingJobFormData,
   EquipmentFormData,
   TrainingCatalogFormData,
   TrainingSessionFormData,
@@ -127,6 +129,35 @@ export const applicantService = {
 // ==================== ONBOARDING ====================
 
 export const onboardingService = {
+  // Get onboarding jobs
+  getJobs: async (filters?: { isActive?: boolean }): Promise<OnboardingJob[]> => {
+    const response = await api.get('/onboarding/jobs', { params: filters });
+    return response.data;
+  },
+
+  // Get single onboarding job
+  getJobById: async (jobId: string): Promise<OnboardingJob> => {
+    const response = await api.get(`/onboarding/jobs/${jobId}`);
+    return response.data;
+  },
+
+  // Create onboarding job
+  createJob: async (data: OnboardingJobFormData): Promise<OnboardingJob> => {
+    const response = await api.post('/onboarding/jobs', data);
+    return response.data;
+  },
+
+  // Update onboarding job
+  updateJob: async (jobId: string, data: OnboardingJobFormData): Promise<OnboardingJob> => {
+    const response = await api.put(`/onboarding/jobs/${jobId}`, data);
+    return response.data;
+  },
+
+  // Delete onboarding job
+  deleteJob: async (jobId: string): Promise<void> => {
+    await api.delete(`/onboarding/jobs/${jobId}`);
+  },
+
   // Hire applicant
   hireApplicant: async (data: EmployeeFormData): Promise<Employee> => {
     const response = await api.post('/onboarding/hire', data);

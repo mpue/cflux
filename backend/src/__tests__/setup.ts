@@ -197,6 +197,19 @@ jest.mock('@prisma/client', () => {
 
   return {
     PrismaClient: jest.fn(() => mockPrisma),
+    UserRole: {
+      ADMIN: 'ADMIN',
+      USER: 'USER',
+      MANAGER: 'MANAGER',
+    },
+    ActionCategory: {
+      CUSTOM: 'CUSTOM',
+      SYSTEM: 'SYSTEM',
+    },
+    ActionTriggerTiming: {
+      BEFORE: 'BEFORE',
+      AFTER: 'AFTER',
+    },
     InvoiceStatus: {
       DRAFT: 'DRAFT',
       SENT: 'SENT',

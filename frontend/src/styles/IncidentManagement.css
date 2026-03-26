@@ -381,14 +381,26 @@
   margin-bottom: 10px;
 }
 
-.comment p {
-  margin: 0 0 8px 0;
-  color: var(--text-primary, #1a1a1a);
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
 }
 
-.comment small {
+.comment-header strong {
+  color: var(--text-primary, #1a1a1a);
+  font-size: 13px;
+}
+
+.comment-header small {
   color: var(--text-secondary, #666);
   font-size: 12px;
+}
+
+.comment p {
+  margin: 0;
+  color: var(--text-primary, #1a1a1a);
 }
 
 .add-comment {

@@ -58,6 +58,11 @@ export interface IncidentComment {
   comment: string;
   createdAt: string;
   updatedAt: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
 }
 
 export interface CreateIncidentDto {

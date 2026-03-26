@@ -184,6 +184,15 @@ export const incidentService = {
             createdAt: 'desc',
           },
           take: 5,
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
         },
       },
       orderBy: [
@@ -224,6 +233,15 @@ export const incidentService = {
         comments: {
           orderBy: {
             createdAt: 'asc',
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              },
+            },
           },
         },
       },
@@ -309,6 +327,15 @@ export const incidentService = {
         userId: data.userId,
         comment: data.comment,
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
     });
 
     return comment;
@@ -318,6 +345,15 @@ export const incidentService = {
     const comments = await prisma.incidentComment.findMany({
       where: { incidentId },
       orderBy: { createdAt: 'asc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
     });
 
     return comments;

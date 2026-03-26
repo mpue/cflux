@@ -113,6 +113,7 @@ model User {
 
   reportedIncidents Incident[] @relation("IncidentsReported")
   assignedIncidents Incident[] @relation("IncidentsAssigned")
+  incidentComments  IncidentComment[]
   workflowApprovals WorkflowInstanceStep[]
   userGroup     UserGroup? @relation("UserGroupDeprecated", fields: [userGroupId], references: [id], onDelete: SetNull)
   userGroupMemberships UserGroupMembership[]
@@ -1034,8 +1035,10 @@ model IncidentComment {
   updatedAt   DateTime @updatedAt
   
   incident    Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
   
   @@index([incidentId])
+  @@index([userId])
   @@index([createdAt])
   @@map("incident_comments")
 }
@@ -3001,6 +3004,32 @@ model OnboardingTask {
   @@index([status])
   @@index([dueDate])
   @@map("onboarding_tasks")
+}
+
+model OnboardingJob {
+  id                String   @id @default(uuid())
+  title             String
+  description       String?  @db.Text
+  department        String?
+  employmentType    String?
+  location          String?
+  workload          String?
+  requirements      String?  @db.Text
+  responsibilities  String?  @db.Text
+  benefits          String?  @db.Text
+  salaryMin         Float?
+  salaryMax         Float?
+  salaryCurrency    String   @default("CHF")
+  isActive          Boolean  @default(true)
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([title])
+  @@index([department])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("onboarding_jobs")
 }
 
 // 3. Post-Onboarding: Schulungen

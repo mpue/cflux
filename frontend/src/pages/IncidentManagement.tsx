@@ -728,8 +728,11 @@ const IncidentManagement: React.FC = () => {
                     {selectedIncident.comments && selectedIncident.comments.length > 0 ? (
                       selectedIncident.comments.map((comment) => (
                         <div key={comment.id} className="comment">
+                          <div className="comment-header">
+                            <strong>{comment.user ? `${comment.user.firstName} ${comment.user.lastName}` : 'Unbekannt'}</strong>
+                            <small>{new Date(comment.createdAt).toLocaleString('de-CH')}</small>
+                          </div>
                           <p>{comment.comment}</p>
-                          <small>{new Date(comment.createdAt).toLocaleString('de-CH')}</small>
                         </div>
                       ))
                     ) : (
