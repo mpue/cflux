@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { getHourlyRateForUser } from './hourlyRate.service';
+import { roundMsToHours } from '../utils/timeRounding';
 
 
 /**
@@ -88,7 +89,7 @@ export async function updateBudgetFromTimeEntry(timeEntryId: string): Promise<vo
     const pauseMinutes = timeEntry.pauseMinutes || 0;
     const totalPauseMs = pauseMinutes * 60 * 1000;
     const workedMs = endTime - startTime - totalPauseMs;
-    const workedHours = workedMs / (1000 * 60 * 60);
+    const workedHours = roundMsToHours(workedMs);
 
     if (workedHours <= 0) {
       return;
@@ -298,7 +299,7 @@ export async function reverseBudgetFromTimeEntry(timeEntryId: string): Promise<v
     const pauseMinutes = timeEntry.pauseMinutes || 0;
     const totalPauseMs = pauseMinutes * 60 * 1000;
     const workedMs = endTime - startTime - totalPauseMs;
-    const workedHours = workedMs / (1000 * 60 * 60);
+    const workedHours = roundMsToHours(workedMs);
 
     if (workedHours <= 0) return;
 

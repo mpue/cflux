@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
 import { authService } from '../services/auth.service';
+import { systemSettingsService } from '../services/systemSettings.service';
+import { setTimeRoundingConfig, TimeRoundingMode } from '../utils/timeRounding';
 
 interface AuthContextType {
   user: User | null;
@@ -43,6 +45,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const userData = await authService.getCurrentUser();
       setUser(userData);
+      // Load time rounding config
+      try {
+        const publicSettings = await systemSettingsService.getPublicSettings();
+        if (publicSettings.timeRoundingMode) {
+          setTimeRoundingConfig(
+            publicSettings.timeRoundingMode as TimeRoundingMode,
+            publicSettings.timeRoundingThreshold ?? 30
+          );
+        }
+      } catch { /* use defaults */ }
     } catch (error) {
       localStorage.removeItem('token');
     } finally {

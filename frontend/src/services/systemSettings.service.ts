@@ -57,6 +57,10 @@ export interface SystemSettings {
   // Google Maps
   googleMapsApiKey?: string;
 
+  // Time Rounding
+  timeRoundingMode: string;
+  timeRoundingThreshold: number;
+
   createdAt: string;
   updatedAt: string;
 }

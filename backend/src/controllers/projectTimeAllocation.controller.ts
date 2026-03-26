@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
+import { roundMsToMinutes } from '../utils/timeRounding';
 
 
 // Get allocations for a time entry
@@ -91,7 +92,7 @@ export const setAllocationsForTimeEntry = async (req: AuthRequest, res: Response
     // Calculate total worked hours
     const clockInTime = new Date(timeEntry.clockIn).getTime();
     const clockOutTime = new Date(timeEntry.clockOut).getTime();
-    const totalMinutes = (clockOutTime - clockInTime) / (1000 * 60);
+    const totalMinutes = roundMsToMinutes(clockOutTime - clockInTime);
     const pauseMinutes = timeEntry.pauseMinutes || 0;
     const workedMinutes = totalMinutes - pauseMinutes;
     const totalWorkedHours = workedMinutes / 60;

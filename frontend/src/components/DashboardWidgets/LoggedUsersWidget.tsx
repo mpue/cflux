@@ -1,5 +1,6 @@
 import React from 'react';
 import WidgetHeader from './WidgetHeader';
+import { roundMsToMinutes } from '../../utils/timeRounding';
 import './DashboardWidgets.css';
 
 interface LoggedUser {
@@ -48,7 +49,7 @@ const LoggedUsersWidget: React.FC<LoggedUsersWidgetProps> = ({ loggedInUsers, on
                 loggedInUsers.map((loggedUser) => {
                   const clockInTime = new Date(loggedUser.clockIn);
                   const now = new Date();
-                  const durationMinutes = Math.floor((now.getTime() - clockInTime.getTime()) / (1000 * 60)) - (loggedUser.pauseMinutes || 0);
+                  const durationMinutes = roundMsToMinutes(now.getTime() - clockInTime.getTime()) - (loggedUser.pauseMinutes || 0);
                   const hours = Math.floor(durationMinutes / 60);
                   const minutes = durationMinutes % 60;
                   

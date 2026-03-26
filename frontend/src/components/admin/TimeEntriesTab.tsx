@@ -3,6 +3,7 @@ import { TimeEntry, User, Project } from '../../types';
 import { userService } from '../../services/user.service';
 import { projectService } from '../../services/project.service';
 import { timeService } from '../../services/time.service';
+import { roundMsToMinutes } from '../../utils/timeRounding';
 import SollIstVergleichTab from './SollIstVergleichTab';
 
 type SubTab = 'entries' | 'sollIst';
@@ -113,8 +114,9 @@ const TimeEntriesContent: React.FC = () => {
     if (!clockOut) return 'Läuft...';
     const start = new Date(clockIn);
     const end = new Date(clockOut);
-    const hours = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60));
-    const minutes = Math.floor(((end.getTime() - start.getTime()) % (1000 * 60 * 60)) / (1000 * 60));
+    const totalMinutes = roundMsToMinutes(end.getTime() - start.getTime());
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
     return `${hours}h ${minutes}m`;
   };
 
@@ -275,8 +277,9 @@ const TimeEntryEditModal: React.FC<{
     if (end <= start) return 'Ungültig';
     
     const diffMs = end.getTime() - start.getTime();
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const totalMinutes = roundMsToMinutes(diffMs);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
     return `${hours}h ${minutes}m`;
   };
 
@@ -408,7 +411,7 @@ const TimeEntryCreateModal: React.FC<{
     if (end <= start) return { total: 'Ungültig', net: 'Ungültig' };
     
     const diffMs = end.getTime() - start.getTime();
-    const totalMinutes = Math.floor(diffMs / (1000 * 60));
+    const totalMinutes = roundMsToMinutes(diffMs);
     const netMinutes = totalMinutes - (formData.pauseMinutes || 0);
     
     const totalHours = Math.floor(totalMinutes / 60);

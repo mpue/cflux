@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
+<<<<<<< HEAD
 import { prisma } from '../lib/prisma';
+=======
+import { PrismaClient } from '@prisma/client';
 import { roundMsToHours } from '../utils/timeRounding';
+>>>>>>> 1cacea1 (tracking)
 
 
 // Typdefinition für AuthRequest

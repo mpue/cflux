@@ -49,6 +49,10 @@ export interface SystemSettingsData {
 
   // Google Maps
   googleMapsApiKey?: string;
+
+  // Time Rounding
+  timeRoundingMode?: string;
+  timeRoundingThreshold?: number;
 }
 
 class SystemSettingsService {
@@ -147,6 +151,8 @@ class SystemSettingsService {
       invoicePrefix: settings.invoicePrefix,
       invoiceTermsDays: settings.invoiceTermsDays,
       googleMapsApiKey: settings.googleMapsApiKey,
+      timeRoundingMode: settings.timeRoundingMode,
+      timeRoundingThreshold: settings.timeRoundingThreshold,
     };
   }
 }

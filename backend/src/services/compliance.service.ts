@@ -1,5 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { actionService } from './action.service';
+import { roundMsToHours } from '../utils/timeRounding';
 
 
 interface TimeEntryWithDuration {
@@ -23,7 +24,7 @@ export async function checkRestTimeViolation(employeeId: string, newClockIn: Dat
     if (!lastEntry || !lastEntry.clockOut) return;
 
     // Differenz berechnen
-    const restTimeHours = (newClockIn.getTime() - lastEntry.clockOut.getTime()) / (1000 * 60 * 60);
+    const restTimeHours = roundMsToHours(newClockIn.getTime() - lastEntry.clockOut.getTime());
 
     if (restTimeHours < 11) {
       console.log(`[COMPLIANCE] Creating REST_TIME violation for employee ${employeeId}: ${restTimeHours.toFixed(1)}h rest time`);
@@ -95,9 +96,9 @@ export async function checkWeeklyHoursViolation(employeeId: string, date: Date) 
     let totalHours = 0;
     entries.forEach((entry: any) => {
       if (entry.clockOut) {
-        const bruttoHours = (entry.clockOut.getTime() - entry.clockIn.getTime()) / (1000 * 60 * 60);
-        const pauseHours = (entry.pauseMinutes || 0) / 60;
-        totalHours += bruttoHours - pauseHours;
+        const bruttoMs = entry.clockOut.getTime() - entry.clockIn.getTime();
+        const pauseMs = (entry.pauseMinutes || 0) * 60 * 1000;
+        totalHours += roundMsToHours(bruttoMs - pauseMs);
       }
     });
 
@@ -164,8 +165,9 @@ export async function checkDailyHoursViolation(employeeId: string, clockIn: Date
     });
 
     const pauseMinutes = timeEntry?.pauseMinutes || 0;
-    const bruttoHours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-    const nettoHours = bruttoHours - (pauseMinutes / 60);
+    const bruttoMs = clockOut.getTime() - clockIn.getTime();
+    const pauseMs = pauseMinutes * 60 * 1000;
+    const nettoHours = roundMsToHours(bruttoMs - pauseMs);
 
     if (nettoHours > 12.5) {
       console.log(`[COMPLIANCE] Creating MAX_DAILY_HOURS violation for employee ${employeeId}: ${nettoHours.toFixed(1)}h netto`);
@@ -206,7 +208,7 @@ export async function checkDailyHoursViolation(employeeId: string, clockIn: Date
 export async function checkMissingPauseViolation(employeeId: string, clockIn: Date, clockOut: Date) {
   try {
     // Gesamtarbeitszeit in Stunden berechnen
-    const totalDuration = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
+    const totalDuration = roundMsToHours(clockOut.getTime() - clockIn.getTime());
 
     // Tatsächliche Pausen aus TimeEntry holen
     const timeEntry = await prisma.timeEntry.findFirst({
@@ -322,9 +324,9 @@ export async function updateOvertimeBalance(employeeId: string, date: Date) {
     let totalHours = 0;
     entries.forEach((entry: any) => {
       if (entry.clockOut) {
-        const bruttoHours = (entry.clockOut.getTime() - entry.clockIn.getTime()) / (1000 * 60 * 60);
-        const pauseHours = (entry.pauseMinutes || 0) / 60;
-        totalHours += bruttoHours - pauseHours;
+        const bruttoMs = entry.clockOut.getTime() - entry.clockIn.getTime();
+        const pauseMs = (entry.pauseMinutes || 0) * 60 * 1000;
+        totalHours += roundMsToHours(bruttoMs - pauseMs);
       }
     });
 

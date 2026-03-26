@@ -1364,6 +1364,10 @@ model SystemSettings {
   // Budget & Billing
   defaultHourlyRate     Float     @default(100.0)  // Globaler Default-Stundensatz (CHF/h)
   
+  // Time Rounding
+  timeRoundingMode      String    @default("round")   // none, round, ceil, floor
+  timeRoundingThreshold Int       @default(30)         // Sekunden-Schwelle für "round" Modus (0-59)
+  
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   

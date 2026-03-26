@@ -6,7 +6,7 @@ const SystemSettingsTab: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<'company' | 'system' | 'backup' | 'email' | 'invoice' | 'features' | 'maps'>('company');
+  const [activeSection, setActiveSection] = useState<'company' | 'system' | 'backup' | 'email' | 'invoice' | 'features' | 'maps' | 'timetracking'>('company');
   const [testEmailRecipient, setTestEmailRecipient] = useState('');
   const [testingEmail, setTestingEmail] = useState(false);
 
@@ -152,6 +152,12 @@ const SystemSettingsTab: React.FC = () => {
           onClick={() => setActiveSection('maps')}
         >
           🗺️ Karten
+        </button>
+        <button
+          className={`nav-btn ${activeSection === 'timetracking' ? 'active' : ''}`}
+          onClick={() => setActiveSection('timetracking')}
+        >
+          ⏱️ Zeiterfassung
         </button>
       </div>
 
@@ -312,6 +318,49 @@ const SystemSettingsTab: React.FC = () => {
                 <option value="Europe/London">Europe/London (GMT/BST)</option>
                 <option value="America/New_York">America/New_York (EST/EDT)</option>
               </select>
+            </div>
+
+          </div>
+        )}
+
+        {activeSection === 'timetracking' && (
+          <div className="settings-section">
+            <h3>Zeiterfassung</h3>
+
+            <h4>Zeitrundung</h4>
+            <p className="section-description">
+              Legt fest, wie Sekunden bei der Zeiterfassung auf ganze Minuten gerundet werden.
+            </p>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Rundungsmodus</label>
+                <select
+                  value={settings.timeRoundingMode || 'round'}
+                  onChange={(e) => handleChange('timeRoundingMode', e.target.value)}
+                >
+                  <option value="none">Keine Rundung (Sekunden abschneiden)</option>
+                  <option value="round">Kaufmännisch runden (Schwelle konfigurierbar)</option>
+                  <option value="ceil">Immer aufrunden</option>
+                  <option value="floor">Immer abrunden</option>
+                </select>
+              </div>
+
+              {(settings.timeRoundingMode === 'round' || !settings.timeRoundingMode) && (
+                <div className="form-group">
+                  <label>Schwelle (Sekunden)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={59}
+                    value={settings.timeRoundingThreshold ?? 30}
+                    onChange={(e) => handleChange('timeRoundingThreshold', parseInt(e.target.value) || 0)}
+                  />
+                  <small style={{ color: '#666', display: 'block', marginTop: '4px' }}>
+                    Ab dieser Sekundenanzahl wird auf die nächste Minute aufgerundet (0–59). Standard: 30
+                  </small>
+                </div>
+              )}
             </div>
           </div>
         )}

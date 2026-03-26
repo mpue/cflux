@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
+import { roundMsToHours } from '../utils/timeRounding';
 
 
 /**
@@ -113,7 +114,7 @@ export const getProjectOverview = async (req: AuthRequest, res: Response) => {
             const endTime = new Date(entry.clockOut).getTime();
             const pauseMs = (entry.pauseMinutes || 0) * 60 * 1000;
             const workedMs = endTime - startTime - pauseMs;
-            const hours = workedMs / (1000 * 60 * 60);
+            const hours = roundMsToHours(workedMs);
 
             totalHours += hours;
 
@@ -319,7 +320,7 @@ export const getTimeTrackingReport = async (req: AuthRequest, res: Response) => 
       const endTime = new Date(entry.clockOut).getTime();
       const pauseMs = (entry.pauseMinutes || 0) * 60 * 1000;
       const workedMs = endTime - startTime - pauseMs;
-      const hours = workedMs / (1000 * 60 * 60);
+      const hours = roundMsToHours(workedMs);
 
       // Stundensatz ermitteln (Employee → Projekt → System)
       // Nutze employee.hourlyRate falls vorhanden, sonst project.defaultHourlyRate, sonst 100 CHF als Fallback

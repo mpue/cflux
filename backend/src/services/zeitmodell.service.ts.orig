@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 import { Zeitmodell, ZeitmodellEintrag, AenderungsTyp } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+=======
+import { PrismaClient, Zeitmodell, ZeitmodellEintrag, AenderungsTyp } from '@prisma/client';
 import { roundMsToHours } from '../utils/timeRounding';
+>>>>>>> 1cacea1 (tracking)
 
 
 export interface ZeitmodellWithEintraege extends Zeitmodell {

@@ -11,6 +11,7 @@ import { workflowService } from '../services/workflow.service';
 import projectTimeAllocationService, { AllocationInput, ProjectTimeAllocation } from '../services/projectTimeAllocation.service';
 import { storyService } from '../services/story.service';
 import { getUnreadCount } from '../services/message.service';
+import { roundMsToMinutes, roundMsToHours } from '../utils/timeRounding';
 import { TimeEntry, Project, AbsenceRequest, Report, Location, Story } from '../types';
 import PDFReportModal from '../components/PDFReportModal';
 import MyPayrollEntries from '../components/MyPayrollEntries';
@@ -88,7 +89,7 @@ const Dashboard: React.FC = () => {
 
     const start = new Date(currentEntry.clockIn);
     const now = new Date();
-    let totalMinutes = Math.floor((now.getTime() - start.getTime()) / (1000 * 60));
+    let totalMinutes = roundMsToMinutes(now.getTime() - start.getTime());
     
     // Abzug bereits abgeschlossene Pausen
     if (currentEntry.pauseMinutes) {
@@ -98,7 +99,7 @@ const Dashboard: React.FC = () => {
     // Abzug aktuelle Pause
     if (currentEntry.status === 'ON_PAUSE' && currentEntry.pauseStartedAt) {
       const pauseStart = new Date(currentEntry.pauseStartedAt);
-      const currentPauseMinutes = Math.floor((now.getTime() - pauseStart.getTime()) / (1000 * 60));
+      const currentPauseMinutes = roundMsToMinutes(now.getTime() - pauseStart.getTime());
       totalMinutes -= currentPauseMinutes;
     }
 
@@ -280,7 +281,7 @@ const Dashboard: React.FC = () => {
         })));
       } else {
         // Pre-fill from clock-in project/story if available
-        const totalHours = entry.clockOut ? parseFloat(((new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime()) / (1000 * 60 * 60) - (entry.pauseMinutes || 0) / 60).toFixed(2)) : 0;
+        const totalHours = entry.clockOut ? parseFloat(roundMsToHours(new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime() - (entry.pauseMinutes || 0) * 60 * 1000).toFixed(2)) : 0;
         setAllocations([{
           projectId: entry.projectId || '',
           storyId: entry.storyId || '',
@@ -290,7 +291,7 @@ const Dashboard: React.FC = () => {
       }
     } catch (error) {
       console.error('Error loading allocations:', error);
-      const totalHours = entry.clockOut ? parseFloat(((new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime()) / (1000 * 60 * 60) - (entry.pauseMinutes || 0) / 60).toFixed(2)) : 0;
+      const totalHours = entry.clockOut ? parseFloat(roundMsToHours(new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime() - (entry.pauseMinutes || 0) * 60 * 1000).toFixed(2)) : 0;
       setAllocations([{
         projectId: entry.projectId || '',
         storyId: entry.storyId || '',
@@ -304,7 +305,7 @@ const Dashboard: React.FC = () => {
     if (!entry.clockOut) return 0;
     const clockInTime = new Date(entry.clockIn).getTime();
     const clockOutTime = new Date(entry.clockOut).getTime();
-    const totalMinutes = (clockOutTime - clockInTime) / (1000 * 60);
+    const totalMinutes = roundMsToMinutes(clockOutTime - clockInTime);
     const pauseMinutes = entry.pauseMinutes || 0;
     const workedMinutes = totalMinutes - pauseMinutes;
     return parseFloat((workedMinutes / 60).toFixed(2));
@@ -362,8 +363,9 @@ const Dashboard: React.FC = () => {
   const formatDuration = (clockIn: string, clockOut?: string) => {
     const start = new Date(clockIn);
     const end = clockOut ? new Date(clockOut) : new Date();
-    const hours = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60));
-    const minutes = Math.floor(((end.getTime() - start.getTime()) % (1000 * 60 * 60)) / (1000 * 60));
+    const totalMinutes = roundMsToMinutes(end.getTime() - start.getTime());
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
     return `${hours}h ${minutes}m`;
   };
 
@@ -453,7 +455,7 @@ const Dashboard: React.FC = () => {
                   loggedInUsers.map((loggedUser) => {
                     const clockInTime = new Date(loggedUser.clockIn);
                     const now = new Date();
-                    const durationMinutes = Math.floor((now.getTime() - clockInTime.getTime()) / (1000 * 60)) - (loggedUser.pauseMinutes || 0);
+                    const durationMinutes = roundMsToMinutes(now.getTime() - clockInTime.getTime()) - (loggedUser.pauseMinutes || 0);
                     const hours = Math.floor(durationMinutes / 60);
                     const minutes = durationMinutes % 60;
                     

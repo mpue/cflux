@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
+import { roundMsToHours } from '../utils/timeRounding';
 
 
 export const getAllCostCenters = async (req: AuthRequest, res: Response) => {
@@ -228,9 +229,9 @@ export const getCostCenterStats = async (req: AuthRequest, res: Response) => {
     // Calculate total hours
     const totalHours = timeEntries.reduce((sum, entry) => {
       if (!entry.clockOut) return sum;
-      const duration = (new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime()) / (1000 * 60 * 60);
-      const pause = (entry.pauseMinutes || 0) / 60;
-      return sum + (duration - pause);
+      const durationMs = new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime();
+      const pauseMs = (entry.pauseMinutes || 0) * 60 * 1000;
+      return sum + roundMsToHours(durationMs - pauseMs);
     }, 0);
 
     // Calculate invoice totals

@@ -3,6 +3,7 @@ import { User, Project } from '../../types';
 import { userService } from '../../services/user.service';
 import { projectService } from '../../services/project.service';
 import { timeService } from '../../services/time.service';
+import { roundMsToMinutes } from '../../utils/timeRounding';
 
 interface Allocation {
   id?: string;
@@ -304,7 +305,7 @@ const SollIstEditDialog: React.FC<{
 
   const calcStamped = (): number => {
     if (!clockIn || !clockOut) return 0;
-    const diff = (new Date(clockOut).getTime() - new Date(clockIn).getTime()) / (1000 * 60);
+    const diff = roundMsToMinutes(new Date(clockOut).getTime() - new Date(clockIn).getTime());
     return parseFloat(((diff - pauseMinutes) / 60).toFixed(2));
   };
 

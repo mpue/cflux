@@ -2,13 +2,15 @@ import { Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { generateUserReport, generateTimeBookingsReport } from '../services/pdf.service';
+import { roundMsToHours } from '../utils/timeRounding';
 
 
 // Helper: Netto-Arbeitsstunden berechnen (Brutto minus Pausen)
 const calculateWorkHours = (clockIn: Date, clockOut: Date | null, pauseMinutes: number = 0): number => {
   if (!clockOut) return 0;
-  const bruttoHours = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60);
-  return bruttoHours - (pauseMinutes / 60);
+  const bruttoMs = clockOut.getTime() - clockIn.getTime();
+  const pauseMs = pauseMinutes * 60 * 1000;
+  return roundMsToHours(bruttoMs - pauseMs);
 };
 
 // Helper: employeeId aus userId ermitteln

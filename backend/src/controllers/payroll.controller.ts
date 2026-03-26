@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
+import { roundMsToHours } from '../utils/timeRounding';
 
 
 // Perioden erstellen
@@ -293,7 +294,7 @@ export const recalculatePayrollPeriod = async (req: AuthRequest, res: Response) 
       user.employeeProfile?.timeEntries?.forEach(entry => {
         if (!entry.clockOut) return;
         
-        const hours = (new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime()) / (1000 * 60 * 60);
+        const hours = roundMsToHours(new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime());
         regularHours += hours;
         
         // Hier könnten weitere Berechnungen für Nacht-/Sonntags-/Feiertagsstunden erfolgen
@@ -506,7 +507,7 @@ export const calculatePayrollForPeriod = async (req: AuthRequest, res: Response)
       user.employeeProfile?.timeEntries?.forEach(entry => {
         if (!entry.clockOut) return;
         
-        const hours = (new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime()) / (1000 * 60 * 60);
+        const hours = roundMsToHours(new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime());
         regularHours += hours;
         
         // Hier könnten weitere Berechnungen für Nacht-/Sonntags-/Feiertagsstunden erfolgen
