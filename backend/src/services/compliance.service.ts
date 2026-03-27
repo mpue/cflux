@@ -204,87 +204,25 @@ export async function checkDailyHoursViolation(employeeId: string, clockIn: Date
   }
 }
 
-// Prüfe fehlende Pausen (Art. 15 ArGV 1)
-export async function checkMissingPauseViolation(employeeId: string, clockIn: Date, clockOut: Date) {
-  try {
-    // Gesamtarbeitszeit in Stunden berechnen
-    const totalDuration = roundMsToHours(clockOut.getTime() - clockIn.getTime());
-
-    // Tatsächliche Pausen aus TimeEntry holen
-    const timeEntry = await prisma.timeEntry.findFirst({
-      where: {
-        employeeId,
-        clockIn,
-        clockOut
-      },
-      select: {
-        pauseMinutes: true
-      }
-    });
-
-    const actualPauseMinutes = timeEntry?.pauseMinutes || 0;
-    const actualPauseHours = actualPauseMinutes / 60;
-
-    // Nettoarbeitszeit (nach Abzug der Pausen)
-    const netWorkDuration = totalDuration - actualPauseHours;
-
-    let requiredPauseMinutes = 0;
-    let description = '';
-    let severity: 'WARNING' | 'CRITICAL' = 'WARNING';
-
-    // Art. 15 ArGV 1: Pausenvorschriften
-    if (netWorkDuration >= 9) {
-      requiredPauseMinutes = 60; // 1 Stunde
-      description = 'Bei 9+ Stunden Arbeit ist 1 Stunde Pause vorgeschrieben (Art. 15 Abs. 2 ArGV 1)';
-      severity = 'CRITICAL';
-    } else if (netWorkDuration >= 7) {
-      requiredPauseMinutes = 30; // 30 Minuten
-      description = 'Bei 7+ Stunden Arbeit sind 30 Minuten Pause vorgeschrieben (Art. 15 Abs. 1 ArGV 1)';
-    } else if (netWorkDuration >= 5.5) {
-      requiredPauseMinutes = 15; // 15 Minuten
-      description = 'Bei 5,5+ Stunden Arbeit sind 15 Minuten Pause vorgeschrieben (Art. 15 Abs. 1 ArGV 1)';
-    }
-
-    // Nur Violation erstellen wenn Pause fehlt oder zu kurz
-    if (requiredPauseMinutes > 0 && actualPauseMinutes < requiredPauseMinutes) {
-      const missingMinutes = requiredPauseMinutes - actualPauseMinutes;
-      
-      console.log(`[COMPLIANCE] Creating MISSING_PAUSE violation for employee ${employeeId}: ${netWorkDuration.toFixed(1)}h work, ${actualPauseMinutes}min pause (required: ${requiredPauseMinutes}min)`);
-      
-      const violation = await prisma.complianceViolation.create({
-        data: {
-          employeeId,
-          type: 'MISSING_PAUSE',
-          severity,
-          date: clockIn,
-          description: `${description}. Gearbeitet: ${netWorkDuration.toFixed(1)}h, Pause gemacht: ${actualPauseMinutes} Min`,
-          actualValue: `${actualPauseMinutes} Minuten`,
-          requiredValue: `${requiredPauseMinutes} Minuten (fehlen: ${missingMinutes} Min)`
-        }
-      });
-      
-      console.log(`[COMPLIANCE] MISSING_PAUSE violation created with ID: ${violation.id}`);
-
-      // Trigger compliance.violation action
-      try {
-        await actionService.triggerAction('compliance.violation', {
-          entityType: 'COMPLIANCE_VIOLATION',
-          entityId: violation.id,
-          employeeId: employeeId,
-          violationType: violation.type,
-          severity: violation.severity,
-          description: violation.description,
-          createdAt: violation.createdAt.toISOString()
-        });
-      } catch (actionError) {
-        console.error('[Action] Failed to trigger compliance.violation:', actionError);
-      }
-    } else if (requiredPauseMinutes > 0) {
-      console.log(`[COMPLIANCE] No MISSING_PAUSE violation for employee ${employeeId}: ${actualPauseMinutes}min pause sufficient for ${netWorkDuration.toFixed(1)}h work`);
-    }
-  } catch (error) {
-    console.error('Error checking missing pause violation:', error);
+// Berechne erforderliche Pause basierend auf Arbeitszeit (Art. 15 ArGV 1)
+export function calculateRequiredPause(workDurationHours: number): number {
+  // Art. 15 ArGV 1: Pausenvorschriften
+  if (workDurationHours >= 9) {
+    return 60; // 1 Stunde bei 9+ Stunden
+  } else if (workDurationHours >= 7) {
+    return 30; // 30 Minuten bei 7-9 Stunden
+  } else if (workDurationHours >= 5.5) {
+    return 15; // 15 Minuten bei 5,5-7 Stunden
   }
+  return 0; // Keine Pause erforderlich bei < 5,5 Stunden
+}
+
+// Prüfe fehlende Pausen (Art. 15 ArGV 1) - DEAKTIVIERT
+// Pausen werden jetzt automatisch beim Clock-Out berechnet und abgezogen
+export async function checkMissingPauseViolation(employeeId: string, clockIn: Date, clockOut: Date) {
+  // Diese Funktion ist deaktiviert - Pausen werden automatisch berechnet
+  // Keine Violations mehr für fehlende Pausen
+  return;
 }
 
 // Überstunden berechnen und in OvertimeBalance speichern

@@ -273,18 +273,20 @@ describe('Compliance Service', () => {
   });
 
   // ===== checkMissingPauseViolation =====
+  // HINWEIS: Funktion wurde deaktiviert - Pausen werden jetzt automatisch beim Clock-Out berechnet
   describe('checkMissingPauseViolation', () => {
-    it('should not create violation for work < 5.5h (no pause required)', async () => {
+    it('should not create violations (function is deactivated)', async () => {
       const clockIn = new Date('2024-01-15T08:00:00Z');
-      const clockOut = new Date('2024-01-15T13:00:00Z'); // 5h
+      const clockOut = new Date('2024-01-15T18:00:00Z'); // 10h - sollte keine Violation erstellen
       (prisma.timeEntry.findFirst as jest.Mock).mockResolvedValue({ pauseMinutes: 0 });
 
       await checkMissingPauseViolation('emp-1', clockIn, clockOut);
 
+      // Keine Violations mehr, da Pausen automatisch berechnet werden
       expect(prisma.complianceViolation.create).not.toHaveBeenCalled();
     });
 
-    it('should create MISSING_PAUSE WARNING for 5.5-7h work with no pause', async () => {
+    it.skip('should create MISSING_PAUSE WARNING for 5.5-7h work with no pause', async () => {
       const clockIn = new Date('2024-01-15T08:00:00Z');
       const clockOut = new Date('2024-01-15T14:30:00Z'); // 6.5h
       (prisma.timeEntry.findFirst as jest.Mock).mockResolvedValue({ pauseMinutes: 0 });
@@ -304,7 +306,7 @@ describe('Compliance Service', () => {
       );
     });
 
-    it('should not create violation when sufficient 15min pause is provided for 5.5-7h', async () => {
+    it.skip('should not create violation when sufficient 15min pause is provided for 5.5-7h', async () => {
       const clockIn = new Date('2024-01-15T08:00:00Z');
       const clockOut = new Date('2024-01-15T14:30:00Z'); // 6.5h gross - 15min = 6.25h net
       (prisma.timeEntry.findFirst as jest.Mock).mockResolvedValue({ pauseMinutes: 15 });
@@ -314,7 +316,7 @@ describe('Compliance Service', () => {
       expect(prisma.complianceViolation.create).not.toHaveBeenCalled();
     });
 
-    it('should create violation for 7-9h work requiring 30 min pause', async () => {
+    it.skip('should create violation for 7-9h work requiring 30 min pause', async () => {
       const clockIn = new Date('2024-01-15T07:00:00Z');
       const clockOut = new Date('2024-01-15T15:00:00Z'); // 8h - 15min pause = 7.75h net
       (prisma.timeEntry.findFirst as jest.Mock).mockResolvedValue({ pauseMinutes: 15 }); // needs 30
@@ -330,7 +332,7 @@ describe('Compliance Service', () => {
       expect(createCall.data.requiredValue).toContain('30');
     });
 
-    it('should not create violation when 30min pause is provided for 7-9h work', async () => {
+    it.skip('should not create violation when 30min pause is provided for 7-9h work', async () => {
       const clockIn = new Date('2024-01-15T07:00:00Z');
       const clockOut = new Date('2024-01-15T15:30:00Z'); // 8.5h gross - 30min = 8h net
       (prisma.timeEntry.findFirst as jest.Mock).mockResolvedValue({ pauseMinutes: 30 });
@@ -340,7 +342,7 @@ describe('Compliance Service', () => {
       expect(prisma.complianceViolation.create).not.toHaveBeenCalled();
     });
 
-    it('should create CRITICAL violation for 9+h work with < 60min pause', async () => {
+    it.skip('should create CRITICAL violation for 9+h work with < 60min pause', async () => {
       const clockIn = new Date('2024-01-15T06:00:00Z');
       const clockOut = new Date('2024-01-15T16:00:00Z'); // 10h - 30min = 9.5h net
       (prisma.timeEntry.findFirst as jest.Mock).mockResolvedValue({ pauseMinutes: 30 }); // needs 60

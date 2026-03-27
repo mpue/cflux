@@ -6,7 +6,8 @@ import {
   checkWeeklyHoursViolation,
   checkDailyHoursViolation,
   checkMissingPauseViolation,
-  updateOvertimeBalance
+  updateOvertimeBalance,
+  calculateRequiredPause
 } from '../services/compliance.service';
 import { actionService } from '../services/action.service';
 
@@ -169,7 +170,7 @@ export const clockIn = async (req: AuthRequest, res: Response) => {
 export const clockOut = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.id;
-    const { pauseMinutes } = req.body; // Pausen in Minuten
+    // Pause wird nicht mehr vom Frontend gesendet, sondern automatisch berechnet
     
     // Get employeeId from user
     const employeeId = await getEmployeeId(userId);
@@ -187,12 +188,19 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
 
     const clockOutTime = new Date();
 
+    // Automatische Pausenberechnung basierend auf Arbeitszeit
+    const workDurationMs = clockOutTime.getTime() - timeEntry.clockIn.getTime();
+    const workDurationHours = workDurationMs / (1000 * 60 * 60);
+    const automaticPauseMinutes = calculateRequiredPause(workDurationHours);
+
+    console.log(`[AUTO-PAUSE] Arbeitszeit: ${workDurationHours.toFixed(2)}h -> Automatische Pause: ${automaticPauseMinutes} Minuten`);
+
     const updatedEntry = await prisma.timeEntry.update({
       where: { id: timeEntry.id },
       data: {
         clockOut: clockOutTime,
         status: 'CLOCKED_OUT',
-        pauseMinutes: pauseMinutes || 0
+        pauseMinutes: automaticPauseMinutes
       },
       include: {
         project: true,
@@ -209,10 +217,10 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
       }
     });
 
-    // Compliance Checks nach Clock-Out
-    console.log(`[COMPLIANCE] Running compliance checks for employee ${employeeId} after clock-out (pause: ${pauseMinutes || 0} min)`);
+    // Compliance Checks nach Clock-Out (ohne Pausen-Check)
+    console.log(`[COMPLIANCE] Running compliance checks for employee ${employeeId} after clock-out (auto-pause: ${automaticPauseMinutes} min)`);
     await checkDailyHoursViolation(employeeId, timeEntry.clockIn, clockOutTime);
-    await checkMissingPauseViolation(employeeId, timeEntry.clockIn, clockOutTime);
+    // checkMissingPauseViolation ist jetzt deaktiviert - Pausen werden automatisch berechnet
     await checkWeeklyHoursViolation(employeeId, clockOutTime);
     await updateOvertimeBalance(employeeId, clockOutTime);
     console.log(`[COMPLIANCE] Compliance checks completed`);
@@ -238,7 +246,7 @@ export const clockOut = async (req: AuthRequest, res: Response) => {
         startTime: timeEntry.clockIn.toISOString(),
         endTime: clockOutTime.toISOString(),
         duration: duration,
-        pauseMinutes: pauseMinutes || 0,
+        pauseMinutes: automaticPauseMinutes,
         projectId: updatedEntry.projectId,
         locationId: updatedEntry.locationId
       });

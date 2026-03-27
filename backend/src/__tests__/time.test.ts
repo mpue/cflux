@@ -82,13 +82,16 @@ describe('Time Entry Controller', () => {
       const mockTimeEntry = {
         id: 'entry-1',
         userId: 'user-1',
+        employeeId: 'emp-1',
         status: 'CLOCKED_IN',
+        clockIn: new Date('2024-01-15T08:00:00Z'),
       };
 
       const updatedEntry = {
         ...mockTimeEntry,
         clockOut: new Date(),
         status: 'CLOCKED_OUT',
+        pauseMinutes: 0, // oder basierend auf Arbeitszeit
       };
 
       (prisma.timeEntry.findFirst as jest.Mock).mockResolvedValue(mockTimeEntry);
