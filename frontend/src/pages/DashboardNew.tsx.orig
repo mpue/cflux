@@ -1,0 +1,1678 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Responsive } from 'react-grid-layout';
+import type { Layout } from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+import { useAuth } from '../contexts/AuthContext';
+import { useModules } from '../contexts/ModuleContext';
+import { useDashboardLayout } from '../hooks/useDashboardLayout';
+import { timeService } from '../services/time.service';
+import { projectService } from '../services/project.service';
+import { storyService } from '../services/story.service';
+import { absenceService } from '../services/absence.service';
+import { reportService } from '../services/report.service';
+import { locationService } from '../services/location.service';
+import { workflowService } from '../services/workflow.service';
+import projectTimeAllocationService, { AllocationInput, ProjectTimeAllocation } from '../services/projectTimeAllocation.service';
+import { getUnreadCount } from '../services/message.service';
+<<<<<<< HEAD
+import { roundMsToMinutes, roundMsToHours } from '../utils/timeRounding';
+=======
+>>>>>>> timetracking
+import { TimeEntry, Project, AbsenceRequest, Report, Location, Story } from '../types';
+import PDFReportModal from '../components/PDFReportModal';
+import MyPayrollEntries from '../components/MyPayrollEntries';
+import AppNavbar from '../components/AppNavbar';
+import {
+  TimeTrackingWidget,
+  LoggedUsersWidget,
+  RecentEntriesWidget,
+  AbsenceRequestsWidget,
+  SummaryWidget,
+  PendingApprovalsWidget,
+  MessagesWidget,
+  ClockWidget,
+  BudgetWidget,
+  NotesWidget,
+  WeatherWidget,
+  BauhausClockWidget,
+  ChecklistsWidget,
+  NewsWidget,
+  WidgetSettingsModal,
+  AddWidgetModal,
+} from '../components/DashboardWidgets';
+import OnboardingWidget from '../components/DashboardWidgets/OnboardingWidget';
+import '../components/DashboardWidgets/DashboardWidgets.css';
+import '../App.css';
+
+// Responsive component already includes width provider functionality
+const ResponsiveGridLayout = Responsive;
+
+const Dashboard: React.FC = () => {
+  const { user, logout } = useAuth();
+  const { modules } = useModules();
+  const navigate = useNavigate();
+  const { widgets, layouts, isLoading, handleLayoutChange, toggleWidget, addWidget, removeWidget, resetLayout } = useDashboardLayout(user?.id);
+  
+  // View mode state
+  const [viewMode, setViewMode] = useState<'grid' | 'classic'>('grid');
+  const [showSettings, setShowSettings] = useState(false);
+  const [showAddWidget, setShowAddWidget] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(1200);
+  
+  // Data state
+  const [activeTab, setActiveTab] = useState<'timetracking' | 'payroll'>('timetracking');
+  const [currentEntry, setCurrentEntry] = useState<TimeEntry | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string>('');
+  const [selectedLocation, setSelectedLocation] = useState<string>('');
+  const [selectedStory, setSelectedStory] = useState<string>('');
+  const [stories, setStories] = useState<Story[]>([]);
+  const [absenceRequests, setAbsenceRequests] = useState<AbsenceRequest[]>([]);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [report, setReport] = useState<Report | null>(null);
+  const [showAbsenceModal, setShowAbsenceModal] = useState(false);
+  const [editingAbsence, setEditingAbsence] = useState<AbsenceRequest | null>(null);
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [showPauseReminderModal, setShowPauseReminderModal] = useState(false);
+  const [pauseReminderMessage, setPauseReminderMessage] = useState<string>('');
+  const [pauseMinutes, setPauseMinutes] = useState<number>(0);
+  const [editingEntry, setEditingEntry] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
+  const [workDuration, setWorkDuration] = useState<string>('0h 0m');
+  const [pauseCheckDone, setPauseCheckDone] = useState<Set<string>>(new Set());
+  const [showPDFReportModal, setShowPDFReportModal] = useState(false);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
+  const [showAllocationModal, setShowAllocationModal] = useState(false);
+  const [selectedTimeEntry, setSelectedTimeEntry] = useState<TimeEntry | null>(null);
+  const [allocations, setAllocations] = useState<AllocationInput[]>([]);
+  const [existingAllocations, setExistingAllocations] = useState<ProjectTimeAllocation[]>([]);
+  const [loggedInUsers, setLoggedInUsers] = useState<any[]>([]);
+  const [showMissedClockOutModal, setShowMissedClockOutModal] = useState(false);
+  const [missedClockOutEntry, setMissedClockOutEntry] = useState<TimeEntry | null>(null);
+  const [showBreakTimeWarning, setShowBreakTimeWarning] = useState(false);
+  const [breakTimeWarningInfo, setBreakTimeWarningInfo] = useState<{ workedHours: number; requiredMinutes: number; actualMinutes: number } | null>(null);
+
+  // Refs to allow the 1-second timer callback to read current modal state
+  // (avoids stale closure values inside setInterval)
+  const showPauseModalRef = useRef(false);
+  showPauseModalRef.current = showPauseModal;
+  const showMissedClockOutModalRef = useRef(false);
+  showMissedClockOutModalRef.current = showMissedClockOutModal;
+
+  useEffect(() => {
+    document.title = 'CFlux - Dashboard';
+    loadData();
+    
+    // Handle window resize for grid layout
+    const handleResize = () => {
+      setContainerWidth(window.innerWidth - 40); // 40px for padding
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString('de-DE'));
+      updateWorkDuration();
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [currentEntry]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadLoggedInUsers();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadLoggedInUsers = async () => {
+    try {
+      const users = await timeService.getLoggedInUsers();
+      setLoggedInUsers(users);
+    } catch (error) {
+      console.error('Error loading logged in users:', error);
+    }
+  };
+
+  const updateWorkDuration = () => {
+    if (!currentEntry || currentEntry.status === 'CLOCKED_OUT') {
+      setWorkDuration('0h 0m');
+      return;
+    }
+
+    const start = new Date(currentEntry.clockIn);
+    const now = new Date();
+    let totalMinutes = roundMsToMinutes(now.getTime() - start.getTime());
+    
+    if (currentEntry.pauseMinutes) {
+      totalMinutes -= currentEntry.pauseMinutes;
+    }
+    
+    if (currentEntry.status === 'ON_PAUSE' && currentEntry.pauseStartedAt) {
+      const pauseStart = new Date(currentEntry.pauseStartedAt);
+      const currentPauseMinutes = roundMsToMinutes(now.getTime() - pauseStart.getTime());
+      totalMinutes -= currentPauseMinutes;
+    }
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    setWorkDuration(`${hours}h ${minutes}m`);
+
+    checkPauseReminder(totalMinutes);
+  };
+
+  const checkPauseReminder = (workMinutes: number) => {
+    if (!currentEntry || currentEntry.status !== 'CLOCKED_IN') return;
+
+    // Don't show reminders while another modal is open (uses refs to avoid stale closure)
+    if (showPauseModalRef.current || showMissedClockOutModalRef.current) return;
+    
+    const workHours = workMinutes / 60;
+    const entryId = currentEntry.id;
+    // Total pause = already accumulated pause minutes + any currently running pause
+    let totalPause = currentEntry.pauseMinutes || 0;
+    if (currentEntry.pauseStartedAt) {
+      const pauseStart = new Date(currentEntry.pauseStartedAt);
+      totalPause += roundMsToMinutes(new Date().getTime() - pauseStart.getTime());
+    }
+
+    // Don't show reminders if user has already taken sufficient pause
+    if (workHours >= 5.5 && totalPause < 15 && !pauseCheckDone.has(`${entryId}-5.5`)) {
+      setPauseReminderMessage('Du hast jetzt 5,5 Stunden gearbeitet. Bitte mache eine 15-minütige Pause! 🕒');
+      setShowPauseReminderModal(true);
+      setPauseCheckDone(prev => new Set(prev).add(`${entryId}-5.5`));
+    }
+    else if (workHours >= 7 && totalPause < 30 && !pauseCheckDone.has(`${entryId}-7`)) {
+      setPauseReminderMessage('Du hast jetzt 7 Stunden gearbeitet. Bitte mache eine 30-minütige Pause! ⚠️');
+      setShowPauseReminderModal(true);
+      setPauseCheckDone(prev => new Set(prev).add(`${entryId}-7`));
+    }
+    else if (workHours >= 9 && totalPause < 60 && !pauseCheckDone.has(`${entryId}-9`)) {
+      setPauseReminderMessage('Du hast jetzt 9 Stunden gearbeitet. Du musst jetzt eine Stunde Pause machen! 🚨');
+      setShowPauseReminderModal(true);
+      setPauseCheckDone(prev => new Set(prev).add(`${entryId}-9`));
+    }
+  };
+
+  const loadData = async () => {
+    try {
+      const results = await Promise.allSettled([
+        timeService.getCurrentTimeEntry(),
+        projectService.getAllProjects(),
+        locationService.getActiveLocations(),
+        absenceService.getMyAbsenceRequests(),
+        timeService.getMyTimeEntries(),
+        reportService.getMySummary(),
+        workflowService.getMyPendingApprovals(),
+        getUnreadCount(),
+      ]);
+
+      const current = results[0].status === 'fulfilled' ? results[0].value : null;
+      const projectsData = results[1].status === 'fulfilled' ? results[1].value : [];
+      const locationsData = results[2].status === 'fulfilled' ? results[2].value : [];
+      const absences = results[3].status === 'fulfilled' ? results[3].value : [];
+      const entries = results[4].status === 'fulfilled' ? results[4].value : [];
+      const reportData = results[5].status === 'fulfilled' ? results[5].value : null;
+      const approvals = results[6].status === 'fulfilled' ? results[6].value : [];
+      const unreadCount = results[7].status === 'fulfilled' ? results[7].value : 0;
+
+      // Detect missed clock-out from a previous day
+      if (current && (current.status === 'CLOCKED_IN' || current.status === 'ON_PAUSE')) {
+        const clockInDate = new Date(current.clockIn);
+        const today = new Date();
+        const isFromPreviousDay = clockInDate.toDateString() !== today.toDateString() && clockInDate < today;
+        if (isFromPreviousDay) {
+          setMissedClockOutEntry(current);
+          setShowMissedClockOutModal(true);
+        }
+      }
+
+      setCurrentEntry(current);
+      setProjects(projectsData);
+      setLocations(locationsData);
+      setAbsenceRequests(absences);
+      setTimeEntries(entries);
+      setReport(reportData);
+      setPendingApprovalsCount(approvals.length);
+      setUnreadMessagesCount(unreadCount);
+
+      await loadLoggedInUsers();
+
+      if (entries.length > 0) {
+        const allAllocations = await Promise.all(
+          entries.slice(0, 10).map(entry => 
+            projectTimeAllocationService.getAllocationsForTimeEntry(entry.id)
+              .catch(() => [])
+          )
+        );
+        setExistingAllocations(allAllocations.flat());
+      }
+
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.warn(`Request ${index} failed:`, result.reason);
+        }
+      });
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
+  };
+
+  const handleProjectChange = async (projectId: string) => {
+    setSelectedProject(projectId);
+    setSelectedStory('');
+    if (projectId) {
+      try {
+        const projectStories = await storyService.getStoriesByProject(projectId);
+        setStories(projectStories);
+      } catch (error) {
+        console.error('Error loading stories:', error);
+        setStories([]);
+      }
+    } else {
+      setStories([]);
+    }
+  };
+
+  const handleClockIn = async () => {
+    try {
+      // Per ablauf_zeiterfassung.md Step 2: Check if user was already clocked in today
+      const today = new Date().toDateString();
+      const todayCompletedEntries = timeEntries.filter(e =>
+        new Date(e.clockIn).toDateString() === today && e.status === 'CLOCKED_OUT' && e.clockOut
+      );
+
+      if (todayCompletedEntries.length > 0) {
+        // Step 2b: User returning from break – check legal break time (Art. 15 ArGV 1)
+        const lastEntry = todayCompletedEntries.sort((a, b) =>
+          new Date(b.clockOut!).getTime() - new Date(a.clockOut!).getTime()
+        )[0];
+
+        const lastClockOut = new Date(lastEntry.clockOut!);
+        const breakMinutes = (Date.now() - lastClockOut.getTime()) / (1000 * 60);
+
+        // Total net work time today
+        const totalWorkedMinutes = todayCompletedEntries.reduce((sum, e) => {
+          if (!e.clockOut) return sum;
+          const dur = (new Date(e.clockOut).getTime() - new Date(e.clockIn).getTime()) / (1000 * 60);
+          return sum + dur - (e.pauseMinutes || 0);
+        }, 0);
+
+        const totalWorkedHours = totalWorkedMinutes / 60;
+        let requiredBreakMinutes = 0;
+        if (totalWorkedHours >= 9) requiredBreakMinutes = 60;
+        else if (totalWorkedHours >= 7) requiredBreakMinutes = 30;
+        else if (totalWorkedHours >= 5.5) requiredBreakMinutes = 15;
+
+        if (requiredBreakMinutes > 0 && breakMinutes < requiredBreakMinutes) {
+          setBreakTimeWarningInfo({
+            workedHours: totalWorkedHours,
+            requiredMinutes: requiredBreakMinutes,
+            actualMinutes: Math.floor(breakMinutes),
+          });
+          setShowBreakTimeWarning(true);
+          return;
+        }
+      }
+
+      await timeService.clockIn(
+<<<<<<< HEAD
+        selectedProject || undefined,
+=======
+        selectedProject || undefined, 
+>>>>>>> timetracking
+        selectedLocation || undefined,
+        undefined,
+        selectedStory || undefined
+      );
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Einstempeln fehlgeschlagen');
+    }
+  };
+
+  const handleMissedClockOut = async (clockOutTime: string, pauseMins: number) => {
+    if (!missedClockOutEntry) return;
+    try {
+      await timeService.updateMyTimeEntry(missedClockOutEntry.id, {
+        clockOut: clockOutTime,
+        status: 'CLOCKED_OUT',
+        pauseMinutes: pauseMins,
+      } as any);
+      setShowMissedClockOutModal(false);
+      setMissedClockOutEntry(null);
+      await loadData();
+      // Per ablauf_zeiterfassung.md: After recording missed clock-out, auto-clock-in
+      try {
+        await timeService.clockIn(
+          selectedProject || undefined,
+          selectedLocation || undefined,
+          undefined,
+          selectedStory || undefined
+        );
+        await loadData();
+      } catch (_) {
+        // Auto-clock-in may fail (e.g. rest time violation) – user can clock in manually
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Nachtragen der Ausstempelung');
+    }
+  };
+
+  const handleClockOut = () => {
+    setShowPauseModal(true);
+  };
+
+  const confirmClockOut = async () => {
+    try {
+      await timeService.clockOut(pauseMinutes);
+      setShowPauseModal(false);
+      setPauseMinutes(0);
+      setPauseCheckDone(new Set());
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Ausstempeln fehlgeschlagen');
+    }
+  };
+
+  const handleStartPause = async () => {
+    try {
+      await timeService.startPause();
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Pause starten fehlgeschlagen');
+    }
+  };
+
+  const handleEndPause = async () => {
+    try {
+      await timeService.endPause();
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Pause beenden fehlgeschlagen');
+    }
+  };
+
+  const handleManualEntry = async (data: {
+    clockIn: string;
+    clockOut?: string;
+    projectId?: string;
+    storyId?: string;
+    locationId?: string;
+    description?: string;
+    pauseMinutes?: number;
+  }) => {
+    await timeService.createMyManualEntry(data);
+    await loadData();
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const openAllocationModal = async (entry: TimeEntry) => {
+    if (!entry.clockOut) {
+      alert('Bitte erst ausstempeln, bevor Sie die Zeit auf Projekte aufteilen.');
+      return;
+    }
+
+    setSelectedTimeEntry(entry);
+    setShowAllocationModal(true);
+
+    try {
+      const existing = await projectTimeAllocationService.getAllocationsForTimeEntry(entry.id);
+      setExistingAllocations(existing);
+      
+      if (existing.length > 0) {
+        setAllocations(existing.map(a => ({
+          projectId: a.projectId,
+          storyId: a.storyId || '',
+          hours: a.hours,
+          description: a.description
+        })));
+      } else {
+        // Pre-fill from clock-in project/story if available
+        const totalHours = entry.clockOut ? parseFloat(roundMsToHours(new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime() - (entry.pauseMinutes || 0) * 60 * 1000).toFixed(2)) : 0;
+        setAllocations([{
+          projectId: entry.projectId || '',
+          storyId: entry.storyId || '',
+          hours: entry.projectId ? Math.max(totalHours, 0) : 0,
+          description: entry.description || ''
+        }]);
+      }
+    } catch (error) {
+      console.error('Error loading allocations:', error);
+      const totalHours = entry.clockOut ? parseFloat(roundMsToHours(new Date(entry.clockOut).getTime() - new Date(entry.clockIn).getTime() - (entry.pauseMinutes || 0) * 60 * 1000).toFixed(2)) : 0;
+      setAllocations([{
+        projectId: entry.projectId || '',
+        storyId: entry.storyId || '',
+        hours: entry.projectId ? Math.max(totalHours, 0) : 0,
+        description: entry.description || ''
+      }]);
+    }
+  };
+
+  const calculateTotalWorkedHours = (entry: TimeEntry): number => {
+    if (!entry.clockOut) return 0;
+    const clockInTime = new Date(entry.clockIn).getTime();
+    const clockOutTime = new Date(entry.clockOut).getTime();
+    const totalMinutes = roundMsToMinutes(clockOutTime - clockInTime);
+    const pauseMinutes = entry.pauseMinutes || 0;
+    const workedMinutes = totalMinutes - pauseMinutes;
+    return parseFloat((workedMinutes / 60).toFixed(2));
+  };
+
+  const handleSaveAllocations = async () => {
+    if (!selectedTimeEntry) return;
+
+    const totalWorkedHours = calculateTotalWorkedHours(selectedTimeEntry);
+    const totalAllocatedHours = allocations.reduce((sum, a) => sum + (a.hours || 0), 0);
+
+    const validAllocations = allocations.filter(a => a.projectId && a.hours > 0);
+    if (validAllocations.length === 0) {
+      alert('Bitte mindestens ein Projekt mit Stunden hinzufügen.');
+      return;
+    }
+
+    if (totalAllocatedHours > totalWorkedHours + 0.1) {
+      alert(`Die zugeteilten Stunden (${totalAllocatedHours.toFixed(2)}h) dürfen die Arbeitszeit (${totalWorkedHours.toFixed(2)}h) nicht überschreiten.`);
+      return;
+    }
+
+    try {
+      await projectTimeAllocationService.setAllocationsForTimeEntry(
+        selectedTimeEntry.id,
+        validAllocations
+      );
+      setShowAllocationModal(false);
+      setSelectedTimeEntry(null);
+      setAllocations([]);
+      await loadData();
+      alert('Projektzeitaufteilung erfolgreich gespeichert!');
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Speichern der Aufteilung');
+    }
+  };
+
+  const handleUpdateEntry = async (entryId: string, field: string, value: any) => {
+    try {
+      await timeService.updateMyTimeEntry(entryId, { [field]: value });
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Aktualisieren');
+    }
+  };
+
+  const handleDeleteEntry = async (entryId: string) => {
+    try {
+      await timeService.deleteMyTimeEntry(entryId);
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Löschen');
+    }
+  };
+
+  const addAllocationRow = () => {
+    setAllocations([...allocations, { projectId: '', storyId: '', hours: 0, description: '' }]);
+  };
+
+  const removeAllocationRow = (index: number) => {
+    setAllocations(allocations.filter((_, i) => i !== index));
+  };
+
+  const updateAllocation = (index: number, field: keyof AllocationInput, value: any) => {
+    setAllocations(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const formatDuration = (clockIn: string, clockOut?: string) => {
+    const start = new Date(clockIn);
+    const end = clockOut ? new Date(clockOut) : new Date();
+    const totalMinutes = roundMsToMinutes(end.getTime() - start.getTime());
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${minutes}m`;
+  };
+
+  const handleSubmitAbsence = async (formData: any) => {
+    try {
+      if (editingAbsence) {
+        await absenceService.updateMyAbsenceRequest(editingAbsence.id, formData);
+        setEditingAbsence(null);
+        setShowAbsenceModal(false);
+        await loadData();
+        alert('Abwesenheitsantrag erfolgreich aktualisiert');
+      } else {
+        await absenceService.createAbsenceRequest(formData);
+        setShowAbsenceModal(false);
+        await loadData();
+        alert('Abwesenheitsantrag erfolgreich erstellt');
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Speichern des Antrags');
+    }
+  };
+
+  const handleEditAbsence = (request: AbsenceRequest) => {
+    setEditingAbsence(request);
+    setShowAbsenceModal(true);
+  };
+
+  const handleDeleteAbsence = async (id: string) => {
+    try {
+      await absenceService.deleteMyAbsenceRequest(id);
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Fehler beim Löschen des Antrags');
+    }
+  };
+
+  const renderGridDashboard = () => {
+    const visibleWidgets = widgets.filter(w => w.isVisible);
+    
+    // Don't render grid until layout is loaded to prevent flickering
+    if (isLoading) {
+      return (
+        <div className="dashboard-grid-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <div>Lade Dashboard...</div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="dashboard-grid-container">
+        <div className="dashboard-toolbar">
+          <h1>Dashboard</h1>
+          <div className="dashboard-toolbar-actions">
+            <button 
+              className="btn btn-success btn-small"
+              onClick={() => setShowAddWidget(true)}
+              title="Widget hinzufügen"
+            >
+              ➕ Widget hinzufügen
+            </button>
+            <button 
+              className="btn btn-secondary btn-small"
+              onClick={() => setViewMode('classic')}
+              title="Zur klassischen Ansicht wechseln"
+            >
+              📋 Klassisch
+            </button>
+            <button 
+              className="btn btn-primary btn-small"
+              onClick={() => setShowSettings(true)}
+            >
+              ⚙️ Einstellungen
+            </button>
+          </div>
+        </div>
+
+        <ResponsiveGridLayout
+          className="layout"
+          layouts={layouts}
+          breakpoints={{ lg: 1200, md: 996, sm: 768 }}
+          cols={{ lg: 12, md: 10, sm: 6 }}
+          rowHeight={100}
+          width={containerWidth}
+          onLayoutChange={handleLayoutChange}
+        >
+          {visibleWidgets.map((widget) => {
+            switch (widget.type) {
+              case 'time-tracking':
+                return (
+                  <div key={widget.id}>
+                    <TimeTrackingWidget
+                      currentEntry={currentEntry}
+                      projects={projects}
+                      locations={locations}
+                      stories={stories}
+                      selectedProject={selectedProject}
+                      selectedLocation={selectedLocation}
+                      selectedStory={selectedStory}
+                      currentTime={currentTime}
+                      workDuration={workDuration}
+                      onProjectChange={handleProjectChange}
+                      onLocationChange={setSelectedLocation}
+                      onStoryChange={setSelectedStory}
+                      onClockIn={handleClockIn}
+                      onClockOut={handleClockOut}
+                      onStartPause={handleStartPause}
+                      onEndPause={handleEndPause}
+                      onManualEntry={handleManualEntry}
+                      onRemove={() => removeWidget(widget.id)}
+                    />
+                  </div>
+                );
+              
+              case 'logged-users':
+                return (
+                  <div key={widget.id}>
+                    <LoggedUsersWidget 
+                      loggedInUsers={loggedInUsers}
+                      onRemove={() => removeWidget(widget.id)}
+                      isAdmin={user?.role === 'ADMIN'}
+                    />
+                  </div>
+                );
+              
+              case 'recent-entries':
+                return (
+                  <div key={widget.id}>
+                    <RecentEntriesWidget
+                      timeEntries={timeEntries}
+                      editingEntry={editingEntry}
+                      existingAllocations={existingAllocations}
+                      projects={projects}
+                      onEditToggle={(id) => setEditingEntry(editingEntry === id ? null : id)}
+                      onUpdateEntry={handleUpdateEntry}
+                      onDeleteEntry={handleDeleteEntry}
+                      onOpenAllocation={openAllocationModal}
+                      onLoadStories={(projectId) => storyService.getStoriesByProject(projectId)}
+                      formatDuration={formatDuration}
+                      onRemove={() => removeWidget(widget.id)}
+                    />
+                  </div>
+                );
+              
+              case 'absence-requests':
+                return (
+                  <div key={widget.id}>
+                    <AbsenceRequestsWidget
+                      absenceRequests={absenceRequests}
+                      onNewRequest={() => { setEditingAbsence(null); setShowAbsenceModal(true); }}
+                      onEditRequest={handleEditAbsence}
+                      onDeleteRequest={handleDeleteAbsence}
+                      onRemove={() => removeWidget(widget.id)}
+                    />
+                  </div>
+                );
+              
+              case 'summary':
+                return (
+                  <div key={widget.id}>
+                    <SummaryWidget
+                      report={report}
+                      onShowPDFReport={() => setShowPDFReportModal(true)}
+                      onRemove={() => removeWidget(widget.id)}
+                    />
+                  </div>
+                );
+              
+              case 'pending-approvals':
+                return (
+                  <div key={widget.id}>
+                    <PendingApprovalsWidget 
+                      onRemove={() => removeWidget(widget.id)}
+                    />
+                  </div>
+                );
+              
+              case 'messages':
+                return (
+                  <div key={widget.id}>
+                    <MessagesWidget 
+                      unreadMessagesCount={unreadMessagesCount}
+                      onRemove={() => removeWidget(widget.id)}
+                    />
+                  </div>
+                );
+              
+              case 'clock':
+                return (
+                  <div key={widget.id}>
+                    <ClockWidget onRemove={() => removeWidget(widget.id)} />
+                  </div>
+                );
+              
+              case 'budget':
+                return (
+                  <div key={widget.id}>
+                    <BudgetWidget onRemove={() => removeWidget(widget.id)} />
+                  </div>
+                );
+              
+              case 'notes':
+                return (
+                  <div key={widget.id}>
+                    <NotesWidget onRemove={() => removeWidget(widget.id)} />
+                  </div>
+                );
+              
+              case 'weather':
+                return (
+                  <div key={widget.id}>
+                    <WeatherWidget onRemove={() => removeWidget(widget.id)} />
+                  </div>
+                );
+              
+              case 'bauhaus-clock':
+                return (
+                  <div key={widget.id}>
+                    <BauhausClockWidget onRemove={() => removeWidget(widget.id)} />
+                  </div>
+                );
+              
+              case 'onboarding':
+                return (
+                  <div key={widget.id}>
+                    <OnboardingWidget employeeId={user?.id} />
+                  </div>
+                );
+              
+              case 'checklists':
+                return (
+                  <div key={widget.id}>
+                    <ChecklistsWidget userId={user?.id} />
+                  </div>
+                );
+              
+              case 'news':
+                return (
+                  <div key={widget.id}>
+                    <NewsWidget 
+                      widgetId={widget.id}
+                      onRemove={() => removeWidget(widget.id)}
+                    />
+                  </div>
+                );
+              
+              default:
+                return null;
+            }
+          })}
+        </ResponsiveGridLayout>
+      </div>
+    );
+  };
+
+  // Rest of the file continues with the classic view and modals...
+  // (I'll continue in the next part)
+
+  return (
+    <>
+      <AppNavbar 
+        title="Dashboard" 
+        currentTime={currentTime} 
+        onLogout={handleLogout}
+        onPdfReport={() => setShowPDFReportModal(true)}
+      />
+      
+      {viewMode === 'grid' ? (
+        renderGridDashboard()
+      ) : (
+        // Classic view - render the original dashboard
+        <div>
+          <div className="container">
+            <div className="dashboard-toolbar" style={{ marginBottom: '20px' }}>
+              <button 
+                className="btn btn-primary btn-small"
+                onClick={() => setViewMode('grid')}
+              >
+                🎛️ Grid-Ansicht
+              </button>
+            </div>
+            {/* Original dashboard content would go here - keeping tabs etc */}
+            <div className="stats-grid">
+              <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+                <h3 className="stat-title">Stunden (Monat)</h3>
+                <div className="value">{report?.totalHours.toFixed(1) || 0}h</div>
+              </div>
+              <div className="stat-card" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
+                <h3 className="stat-title">Arbeitstage</h3>
+                <div className="value">{report?.totalDays || 0}</div>
+              </div>
+              <div className="stat-card" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
+                <h3 className="stat-title">Urlaub übrig</h3>
+                <div className="value">{user?.vacationDays || 0}</div>
+              </div>
+              <div 
+                className="stat-card" 
+                style={{ 
+                  background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                  cursor: 'pointer'
+                }}
+                onClick={() => navigate('/my-approvals')}
+              >
+                <h3 className="stat-title">🔔 Genehmig.</h3>
+                <div className="value">
+                  {pendingApprovalsCount > 0 ? (
+                    <span className="alert-count">{pendingApprovalsCount}</span>
+                  ) : (
+                    '0'
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="dashboard-tabs">
+              <button
+                className={`dashboard-tab ${activeTab === 'timetracking' ? 'active' : ''}`}
+                onClick={() => setActiveTab('timetracking')}
+              >
+                <span className="tab-label-mobile">⏰ Zeit</span>
+                <span className="tab-label-desktop">⏰ Zeiterfassung</span>
+              </button>
+              <button
+                className={`dashboard-tab ${activeTab === 'payroll' ? 'active' : ''}`}
+                onClick={() => setActiveTab('payroll')}
+              >
+                <span className="tab-label-mobile">💰 Lohn</span>
+                <span className="tab-label-desktop">💰 Lohnabrechnungen</span>
+              </button>
+            </div>
+
+            {activeTab === 'timetracking' && (
+              <div>
+                <LoggedUsersWidget loggedInUsers={loggedInUsers} isAdmin={user?.role === 'ADMIN'} />
+                <div style={{ marginTop: '20px' }}>
+                  <TimeTrackingWidget
+                    currentEntry={currentEntry}
+                    projects={projects}
+                    locations={locations}
+                    stories={stories}
+                    selectedProject={selectedProject}
+                    selectedLocation={selectedLocation}
+                    selectedStory={selectedStory}
+                    currentTime={currentTime}
+                    workDuration={workDuration}
+                    onProjectChange={handleProjectChange}
+                    onLocationChange={setSelectedLocation}
+                    onStoryChange={setSelectedStory}
+                    onClockIn={handleClockIn}
+                    onClockOut={handleClockOut}
+                    onStartPause={handleStartPause}
+                    onEndPause={handleEndPause}
+                    onManualEntry={handleManualEntry}
+                  />
+                </div>
+                <div style={{ marginTop: '20px' }}>
+                  <AbsenceRequestsWidget
+                    absenceRequests={absenceRequests}
+                    onNewRequest={() => { setEditingAbsence(null); setShowAbsenceModal(true); }}
+                    onEditRequest={handleEditAbsence}
+                    onDeleteRequest={handleDeleteAbsence}
+                  />
+                </div>
+                <div style={{ marginTop: '20px' }}>
+                  <RecentEntriesWidget
+                    timeEntries={timeEntries}
+                    editingEntry={editingEntry}
+                    existingAllocations={existingAllocations}
+                    projects={projects}
+                    onEditToggle={(id) => setEditingEntry(editingEntry === id ? null : id)}
+                    onUpdateEntry={handleUpdateEntry}
+                    onDeleteEntry={handleDeleteEntry}
+                    onOpenAllocation={openAllocationModal}
+                    onLoadStories={(projectId) => storyService.getStoriesByProject(projectId)}
+                    formatDuration={formatDuration}
+                  />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'payroll' && (
+              <MyPayrollEntries />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+      <AddWidgetModal
+        isOpen={showAddWidget}
+        onClose={() => setShowAddWidget(false)}
+        onAddWidget={addWidget}
+        currentWidgets={widgets}
+      />
+
+      <WidgetSettingsModal
+        show={showSettings}
+        widgets={widgets}
+        onClose={() => setShowSettings(false)}
+        onToggleWidget={toggleWidget}
+        onResetLayout={resetLayout}
+      />
+
+      {showPDFReportModal && user && (
+        <PDFReportModal
+          user={user}
+          isOpen={showPDFReportModal}
+          onClose={() => setShowPDFReportModal(false)}
+        />
+      )}
+
+      {showAbsenceModal && (
+        <AbsenceModal
+          onClose={() => { setShowAbsenceModal(false); setEditingAbsence(null); }}
+          onSubmit={handleSubmitAbsence}
+          editingRequest={editingAbsence}
+        />
+      )}
+
+      {showBreakTimeWarning && breakTimeWarningInfo && (
+        <BreakTimeWarningModal
+          info={breakTimeWarningInfo}
+          onClose={() => { setShowBreakTimeWarning(false); setBreakTimeWarningInfo(null); }}
+        />
+      )}
+
+      {showPauseModal && (
+        <PauseModal
+          onClose={() => setShowPauseModal(false)}
+          onConfirm={confirmClockOut}
+          pauseMinutes={pauseMinutes}
+          setPauseMinutes={setPauseMinutes}
+        />
+      )}
+
+      {showMissedClockOutModal && missedClockOutEntry && (
+        <MissedClockOutModal
+          entry={missedClockOutEntry}
+          onClose={() => {
+            setShowMissedClockOutModal(false);
+            setMissedClockOutEntry(null);
+          }}
+          onConfirm={handleMissedClockOut}
+        />
+      )}
+
+      {showPauseReminderModal && (
+        <PauseReminderModal
+          message={pauseReminderMessage}
+          onClose={() => setShowPauseReminderModal(false)}
+          onStartPause={() => {
+            handleStartPause();
+            setShowPauseReminderModal(false);
+          }}
+        />
+      )}
+
+      {showAllocationModal && selectedTimeEntry && (
+        <AllocationModal
+          show={showAllocationModal}
+          onClose={() => {
+            setShowAllocationModal(false);
+            setSelectedTimeEntry(null);
+            setAllocations([]);
+          }}
+          timeEntry={selectedTimeEntry}
+          projects={projects}
+          allocations={allocations}
+          onUpdateAllocation={updateAllocation}
+          onAddRow={addAllocationRow}
+          onRemoveRow={removeAllocationRow}
+          onSave={handleSaveAllocations}
+          totalWorkedHours={calculateTotalWorkedHours(selectedTimeEntry)}
+        />
+      )}
+    </>
+  );
+};
+
+// Modal Components (keeping from original)
+const PauseReminderModal: React.FC<{
+  message: string;
+  onClose: () => void;
+  onStartPause: () => void;
+}> = ({ message, onClose, onStartPause }) => {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+        <h2>⏰ Pausenzeit!</h2>
+        
+        <div style={{ padding: '20px 0' }}>
+          <p style={{ fontSize: '16px', lineHeight: '1.6', marginBottom: '20px' }}>
+            {message}
+          </p>
+
+          <div style={{ 
+            background: '#fff3cd', 
+            border: '1px solid #ffc107',
+            padding: '15px', 
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px'
+          }}>
+            <strong>📋 Gesetzliche Pausenpflicht (Art. 15 ArGV 1):</strong>
+            <ul style={{ marginTop: '10px', marginBottom: '0', paddingLeft: '20px' }}>
+              <li>Ab 5,5 Stunden: mindestens 15 Minuten</li>
+              <li>Ab 7 Stunden: mindestens 30 Minuten</li>
+              <li>Ab 9 Stunden: mindestens 60 Minuten</li>
+            </ul>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              type="button" 
+              className="btn btn-primary" 
+              onClick={() => {
+                onStartPause();
+                onClose();
+              }}
+              style={{ flex: '1' }}
+            >
+              ⏸️ Jetzt Pause machen
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              onClick={onClose}
+              style={{ flex: '1' }}
+            >
+              Später
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const BreakTimeWarningModal: React.FC<{
+  info: { workedHours: number; requiredMinutes: number; actualMinutes: number };
+  onClose: () => void;
+}> = ({ info, onClose }) => {
+  const remaining = Math.ceil(info.requiredMinutes - info.actualMinutes);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+        <h2>⚠️ Gesetzliche Pausenzeit nicht eingehalten</h2>
+
+        <div style={{ padding: '20px 0' }}>
+          <p style={{ fontSize: '16px', lineHeight: '1.6', marginBottom: '20px' }}>
+            Du hast heute bereits <strong>{info.workedHours.toFixed(1)} Stunden</strong> gearbeitet
+            und benötigst mindestens <strong>{info.requiredMinutes} Minuten</strong> Pause
+            (Art.&nbsp;15 ArGV&nbsp;1).
+          </p>
+
+          <div style={{
+            background: '#fee2e2',
+            border: '1px solid #fca5a5',
+            padding: '15px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px',
+          }}>
+            <p style={{ margin: 0 }}>
+              Bisherige Pause: <strong>{info.actualMinutes} Minuten</strong><br />
+              Erforderlich: <strong>{info.requiredMinutes} Minuten</strong><br />
+              Verbleibend: <strong>mindestens {remaining} Minuten</strong>
+            </p>
+          </div>
+
+          <div style={{
+            background: '#f0f7ff',
+            padding: '15px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px',
+          }}>
+            <strong>📋 Gesetzliche Pausenpflicht (Art. 15 ArGV 1):</strong>
+            <ul style={{ marginTop: '10px', marginBottom: '0', paddingLeft: '20px' }}>
+              <li>Ab 5,5 Stunden: mindestens 15 Minuten</li>
+              <li>Ab 7 Stunden: mindestens 30 Minuten</li>
+              <li>Ab 9 Stunden: mindestens 60 Minuten</li>
+            </ul>
+          </div>
+
+          <p style={{ fontSize: '14px', color: '#666' }}>
+            Bitte warte noch mindestens {remaining} Minuten, bevor du dich wieder einstempelst.
+          </p>
+
+          <div className="modal-actions" style={{ marginTop: '20px' }}>
+            <button type="button" className="btn btn-primary" onClick={onClose}>
+              Verstanden
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MissedClockOutModal: React.FC<{
+  entry: TimeEntry;
+  onClose: () => void;
+  onConfirm: (clockOutTime: string, pauseMinutes: number) => Promise<void>;
+}> = ({ entry, onClose, onConfirm }) => {
+  const clockInDate = new Date(entry.clockIn);
+  const defaultClockOut = new Date(clockInDate);
+  defaultClockOut.setHours(17, 0, 0, 0);
+
+  const [clockOutTime, setClockOutTime] = useState(defaultClockOut.toTimeString().slice(0, 5));
+  const [pauseMins, setPauseMins] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  const handleSubmit = async () => {
+    setSaving(true);
+    try {
+      const [hours, minutes] = clockOutTime.split(':');
+      const newClockOut = new Date(clockInDate);
+      newClockOut.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      // If clock-out time is before clock-in time, assume next day
+      if (newClockOut <= clockInDate) {
+        newClockOut.setDate(newClockOut.getDate() + 1);
+      }
+      await onConfirm(newClockOut.toISOString(), pauseMins);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+        <h2>⚠️ Vergessenes Ausstempeln</h2>
+
+        <div style={{ padding: '10px 0 20px 0' }}>
+          <div style={{
+            background: '#fff3cd',
+            border: '1px solid #ffc107',
+            padding: '15px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            fontSize: '14px',
+          }}>
+            <p style={{ margin: 0 }}>
+              Du hast dich am <strong>{clockInDate.toLocaleDateString('de-DE')}</strong> um{' '}
+              <strong>{clockInDate.toLocaleTimeString('de-DE')}</strong> eingestempelt, 
+              aber nicht mehr ausgestempelt.
+              {entry.project && <> (Projekt: <strong>{entry.project.name}</strong>)</>}
+            </p>
+          </div>
+
+          <p style={{ marginBottom: '20px', fontSize: '14px' }}>
+            Bitte trage deine Ausstempelzeit für den {clockInDate.toLocaleDateString('de-DE')} nach:
+          </p>
+
+          <div className="form-group">
+            <label>Ausstempelzeit</label>
+            <input
+              type="time"
+              value={clockOutTime}
+              onChange={(e) => setClockOutTime(e.target.value)}
+              style={{ fontSize: '16px', padding: '8px' }}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Pausenzeit (Minuten, optional)</label>
+            <input
+              type="number"
+              min="0"
+              max="999"
+              value={pauseMins}
+              onChange={(e) => setPauseMins(parseInt(e.target.value) || 0)}
+              placeholder="z.B. 30"
+            />
+          </div>
+
+          <div className="modal-actions" style={{ marginTop: '20px' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Später
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleSubmit}
+              disabled={saving}
+            >
+              {saving ? 'Speichern...' : 'Ausstempelung nachtragen'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PauseModal: React.FC<{
+  onClose: () => void;
+  onConfirm: () => void;
+  pauseMinutes: number;
+  setPauseMinutes: (value: number) => void;
+}> = ({ onClose, onConfirm, pauseMinutes, setPauseMinutes }) => {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>Pausenzeit erfassen</h2>
+        
+        <div style={{ padding: '0 0 20px 0' }}>
+          <p className="hint-text" style={{ marginBottom: '20px' }}>
+            Wie viele Minuten Pause hattest du während deiner Arbeitszeit?
+          </p>
+
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={`btn ${pauseMinutes === 0 ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setPauseMinutes(0)}
+              style={{ flex: '1', minWidth: '100px' }}
+            >
+              Keine Pause
+            </button>
+            <button
+              type="button"
+              className={`btn ${pauseMinutes === 15 ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setPauseMinutes(15)}
+              style={{ flex: '1', minWidth: '100px' }}
+            >
+              15 Min
+            </button>
+            <button
+              type="button"
+              className={`btn ${pauseMinutes === 30 ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setPauseMinutes(30)}
+              style={{ flex: '1', minWidth: '100px' }}
+            >
+              30 Min
+            </button>
+            <button
+              type="button"
+              className={`btn ${pauseMinutes === 60 ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setPauseMinutes(60)}
+              style={{ flex: '1', minWidth: '100px' }}
+            >
+              60 Min
+            </button>
+          </div>
+
+          <div className="form-group">
+            <label>Oder eigene Zeit eingeben (Minuten)</label>
+            <input
+              type="number"
+              min="0"
+              max="999"
+              value={pauseMinutes}
+              onChange={(e) => setPauseMinutes(parseInt(e.target.value) || 0)}
+              placeholder="z.B. 45"
+            />
+          </div>
+
+          <div style={{ 
+            background: '#f0f7ff', 
+            padding: '15px', 
+            borderRadius: '8px', 
+            marginTop: '20px',
+            fontSize: '14px',
+            color: '#333'
+          }}>
+            <strong>📋 Gesetzliche Pausenzeiten (Art. 15 ArGV 1):</strong>
+            <ul style={{ marginTop: '10px', marginBottom: '0', paddingLeft: '20px' }}>
+              <li>Ab 5,5 Stunden: mindestens 15 Minuten</li>
+              <li>Ab 7 Stunden: mindestens 30 Minuten</li>
+              <li>Ab 9 Stunden: mindestens 60 Minuten</li>
+            </ul>
+          </div>
+
+          <div className="modal-actions" style={{ marginTop: '20px' }}>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Abbrechen
+            </button>
+            <button type="button" className="btn btn-primary" onClick={onConfirm}>
+              Ausstempeln ({pauseMinutes} Min Pause)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AbsenceModal: React.FC<{
+  onClose: () => void;
+  onSubmit: (data: any) => Promise<void>;
+  editingRequest?: AbsenceRequest | null;
+}> = ({ onClose, onSubmit, editingRequest }) => {
+  const [formData, setFormData] = useState({
+    type: editingRequest?.type || 'VACATION',
+    startDate: editingRequest ? new Date(editingRequest.startDate).toISOString().slice(0, 10) : '',
+    endDate: editingRequest ? new Date(editingRequest.endDate).toISOString().slice(0, 10) : '',
+    days: editingRequest?.days || 1,
+    reason: editingRequest?.reason || '',
+  });
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSubmit(formData);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>{editingRequest ? 'Abwesenheitsantrag bearbeiten' : 'Abwesenheitsantrag erstellen'}</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Typ</label>
+            <select
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value as AbsenceRequest['type'] })}
+              required
+            >
+              <option value="VACATION">Urlaub</option>
+              <option value="SICK_LEAVE">Krankheit</option>
+              <option value="PERSONAL_LEAVE">Persönlich</option>
+              <option value="UNPAID_LEAVE">Unbezahlt</option>
+              <option value="OVERTIME_REDUCTION">Überstundenabbau</option>
+              <option value="OTHER">Sonstiges</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Von</label>
+            <input
+              type="date"
+              value={formData.startDate}
+              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Bis</label>
+            <input
+              type="date"
+              value={formData.endDate}
+              onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Tage</label>
+            <input
+              type="number"
+              step="0.5"
+              value={formData.days}
+              onChange={(e) => setFormData({ ...formData, days: parseFloat(e.target.value) })}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Grund (optional)</label>
+            <textarea
+              value={formData.reason}
+              onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+              rows={3}
+            />
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Abbrechen
+            </button>
+            <button type="submit" className="btn btn-primary">
+              {editingRequest ? 'Änderungen speichern' : 'Antrag stellen'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const AllocationModal: React.FC<{
+  show: boolean;
+  onClose: () => void;
+  timeEntry: TimeEntry | null;
+  projects: Project[];
+  allocations: AllocationInput[];
+  onUpdateAllocation: (index: number, field: keyof AllocationInput, value: any) => void;
+  onAddRow: () => void;
+  onRemoveRow: (index: number) => void;
+  onSave: () => void;
+  totalWorkedHours: number;
+}> = ({
+  show,
+  onClose,
+  timeEntry,
+  projects,
+  allocations,
+  onUpdateAllocation,
+  onAddRow,
+  onRemoveRow,
+  onSave,
+  totalWorkedHours
+}) => {
+  const [storiesByProject, setStoriesByProject] = useState<Record<string, Story[]>>({});
+
+  // Load stories when a project is selected
+  const loadStoriesForProject = async (projectId: string) => {
+    if (!projectId || storiesByProject[projectId]) return;
+    try {
+      const stories = await storyService.getStoriesByProject(projectId);
+      setStoriesByProject(prev => ({ ...prev, [projectId]: stories }));
+    } catch (error) {
+      console.error('Error loading stories:', error);
+    }
+  };
+
+  // Reset stories cache when modal opens
+  useEffect(() => {
+    if (show) {
+      setStoriesByProject({});
+    }
+  }, [show]);
+
+  // Load stories for all projects that already have allocations
+  useEffect(() => {
+    if (show && allocations.length > 0) {
+      const projectIds = [...new Set(allocations.map(a => a.projectId).filter(Boolean))];
+      projectIds.forEach(pid => loadStoriesForProject(pid));
+    }
+  }, [show, allocations]);
+
+  const handleProjectChange = (index: number, projectId: string) => {
+    onUpdateAllocation(index, 'projectId', projectId);
+    // Reset story when project changes
+    onUpdateAllocation(index, 'storyId', '');
+    if (projectId) {
+      loadStoriesForProject(projectId);
+    }
+  };
+
+  if (!show || !timeEntry) return null;
+
+  const totalAllocated = allocations.reduce((sum, a) => sum + (a.hours || 0), 0);
+  const remaining = totalWorkedHours - totalAllocated;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div 
+        className="modal-content" 
+        onClick={(e) => e.stopPropagation()} 
+        style={{ 
+          maxWidth: '1100px', 
+          width: '95%',
+          padding: '30px',
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}
+      >
+        <h2 style={{ marginBottom: '20px', fontSize: '24px' }}>Zeit auf Projekte aufteilen</h2>
+        <p className="hint-text" style={{ marginBottom: '20px', fontSize: '16px' }}>
+          Datum: {new Date(timeEntry.clockIn).toLocaleDateString('de-DE')} | 
+          Gesamtarbeitszeit: <strong>{totalWorkedHours.toFixed(2)}h</strong>
+        </p>
+        
+        <div style={{ 
+          padding: '15px 20px', 
+          background: remaining < -0.1 ? '#f8d7da' : remaining <= 0.1 ? '#d4edda' : '#fff3cd',
+          borderRadius: '8px',
+          marginBottom: '25px',
+          fontSize: '16px'
+        }}>
+          <strong>Zugeteilt: {totalAllocated.toFixed(2)}h</strong> | 
+          Verbleibend: {remaining.toFixed(2)}h
+        </div>
+
+        <table className="table" style={{ marginBottom: '20px' }}>
+          <thead>
+            <tr>
+              <th>Projekt</th>
+              <th>Story</th>
+              <th>Stunden</th>
+              <th>Beschreibung</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {allocations.map((alloc, index) => {
+              const projectStories = alloc.projectId ? (storiesByProject[alloc.projectId] || []) : [];
+              return (
+                <tr key={index}>
+                  <td style={{ padding: '12px' }}>
+                    <select
+                      value={alloc.projectId}
+                      onChange={(e) => handleProjectChange(index, e.target.value)}
+                      style={{ width: '100%', padding: '8px', fontSize: '14px' }}
+                    >
+                      <option value="">Projekt wählen...</option>
+                      {projects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <select
+                      value={alloc.storyId || ''}
+                      onChange={(e) => onUpdateAllocation(index, 'storyId', e.target.value)}
+                      style={{ width: '100%', padding: '8px', fontSize: '14px' }}
+                      disabled={!alloc.projectId || projectStories.length === 0}
+                    >
+                      <option value="">
+                        {!alloc.projectId ? '—' : projectStories.length === 0 ? 'Keine Stories' : 'Story wählen...'}
+                      </option>
+                      {projectStories.map((story) => (
+                        <option key={story.id} value={story.id}>
+                          {story.color ? `● ` : ''}{story.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <input
+                      type="number"
+                      step="0.25"
+                      min="0"
+                      max={totalWorkedHours}
+                      value={alloc.hours || 0}
+                      onChange={(e) => onUpdateAllocation(index, 'hours', parseFloat(e.target.value) || 0)}
+                      style={{ width: '100px', padding: '8px', fontSize: '14px' }}
+                    />
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <input
+                      type="text"
+                      value={alloc.description || ''}
+                      onChange={(e) => onUpdateAllocation(index, 'description', e.target.value)}
+                      placeholder="Was wurde gemacht..."
+                      style={{ width: '100%', padding: '8px', fontSize: '14px' }}
+                    />
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-small btn-danger"
+                      onClick={() => onRemoveRow(index)}
+                      disabled={allocations.length === 1}
+                      style={{ fontSize: '14px', padding: '6px 12px' }}
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={onAddRow}
+          style={{ marginBottom: '25px', fontSize: '15px', padding: '10px 20px' }}
+        >
+          + Projekt hinzufügen
+        </button>
+
+        <div className="modal-actions" style={{ gap: '15px' }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose} style={{ fontSize: '15px', padding: '10px 25px' }}>
+            Abbrechen
+          </button>
+          <button 
+            type="button" 
+            className="btn btn-primary" 
+            onClick={onSave}
+            disabled={remaining < -0.1}
+            style={{ fontSize: '15px', padding: '10px 25px' }}
+          >
+            Speichern
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
