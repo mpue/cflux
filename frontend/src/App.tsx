@@ -36,6 +36,9 @@ import CourseEditorPage from './pages/CourseEditorPage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import ApplicantsPage from './pages/ApplicantsPage';
 import OnboardingDashboardPage from './pages/OnboardingDashboardPage';
+import OnboardingEmployeesPage from './pages/OnboardingEmployeesPage';
+import OnboardingEquipmentPage from './pages/OnboardingEquipmentPage';
+import OnboardingTrainingPage from './pages/OnboardingTrainingPage';
 import ApplicantRegisterPage from './pages/ApplicantRegisterPage';
 import ApplicantLoginPage from './pages/ApplicantLoginPage';
 import ApplicantVerifyEmailPage from './pages/ApplicantVerifyEmailPage';
@@ -330,6 +333,30 @@ function App() {
               element={
                 <PrivateRoute adminOnly>
                   <ApplicantsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/onboarding/employees"
+              element={
+                <PrivateRoute adminOnly>
+                  <OnboardingEmployeesPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/onboarding/equipment"
+              element={
+                <PrivateRoute adminOnly>
+                  <OnboardingEquipmentPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/onboarding/training"
+              element={
+                <PrivateRoute adminOnly>
+                  <OnboardingTrainingPage />
                 </PrivateRoute>
               }
             />

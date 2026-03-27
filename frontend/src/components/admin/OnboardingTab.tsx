@@ -4,6 +4,9 @@ import { Box, Typography, Button, Grid, Card, CardContent, Tabs, Tab } from '@mu
 import { PersonAdd, People, Assignment, Build, School, Dashboard, Work } from '@mui/icons-material';
 import ApplicantsTab from './ApplicantsTab';
 import OnboardingJobsSubTab from './OnboardingJobsSubTab';
+import OnboardingEmployeesSubTab from './OnboardingEmployeesSubTab';
+import OnboardingEquipmentSubTab from './OnboardingEquipmentSubTab';
+import OnboardingTrainingSubTab from './OnboardingTrainingSubTab';
 
 interface OnboardingTabProps {
   onUpdate?: () => void;
@@ -176,24 +179,18 @@ const OnboardingTab: React.FC<OnboardingTabProps> = ({ onUpdate }) => {
           <Tab icon={<Dashboard />} label="Übersicht" value="overview" />
           <Tab icon={<PersonAdd />} label="Bewerber" value="applicants" />
           <Tab icon={<Work />} label="Jobs" value="jobs" />
-          <Tab icon={<People />} label="Mitarbeiter" value="employees" disabled />
-          <Tab icon={<Build />} label="Equipment" value="equipment" disabled />
-          <Tab icon={<School />} label="Schulungen" value="training" disabled />
+          <Tab icon={<People />} label="Mitarbeiter" value="employees" />
+          <Tab icon={<Build />} label="Equipment" value="equipment" />
+          <Tab icon={<School />} label="Schulungen" value="training" />
         </Tabs>
       </Box>
 
       {activeSubTab === 'overview' && renderOverview()}
       {activeSubTab === 'applicants' && <ApplicantsTab onUpdate={onUpdate} />}
       {activeSubTab === 'jobs' && <OnboardingJobsSubTab />}
-      {activeSubTab === 'employees' && (
-        <Typography>Mitarbeiter-Verwaltung (in Entwicklung)</Typography>
-      )}
-      {activeSubTab === 'equipment' && (
-        <Typography>Equipment-Verwaltung (in Entwicklung)</Typography>
-      )}
-      {activeSubTab === 'training' && (
-        <Typography>Schulungs-Verwaltung (in Entwicklung)</Typography>
-      )}
+      {activeSubTab === 'employees' && <OnboardingEmployeesSubTab />}
+      {activeSubTab === 'equipment' && <OnboardingEquipmentSubTab />}
+      {activeSubTab === 'training' && <OnboardingTrainingSubTab />}
     </Box>
   );
 };
