@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { checkModulePermission } from '../services/module.service';
+import { generatePdfPreview, isPdf } from '../services/gotenberg.service';
 import fs from 'fs';
 import path from 'path';
 
@@ -145,6 +146,18 @@ export const uploadAttachment = async (req: AuthRequest, res: Response) => {
 
     const { description } = req.body;
 
+    // Generate PDF preview via Gotenberg
+    let pdfPath: string | null = null;
+    try {
+      pdfPath = await generatePdfPreview(
+        file.path,
+        file.originalname,
+        file.filename
+      );
+    } catch (err) {
+      console.warn('PDF preview generation failed, continuing without preview:', err);
+    }
+
     // Create attachment record
     const attachment = await prisma.documentNodeAttachment.create({
       data: {
@@ -154,6 +167,7 @@ export const uploadAttachment = async (req: AuthRequest, res: Response) => {
         mimeType: file.mimetype,
         fileSize: file.size,
         path: `/uploads/attachments/${file.filename}`,
+        pdfPath: pdfPath,
         description: description || null,
         version: 1,
         createdById: userId,
@@ -267,6 +281,26 @@ export const updateAttachment = async (req: AuthRequest, res: Response) => {
       fs.renameSync(oldFilePath, archivePath);
     }
 
+    // Remove old PDF preview if it exists
+    if (existingAttachment.pdfPath) {
+      const oldPdfPath = path.join(__dirname, '../../', existingAttachment.pdfPath);
+      if (fs.existsSync(oldPdfPath)) {
+        fs.unlinkSync(oldPdfPath);
+      }
+    }
+
+    // Generate new PDF preview via Gotenberg
+    let pdfPath: string | null = null;
+    try {
+      pdfPath = await generatePdfPreview(
+        file.path,
+        file.originalname,
+        file.filename
+      );
+    } catch (err) {
+      console.warn('PDF preview generation failed, continuing without preview:', err);
+    }
+
     // Update attachment with new file
     const updatedAttachment = await prisma.documentNodeAttachment.update({
       where: { id: attachmentId },
@@ -276,6 +310,7 @@ export const updateAttachment = async (req: AuthRequest, res: Response) => {
         mimeType: file.mimetype,
         fileSize: file.size,
         path: `/uploads/attachments/${file.filename}`,
+        pdfPath: pdfPath,
         description: description || existingAttachment.description,
         version: newVersion,
         updatedById: userId
@@ -414,6 +449,67 @@ export const downloadAttachment = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Download attachment error:', error);
     res.status(500).json({ error: 'Failed to download attachment' });
+  }
+};
+
+/**
+ * Download the PDF preview of an attachment.
+ * If the original is already a PDF, serves the original.
+ * Otherwise serves the Gotenberg-generated PDF.
+ */
+export const downloadAttachmentPdf = async (req: AuthRequest, res: Response) => {
+  try {
+    const { attachmentId } = req.params;
+    const userId = req.user!.id;
+
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
+    if (!hasReadPermission) {
+      return res.status(403).json({ error: 'No permission to read intranet documents' });
+    }
+
+    const attachment = await prisma.documentNodeAttachment.findFirst({
+      where: {
+        id: attachmentId,
+        isActive: true,
+        deletedAt: null
+      }
+    });
+
+    if (!attachment) {
+      return res.status(404).json({ error: 'Attachment not found' });
+    }
+
+    // If the original file is already a PDF, serve it directly
+    if (isPdf(attachment.originalFilename)) {
+      const filePath = path.join(__dirname, '../../', attachment.path);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'File not found on server' });
+      }
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${attachment.originalFilename}"`);
+      return fs.createReadStream(filePath).pipe(res);
+    }
+
+    // Serve the generated PDF preview
+    if (!attachment.pdfPath) {
+      return res.status(404).json({ error: 'No PDF preview available for this attachment' });
+    }
+
+    const pdfFilePath = path.join(__dirname, '../../', attachment.pdfPath);
+    if (!fs.existsSync(pdfFilePath)) {
+      return res.status(404).json({ error: 'PDF file not found on server' });
+    }
+
+    const pdfFilename = attachment.originalFilename.replace(
+      path.extname(attachment.originalFilename),
+      '.pdf'
+    );
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${pdfFilename}"`);
+    fs.createReadStream(pdfFilePath).pipe(res);
+  } catch (error) {
+    console.error('Download attachment PDF error:', error);
+    res.status(500).json({ error: 'Failed to download PDF' });
   }
 };
 

@@ -32,6 +32,9 @@ import {
   Alert,
   Tooltip,
   Divider,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import {
   CreateNewFolder as FolderIcon,
@@ -44,6 +47,7 @@ import {
   NavigateNext as NavigateNextIcon,
   Upload as UploadIcon,
   Group as GroupIcon,
+  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import AppNavbar from '../../components/AppNavbar';
 import documentNodeService, { DocumentNode, CreateDocumentNodeData } from '../../services/documentNode.service';
@@ -757,13 +761,25 @@ const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
 
                 {/* Document Content or Folder View */}
                 {currentNode.type === 'DOCUMENT' ? (
-                  <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-                    <DocumentEditor
-                      key={currentNode.id}
-                      document={currentNode}
-                      onSave={handleDocumentSave}
-                      canEdit={canEditIntranet}
-                    />
+                  <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto' }}>
+                    <Accordion
+                      defaultExpanded={currentNode.contentType !== 'ATTACHMENT'}
+                      sx={{ flexShrink: 0 }}
+                    >
+                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Typography sx={{ fontWeight: 'bold' }}>Dokumenteninhalt</Typography>
+                      </AccordionSummary>
+                      <AccordionDetails sx={{ p: 0 }}>
+                        <Box sx={{ p: 2, minHeight: 300 }}>
+                          <DocumentEditor
+                            key={currentNode.id}
+                            document={currentNode}
+                            onSave={handleDocumentSave}
+                            canEdit={canEditIntranet}
+                          />
+                        </Box>
+                      </AccordionDetails>
+                    </Accordion>
                     
                     {/* Approval Panel */}
                     <Box sx={{ mt: 2, mb: 2 }}>

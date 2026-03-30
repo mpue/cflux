@@ -51,11 +51,17 @@ router.get('/attachments/:attachmentId/versions', documentNodeAttachmentControll
 // Download attachment file
 router.get('/attachments/:attachmentId/download', documentNodeAttachmentController.downloadAttachment);
 
+// Download PDF preview of an attachment
+router.get('/attachments/:attachmentId/pdf', documentNodeAttachmentController.downloadAttachmentPdf);
+
 // Download specific version
 router.get('/attachments/:attachmentId/versions/:versionId/download', documentNodeAttachmentController.downloadAttachmentVersion);
 
 // Update attachment metadata
 router.patch('/attachments/:attachmentId', documentNodeAttachmentController.updateAttachmentMetadata);
+
+// Update attachment file (creates new version)
+router.put('/attachments/:attachmentId', upload.single('file'), documentNodeAttachmentController.updateAttachment);
 
 // Delete attachment
 router.delete('/attachments/:attachmentId', documentNodeAttachmentController.deleteAttachment);

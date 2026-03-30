@@ -4,6 +4,7 @@ export interface DocumentNode {
   id: string;
   title: string;
   type: 'FOLDER' | 'DOCUMENT';
+  contentType?: string;
   content: string;
   parentId: string | null;
   order: number;

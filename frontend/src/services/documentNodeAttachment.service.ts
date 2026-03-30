@@ -8,6 +8,7 @@ export interface DocumentNodeAttachment {
   mimeType: string;
   fileSize: number;
   path: string;
+  pdfPath?: string;
   description?: string;
   version: number;
   isActive: boolean;
@@ -184,6 +185,73 @@ class DocumentNodeAttachmentService {
     link.click();
     link.remove();
     window.URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Get the direct download URL for an attachment (for links)
+   */
+  getDownloadUrl(attachmentId: string): string {
+    const baseUrl = api.defaults.baseURL || '';
+    return `${baseUrl}/document-nodes/attachments/${attachmentId}/download`;
+  }
+
+  /**
+   * Get the PDF preview URL for an attachment (for inline viewing)
+   */
+  getPdfPreviewUrl(attachmentId: string): string {
+    const baseUrl = api.defaults.baseURL || '';
+    return `${baseUrl}/document-nodes/attachments/${attachmentId}/pdf`;
+  }
+
+  /**
+   * Download the PDF preview of an attachment
+   */
+  async downloadPdf(attachmentId: string, filename: string): Promise<void> {
+    const response = await api.get(
+      `/document-nodes/attachments/${attachmentId}/pdf`,
+      {
+        responseType: 'blob',
+      }
+    );
+
+    const pdfFilename = filename.replace(/\.[^.]+$/, '.pdf');
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', pdfFilename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Open the PDF preview in a new browser tab
+   */
+  async openPdfPreview(attachmentId: string): Promise<void> {
+    const response = await api.get(
+      `/document-nodes/attachments/${attachmentId}/pdf`,
+      {
+        responseType: 'blob',
+      }
+    );
+
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+    window.open(url, '_blank');
+  }
+
+  /**
+   * Check if an attachment has a PDF preview available
+   */
+  hasPdfPreview(attachment: DocumentNodeAttachment): boolean {
+    return !!attachment.pdfPath || this.isPdf(attachment.originalFilename);
+  }
+
+  /**
+   * Check if a file is a PDF
+   */
+  isPdf(filename: string): boolean {
+    return filename.toLowerCase().endsWith('.pdf');
   }
 
   /**

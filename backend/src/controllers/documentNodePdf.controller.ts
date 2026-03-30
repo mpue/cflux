@@ -1,14 +1,110 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import PDFDocument from 'pdfkit';
-import MarkdownIt from 'markdown-it';
 import { prisma } from '../lib/prisma';
-import { JSDOM } from 'jsdom';
+import axios from 'axios';
+import FormData from 'form-data';
 
-const md = new MarkdownIt({ html: true, breaks: true });
+const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3000';
 
 /**
- * Export a document node as PDF
+ * Build a styled HTML page for Gotenberg Chromium conversion
+ */
+function buildHtmlPage(title: string, content: string, meta: {
+  author?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}): string {
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page { size: A4; margin: 20mm; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 11pt;
+      line-height: 1.6;
+      color: #1a1a1a;
+      max-width: 100%;
+    }
+    .header { margin-bottom: 24px; }
+    .header h1 { font-size: 22pt; margin: 0 0 8px 0; color: #111; }
+    .meta { font-size: 9pt; color: #666; margin-bottom: 16px; }
+    .meta span { margin-right: 16px; }
+    hr.title-rule { border: none; border-top: 1px solid #ccc; margin: 16px 0 24px 0; }
+    h1 { font-size: 20pt; margin-top: 24px; }
+    h2 { font-size: 16pt; margin-top: 20px; }
+    h3 { font-size: 14pt; margin-top: 16px; }
+    h4 { font-size: 12pt; margin-top: 14px; }
+    h5, h6 { font-size: 11pt; margin-top: 12px; }
+    p { margin: 8px 0; }
+    ul, ol { margin: 8px 0; padding-left: 24px; }
+    li { margin: 4px 0; }
+    code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      background: #f5f5f5;
+      padding: 2px 4px;
+      border-radius: 3px;
+      font-size: 10pt;
+      color: #d63384;
+    }
+    pre {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 12px;
+      overflow-x: auto;
+      font-size: 9pt;
+      line-height: 1.4;
+    }
+    pre code { background: none; padding: 0; color: #212529; }
+    blockquote {
+      border-left: 4px solid #dee2e6;
+      margin: 12px 0;
+      padding: 8px 16px;
+      color: #6c757d;
+      font-style: italic;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 12px 0;
+    }
+    th, td {
+      border: 1px solid #dee2e6;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th { background: #f8f9fa; font-weight: 600; }
+    a { color: #0d6efd; }
+    img { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${escapeHtml(title)}</h1>
+    <div class="meta">
+      ${meta.author ? `<span>Autor: ${escapeHtml(meta.author)}</span>` : ''}
+      ${meta.createdAt ? `<span>Erstellt: ${meta.createdAt}</span>` : ''}
+      ${meta.updatedAt ? `<span>Zuletzt bearbeitet: ${meta.updatedAt}</span>` : ''}
+    </div>
+    <hr class="title-rule">
+  </div>
+  ${content}
+</body>
+</html>`;
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Export a document node as PDF via Gotenberg
  */
 export const exportDocumentToPDF = async (req: AuthRequest, res: Response) => {
   try {
@@ -71,325 +167,47 @@ export const exportDocumentToPDF = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    // Create PDF
-    const doc = new PDFDocument({
-      size: 'A4',
-      margins: { top: 50, bottom: 70, left: 50, right: 50 }, // Bottom margin increased for footer
-      bufferPages: true, // Enable page buffering for footer
+    // Build styled HTML page
+    const htmlPage = buildHtmlPage(document.title, document.content, {
+      author: document.updatedBy
+        ? `${document.updatedBy.firstName} ${document.updatedBy.lastName}`
+        : undefined,
+      createdAt: document.createdAt
+        ? new Date(document.createdAt).toLocaleString('de-DE')
+        : undefined,
+      updatedAt: document.updatedAt
+        ? new Date(document.updatedAt).toLocaleString('de-DE')
+        : undefined,
     });
+
+    // Send to Gotenberg Chromium route
+    const form = new FormData();
+    form.append('files', Buffer.from(htmlPage, 'utf-8'), {
+      filename: 'index.html',
+      contentType: 'text/html',
+    });
+    form.append('paperWidth', '8.27');   // A4
+    form.append('paperHeight', '11.69'); // A4
+    form.append('marginTop', '0.79');    // ~20mm
+    form.append('marginBottom', '0.79');
+    form.append('marginLeft', '0.79');
+    form.append('marginRight', '0.79');
+
+    const pdfResponse = await axios.post(
+      `${GOTENBERG_URL}/forms/chromium/convert/html`,
+      form,
+      {
+        headers: form.getHeaders(),
+        responseType: 'arraybuffer',
+        timeout: 30000,
+      }
+    );
 
     // Set response headers for PDF download
     const filename = `${document.title.replace(/[^a-z0-9äöüß]/gi, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
-    // Pipe PDF to response
-    doc.pipe(res);
-
-    // Render HTML to PDF with formatting
-    const renderHTMLToPDF = (html: string, doc: PDFKit.PDFDocument) => {
-      const dom = new JSDOM(html);
-      const body = dom.window.document.body;
-
-      const processNode = (node: any, currentStyle: any = {}) => {
-        const { fontSize = 11, font = 'Helvetica', bold = false, italic = false, color = '#000000' } = currentStyle;
-
-        if (node.nodeType === 3) { // Text node
-          const text = node.textContent?.trim();
-          if (text) {
-            let fontName = 'Helvetica';
-            if (bold && italic) fontName = 'Helvetica-BoldOblique';
-            else if (bold) fontName = 'Helvetica-Bold';
-            else if (italic) fontName = 'Helvetica-Oblique';
-
-            doc.fontSize(fontSize).font(fontName).fillColor(color);
-            
-            // Check if we need a new page
-            if (doc.y > doc.page.height - 120) { // More margin for footer
-              doc.addPage();
-            }
-            
-            doc.text(text, { continued: false });
-          }
-          return;
-        }
-
-        if (node.nodeType !== 1) return; // Only process element nodes
-
-        const tagName = node.tagName?.toLowerCase();
-        
-        switch (tagName) {
-          case 'h1':
-            doc.moveDown(0.8);
-            doc.fontSize(20).font('Helvetica-Bold').fillColor('#000000');
-            if (doc.y > doc.page.height - 120) doc.addPage();
-            doc.text(node.textContent, { align: 'left' });
-            doc.fontSize(11).font('Helvetica').fillColor('#000000'); // Reset to default
-            doc.moveDown(0.5);
-            break;
-
-          case 'h2':
-            doc.moveDown(0.6);
-            doc.fontSize(18).font('Helvetica-Bold').fillColor('#000000');
-            if (doc.y > doc.page.height - 120) doc.addPage();
-            doc.text(node.textContent, { align: 'left' });
-            doc.fontSize(11).font('Helvetica').fillColor('#000000'); // Reset to default
-            doc.moveDown(0.4);
-            break;
-
-          case 'h3':
-            doc.moveDown(0.5);
-            doc.fontSize(16).font('Helvetica-Bold').fillColor('#000000');
-            if (doc.y > doc.page.height - 120) doc.addPage();
-            doc.text(node.textContent, { align: 'left' });
-            doc.fontSize(11).font('Helvetica').fillColor('#000000'); // Reset to default
-            doc.moveDown(0.4);
-            break;
-
-          case 'h4':
-            doc.moveDown(0.4);
-            doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000');
-            if (doc.y > doc.page.height - 120) doc.addPage();
-            doc.text(node.textContent, { align: 'left' });
-            doc.fontSize(11).font('Helvetica').fillColor('#000000'); // Reset to default
-            doc.moveDown(0.3);
-            break;
-
-          case 'h5':
-          case 'h6':
-            doc.moveDown(0.4);
-            doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000');
-            if (doc.y > doc.page.height - 120) doc.addPage();
-            doc.text(node.textContent, { align: 'left' });
-            doc.fontSize(11).font('Helvetica').fillColor('#000000'); // Reset to default
-            doc.moveDown(0.3);
-            break;
-
-          case 'p':
-            if (doc.y > doc.page.height - 120) doc.addPage();
-            doc.fontSize(11).font('Helvetica').fillColor('#000000'); // Ensure default before processing
-            for (const child of node.childNodes) {
-              processNode(child, currentStyle);
-            }
-            doc.fontSize(11).font('Helvetica').fillColor('#000000'); // Reset after processing
-            doc.moveDown(0.5);
-            break;
-
-          case 'strong':
-          case 'b':
-            for (const child of node.childNodes) {
-              processNode(child, { ...currentStyle, bold: true });
-            }
-            break;
-
-          case 'em':
-          case 'i':
-            for (const child of node.childNodes) {
-              processNode(child, { ...currentStyle, italic: true });
-            }
-            break;
-
-          case 'code':
-            doc.fontSize(10).font('Courier').fillColor('#d63384');
-            doc.text(node.textContent, { continued: false });
-            doc.fontSize(11).fillColor('#000000').font('Helvetica'); // Reset to default
-            break;
-
-          case 'pre':
-            doc.moveDown(0.6);
-            doc.fontSize(9).font('Courier').fillColor('#212529');
-            const codeBlock = node.textContent || '';
-            if (doc.y > doc.page.height - 170) doc.addPage();
-            doc.rect(doc.x, doc.y, doc.page.width - 100, 10 + codeBlock.split('\n').length * 12)
-               .fillAndStroke('#f8f9fa', '#dee2e6');
-            doc.fillColor('#212529').text(codeBlock, doc.x + 10, doc.y + 5);
-            doc.moveDown(0.8);
-            doc.fontSize(11).fillColor('#000000').font('Helvetica'); // Reset to default
-            break;
-
-          case 'ul':
-            doc.moveDown(0.5);
-            for (const child of node.childNodes) {
-              if (child.tagName?.toLowerCase() === 'li') {
-                if (doc.y > doc.page.height - 120) doc.addPage();
-                const xPos = doc.x;
-                doc.fontSize(11).font('Helvetica').fillColor('#000000');
-                
-                // Build the text with formatting
-                const parts: Array<{text: string, bold?: boolean, italic?: boolean}> = [];
-                for (const liChild of child.childNodes) {
-                  if (liChild.nodeType === 3) { // Text node
-                    const text = liChild.textContent?.trim();
-                    if (text) parts.push({ text });
-                  } else if (liChild.nodeType === 1) {
-                    const liTag = liChild.tagName?.toLowerCase();
-                    const text = liChild.textContent?.trim();
-                    if (text) {
-                      if (liTag === 'strong' || liTag === 'b') {
-                        parts.push({ text, bold: true });
-                      } else if (liTag === 'em' || liTag === 'i') {
-                        parts.push({ text, italic: true });
-                      } else {
-                        parts.push({ text });
-                      }
-                    }
-                  }
-                }
-                
-                // Render bullet and text
-                doc.text('• ', { continued: true });
-                parts.forEach((part, idx) => {
-                  if (part.bold) doc.font('Helvetica-Bold');
-                  else if (part.italic) doc.font('Helvetica-Oblique');
-                  else doc.font('Helvetica');
-                  
-                  doc.text(part.text + (idx < parts.length - 1 ? ' ' : ''), { continued: idx < parts.length - 1 });
-                });
-                
-                doc.font('Helvetica');
-                doc.x = xPos;
-              }
-            }
-            doc.fontSize(11).font('Helvetica').fillColor('#000000'); // Reset to default
-            doc.moveDown(0.7);
-            break;
-
-          case 'ol':
-            doc.moveDown(0.5);
-            let index = 1;
-            for (const child of node.childNodes) {
-              if (child.tagName?.toLowerCase() === 'li') {
-                if (doc.y > doc.page.height - 120) doc.addPage();
-                const xPos = doc.x;
-                doc.fontSize(11).font('Helvetica').fillColor('#000000');
-                
-                // Build the text with formatting
-                const parts: Array<{text: string, bold?: boolean, italic?: boolean}> = [];
-                for (const liChild of child.childNodes) {
-                  if (liChild.nodeType === 3) { // Text node
-                    const text = liChild.textContent?.trim();
-                    if (text) parts.push({ text });
-                  } else if (liChild.nodeType === 1) {
-                    const liTag = liChild.tagName?.toLowerCase();
-                    const text = liChild.textContent?.trim();
-                    if (text) {
-                      if (liTag === 'strong' || liTag === 'b') {
-                        parts.push({ text, bold: true });
-                      } else if (liTag === 'em' || liTag === 'i') {
-                        parts.push({ text, italic: true });
-                      } else {
-                        parts.push({ text });
-                      }
-                    }
-                  }
-                }
-                
-                // Render number and text
-                doc.text(`${index}. `, { continued: true });
-                parts.forEach((part, idx) => {
-                  if (part.bold) doc.font('Helvetica-Bold');
-                  else if (part.italic) doc.font('Helvetica-Oblique');
-                  else doc.font('Helvetica');
-                  
-                  doc.text(part.text + (idx < parts.length - 1 ? ' ' : ''), { continued: idx < parts.length - 1 });
-                });
-                
-                doc.font('Helvetica');
-                doc.x = xPos;
-                index++;
-              }
-            }
-            doc.fontSize(11).font('Helvetica').fillColor('#000000'); // Reset to default
-            doc.moveDown(0.7);
-            break;
-
-          case 'blockquote':
-            doc.moveDown(0.6);
-            const oldX = doc.x;
-            doc.x += 20;
-            doc.fontSize(11).font('Helvetica-Oblique').fillColor('#6c757d');
-            if (doc.y > doc.page.height - 120) doc.addPage();
-            doc.text(node.textContent.trim());
-            doc.x = oldX;
-            doc.fontSize(11).fillColor('#000000').font('Helvetica'); // Reset to default
-            doc.moveDown(0.7);
-            break;
-
-          case 'hr':
-            doc.moveDown(0.7);
-            doc.strokeColor('#dee2e6')
-               .lineWidth(1)
-               .moveTo(50, doc.y)
-               .lineTo(doc.page.width - 50, doc.y)
-               .stroke();
-            doc.moveDown(0.5);
-            break;
-
-          case 'br':
-            doc.moveDown(0.3);
-            break;
-
-          case 'a':
-            doc.fontSize(11).fillColor('#0d6efd').font('Helvetica');
-            doc.text(node.textContent, { link: node.getAttribute('href'), underline: true, continued: false });
-            doc.fontSize(11).fillColor('#000000').font('Helvetica'); // Reset to default
-            break;
-
-          default:
-            // Process children for other elements
-            for (const child of node.childNodes) {
-              processNode(child, currentStyle);
-            }
-            break;
-        }
-      };
-
-      // Process all children of body
-      for (const child of body.childNodes) {
-        processNode(child);
-      }
-    };
-
-    // Add title
-    doc.fontSize(24).font('Helvetica-Bold').text(document.title, {
-      align: 'left',
-    });
-
-    doc.moveDown(0.5);
-
-    // Add metadata
-    doc.fontSize(10).font('Helvetica').fillColor('#666666');
-    
-    if (document.updatedBy) {
-      doc.text(`Autor: ${document.updatedBy.firstName} ${document.updatedBy.lastName}`);
-    }
-    
-    if (document.createdAt) {
-      doc.text(`Erstellt: ${new Date(document.createdAt).toLocaleString('de-DE')}`);
-    }
-    
-    if (document.updatedAt) {
-      doc.text(`Zuletzt bearbeitet: ${new Date(document.updatedAt).toLocaleString('de-DE')}`);
-    }
-
-    doc.moveDown(1);
-    doc.fillColor('#000000');
-
-    // Add horizontal line
-    doc.strokeColor('#cccccc')
-       .lineWidth(1)
-       .moveTo(50, doc.y)
-       .lineTo(doc.page.width - 50, doc.y)
-       .stroke();
-
-    doc.moveDown(1);
-
-    // Convert Markdown to HTML and render
-    const htmlContent = md.render(document.content);
-    renderHTMLToPDF(htmlContent, doc);
-
-    // Finalize PDF
-    doc.end();
+    res.send(Buffer.from(pdfResponse.data));
   } catch (err: any) {
     console.error('PDF export error:', err);
     if (!res.headersSent) {

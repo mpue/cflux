@@ -2,13 +2,21 @@ import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import AdmZip from 'adm-zip';
 import path from 'path';
+import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
 import { marked } from 'marked';
+import { canConvertToPdf, isPdf, generatePdfPreview } from '../services/gotenberg.service';
 
+
+// Supported file extensions for import (Gotenberg + PDF)
+function isSupportedFile(filename: string): boolean {
+  return canConvertToPdf(filename) || isPdf(filename);
+}
 
 // Format filename to title
 function formatTitle(filename: string): string {
-  // Remove .md extension
-  const nameWithoutExt = filename.replace(/\.md$/i, '');
+  // Remove extension
+  const nameWithoutExt = filename.replace(/\.[^.]+$/i, '');
   
   // Check if filename contains underscore
   if (nameWithoutExt.includes('_')) {
@@ -21,6 +29,51 @@ function formatTitle(filename: string): string {
     // Just capitalize first letter
     return nameWithoutExt.charAt(0).toUpperCase() + nameWithoutExt.slice(1).toLowerCase();
   }
+}
+
+// Save a file buffer to the attachments directory and return the stored filename
+function saveAttachmentFile(originalFilename: string, data: Buffer): { filename: string; filePath: string } {
+  const uploadDir = path.join(__dirname, '../../uploads/attachments');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  const ext = path.extname(originalFilename);
+  const filename = `${uuidv4()}${ext}`;
+  const filePath = path.join(uploadDir, filename);
+  fs.writeFileSync(filePath, data);
+  return { filename, filePath };
+}
+
+// Detect MIME type from extension
+function getMimeType(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+  const mimeMap: Record<string, string> = {
+    '.pdf': 'application/pdf',
+    '.doc': 'application/msword',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.xls': 'application/vnd.ms-excel',
+    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    '.ppt': 'application/vnd.ms-powerpoint',
+    '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    '.odt': 'application/vnd.oasis.opendocument.text',
+    '.ods': 'application/vnd.oasis.opendocument.spreadsheet',
+    '.odp': 'application/vnd.oasis.opendocument.presentation',
+    '.odg': 'application/vnd.oasis.opendocument.graphics',
+    '.rtf': 'application/rtf',
+    '.txt': 'text/plain',
+    '.csv': 'text/csv',
+    '.html': 'text/html',
+    '.htm': 'text/html',
+    '.bmp': 'image/bmp',
+    '.gif': 'image/gif',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.tiff': 'image/tiff',
+    '.webp': 'image/webp',
+  };
+  return mimeMap[ext] || 'application/octet-stream';
 }
 
 // Recursive function to process zip entries
@@ -55,11 +108,14 @@ async function processZipEntries(
   // Process files in current directory (no subdirectory)
   const currentDirEntries = dirMap.get('') || [];
   for (const entry of currentDirEntries) {
-    if (!entry.isDirectory && entry.name.toLowerCase().endsWith('.md')) {
+    if (entry.isDirectory) continue;
+    
+    const filename = entry.name;
+    
+    if (filename.toLowerCase().endsWith('.md')) {
+      // Markdown files: convert to HTML content as before
       const markdownContent = entry.getData().toString('utf8');
-      const title = formatTitle(entry.name);
-      
-      // Convert Markdown to HTML for TipTap editor
+      const title = formatTitle(filename);
       const htmlContent = await marked(markdownContent);
       
       await prisma.documentNode.create({
@@ -73,7 +129,69 @@ async function processZipEntries(
           updatedById: userId,
         },
       });
+    } else if (isSupportedFile(filename)) {
+      // Gotenberg-supported files: create document node + attachment
+      const title = formatTitle(filename);
+      const fileData = entry.getData();
+      const mimeType = getMimeType(filename);
+      
+      // Create the document node
+      const docNode = await prisma.documentNode.create({
+        data: {
+          title,
+          type: 'DOCUMENT',
+          contentType: 'ATTACHMENT',
+          content: '',
+          parentId: parentNodeId,
+          createdById: userId,
+          updatedById: userId,
+        },
+      });
+      
+      // Save file to disk
+      const { filename: storedFilename, filePath: storedFilePath } = saveAttachmentFile(filename, fileData);
+      
+      // Generate PDF preview via Gotenberg
+      let pdfPath: string | null = null;
+      try {
+        pdfPath = await generatePdfPreview(storedFilePath, filename, storedFilename);
+      } catch (err) {
+        console.warn(`PDF preview generation failed for ${filename}:`, err);
+      }
+      
+      // Create attachment record
+      const attachment = await prisma.documentNodeAttachment.create({
+        data: {
+          documentNodeId: docNode.id,
+          filename: storedFilename,
+          originalFilename: filename,
+          mimeType,
+          fileSize: fileData.length,
+          path: `/uploads/attachments/${storedFilename}`,
+          pdfPath,
+          description: `Importiert aus ZIP-Archiv`,
+          version: 1,
+          createdById: userId,
+          updatedById: userId,
+        },
+      });
+      
+      // Create initial version record
+      await prisma.documentNodeAttachmentVersion.create({
+        data: {
+          attachmentId: attachment.id,
+          filename: storedFilename,
+          originalFilename: filename,
+          mimeType,
+          fileSize: fileData.length,
+          path: `/uploads/attachments/${storedFilename}`,
+          version: 1,
+          changeReason: 'Importiert aus ZIP-Archiv',
+          createdById: userId,
+        },
+      });
     }
+    // Unsupported files are silently skipped
   }
   
   // Process subdirectories

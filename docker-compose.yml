@@ -41,15 +41,26 @@ services:
       JWT_EXPIRES_IN: "${JWT_EXPIRES_IN}"
       PORT: ${PORT}
       NODE_ENV: "${NODE_ENV}"
+      GOTENBERG_URL: "http://gotenberg:3000"
     depends_on:
       db:
         condition: service_healthy
+      gotenberg:
+        condition: service_started
     networks:
       - timetracking-network
     volumes:
       - ./backend/prisma:/app/prisma
       - backend_uploads:/app/uploads
       - backend_backups:/app/backups
+
+  # Gotenberg - Document to PDF conversion
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: timetracking-gotenberg
+    restart: unless-stopped
+    networks:
+      - timetracking-network
 
   # Frontend
   frontend:

@@ -1765,6 +1765,7 @@ model DocumentNodeAttachment {
   mimeType        String
   fileSize        Int           // in bytes
   path            String        // Relativer Pfad zur Datei
+  pdfPath         String?       // Relativer Pfad zur generierten PDF-Vorschau
   description     String?
   version         Int           @default(1)
   isActive        Boolean       @default(true)  // For soft delete

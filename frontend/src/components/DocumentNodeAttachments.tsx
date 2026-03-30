@@ -42,6 +42,7 @@ import {
   Image as ImageIcon,
   Visibility as VisibilityIcon,
   ExpandMore as ExpandMoreIcon,
+  PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import documentNodeAttachmentService, {
   DocumentNodeAttachment,
@@ -90,6 +91,13 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
   // Context menu
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuAttachment, setMenuAttachment] = useState<DocumentNodeAttachment | null>(null);
+
+  // Edit Original dialog
+  const [editOriginalDialogOpen, setEditOriginalDialogOpen] = useState(false);
+  const [editOriginalAttachment, setEditOriginalAttachment] = useState<DocumentNodeAttachment | null>(null);
+  const [editOriginalFile, setEditOriginalFile] = useState<File | null>(null);
+  const [editOriginalChangeReason, setEditOriginalChangeReason] = useState('');
+  const [editOriginalUploading, setEditOriginalUploading] = useState(false);
 
   // Image viewer
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -230,6 +238,46 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
       setError(err.response?.data?.error || 'Fehler beim Herunterladen');
     }
     handleMenuClose();
+  };
+
+  const handlePdfPreview = async (attachment: DocumentNodeAttachment) => {
+    try {
+      setError(null);
+      await documentNodeAttachmentService.openPdfPreview(attachment.id);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Fehler beim Öffnen der PDF-Vorschau');
+    }
+    handleMenuClose();
+  };
+
+  const handleEditOriginal = (attachment: DocumentNodeAttachment) => {
+    handleMenuClose();
+    setEditOriginalAttachment(attachment);
+    setEditOriginalFile(null);
+    setEditOriginalChangeReason('');
+    setEditOriginalDialogOpen(true);
+  };
+
+  const handleEditOriginalSubmit = async () => {
+    if (!editOriginalAttachment || !editOriginalFile) return;
+
+    try {
+      setEditOriginalUploading(true);
+      setError(null);
+      await documentNodeAttachmentService.updateAttachment(
+        editOriginalAttachment.id,
+        editOriginalFile,
+        editOriginalAttachment.description || undefined,
+        editOriginalChangeReason || 'Original bearbeitet und aktualisiert'
+      );
+      setSuccess('Dokument erfolgreich aktualisiert. PDF-Vorschau wird neu erstellt.');
+      setEditOriginalDialogOpen(false);
+      loadAttachments();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Fehler beim Aktualisieren');
+    } finally {
+      setEditOriginalUploading(false);
+    }
   };
 
   const handleVersionHistory = async (attachment: DocumentNodeAttachment) => {
@@ -471,7 +519,17 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
                           }
                         />
                         <ListItemSecondaryAction>
-                          <Tooltip title="Herunterladen">
+                          {documentNodeAttachmentService.hasPdfPreview(attachment) && (
+                            <Tooltip title="PDF-Vorschau">
+                              <IconButton
+                                edge="end"
+                                onClick={() => handlePdfPreview(attachment)}
+                              >
+                                <PdfIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          <Tooltip title="Original herunterladen">
                             <IconButton
                               edge="end"
                               onClick={() => handleDownload(attachment)}
@@ -510,19 +568,28 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
         onClose={handleMenuClose}
       >
         <MenuItem onClick={() => menuAttachment && handleDownload(menuAttachment)}>
-          <DownloadIcon sx={{ mr: 1 }} /> Herunterladen
+          <DownloadIcon sx={{ mr: 1 }} /> Original herunterladen
         </MenuItem>
+        {menuAttachment && documentNodeAttachmentService.hasPdfPreview(menuAttachment) && (
+          <MenuItem onClick={() => menuAttachment && handlePdfPreview(menuAttachment)}>
+            <PdfIcon sx={{ mr: 1 }} /> PDF-Vorschau
+          </MenuItem>
+        )}
         <MenuItem onClick={() => menuAttachment && handleVersionHistory(menuAttachment)}>
           <HistoryIcon sx={{ mr: 1 }} /> Versionsverlauf
         </MenuItem>
         {canEdit && [
+          <Divider key="divider-edit" />,
+          <MenuItem key="edit-original" onClick={() => menuAttachment && handleEditOriginal(menuAttachment)}>
+            <EditIcon sx={{ mr: 1 }} /> Original bearbeiten
+          </MenuItem>,
           <MenuItem key="update" onClick={() => menuAttachment && handleUpdateClick(menuAttachment)}>
-            <EditIcon sx={{ mr: 1 }} /> Datei aktualisieren
+            <UploadIcon sx={{ mr: 1 }} /> Neue Version hochladen
           </MenuItem>,
           <MenuItem key="metadata" onClick={() => menuAttachment && handleMetadataClick(menuAttachment)}>
             <InfoIcon sx={{ mr: 1 }} /> Beschreibung ändern
           </MenuItem>,
-          <Divider key="divider" />,
+          <Divider key="divider-delete" />,
           <MenuItem key="delete" onClick={() => menuAttachment && handleDelete(menuAttachment)}>
             <DeleteIcon sx={{ mr: 1 }} color="error" /> Löschen
           </MenuItem>,
@@ -572,6 +639,7 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
         <DialogContent>
           <Alert severity="info" sx={{ mt: 2, mb: 2 }}>
             Dies erstellt eine neue Version des Anhangs. Die alte Version bleibt im Versionsverlauf erhalten.
+            Die PDF-Vorschau wird automatisch aktualisiert.
           </Alert>
           <Box sx={{ mt: 2 }}>
             <input
@@ -635,6 +703,76 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
           <Button onClick={() => setMetadataDialogOpen(false)}>Abbrechen</Button>
           <Button onClick={handleMetadataSubmit} variant="contained">
             Speichern
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Original Re-Upload Dialog */}
+      <Dialog open={editOriginalDialogOpen} onClose={() => setEditOriginalDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Original bearbeiten</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            {/* Step 1: Download link */}
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              1. Original herunterladen und bearbeiten
+            </Typography>
+            <Button
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              onClick={() => editOriginalAttachment && documentNodeAttachmentService.downloadAttachment(editOriginalAttachment.id, editOriginalAttachment.originalFilename)}
+              fullWidth
+              sx={{ mb: 1 }}
+            >
+              {editOriginalAttachment?.originalFilename}
+            </Button>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 3 }}>
+              Öffnen Sie die Datei mit der passenden Anwendung und speichern Sie Ihre Änderungen.
+            </Typography>
+
+            <Divider sx={{ mb: 2 }} />
+
+            {/* Step 2: Re-upload */}
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              2. Bearbeitete Datei wieder hochladen
+            </Typography>
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<UploadIcon />}
+              fullWidth
+              sx={{ mb: 2 }}
+            >
+              Bearbeitete Datei auswählen
+              <input
+                type="file"
+                hidden
+                onChange={(e) => setEditOriginalFile(e.target.files?.[0] || null)}
+              />
+            </Button>
+            {editOriginalFile && (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                {editOriginalFile.name} ({documentNodeAttachmentService.formatFileSize(editOriginalFile.size)})
+              </Typography>
+            )}
+            <TextField
+              fullWidth
+              label="Änderungsgrund (optional)"
+              multiline
+              rows={2}
+              value={editOriginalChangeReason}
+              onChange={(e) => setEditOriginalChangeReason(e.target.value)}
+              placeholder="z.B. Inhalte überarbeitet, Fehler korrigiert, ..."
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOriginalDialogOpen(false)}>Abbrechen</Button>
+          <Button
+            onClick={handleEditOriginalSubmit}
+            variant="contained"
+            disabled={!editOriginalFile || editOriginalUploading}
+          >
+            {editOriginalUploading ? <CircularProgress size={24} /> : 'Aktualisieren'}
           </Button>
         </DialogActions>
       </Dialog>
