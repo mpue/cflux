@@ -170,6 +170,22 @@ export const documentNodeService = {
     return response.data;
   },
 
+  // Drop a single file onto a tree node
+  dropFile: async (file: File, parentId?: string): Promise<{ message: string; node: DocumentNode }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (parentId) {
+      formData.append('parentId', parentId);
+    }
+
+    const response = await api.post('/intranet/drop-file', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
   // Get group permissions
   getGroupPermissions: async (id: string): Promise<DocumentNodeGroupPermission[]> => {
     const response = await api.get(`/intranet/${id}/permissions`);

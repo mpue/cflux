@@ -2,6 +2,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import FormData from 'form-data';
+import AdmZip from 'adm-zip';
 
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3000';
 
@@ -12,6 +13,9 @@ const LIBRE_OFFICE_EXTENSIONS = new Set([
   '.rtf', '.txt', '.csv', '.html', '.htm',
   '.bmp', '.gif', '.jpg', '.jpeg', '.png', '.svg', '.tiff', '.webp',
 ]);
+
+// Presentation formats are typically landscape
+const PRESENTATION_EXTENSIONS = new Set(['.ppt', '.pptx', '.odp']);
 
 /**
  * Check if a file can be converted to PDF via Gotenberg
@@ -31,13 +35,65 @@ export function isPdf(filename: string): boolean {
 }
 
 /**
+ * Detect if a document file has landscape orientation.
+ * Parses OOXML (.docx, .xlsx, .pptx) and ODF (.odt, .ods, .odp) formats.
+ * Presentations default to landscape.
+ */
+export function detectLandscape(filePath: string): boolean {
+  const ext = path.extname(filePath).toLowerCase();
+
+  // Presentations are almost always landscape
+  if (PRESENTATION_EXTENSIONS.has(ext)) {
+    return true;
+  }
+
+  try {
+    const zip = new AdmZip(filePath);
+
+    if (ext === '.docx') {
+      const entry = zip.getEntry('word/document.xml');
+      if (entry) {
+        const xml = entry.getData().toString('utf8');
+        // <w:pgSz ... w:orient="landscape" ...>
+        return /w:orient\s*=\s*"landscape"/i.test(xml);
+      }
+    }
+
+    if (ext === '.xlsx') {
+      // Check the first worksheet for landscape page setup
+      const entry = zip.getEntry('xl/worksheets/sheet1.xml');
+      if (entry) {
+        const xml = entry.getData().toString('utf8');
+        // <pageSetup ... orientation="landscape" ...>
+        return /orientation\s*=\s*"landscape"/i.test(xml);
+      }
+    }
+
+    if (ext === '.odt' || ext === '.ods') {
+      const entry = zip.getEntry('styles.xml');
+      if (entry) {
+        const xml = entry.getData().toString('utf8');
+        // <style:page-layout-properties ... style:print-orientation="landscape" ...>
+        return /print-orientation\s*=\s*"landscape"/i.test(xml);
+      }
+    }
+  } catch (err) {
+    // If we can't parse the file, default to portrait
+    console.warn('Could not detect document orientation:', err);
+  }
+
+  return false;
+}
+
+/**
  * Convert a document to PDF using Gotenberg's LibreOffice route
  * Returns the path to the generated PDF file
  */
 export async function convertToPdf(
   inputFilePath: string,
   outputDir: string,
-  outputFilename: string
+  outputFilename: string,
+  landscape?: boolean
 ): Promise<string> {
   // Ensure output directory exists
   if (!fs.existsSync(outputDir)) {
@@ -46,10 +102,17 @@ export async function convertToPdf(
 
   const outputPath = path.join(outputDir, outputFilename);
 
+  // Auto-detect landscape if not explicitly provided
+  const isLandscape = landscape ?? detectLandscape(inputFilePath);
+
   const form = new FormData();
   form.append('files', fs.createReadStream(inputFilePath), {
     filename: path.basename(inputFilePath),
   });
+
+  if (isLandscape) {
+    form.append('landscape', 'true');
+  }
 
   const response = await axios.post(
     `${GOTENBERG_URL}/forms/libreoffice/convert`,

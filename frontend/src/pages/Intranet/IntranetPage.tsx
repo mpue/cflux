@@ -502,6 +502,24 @@ const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
     setDraggedNode(null);
   };
 
+  // Handle native file drop onto a tree node
+  const handleFileDrop = async (file: File, targetNode: DocumentNode) => {
+    try {
+      setError(null);
+      // Determine parent: if target is a folder, drop into it; otherwise use target's parent
+      const parentId = targetNode.type === 'FOLDER' ? targetNode.id : (targetNode.parentId || undefined);
+      await documentNodeService.dropFile(file, parentId);
+      await loadTree();
+      // Expand the target folder so the new node is visible
+      if (targetNode.type === 'FOLDER') {
+        setExpandedFolders((prev) => new Set([...prev, targetNode.id]));
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Fehler beim Importieren der Datei');
+      console.error('File drop error:', err);
+    }
+  };
+
   // Render tree recursively
   const renderTree = (nodes: DocumentNode[], level: number = 0): React.ReactNode => {
     return nodes.map((node) => {
@@ -522,6 +540,7 @@ const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
             onToggleFolder={(e) => toggleFolder(node.id, e)}
             onNodeClick={() => handleNodeClick(node)}
             onMenuClick={(e) => handleOpenMenu(e, node)}
+            onFileDrop={handleFileDrop}
             canEdit={canEditIntranet}
           />
           
@@ -660,7 +679,11 @@ const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
           >
-            <Paper sx={{ width: `${leftWidth}px`, p: 2, overflow: 'auto', flexShrink: 0 }}>
+            <Paper
+              sx={{ width: `${leftWidth}px`, p: 2, overflow: 'auto', flexShrink: 0 }}
+              onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
+              onDrop={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
+            >
               <Typography variant="h6" sx={{ mb: 2 }}>
                 Navigation
                 {canEditIntranet && (

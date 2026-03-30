@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { Box, IconButton, Typography } from '@mui/material';
 import {
@@ -20,6 +20,7 @@ interface DraggableTreeNodeProps {
   onToggleFolder: (e: React.MouseEvent) => void;
   onNodeClick: () => void;
   onMenuClick: (e: React.MouseEvent<HTMLElement>) => void;
+  onFileDrop?: (file: File, targetNode: DocumentNode) => void;
   canEdit: boolean;
 }
 
@@ -32,10 +33,12 @@ const DraggableTreeNode: React.FC<DraggableTreeNodeProps> = ({
   onToggleFolder,
   onNodeClick,
   onMenuClick,
+  onFileDrop,
   canEdit,
 }) => {
   const isFolder = node.type === 'FOLDER';
   const hasChildren = node.children && node.children.length > 0;
+  const [fileHover, setFileHover] = useState(false);
 
   // Setup draggable
   const {
@@ -62,6 +65,33 @@ const DraggableTreeNode: React.FC<DraggableTreeNodeProps> = ({
     setDropRef(element);
   };
 
+  // Native file drop handlers (for OS file drag & drop)
+  const handleNativeDragOver = (e: React.DragEvent) => {
+    if (!canEdit || !onFileDrop) return;
+    // Only react to files from the OS (not internal dnd-kit drags)
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault();
+      e.stopPropagation();
+      setFileHover(true);
+    }
+  };
+
+  const handleNativeDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation();
+    setFileHover(false);
+  };
+
+  const handleNativeDrop = (e: React.DragEvent) => {
+    if (!canEdit || !onFileDrop) return;
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      setFileHover(false);
+      const file = e.dataTransfer.files[0];
+      onFileDrop(file, node);
+    }
+  };
+
   return (
     <Box
       ref={setRefs}
@@ -70,6 +100,9 @@ const DraggableTreeNode: React.FC<DraggableTreeNodeProps> = ({
         opacity: isDragging ? 0.5 : 1,
         transition: 'opacity 0.2s',
       }}
+      onDragOver={handleNativeDragOver}
+      onDragLeave={handleNativeDragLeave}
+      onDrop={handleNativeDrop}
     >
       <Box
         sx={{
@@ -83,11 +116,13 @@ const DraggableTreeNode: React.FC<DraggableTreeNodeProps> = ({
           },
           bgcolor: isSelected
             ? 'action.selected'
+            : fileHover
+            ? 'success.light'
             : isOver || isDraggedOver
             ? 'primary.light'
             : 'transparent',
-          border: isOver || isDraggedOver ? '2px dashed' : '2px solid transparent',
-          borderColor: isOver || isDraggedOver ? 'primary.main' : 'transparent',
+          border: fileHover ? '2px dashed' : isOver || isDraggedOver ? '2px dashed' : '2px solid transparent',
+          borderColor: fileHover ? 'success.main' : isOver || isDraggedOver ? 'primary.main' : 'transparent',
           transition: 'all 0.2s',
           position: 'relative',
         }}

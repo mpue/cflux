@@ -272,3 +272,118 @@ export const importZip = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Fehler beim Importieren der Zip-Datei' });
   }
 };
+
+/**
+ * Handle a single file drop onto a tree node.
+ * - Markdown files: create a document node with converted HTML content.
+ * - Supported formats: create a document node with the file as attachment + PDF preview.
+ */
+export const dropFile = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+    const { parentId } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Keine Datei hochgeladen' });
+    }
+
+    const originalFilename = req.file.originalname;
+    const ext = path.extname(originalFilename).toLowerCase();
+
+    // Validate parent if provided
+    if (parentId) {
+      const parent = await prisma.documentNode.findUnique({
+        where: { id: parentId },
+      });
+      if (!parent) {
+        return res.status(404).json({ error: 'Übergeordneter Knoten nicht gefunden' });
+      }
+    }
+
+    const title = formatTitle(originalFilename);
+
+    if (ext === '.md') {
+      // Markdown: read content, convert to HTML, create document
+      const markdownContent = req.file.buffer.toString('utf8');
+      const htmlContent = await marked(markdownContent);
+
+      const docNode = await prisma.documentNode.create({
+        data: {
+          title,
+          type: 'DOCUMENT',
+          contentType: 'MARKDOWN',
+          content: htmlContent,
+          parentId: parentId || null,
+          createdById: userId,
+          updatedById: userId,
+        },
+      });
+
+      return res.json({ message: 'Dokument erstellt', node: docNode });
+    }
+
+    if (isSupportedFile(originalFilename)) {
+      // Supported format: create document + attachment
+      const docNode = await prisma.documentNode.create({
+        data: {
+          title,
+          type: 'DOCUMENT',
+          contentType: 'ATTACHMENT',
+          content: '',
+          parentId: parentId || null,
+          createdById: userId,
+          updatedById: userId,
+        },
+      });
+
+      const { filename: storedFilename, filePath: storedFilePath } = saveAttachmentFile(originalFilename, req.file.buffer);
+      const mimeType = getMimeType(originalFilename);
+
+      let pdfPath: string | null = null;
+      try {
+        pdfPath = await generatePdfPreview(storedFilePath, originalFilename, storedFilename);
+      } catch (err) {
+        console.warn(`PDF preview generation failed for ${originalFilename}:`, err);
+      }
+
+      const attachment = await prisma.documentNodeAttachment.create({
+        data: {
+          documentNodeId: docNode.id,
+          filename: storedFilename,
+          originalFilename,
+          mimeType,
+          fileSize: req.file.size,
+          path: `/uploads/attachments/${storedFilename}`,
+          pdfPath,
+          description: `Per Drag & Drop importiert`,
+          version: 1,
+          createdById: userId,
+          updatedById: userId,
+        },
+      });
+
+      await prisma.documentNodeAttachmentVersion.create({
+        data: {
+          attachmentId: attachment.id,
+          filename: storedFilename,
+          originalFilename,
+          mimeType,
+          fileSize: req.file.size,
+          path: `/uploads/attachments/${storedFilename}`,
+          version: 1,
+          changeReason: 'Per Drag & Drop importiert',
+          createdById: userId,
+        },
+      });
+
+      return res.json({ message: 'Dokument mit Anhang erstellt', node: docNode });
+    }
+
+    return res.status(400).json({
+      error: `Dateityp "${ext}" wird nicht unterstützt. Erlaubt: Markdown (.md), PDF, Office-Dokumente, Bilder.`,
+    });
+  } catch (error) {
+    console.error('Drop file error:', error);
+    res.status(500).json({ error: 'Fehler beim Verarbeiten der Datei' });
+  }
+};

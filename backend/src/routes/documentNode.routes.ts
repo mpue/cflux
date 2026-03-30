@@ -75,6 +75,13 @@ router.post('/:id/move', documentNodeController.moveDocumentNode);
 // Import route
 router.post('/import/zip', upload.single('file'), documentImportController.importZip);
 
+// Drop file route (single file drag & drop)
+const dropUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+});
+router.post('/drop-file', dropUpload.single('file'), documentImportController.dropFile);
+
 // Version history
 router.get('/:id/versions', documentNodeController.getVersionHistory);
 router.get('/:id/versions/:versionId', documentNodeController.getVersionContent);
