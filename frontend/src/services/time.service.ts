@@ -7,8 +7,9 @@ export const timeService = {
     return response.data;
   },
 
-  clockOut: async (pauseMinutes?: number): Promise<TimeEntry> => {
-    const response = await api.post('/time/clock-out', { pauseMinutes });
+  clockOut: async (): Promise<TimeEntry> => {
+    // Pause wird automatisch vom Backend berechnet
+    const response = await api.post('/time/clock-out');
     return response.data;
   },
 

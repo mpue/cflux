@@ -165,6 +165,10 @@ const Dashboard: React.FC = () => {
   };
 
   const checkPauseReminder = (workMinutes: number) => {
+    // Pausen-Erinnerungen deaktiviert - Pausen werden automatisch beim Ausstempeln berechnet
+    return;
+    
+    /* ALTE LOGIK - DEAKTIVIERT
     if (!currentEntry || currentEntry.status !== 'CLOCKED_IN') return;
 
     // Don't show reminders while another modal is open (uses refs to avoid stale closure)
@@ -195,6 +199,7 @@ const Dashboard: React.FC = () => {
       setShowPauseReminderModal(true);
       setPauseCheckDone(prev => new Set(prev).add(`${entryId}-9`));
     }
+    */
   };
 
   const loadData = async () => {
@@ -294,28 +299,8 @@ const Dashboard: React.FC = () => {
         const lastClockOut = new Date(lastEntry.clockOut!);
         const breakMinutes = (Date.now() - lastClockOut.getTime()) / (1000 * 60);
 
-        // Total net work time today
-        const totalWorkedMinutes = todayCompletedEntries.reduce((sum, e) => {
-          if (!e.clockOut) return sum;
-          const dur = (new Date(e.clockOut).getTime() - new Date(e.clockIn).getTime()) / (1000 * 60);
-          return sum + dur - (e.pauseMinutes || 0);
-        }, 0);
-
-        const totalWorkedHours = totalWorkedMinutes / 60;
-        let requiredBreakMinutes = 0;
-        if (totalWorkedHours >= 9) requiredBreakMinutes = 60;
-        else if (totalWorkedHours >= 7) requiredBreakMinutes = 30;
-        else if (totalWorkedHours >= 5.5) requiredBreakMinutes = 15;
-
-        if (requiredBreakMinutes > 0 && breakMinutes < requiredBreakMinutes) {
-          setBreakTimeWarningInfo({
-            workedHours: totalWorkedHours,
-            requiredMinutes: requiredBreakMinutes,
-            actualMinutes: Math.floor(breakMinutes),
-          });
-          setShowBreakTimeWarning(true);
-          return;
-        }
+        // Pausen-Warnungen wurden entfernt - Pausen werden automatisch berechnet
+        // Keine Überprüfung mehr erforderlich vor dem Einstempeln
       }
 
       await timeService.clockIn(
@@ -358,20 +343,20 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleClockOut = () => {
-    setShowPauseModal(true);
-  };
-
-  const confirmClockOut = async () => {
+  const handleClockOut = async () => {
+    // Pause wird automatisch vom Backend berechnet
     try {
-      await timeService.clockOut(pauseMinutes);
-      setShowPauseModal(false);
-      setPauseMinutes(0);
+      await timeService.clockOut();
       setPauseCheckDone(new Set());
       await loadData();
     } catch (error: any) {
       alert(error.response?.data?.error || 'Ausstempeln fehlgeschlagen');
     }
+  };
+
+  const confirmClockOut = async () => {
+    // Diese Funktion wird nicht mehr verwendet - Pause wird automatisch berechnet
+    await handleClockOut();
   };
 
   const handleStartPause = async () => {
@@ -952,21 +937,9 @@ const Dashboard: React.FC = () => {
         />
       )}
 
-      {showBreakTimeWarning && breakTimeWarningInfo && (
-        <BreakTimeWarningModal
-          info={breakTimeWarningInfo}
-          onClose={() => { setShowBreakTimeWarning(false); setBreakTimeWarningInfo(null); }}
-        />
-      )}
+      {/* BreakTimeWarningModal wurde entfernt - Pausen werden automatisch berechnet */}
 
-      {showPauseModal && (
-        <PauseModal
-          onClose={() => setShowPauseModal(false)}
-          onConfirm={confirmClockOut}
-          pauseMinutes={pauseMinutes}
-          setPauseMinutes={setPauseMinutes}
-        />
-      )}
+      {/* PauseModal wurde entfernt - Pause wird automatisch berechnet */}
 
       {showMissedClockOutModal && missedClockOutEntry && (
         <MissedClockOutModal
@@ -979,16 +952,7 @@ const Dashboard: React.FC = () => {
         />
       )}
 
-      {showPauseReminderModal && (
-        <PauseReminderModal
-          message={pauseReminderMessage}
-          onClose={() => setShowPauseReminderModal(false)}
-          onStartPause={() => {
-            handleStartPause();
-            setShowPauseReminderModal(false);
-          }}
-        />
-      )}
+      {/* PauseReminderModal wurde entfernt - Pausen werden automatisch berechnet */}
 
       {showAllocationModal && selectedTimeEntry && (
         <AllocationModal

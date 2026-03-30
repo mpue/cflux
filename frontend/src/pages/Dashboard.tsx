@@ -219,20 +219,20 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleClockOut = () => {
-    setShowPauseModal(true);
-  };
-
-  const confirmClockOut = async () => {
+  const handleClockOut = async () => {
+    // Pause wird automatisch vom Backend berechnet
     try {
-      await timeService.clockOut(pauseMinutes);
-      setShowPauseModal(false);
-      setPauseMinutes(0);
+      await timeService.clockOut();
       setPauseCheckDone(new Set()); // Reset pause checks
       await loadData();
     } catch (error: any) {
       alert(error.response?.data?.error || 'Ausstempeln fehlgeschlagen');
     }
+  };
+
+  const confirmClockOut = async () => {
+    // Diese Funktion wird nicht mehr verwendet - Pause wird automatisch berechnet
+    await handleClockOut();
   };
 
   const handleStartPause = async () => {
