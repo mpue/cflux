@@ -54,6 +54,9 @@ router.get('/attachments/:attachmentId/download', documentNodeAttachmentControll
 // Download PDF preview of an attachment
 router.get('/attachments/:attachmentId/pdf', documentNodeAttachmentController.downloadAttachmentPdf);
 
+// Get thumbnail image for an attachment (lazy-generated)
+router.get('/attachments/:attachmentId/thumbnail', documentNodeAttachmentController.getAttachmentThumbnail);
+
 // Download specific version
 router.get('/attachments/:attachmentId/versions/:versionId/download', documentNodeAttachmentController.downloadAttachmentVersion);
 

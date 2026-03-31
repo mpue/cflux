@@ -221,4 +221,30 @@ export const incidentController = {
       res.status(500).json({ error: 'Failed to fetch statistics' });
     }
   },
+
+  async reorder(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+
+      const hasWritePermission = await checkModulePermission(userId, 'incidents', 'WRITE');
+      if (!hasWritePermission) {
+        res.status(403).json({ error: 'No permission to reorder incidents' });
+        return;
+      }
+
+      const { orderedIds } = req.body;
+
+      if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+        res.status(400).json({ error: 'orderedIds must be a non-empty array' });
+        return;
+      }
+
+      await incidentService.reorder(orderedIds);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error reordering incidents:', error);
+      res.status(500).json({ error: 'Failed to reorder incidents' });
+    }
+  },
 };

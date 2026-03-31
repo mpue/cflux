@@ -142,6 +142,19 @@
   background: var(--table-hover-background, #f8f9fa);
 }
 
+.incidents-table tbody tr[draggable='true'] {
+  user-select: none;
+}
+
+.incidents-table tbody tr.drag-over {
+  border-top: 3px solid #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.incidents-table tbody tr[draggable='true']:active {
+  cursor: grabbing;
+}
+
 .priority-badge,
 .status-badge {
   display: inline-block;

@@ -196,6 +196,7 @@ export const incidentService = {
         },
       },
       orderBy: [
+        { sortOrder: 'asc' },
         { priority: 'desc' },
         { reportedAt: 'desc' },
       ],
@@ -384,5 +385,15 @@ export const incidentService = {
       critical: criticalIncidents,
       high: highPriorityIncidents,
     };
+  },
+
+  async reorder(orderedIds: string[]): Promise<void> {
+    const updates = orderedIds.map((id, index) =>
+      prisma.incident.update({
+        where: { id },
+        data: { sortOrder: index },
+      })
+    );
+    await prisma.$transaction(updates);
   },
 };

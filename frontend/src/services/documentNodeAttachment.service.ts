@@ -1,4 +1,4 @@
-import api from './api';
+import api, { getBackendURL } from './api';
 
 export interface DocumentNodeAttachment {
   id: string;
@@ -201,6 +201,31 @@ class DocumentNodeAttachmentService {
   getPdfPreviewUrl(attachmentId: string): string {
     const baseUrl = api.defaults.baseURL || '';
     return `${baseUrl}/document-nodes/attachments/${attachmentId}/pdf`;
+  }
+
+  /**
+   * Get the thumbnail image URL for an attachment (static file path).
+   * Thumbnails are cached in /uploads/attachments-thumbnails/.
+   */
+  getThumbnailUrl(attachment: DocumentNodeAttachment): string {
+    const filename = attachment.filename.replace(/\.[^.]+$/, '.jpg');
+    return `${getBackendURL()}/uploads/attachments-thumbnails/${filename}`;
+  }
+
+  /**
+   * Trigger lazy thumbnail generation via API (for attachments without cached thumbnails).
+   * Returns the blob URL of the generated thumbnail, or null on failure.
+   */
+  async generateThumbnail(attachmentId: string): Promise<string | null> {
+    try {
+      const response = await api.get(
+        `/document-nodes/attachments/${attachmentId}/thumbnail`,
+        { responseType: 'blob' }
+      );
+      return window.URL.createObjectURL(new Blob([response.data], { type: 'image/jpeg' }));
+    } catch {
+      return null;
+    }
   }
 
   /**

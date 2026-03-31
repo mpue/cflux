@@ -56,6 +56,10 @@ const IncidentManagement: React.FC = () => {
     location: '',
   });
 
+  // Drag & Drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
   useEffect(() => {
     document.title = 'CFlux - Incident Management';
   }, []);
@@ -172,6 +176,53 @@ const IncidentManagement: React.FC = () => {
       setSelectedIncident(updated);
     } catch (err: any) {
       setError(err.message || 'Failed to add comment');
+    }
+  };
+
+  // Drag & Drop handlers
+  const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+    // Make the row semi-transparent while dragging
+    if (e.currentTarget) {
+      e.currentTarget.style.opacity = '0.4';
+    }
+  };
+
+  const handleDragEnd = (e: React.DragEvent<HTMLTableRowElement>) => {
+    e.currentTarget.style.opacity = '1';
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLTableRowElement>, dropIndex: number) => {
+    e.preventDefault();
+    setDragOverIndex(null);
+
+    if (draggedIndex === null || draggedIndex === dropIndex) return;
+
+    const reordered = [...incidents];
+    const [moved] = reordered.splice(draggedIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+    setIncidents(reordered);
+    setDraggedIndex(null);
+
+    try {
+      await incidentService.reorder(reordered.map((i) => i.id));
+    } catch (err: any) {
+      setError(err.message || 'Fehler beim Neuordnen');
+      loadData(); // Revert on error
     }
   };
 
@@ -323,8 +374,19 @@ const IncidentManagement: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {incidents.map((incident) => (
-              <tr key={incident.id}>
+            {incidents.map((incident, index) => (
+              <tr
+                key={incident.id}
+                draggable={canEditIncidents}
+                onDoubleClick={() => handleViewDetails(incident)}
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, index)}
+                className={dragOverIndex === index ? 'drag-over' : ''}
+                style={{ cursor: canEditIncidents ? 'grab' : 'pointer' }}
+              >
                 <td>
                   <strong>{incident.title}</strong>
                   <br />

@@ -188,4 +188,10 @@ export const incidentService = {
     });
     return response.data;
   },
+
+  async reorder(orderedIds: string[]): Promise<void> {
+    await axios.put(`${API_URL}/incidents/reorder`, { orderedIds }, {
+      headers: getAuthHeader(),
+    });
+  },
 };

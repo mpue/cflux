@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import FormData from 'form-data';
 import AdmZip from 'adm-zip';
+import sharp from 'sharp';
 
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3000';
 
@@ -159,4 +160,111 @@ export async function generatePdfPreview(
     console.error('Gotenberg PDF conversion failed:', error);
     return null;
   }
+}
+
+// Image extensions that can be thumbnailed directly via sharp
+const IMAGE_EXTENSIONS = new Set([
+  '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tiff', '.svg',
+]);
+
+/**
+ * Generate a thumbnail image (JPEG) for an attachment.
+ * - For images: resize directly with sharp.
+ * - For PDFs: use Gotenberg Chromium screenshot of an HTML page embedding the PDF.
+ * - For office documents: uses the previously generated PDF preview.
+ * Returns the path to the generated thumbnail, or null if unsupported.
+ */
+export async function generateThumbnail(
+  originalFilePath: string,
+  originalFilename: string,
+  thumbnailOutputPath: string,
+  pdfPath?: string | null
+): Promise<boolean> {
+  const ext = path.extname(originalFilename).toLowerCase();
+
+  // Ensure output directory exists
+  const thumbnailDir = path.dirname(thumbnailOutputPath);
+  if (!fs.existsSync(thumbnailDir)) {
+    fs.mkdirSync(thumbnailDir, { recursive: true });
+  }
+
+  try {
+    // For image files, resize directly
+    if (IMAGE_EXTENSIONS.has(ext)) {
+      await sharp(originalFilePath)
+        .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toFile(thumbnailOutputPath);
+      return true;
+    }
+
+    // For PDFs and converted documents, use Gotenberg Chromium screenshot
+    let pdfFilePath: string | null = null;
+
+    if (ext === '.pdf') {
+      pdfFilePath = originalFilePath;
+    } else if (pdfPath) {
+      // Use the converted PDF preview
+      const resolvedPdfPath = path.join(__dirname, '../../', pdfPath);
+      if (fs.existsSync(resolvedPdfPath)) {
+        pdfFilePath = resolvedPdfPath;
+      }
+    }
+
+    if (pdfFilePath) {
+      // Create HTML that embeds the PDF for Chromium rendering
+      const htmlContent = `<!DOCTYPE html>
+<html><head><style>
+* { margin: 0; padding: 0; }
+body { width: 794px; height: 1123px; overflow: hidden; background: white; }
+embed { width: 100%; height: 100%; }
+</style></head><body>
+<embed src="preview.pdf" type="application/pdf" />
+</body></html>`;
+
+      const form = new FormData();
+
+      // Add the HTML file as index.html
+      form.append('files', Buffer.from(htmlContent), {
+        filename: 'index.html',
+        contentType: 'text/html',
+      });
+
+      // Add the PDF file
+      form.append('files', fs.createReadStream(pdfFilePath), {
+        filename: 'preview.pdf',
+        contentType: 'application/pdf',
+      });
+
+      // Screenshot settings
+      form.append('width', '794');
+      form.append('height', '1123');
+      form.append('clip', 'true');
+      form.append('format', 'jpeg');
+      form.append('quality', '80');
+      form.append('skipNetworkIdleEvent', 'false');
+
+      const response = await axios.post(
+        `${GOTENBERG_URL}/forms/chromium/screenshot/html`,
+        form,
+        {
+          headers: form.getHeaders(),
+          responseType: 'arraybuffer',
+          timeout: 30000,
+        }
+      );
+
+      // Resize to thumbnail size with sharp
+      await sharp(Buffer.from(response.data))
+        .resize(400, 566, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 80 })
+        .toFile(thumbnailOutputPath);
+
+      return true;
+    }
+  } catch (error) {
+    console.error('Thumbnail generation failed:', error);
+  }
+
+  return false;
 }

@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { checkModulePermission } from '../services/module.service';
-import { generatePdfPreview, isPdf } from '../services/gotenberg.service';
+import { generatePdfPreview, generateThumbnail, isPdf } from '../services/gotenberg.service';
 import fs from 'fs';
 import path from 'path';
 
@@ -158,6 +158,14 @@ export const uploadAttachment = async (req: AuthRequest, res: Response) => {
       console.warn('PDF preview generation failed, continuing without preview:', err);
     }
 
+    // Generate thumbnail (async, non-blocking)
+    const thumbnailDir = path.join(__dirname, '../../uploads/attachments-thumbnails');
+    const thumbnailFilename = `${file.filename.replace(path.extname(file.filename), '')}.jpg`;
+    const thumbnailPath = path.join(thumbnailDir, thumbnailFilename);
+    generateThumbnail(file.path, file.originalname, thumbnailPath, pdfPath).catch(err =>
+      console.warn('Thumbnail generation failed:', err)
+    );
+
     // Create attachment record
     const attachment = await prisma.documentNodeAttachment.create({
       data: {
@@ -289,6 +297,13 @@ export const updateAttachment = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    // Remove old thumbnail if it exists
+    const oldThumbFilename = `${existingAttachment.filename.replace(path.extname(existingAttachment.filename), '')}.jpg`;
+    const oldThumbPath = path.join(__dirname, '../../uploads/attachments-thumbnails', oldThumbFilename);
+    if (fs.existsSync(oldThumbPath)) {
+      fs.unlinkSync(oldThumbPath);
+    }
+
     // Generate new PDF preview via Gotenberg
     let pdfPath: string | null = null;
     try {
@@ -300,6 +315,14 @@ export const updateAttachment = async (req: AuthRequest, res: Response) => {
     } catch (err) {
       console.warn('PDF preview generation failed, continuing without preview:', err);
     }
+
+    // Generate new thumbnail (async, non-blocking)
+    const thumbnailDir = path.join(__dirname, '../../uploads/attachments-thumbnails');
+    const thumbnailFilename = `${file.filename.replace(path.extname(file.filename), '')}.jpg`;
+    const thumbnailPath = path.join(thumbnailDir, thumbnailFilename);
+    generateThumbnail(file.path, file.originalname, thumbnailPath, pdfPath).catch(err =>
+      console.warn('Thumbnail generation failed:', err)
+    );
 
     // Update attachment with new file
     const updatedAttachment = await prisma.documentNodeAttachment.update({
@@ -670,6 +693,70 @@ export const updateAttachmentMetadata = async (req: AuthRequest, res: Response) 
   } catch (error) {
     console.error('Update attachment metadata error:', error);
     res.status(500).json({ error: 'Failed to update attachment metadata' });
+  }
+};
+
+/**
+ * Get thumbnail image for an attachment.
+ * Generates on-the-fly if not yet cached.
+ */
+export const getAttachmentThumbnail = async (req: AuthRequest, res: Response) => {
+  try {
+    const { attachmentId } = req.params;
+    const userId = req.user!.id;
+
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
+    if (!hasReadPermission) {
+      return res.status(403).json({ error: 'No permission to read intranet documents' });
+    }
+
+    const attachment = await prisma.documentNodeAttachment.findFirst({
+      where: {
+        id: attachmentId,
+        isActive: true,
+        deletedAt: null,
+      },
+    });
+
+    if (!attachment) {
+      return res.status(404).json({ error: 'Attachment not found' });
+    }
+
+    // Thumbnail cache path
+    const thumbnailDir = path.join(__dirname, '../../uploads/attachments-thumbnails');
+    const thumbnailFilename = `${attachment.filename.replace(path.extname(attachment.filename), '')}.jpg`;
+    const thumbnailPath = path.join(thumbnailDir, thumbnailFilename);
+
+    // Serve cached thumbnail if it exists
+    if (fs.existsSync(thumbnailPath)) {
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return fs.createReadStream(thumbnailPath).pipe(res);
+    }
+
+    // Generate thumbnail
+    const originalFilePath = path.join(__dirname, '../../', attachment.path);
+    if (!fs.existsSync(originalFilePath)) {
+      return res.status(404).json({ error: 'Original file not found' });
+    }
+
+    const success = await generateThumbnail(
+      originalFilePath,
+      attachment.originalFilename,
+      thumbnailPath,
+      attachment.pdfPath
+    );
+
+    if (!success || !fs.existsSync(thumbnailPath)) {
+      return res.status(404).json({ error: 'Could not generate thumbnail' });
+    }
+
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    fs.createReadStream(thumbnailPath).pipe(res);
+  } catch (error) {
+    console.error('Get attachment thumbnail error:', error);
+    res.status(500).json({ error: 'Failed to get thumbnail' });
   }
 };
 

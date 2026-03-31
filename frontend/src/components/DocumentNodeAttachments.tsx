@@ -482,73 +482,133 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
             </Box>
           )}
 
-          {/* Non-Image Attachments List */}
+          {/* Non-Image Attachments as Thumbnail Grid */}
           {attachments.some(att => !isImage(att.originalFilename)) && (
-            <Paper>
-              <Typography variant="subtitle1" sx={{ p: 2, pb: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box>
+              <Typography variant="subtitle1" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                 <AttachFileIcon /> Weitere Dateien
               </Typography>
-              <List>
+              <Grid container spacing={2}>
                 {attachments
                   .filter(att => !isImage(att.originalFilename))
-                  .map((attachment, index) => (
-                    <React.Fragment key={attachment.id}>
-                      {index > 0 && <Divider />}
-                      <ListItem>
-                        <ListItemText
-                          primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <span>{documentNodeAttachmentService.getFileIcon(attachment.mimeType)}</span>
-                              <span>{attachment.originalFilename}</span>
-                              <Chip label={`v${attachment.version}`} size="small" />
-                            </Box>
+                  .map((attachment) => (
+                    <Grid item xs={12} sm={6} md={4} lg={3} key={attachment.id}>
+                      <Card>
+                        <Box
+                          sx={{
+                            height: 200,
+                            backgroundColor: '#f5f5f5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            overflow: 'hidden',
+                            '&:hover': {
+                              opacity: 0.8,
+                            },
+                          }}
+                          onClick={() =>
+                            documentNodeAttachmentService.hasPdfPreview(attachment)
+                              ? handlePdfPreview(attachment)
+                              : handleDownload(attachment)
                           }
-                          secondary={
-                            <Box>
-                              <Typography variant="body2" color="text.secondary">
-                                {documentNodeAttachmentService.formatFileSize(attachment.fileSize)} • 
-                                Hochgeladen von {attachment.createdBy.firstName} {attachment.createdBy.lastName} • 
-                                {formatDate(attachment.createdAt)}
-                              </Typography>
-                              {attachment.description && (
-                                <Typography variant="body2" sx={{ mt: 0.5 }}>
-                                  {attachment.description}
-                                </Typography>
-                              )}
-                            </Box>
-                          }
-                        />
-                        <ListItemSecondaryAction>
+                        >
+                          <Box
+                            component="img"
+                            src={documentNodeAttachmentService.getThumbnailUrl(attachment)}
+                            alt={attachment.originalFilename}
+                            onError={async (e: React.SyntheticEvent<HTMLImageElement>) => {
+                              const img = e.currentTarget;
+                              // Prevent infinite retry loop
+                              if (img.dataset.retried) {
+                                img.style.display = 'none';
+                                img.parentElement!.querySelector('.fallback-icon')?.removeAttribute('style');
+                                return;
+                              }
+                              img.dataset.retried = 'true';
+                              // Trigger lazy generation via API
+                              const blobUrl = await documentNodeAttachmentService.generateThumbnail(attachment.id);
+                              if (blobUrl) {
+                                img.src = blobUrl;
+                              } else {
+                                img.style.display = 'none';
+                                img.parentElement!.querySelector('.fallback-icon')?.removeAttribute('style');
+                              }
+                            }}
+                            sx={{
+                              maxWidth: '100%',
+                              maxHeight: '100%',
+                              objectFit: 'contain',
+                            }}
+                          />
+                          <Box
+                            className="fallback-icon"
+                            style={{ display: 'none' }}
+                            sx={{
+                              fontSize: '4rem',
+                              textAlign: 'center',
+                            }}
+                          >
+                            {documentNodeAttachmentService.getFileIcon(attachment.mimeType)}
+                          </Box>
+                        </Box>
+                        <CardContent sx={{ pb: 1 }}>
+                          <Tooltip title={attachment.originalFilename}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {attachment.originalFilename}
+                            </Typography>
+                          </Tooltip>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                            <Chip label={`v${attachment.version}`} size="small" />
+                            <Typography variant="caption" color="text.secondary">
+                              {documentNodeAttachmentService.formatFileSize(attachment.fileSize)}
+                            </Typography>
+                          </Box>
+                          {attachment.description && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{
+                                display: 'block',
+                                mt: 0.5,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {attachment.description}
+                            </Typography>
+                          )}
+                        </CardContent>
+                        <CardActions sx={{ justifyContent: 'space-between', pt: 0 }}>
                           {documentNodeAttachmentService.hasPdfPreview(attachment) && (
                             <Tooltip title="PDF-Vorschau">
-                              <IconButton
-                                edge="end"
-                                onClick={() => handlePdfPreview(attachment)}
-                              >
+                              <IconButton size="small" onClick={() => handlePdfPreview(attachment)}>
                                 <PdfIcon />
                               </IconButton>
                             </Tooltip>
                           )}
-                          <Tooltip title="Original herunterladen">
-                            <IconButton
-                              edge="end"
-                              onClick={() => handleDownload(attachment)}
-                            >
+                          <Tooltip title="Herunterladen">
+                            <IconButton size="small" onClick={() => handleDownload(attachment)}>
                               <DownloadIcon />
                             </IconButton>
                           </Tooltip>
-                          <IconButton
-                            edge="end"
-                            onClick={(e) => handleMenuOpen(e, attachment)}
-                          >
+                          <IconButton size="small" onClick={(e) => handleMenuOpen(e, attachment)}>
                             <MoreVertIcon />
                           </IconButton>
-                        </ListItemSecondaryAction>
-                      </ListItem>
-                    </React.Fragment>
+                        </CardActions>
+                      </Card>
+                    </Grid>
                   ))}
-              </List>
-            </Paper>
+              </Grid>
+            </Box>
           )}
         </>
       )}

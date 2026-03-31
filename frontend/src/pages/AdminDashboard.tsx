@@ -105,6 +105,7 @@ const AdminDashboard: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [searchFilter, setSearchFilter] = useState<string>('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
 
   const toggleGroup = (groupName: string) => {
     setCollapsedGroups(prev => {
@@ -437,8 +438,20 @@ const AdminDashboard: React.FC = () => {
       <div className="admin-container">
         <div className="admin-card">
           {/* Left sidebar with search and navigation */}
-          <div style={{ display: 'flex', flexDirection: 'column', width: '280px', flexShrink: 0, background: 'var(--bg-secondary)' }}>
+          <div className={`admin-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+            {/* Sidebar Toggle Button */}
+            <div className="sidebar-toggle-area">
+              <button
+                className="sidebar-toggle-btn"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                title={sidebarCollapsed ? 'Seitenleiste einblenden' : 'Seitenleiste ausblenden'}
+              >
+                {sidebarCollapsed ? '▶' : '◀'}
+              </button>
+            </div>
+
             {/* Search Filter */}
+            {!sidebarCollapsed && (
             <div style={{ padding: '16px 16px 12px 16px', borderBottom: '1px solid var(--border-color)' }}>
               <input
                 type="text"
@@ -458,7 +471,9 @@ const AdminDashboard: React.FC = () => {
                 onBlur={(e) => e.target.style.borderColor = '#ddd'}
               />
             </div>
+            )}
 
+            {!sidebarCollapsed && (
             <div className="tab-navigation">
             {/* Benutzerverwaltung */}
             {(() => {
@@ -949,6 +964,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             );})()}
           </div>
+          )}
           </div>
 
           <div className="tab-content">

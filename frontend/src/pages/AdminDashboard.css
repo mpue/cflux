@@ -55,6 +55,64 @@
   border: 1px solid #3a3a3a;
 }
 
+/* Admin Sidebar (collapsible) */
+.admin-dashboard .admin-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  transition: width 0.25s ease;
+  overflow: hidden;
+}
+
+.admin-dashboard .admin-sidebar.collapsed {
+  width: 44px;
+}
+
+/* Sidebar Toggle */
+.admin-dashboard .sidebar-toggle-area {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 8px 4px 8px;
+  flex-shrink: 0;
+}
+
+.admin-dashboard .sidebar-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+
+.admin-dashboard .sidebar-toggle-btn:hover {
+  background: var(--card-bg);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .admin-dashboard .sidebar-toggle-btn {
+  border-color: #3a3a3a;
+  color: #888;
+}
+
+[data-theme='dark'] .admin-dashboard .sidebar-toggle-btn:hover {
+  background: #252525;
+  color: #ccc;
+}
+
+.admin-dashboard .admin-sidebar.collapsed .sidebar-toggle-area {
+  justify-content: center;
+  padding: 8px 4px 4px 4px;
+}
+
 /* Tab Navigation - Vertical Sidebar */
 .admin-dashboard .tab-navigation {
   display: flex;
@@ -203,8 +261,15 @@
     height: calc(100vh - 130px);
   }
 
-  .admin-dashboard .tab-navigation {
+  .admin-dashboard .admin-sidebar {
     width: 200px;
+  }
+
+  .admin-dashboard .admin-sidebar.collapsed {
+    width: 44px;
+  }
+
+  .admin-dashboard .tab-navigation {
     padding: 12px;
   }
 
@@ -228,6 +293,20 @@
     height: calc(100vh - 180px);
     flex-direction: column;
     border-radius: 8px;
+  }
+
+  .admin-dashboard .admin-sidebar {
+    width: 100% !important;
+    flex-direction: row;
+    flex-shrink: 0;
+  }
+
+  .admin-dashboard .admin-sidebar.collapsed {
+    width: 100% !important;
+  }
+
+  .admin-dashboard .sidebar-toggle-area {
+    display: none;
   }
 
   .admin-dashboard .tab-navigation {

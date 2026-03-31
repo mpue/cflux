@@ -13,6 +13,9 @@ router.get('/', incidentController.getAllIncidents);
 // Get statistics
 router.get('/statistics', incidentController.getStatistics);
 
+// Reorder incidents (drag & drop)
+router.put('/reorder', incidentController.reorder);
+
 // Get incident by ID
 router.get('/:id', incidentController.getIncidentById);
 

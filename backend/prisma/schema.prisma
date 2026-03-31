@@ -1004,6 +1004,9 @@ model Incident {
   correctiveActions  String?       @db.Text // Korrekturmaßnahmen
   preventiveActions  String?       @db.Text // Präventivmaßnahmen
   
+  // Sortierung
+  sortOrder       Int              @default(0) // Manuelle Sortierung per Drag & Drop
+  
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   
