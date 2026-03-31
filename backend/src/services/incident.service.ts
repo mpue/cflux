@@ -295,6 +295,21 @@ export const incidentService = {
       },
     });
 
+    // Trigger incident.status_changed action on any status change
+    if (data.status) {
+      try {
+        await actionService.triggerAction('incident.status_changed', {
+          entityType: 'INCIDENT',
+          entityId: incident.id,
+          userId: incident.assignedToId || incident.reportedById,
+          title: incident.title,
+          status: incident.status,
+        });
+      } catch (actionError) {
+        console.error('[Action] Failed to trigger incident.status_changed:', actionError);
+      }
+    }
+
     // Trigger incident.approved action when status changes to RESOLVED
     if (data.status === 'RESOLVED') {
       try {

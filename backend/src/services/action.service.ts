@@ -350,7 +350,8 @@ export const actionService = {
             trigger.workflowId,
             context.entityId,
             context.entityType,
-            context.userId
+            context.userId,
+            context as Record<string, any>
           );
 
           triggeredWorkflows.push(instance.id);
@@ -714,6 +715,13 @@ export const actionService = {
         actionKey: 'incident.approved',
         displayName: 'Vorfall genehmigt',
         description: 'Wird ausgelöst wenn ein Vorfall genehmigt wird',
+        category: 'INCIDENTS',
+        isSystem: true,
+      },
+      {
+        actionKey: 'incident.status_changed',
+        displayName: 'Incident status geändert',
+        description: 'Wird ausgelöst wenn sich der Status eines Vorfalls ändert',
         category: 'INCIDENTS',
         isSystem: true,
       },

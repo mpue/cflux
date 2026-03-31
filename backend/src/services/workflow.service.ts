@@ -302,7 +302,8 @@ export const workflowService = {
     workflowId: string, 
     entityId: string, 
     entityType: string = 'INVOICE',
-    triggeredById?: string
+    triggeredById?: string,
+    contextData?: Record<string, any>
   ) {
     const workflow = await prisma.workflow.findUnique({
       where: { id: workflowId },
@@ -380,6 +381,7 @@ export const workflowService = {
         entityId,
         invoiceId: entityType === 'INVOICE' ? entityId : null, // For backwards compatibility
         triggeredById: triggeredById || null,
+        contextData: contextData ? JSON.stringify(contextData) : null,
         status: 'IN_PROGRESS',
         currentStepId: workflow.steps[0]?.id || null,
       },
@@ -519,7 +521,7 @@ export const workflowService = {
     for (const step of workflow.steps as any[]) {
       if (step.type === 'EMAIL' && activeSteps.has(step.id)) {
         console.log(`[Workflow] Executing EMAIL step "${step.name}" immediately`);
-        const emailSent = await this.sendWorkflowEmail(step, entityData);
+        const emailSent = await this.sendWorkflowEmail(step, entityData, instance);
         
         // Update step status
         await prisma.workflowInstanceStep.updateMany({
@@ -628,15 +630,13 @@ export const workflowService = {
   },
 
   // Send email for EMAIL workflow step
-  async sendWorkflowEmail(step: any, invoice: any): Promise<boolean> {
+  async sendWorkflowEmail(step: any, invoice: any, workflowInstance?: any): Promise<boolean> {
     try {
       const config = JSON.parse(step.config || '{}');
-      const { recipients, subject, body } = config;
-
-      if (!recipients || recipients.length === 0) {
-        console.warn('No recipients configured for EMAIL step');
-        return false;
-      }
+      const { recipients = [], subject, body } = config;
+      const sendToTriggerUser = config.sendToTriggerUser || false;
+      const sendToReportedBy = config.sendToReportedBy || false;
+      const sendToAssignedTo = config.sendToAssignedTo || false;
 
       // Get SMTP settings
       const settings = await systemSettingsService.getSettings();
@@ -665,36 +665,133 @@ export const workflowService = {
 
       const transporter = nodemailer.createTransport(transportConfig);
 
-      // Replace placeholders in subject and body
+      // Build template variables from context + entity data
+      const entityType = workflowInstance?.entityType || 'INVOICE';
+      const entityId = workflowInstance?.entityId || invoice?.id || '';
+
+      // Parse stored context data
+      let triggerContext: Record<string, any> = {};
+      if (workflowInstance?.contextData) {
+        try {
+          triggerContext = JSON.parse(workflowInstance.contextData);
+        } catch (e) { /* ignore */ }
+      }
+
+      // Fetch entity-specific data for template variables
+      let entityData: Record<string, string> = {};
+      if (entityType === 'INCIDENT' && entityId) {
+        const incident = await prisma.incident.findUnique({
+          where: { id: entityId },
+          include: { reportedBy: { select: { firstName: true, lastName: true } }, assignedTo: { select: { firstName: true, lastName: true } } }
+        });
+        entityData = {
+          title: incident?.title || '',
+          status: incident?.status || '',
+          priority: incident?.priority || '',
+          category: incident?.category || '',
+          location: incident?.location || '',
+          reportedBy: incident?.reportedBy ? `${incident.reportedBy.firstName} ${incident.reportedBy.lastName}` : '',
+          assignedTo: incident?.assignedTo ? `${incident.assignedTo.firstName} ${incident.assignedTo.lastName}` : '',
+        };
+      }
+
+      // Build entity link
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3002';
+      const entityRouteMap: Record<string, string> = {
+        INCIDENT: '/incidents',
+        INVOICE: '/invoices',
+        ORDER: '/orders',
+        TRAVEL_EXPENSE: '/travel-expenses',
+      };
+      const entityRoute = entityRouteMap[entityType] || '';
+      const entityLink = entityRoute ? `${frontendUrl}/#${entityRoute}?id=${entityId}` : '';
+
+      // Build variables: context < entity data < standard
+      const variables: Record<string, string> = {};
+      for (const [key, value] of Object.entries(triggerContext)) {
+        if (value !== null && value !== undefined && typeof value !== 'object') {
+          variables[key] = String(value);
+        }
+      }
+      for (const [key, value] of Object.entries(entityData)) {
+        if (value !== null && value !== undefined) variables[key] = String(value);
+      }
+      // Legacy invoice placeholders
+      variables.invoiceNumber = variables.invoiceNumber || invoice?.invoiceNumber || '';
+      variables.totalAmount = variables.totalAmount || String(invoice?.totalAmount || '0');
+      variables.customerName = variables.customerName || invoice?.customer?.name || '';
+      variables.invoiceDate = invoice?.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString('de-CH') : '';
+      variables.dueDate = invoice?.dueDate ? new Date(invoice.dueDate).toLocaleDateString('de-CH') : '';
+      // Standard variables (highest priority)
+      Object.assign(variables, {
+        entityType,
+        entityId,
+        entityLink,
+        currentDate: new Date().toLocaleDateString('de-CH'),
+      });
+
+      // Replace template variables
       const replacePlaceholders = (text: string) => {
-        return text
-          .replace(/\{invoiceNumber\}/g, invoice.invoiceNumber || '')
-          .replace(/\{totalAmount\}/g, invoice.totalAmount || '0')
-          .replace(/\{customerName\}/g, invoice.customer?.name || '')
-          .replace(/\{invoiceDate\}/g, invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString('de-CH') : '')
-          .replace(/\{dueDate\}/g, invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('de-CH') : '');
+        let result = text;
+        Object.entries(variables).forEach(([key, value]) => {
+          result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+          // Also support legacy single-brace format
+          result = result.replace(new RegExp(`\\{${key}\\}`, 'g'), value);
+        });
+        return result;
       };
 
       const emailSubject = replacePlaceholders(subject || 'Workflow Benachrichtigung');
       const emailBody = replacePlaceholders(body || 'Eine Workflow-Aktion wurde ausgelöst.');
 
+      // Collect all recipient user IDs for dynamic resolution
+      const dynamicUserIds: string[] = [];
+      if (sendToTriggerUser && workflowInstance?.triggeredById) {
+        dynamicUserIds.push(workflowInstance.triggeredById);
+      }
+      if ((sendToReportedBy || sendToAssignedTo) && entityType === 'INCIDENT' && entityId) {
+        const incident = await prisma.incident.findUnique({
+          where: { id: entityId },
+          select: { reportedById: true, assignedToId: true },
+        });
+        if (incident) {
+          if (sendToReportedBy && incident.reportedById) dynamicUserIds.push(incident.reportedById);
+          if (sendToAssignedTo && incident.assignedToId) dynamicUserIds.push(incident.assignedToId);
+        }
+      }
+
       // Get recipient email addresses
       const recipientEmails: string[] = [];
+      const seenEmails = new Set<string>();
+
+      const addEmail = (email: string) => {
+        const lower = email.toLowerCase();
+        if (!seenEmails.has(lower)) {
+          seenEmails.add(lower);
+          recipientEmails.push(email);
+        }
+      };
+
+      // Static recipients
       for (const recipient of recipients) {
-        // Check if it's an email address or a user ID
         if (recipient.includes('@')) {
-          // It's already an email address
-          recipientEmails.push(recipient);
+          addEmail(recipient);
         } else {
-          // It's a user ID, look up the user
           const user = await prisma.user.findUnique({
             where: { id: recipient },
             select: { email: true },
           });
-          if (user) {
-            recipientEmails.push(user.email);
-          }
+          if (user) addEmail(user.email);
         }
+      }
+
+      // Dynamic recipients
+      for (const userId of dynamicUserIds) {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { email: true },
+        });
+        if (user) addEmail(user.email);
       }
 
       if (recipientEmails.length === 0) {
@@ -883,7 +980,7 @@ export const workflowService = {
               }
 
               if (entityData) {
-                const emailSent = await this.sendWorkflowEmail(targetStep, entityData);
+                const emailSent = await this.sendWorkflowEmail(targetStep, entityData, instanceStep.instance);
                 
                 await prisma.workflowInstanceStep.update({
                   where: { id: targetInstanceStep.id },
@@ -1294,9 +1391,11 @@ export const workflowService = {
       const config = JSON.parse(step.config || '{}');
       const recipients = config.recipients || [];
       const sendToTriggerUser = config.sendToTriggerUser || false;
+      const sendToReportedBy = config.sendToReportedBy || false;
+      const sendToAssignedTo = config.sendToAssignedTo || false;
       let message = config.message || 'Sie haben eine neue Workflow-Benachrichtigung.';
       
-      if (recipients.length === 0 && !sendToTriggerUser) {
+      if (recipients.length === 0 && !sendToTriggerUser && !sendToReportedBy && !sendToAssignedTo) {
         console.log('[WORKFLOW] No recipients configured for notification');
         return false;
       }
@@ -1310,6 +1409,16 @@ export const workflowService = {
       const workflowName = workflow?.name || 'Workflow';
       const entityType = workflowInstance.entityType || 'ENTITY';
       const entityId = workflowInstance.invoiceId || workflowInstance.entityId || '';
+
+      // Parse stored context data from trigger
+      let triggerContext: Record<string, any> = {};
+      if (workflowInstance.contextData) {
+        try {
+          triggerContext = JSON.parse(workflowInstance.contextData);
+        } catch (e) {
+          console.warn('[WORKFLOW] Failed to parse contextData:', e);
+        }
+      }
 
       // Fetch entity details for template variables
       let entityData: any = {};
@@ -1347,20 +1456,58 @@ export const workflowService = {
           invoiceNumber: invoice?.invoiceNumber || '',
           customerName: invoice?.customer?.name || ''
         };
+      } else if (entityType === 'INCIDENT' && entityId) {
+        const incident = await prisma.incident.findUnique({
+          where: { id: entityId },
+          include: { reportedBy: { select: { firstName: true, lastName: true } }, assignedTo: { select: { firstName: true, lastName: true } } }
+        });
+        entityData = {
+          title: incident?.title || '',
+          status: incident?.status || '',
+          priority: incident?.priority || '',
+          category: incident?.category || '',
+          location: incident?.location || '',
+          reportedBy: incident?.reportedBy ? `${incident.reportedBy.firstName} ${incident.reportedBy.lastName}` : '',
+          assignedTo: incident?.assignedTo ? `${incident.assignedTo.firstName} ${incident.assignedTo.lastName}` : '',
+        };
       }
 
-      // Template variables
-      const variables: Record<string, string> = {
+      // Build entity link
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3002';
+      const entityRouteMap: Record<string, string> = {
+        INCIDENT: '/incidents',
+        INVOICE: '/invoices',
+        ORDER: '/orders',
+        TRAVEL_EXPENSE: '/travel-expenses',
+      };
+      const entityRoute = entityRouteMap[entityType] || '';
+      const entityLink = entityRoute ? `${frontendUrl}/#${entityRoute}?id=${entityId}` : '';
+
+      // Template variables: base + entity data + trigger context (context fields have lowest priority)
+      const variables: Record<string, string> = {};
+      
+      // 1. Add trigger context fields first (lowest priority)
+      for (const [key, value] of Object.entries(triggerContext)) {
+        if (value !== null && value !== undefined && typeof value !== 'object') {
+          variables[key] = String(value);
+        }
+      }
+
+      // 2. Add entity-fetched data (overrides context where applicable)
+      for (const [key, value] of Object.entries(entityData)) {
+        if (value !== null && value !== undefined) {
+          variables[key] = String(value);
+        }
+      }
+
+      // 3. Add standard variables (highest priority)
+      Object.assign(variables, {
         workflowName,
         entityType,
+        entityId,
+        entityLink,
         currentDate: new Date().toLocaleDateString('de-CH'),
-        orderNumber: entityData.orderNumber || '',
-        invoiceNumber: entityData.invoiceNumber || '',
-        userName: entityData.userName || '',
-        userId: entityData.userId || '',
-        customerName: entityData.customerName || '',
-        supplierName: entityData.supplierName || ''
-      };
+      });
 
       // Replace template variables in message
       Object.entries(variables).forEach(([key, value]) => {
@@ -1375,6 +1522,22 @@ export const workflowService = {
       if (sendToTriggerUser && workflowInstance.triggeredById) {
         if (!allRecipients.includes(workflowInstance.triggeredById)) {
           allRecipients.push(workflowInstance.triggeredById);
+        }
+      }
+
+      // Add dynamic entity-based recipients (e.g. from Incidents)
+      if ((sendToReportedBy || sendToAssignedTo) && entityType === 'INCIDENT' && entityId) {
+        const incident = await prisma.incident.findUnique({
+          where: { id: entityId },
+          select: { reportedById: true, assignedToId: true },
+        });
+        if (incident) {
+          if (sendToReportedBy && incident.reportedById && !allRecipients.includes(incident.reportedById)) {
+            allRecipients.push(incident.reportedById);
+          }
+          if (sendToAssignedTo && incident.assignedToId && !allRecipients.includes(incident.assignedToId)) {
+            allRecipients.push(incident.assignedToId);
+          }
         }
       }
 

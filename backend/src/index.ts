@@ -41,6 +41,7 @@ import documentNodeRoutes from './routes/documentNode.routes';
 import documentNodeAttachmentRoutes from './routes/documentNodeAttachment.routes';
 import mediaRoutes from './routes/media.routes';
 import actionRoutes from './routes/action.routes';
+import { actionService } from './services/action.service';
 import projectReportsRoutes from './routes/projectReports.routes';
 import dashboardLayoutRoutes from './routes/dashboardLayout.routes';
 import zeitmodellRoutes from './routes/zeitmodell.routes';
@@ -240,6 +241,13 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Seed system actions on startup
+  actionService.seedSystemActions().then((actions) => {
+    console.log(`System actions seeded: ${actions.length} actions`);
+  }).catch(err => {
+    console.error('Failed to seed system actions:', err);
+  });
 
   // Start automatic backup scheduler
   backupScheduler.start().catch(err => {

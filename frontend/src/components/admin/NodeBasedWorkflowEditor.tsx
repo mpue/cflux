@@ -68,6 +68,140 @@ const availableNodes = [
   { type: 'end', label: '🏁 Ende', icon: '🏁', description: 'Workflow-Ende' },
 ];
 
+// Placeholder definitions grouped by category
+const placeholderGroups = [
+  {
+    label: 'Allgemein',
+    placeholders: [
+      { key: 'workflowName', label: 'Workflow-Name' },
+      { key: 'entityType', label: 'Entitätstyp' },
+      { key: 'entityId', label: 'Entitäts-ID' },
+      { key: 'entityLink', label: 'Link zur Entität' },
+      { key: 'currentDate', label: 'Aktuelles Datum' },
+      { key: 'userName', label: 'Benutzername' },
+      { key: 'userId', label: 'Benutzer-ID' },
+    ],
+  },
+  {
+    label: 'Vorfall (Incident)',
+    placeholders: [
+      { key: 'title', label: 'Titel' },
+      { key: 'status', label: 'Status' },
+      { key: 'priority', label: 'Priorität' },
+      { key: 'category', label: 'Kategorie' },
+      { key: 'location', label: 'Standort' },
+      { key: 'reportedBy', label: 'Gemeldet von' },
+      { key: 'assignedTo', label: 'Zugewiesen an' },
+    ],
+  },
+  {
+    label: 'Bestellung / Rechnung',
+    placeholders: [
+      { key: 'orderNumber', label: 'Bestellnummer' },
+      { key: 'invoiceNumber', label: 'Rechnungsnummer' },
+      { key: 'customerName', label: 'Kundenname' },
+      { key: 'supplierName', label: 'Lieferantenname' },
+    ],
+  },
+];
+
+// Placeholder picker component for message textareas
+const PlaceholderPicker: React.FC<{
+  textareaId: string;
+  onInsert: (placeholder: string) => void;
+}> = ({ textareaId, onInsert }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  const handleInsert = (key: string) => {
+    const textarea = document.getElementById(textareaId) as HTMLTextAreaElement | null;
+    const placeholder = `{{${key}}}`;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const currentValue = textarea.value;
+      const newValue = currentValue.substring(0, start) + placeholder + currentValue.substring(end);
+      // Update via the onInsert callback with new full value
+      onInsert(newValue);
+      // Restore cursor position after React re-render
+      setTimeout(() => {
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = start + placeholder.length;
+      }, 0);
+    } else {
+      onInsert(placeholder);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: '8px' }}>
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          background: 'none',
+          border: '1px solid var(--border-color, #ccc)',
+          borderRadius: '4px',
+          padding: '4px 10px',
+          cursor: 'pointer',
+          fontSize: '0.85em',
+          color: 'var(--text-secondary, #555)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+        }}
+      >
+        🏷️ Platzhalter einfügen {expanded ? '▲' : '▼'}
+      </button>
+      {expanded && (
+        <div style={{
+          marginTop: '6px',
+          padding: '10px',
+          background: 'var(--bg-secondary, #f8f9fa)',
+          border: '1px solid var(--border-color, #ddd)',
+          borderRadius: '6px',
+          maxHeight: '250px',
+          overflowY: 'auto',
+        }}>
+          {placeholderGroups.map((group) => (
+            <div key={group.label} style={{ marginBottom: '8px' }}>
+              <div style={{ fontSize: '0.8em', fontWeight: 600, color: 'var(--text-secondary, #666)', marginBottom: '4px' }}>
+                {group.label}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                {group.placeholders.map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => handleInsert(p.key)}
+                    title={`{{${p.key}}} einfügen`}
+                    style={{
+                      background: 'var(--bg-primary, #fff)',
+                      border: '1px solid var(--border-color, #ccc)',
+                      borderRadius: '12px',
+                      padding: '2px 10px',
+                      fontSize: '0.82em',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent-light, #e3f2fd)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-primary, #fff)')}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div style={{ fontSize: '0.78em', color: 'var(--text-secondary, #888)', marginTop: '6px', borderTop: '1px solid var(--border-color, #eee)', paddingTop: '6px' }}>
+            💡 Tipp: <code>{'{{entityLink}}'}</code> erzeugt automatisch einen Link zur betroffenen Entität (z.B. Incident, Rechnung).
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const NodeBasedWorkflowEditor: React.FC<NodeBasedWorkflowEditorProps> = ({
   workflow,
   onSave,
@@ -601,7 +735,46 @@ const NodePropertiesEditor: React.FC<NodePropertiesEditorProps> = ({
               />
             </div>
             <div className="form-group">
-              <label>Empfänger</label>
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={config.sendToTriggerUser || false}
+                  onChange={(e) => handleChange('sendToTriggerUser', e.target.checked)}
+                />
+                An den auslösenden Benutzer senden
+              </label>
+              <small style={{ color: '#666', fontSize: '0.85em', display: 'block', marginTop: '4px' }}>
+                Sendet die E-Mail automatisch an den Benutzer, der den Workflow ausgelöst hat.
+              </small>
+            </div>
+            <div className="form-group">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={config.sendToReportedBy || false}
+                  onChange={(e) => handleChange('sendToReportedBy', e.target.checked)}
+                />
+                An den Melder senden
+              </label>
+              <small style={{ color: '#666', fontSize: '0.85em', display: 'block', marginTop: '4px' }}>
+                Sendet die E-Mail an den Benutzer, der den Vorfall gemeldet hat.
+              </small>
+            </div>
+            <div className="form-group">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={config.sendToAssignedTo || false}
+                  onChange={(e) => handleChange('sendToAssignedTo', e.target.checked)}
+                />
+                An den Zugewiesenen senden
+              </label>
+              <small style={{ color: '#666', fontSize: '0.85em', display: 'block', marginTop: '4px' }}>
+                Sendet die E-Mail an den Benutzer, dem der Vorfall zugewiesen ist.
+              </small>
+            </div>
+            <div className="form-group">
+              <label>Zusätzliche Empfänger</label>
               <div className="user-selection">
                 {users.map((user) => (
                   <label key={user.id} className="user-checkbox">
@@ -627,14 +800,21 @@ const NodePropertiesEditor: React.FC<NodePropertiesEditorProps> = ({
                 type="text"
                 value={config.subject || ''}
                 onChange={(e) => handleChange('subject', e.target.value)}
+                placeholder="z.B. Incident {{title}} - Status: {{status}}"
               />
             </div>
             <div className="form-group">
               <label>Nachricht</label>
               <textarea
+                id="email-body-textarea"
                 value={config.body || ''}
                 onChange={(e) => handleChange('body', e.target.value)}
+                placeholder="E-Mail-Text eingeben... Platzhalter wie {{entityLink}} werden automatisch ersetzt."
                 rows={5}
+              />
+              <PlaceholderPicker
+                textareaId="email-body-textarea"
+                onInsert={(newValue) => handleChange('body', newValue)}
               />
             </div>
           </>
@@ -841,6 +1021,32 @@ const NodePropertiesEditor: React.FC<NodePropertiesEditorProps> = ({
               </small>
             </div>
             <div className="form-group">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={config.sendToReportedBy || false}
+                  onChange={(e) => handleChange('sendToReportedBy', e.target.checked)}
+                />
+                An den Melder senden
+              </label>
+              <small style={{ color: '#666', fontSize: '0.85em', display: 'block', marginTop: '4px' }}>
+                Sendet die Benachrichtigung an den Benutzer, der den Vorfall gemeldet hat.
+              </small>
+            </div>
+            <div className="form-group">
+              <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={config.sendToAssignedTo || false}
+                  onChange={(e) => handleChange('sendToAssignedTo', e.target.checked)}
+                />
+                An den Zugewiesenen senden
+              </label>
+              <small style={{ color: '#666', fontSize: '0.85em', display: 'block', marginTop: '4px' }}>
+                Sendet die Benachrichtigung an den Benutzer, dem der Vorfall zugewiesen ist.
+              </small>
+            </div>
+            <div className="form-group">
               <label>Empfänger</label>
               <select
                 multiple
@@ -864,11 +1070,16 @@ const NodePropertiesEditor: React.FC<NodePropertiesEditorProps> = ({
             <div className="form-group">
               <label>Nachricht</label>
               <textarea
+                id="notification-message-textarea"
                 value={config.message || ''}
                 onChange={(e) => handleChange('message', e.target.value)}
-                placeholder="Benachrichtigungstext eingeben..."
+                placeholder="Benachrichtigungstext eingeben... z.B. Incident {{title}} wurde auf {{status}} gesetzt. Details: {{entityLink}}"
                 rows={4}
                 style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              />
+              <PlaceholderPicker
+                textareaId="notification-message-textarea"
+                onInsert={(newValue) => handleChange('message', newValue)}
               />
             </div>
           </>

@@ -377,6 +377,14 @@ const WorkflowEditor: React.FC<WorkflowEditorProps> = ({ workflow, onSave, onCan
                         <div style={{ fontSize: '0.85em', color: '#666', marginTop: '8px' }}>
                           <strong>Verfügbare Platzhalter:</strong>
                           <br />
+                          <code>{'{{entityLink}}'}</code> - Link zur Entität<br />
+                          <code>{'{{entityId}}'}</code> - Entitäts-ID<br />
+                          <code>{'{{title}}'}</code> - Titel (z.B. Incident)<br />
+                          <code>{'{{status}}'}</code> - Status<br />
+                          <code>{'{{priority}}'}</code> - Priorität<br />
+                          <code>{'{{category}}'}</code> - Kategorie<br />
+                          <code>{'{{reportedBy}}'}</code> - Gemeldet von<br />
+                          <code>{'{{assignedTo}}'}</code> - Zugewiesen an<br />
                           <code>{'{{orderNumber}}'}</code> - Bestellnummer<br />
                           <code>{'{{invoiceNumber}}'}</code> - Rechnungsnummer<br />
                           <code>{'{{userName}}'}</code> - Name des Benutzers<br />
