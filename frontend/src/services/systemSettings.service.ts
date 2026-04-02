@@ -1,10 +1,4 @@
-import axios from 'axios';
-
-// Check if running in Electron and use injected backend URL
-const electronBackendUrl = typeof window !== 'undefined' && (window as any).ELECTRON_BACKEND_URL;
-const API_URL = electronBackendUrl 
-  ? `${electronBackendUrl}/api`
-  : (process.env.REACT_APP_API_URL || 'http://localhost:3001/api');
+import api from './api';
 
 export interface SystemSettings {
   id: string;
@@ -77,41 +71,28 @@ export interface EmailTestRequest {
 }
 
 class SystemSettingsService {
-  private getAuthHeaders() {
-    const token = localStorage.getItem('token');
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
-  }
-
   async getSettings(): Promise<SystemSettings> {
-    const response = await axios.get(`${API_URL}/system-settings`, this.getAuthHeaders());
+    const response = await api.get('/system-settings');
     return response.data;
   }
 
   async getPublicSettings(): Promise<Partial<SystemSettings>> {
-    const response = await axios.get(`${API_URL}/system-settings/public`);
+    const response = await api.get('/system-settings/public');
     return response.data;
   }
 
   async updateSettings(data: Partial<SystemSettings>): Promise<SystemSettings> {
-    const response = await axios.put(`${API_URL}/system-settings`, data, this.getAuthHeaders());
+    const response = await api.put('/system-settings', data);
     return response.data;
   }
 
   async testEmailSettings(data: EmailTestRequest): Promise<{ success: boolean; message: string }> {
-    const response = await axios.post(`${API_URL}/system-settings/test-email`, data, this.getAuthHeaders());
+    const response = await api.post('/system-settings/test-email', data);
     return response.data;
   }
 
   async uploadLogo(logoData: string): Promise<SystemSettings> {
-    const response = await axios.post(
-      `${API_URL}/system-settings/upload-logo`,
-      { logoData },
-      this.getAuthHeaders()
-    );
+    const response = await api.post('/system-settings/upload-logo', { logoData });
     return response.data;
   }
 }

@@ -32,6 +32,34 @@ function normalizeJobPayload(body: any) {
 
 // ==================== ONBOARDING JOBS ====================
 
+// ==================== PUBLIC JOBS (no auth) ====================
+
+export async function getPublicJobs(req: Request, res: Response) {
+  try {
+    const jobs = await onboardingService.getOnboardingJobs({ isActive: true });
+    res.json(jobs);
+  } catch (error: any) {
+    console.error('Error fetching public jobs:', error);
+    res.status(500).json({ error: 'Failed to fetch jobs', details: error.message });
+  }
+}
+
+export async function getPublicJobById(req: Request, res: Response) {
+  try {
+    const { jobId } = req.params;
+    const job = await onboardingService.getOnboardingJobById(jobId);
+    if (!job || !job.isActive) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+    res.json(job);
+  } catch (error: any) {
+    console.error('Error fetching public job:', error);
+    res.status(500).json({ error: 'Failed to fetch job', details: error.message });
+  }
+}
+
+// ==================== ONBOARDING JOBS ====================
+
 export async function getOnboardingJobs(req: Request, res: Response) {
   try {
     const { isActive } = req.query;

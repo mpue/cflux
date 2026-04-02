@@ -12,7 +12,7 @@ import {
   Step,
   StepLabel,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 
 interface PublicSettings {
@@ -26,6 +26,7 @@ interface PublicSettings {
 
 const ApplicantRegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +39,7 @@ const ApplicantRegisterPage: React.FC = () => {
     lastName: '',
     email: '',
     phone: '',
-    position: '',
+    position: searchParams.get('position') || '',
   });
 
   const steps = ['Persönliche Daten', 'Bestätigung'];

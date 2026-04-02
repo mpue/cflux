@@ -73,6 +73,12 @@ const applicantUpload = multer({
 
 // ==================== APPLICANTS (Public routes for applicant self-service) ====================
 
+// Public: Get active jobs for job board (no auth required)
+router.get('/jobs/public', onboardingController.getPublicJobs);
+
+// Public: Get single job detail (no auth required)
+router.get('/jobs/public/:jobId', onboardingController.getPublicJobById);
+
 // Register as new applicant (public)
 router.post('/applicants/register', applicantController.registerApplicant);
 

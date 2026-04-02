@@ -45,6 +45,8 @@ import ApplicantVerifyEmailPage from './pages/ApplicantVerifyEmailPage';
 import ApplicantVerifyPage from './pages/ApplicantVerifyPage';
 import ApplicantPortalPage from './pages/ApplicantPortalPage';
 import LandingPage from './pages/LandingPage';
+import JobBoardPage from './pages/JobBoardPage';
+import JobDetailPage from './pages/JobDetailPage';
 import UserProfile from './pages/UserProfile';
 import JobFunctionsPage from './pages/JobFunctionsPage';
 import ChecklistsPage from './pages/ChecklistsPage';
@@ -104,6 +106,10 @@ function App() {
               <Route path="/applicant/verify-email" element={<ApplicantVerifyEmailPage />} />
               <Route path="/applicant/verify" element={<ApplicantVerifyPage />} />
               <Route path="/applicant/portal" element={<ApplicantPortalPage />} />
+              
+              {/* Job Board (public) */}
+              <Route path="/jobs" element={<JobBoardPage />} />
+              <Route path="/jobs/:jobId" element={<JobDetailPage />} />
               
               {/* Protected Routes */}
             <Route

@@ -53,6 +53,12 @@ services:
       - ./backend/prisma:/app/prisma
       - backend_uploads:/app/uploads
       - backend_backups:/app/backups
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3001/api/system-settings/public || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   # Gotenberg - Document to PDF conversion
   gotenberg:
@@ -77,7 +83,8 @@ services:
       REACT_APP_API_URL: "${REACT_APP_API_URL}"
       DOCKER_BUILDKIT: "1"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - timetracking-network
 

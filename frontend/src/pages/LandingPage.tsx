@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -15,16 +15,30 @@ import {
   Login, 
   Business,
   Work,
+  WorkOutline,
 } from '@mui/icons-material';
+import { systemSettingsService } from '../services/systemSettings.service';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const [companyName, setCompanyName] = useState('CFlux');
+  const [companyLogo, setCompanyLogo] = useState('');
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    systemSettingsService.getPublicSettings().then((settings) => {
+      if (settings.companyName) setCompanyName(settings.companyName);
+      if (settings.companyLogo) setCompanyLogo(settings.companyLogo);
+    }).catch((err) => {
+      console.error('Failed to load public settings:', err);
+    }).finally(() => setLoaded(true));
+  }, []);
 
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        backgroundColor: '#ffffff',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -33,20 +47,46 @@ const LandingPage: React.FC = () => {
     >
       <Container maxWidth="lg">
         <Box sx={{ textAlign: 'center', mb: 6 }}>
+          {companyLogo && (
+            <Box sx={{ mb: 3 }}>
+              <img
+                src={companyLogo}
+                alt={companyName}
+                style={{
+                  maxWidth: '250px',
+                  maxHeight: '120px',
+                  objectFit: 'contain',
+                }}
+              />
+            </Box>
+          )}
           <Typography
-            variant="h2"
+            variant="h3"
             component="h1"
             gutterBottom
-            sx={{ color: 'white', fontWeight: 'bold', mb: 2 }}
+            sx={{ color: 'text.primary', fontWeight: 'bold', mb: 1 }}
           >
-            Willkommen bei CFlux
+            Herzlich willkommen
           </Typography>
           <Typography
-            variant="h5"
-            sx={{ color: 'rgba(255,255,255,0.9)', mb: 4 }}
+            variant="h3"
+            component="p"
+            sx={{ color: 'text.primary', fontWeight: 'bold', mb: 4 }}
           >
-            Ihr intelligentes Zeiterfassungs- und HR-Management-System
+            bei der {companyName}
           </Typography>
+        </Box>
+
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Button
+            variant="outlined"
+            size="large"
+            startIcon={<WorkOutline />}
+            onClick={() => navigate('/jobs')}
+            sx={{ px: 4, py: 1.5, fontSize: '1.1rem', borderRadius: 2 }}
+          >
+            Offene Stellen ansehen
+          </Button>
         </Box>
 
         <Grid container spacing={4}>
@@ -191,8 +231,8 @@ const LandingPage: React.FC = () => {
         </Grid>
 
         <Box sx={{ textAlign: 'center', mt: 6 }}>
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-            © 2026 CFlux - Swiss Compliance Time Tracking System
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            © 2026 {companyName}
           </Typography>
         </Box>
       </Container>
