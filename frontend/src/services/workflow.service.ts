@@ -152,4 +152,14 @@ export const workflowService = {
     const response = await api.post(`/workflows/${workflowId}/test`, { invoiceId });
     return response.data;
   },
+
+  async getMyMessageDialogs(): Promise<any[]> {
+    const response = await api.get('/workflows/my-message-dialogs');
+    return response.data;
+  },
+
+  async acknowledgeMessageDialog(instanceStepId: string): Promise<any> {
+    const response = await api.post(`/workflows/instances/steps/${instanceStepId}/acknowledge`);
+    return response.data;
+  },
 };

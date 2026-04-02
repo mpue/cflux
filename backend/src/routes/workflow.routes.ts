@@ -13,6 +13,7 @@ router.get('/', workflowController.getAllWorkflows);
 
 // My Approvals (must be before /:id to avoid conflict)
 router.get('/my-approvals', workflowController.getMyPendingApprovals);
+router.get('/my-message-dialogs', workflowController.getMyMessageDialogs);
 
 router.get('/:id', workflowController.getWorkflowById);
 router.put('/:id', workflowController.updateWorkflow);

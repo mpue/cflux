@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ModuleProvider, useModules } from './contexts/ModuleContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { CurrencyProvider } from './contexts/CurrencyContext';
+import { WorkflowMessageProvider } from './contexts/WorkflowMessageContext';
 import ThemeToggle from './components/ThemeToggle';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -90,6 +91,7 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <WorkflowMessageProvider>
         <CurrencyProvider>
         <ModuleProvider>
           <Router>
@@ -451,6 +453,7 @@ function App() {
         </Router>
       </ModuleProvider>
         </CurrencyProvider>
+        </WorkflowMessageProvider>
     </AuthProvider>
   </ThemeProvider>
   );

@@ -1581,6 +1581,48 @@ export const workflowService = {
     }
   },
 
+  // Get pending MESSAGE_DIALOG steps for a user (triggered by them)
+  async getPendingMessageDialogsForUser(userId: string) {
+    const steps = await prisma.workflowInstanceStep.findMany({
+      where: {
+        status: 'PENDING',
+        step: {
+          type: 'MESSAGE_DIALOG',
+        },
+        instance: {
+          triggeredById: userId,
+          status: { in: ['PENDING', 'IN_PROGRESS'] },
+        },
+      },
+      include: {
+        step: true,
+        instance: {
+          include: {
+            workflow: true,
+          },
+        },
+      },
+      orderBy: {
+        instance: {
+          startedAt: 'asc',
+        },
+      },
+    });
+
+    return steps.map((step: any) => {
+      const config = step.step.config ? JSON.parse(step.step.config) : {};
+      return {
+        instanceStepId: step.id,
+        stepName: step.step.name,
+        title: config.title || 'Hinweis',
+        message: config.message || '',
+        buttonText: config.buttonText || 'OK',
+        workflowName: step.instance.workflow?.name || '',
+        instanceId: step.instanceId,
+      };
+    });
+  },
+
   // Acknowledge MESSAGE_DIALOG step (mark as completed after user sees it)
   async acknowledgeMessageDialog(instanceStepId: string, userId?: string): Promise<any> {
     const instanceStep = await prisma.workflowInstanceStep.update({

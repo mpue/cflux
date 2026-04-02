@@ -217,6 +217,20 @@ export const workflowController = {
     }
   },
 
+  async getMyMessageDialogs(req: Request, res: Response) {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const dialogs = await workflowService.getPendingMessageDialogsForUser(userId);
+      res.json(dialogs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
   // Test Workflow
   async testWorkflow(req: Request, res: Response) {
     try {
