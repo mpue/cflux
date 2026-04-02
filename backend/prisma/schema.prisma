@@ -2922,6 +2922,9 @@ model Employee {
   exemptFromTracking  Boolean   @default(false)  // Zeiterfassung nicht nötig (leitende Angestellte)
   vacationDays        Float     @default(30)  // Urlaubstage pro Jahr
   
+  onboardingCompleted Boolean           @default(false)
+  onboardingCompletedAt DateTime?
+  
   isActive            Boolean           @default(true)
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt

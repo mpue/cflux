@@ -342,6 +342,14 @@ router.get(
   onboardingController.getOnboardingProgress
 );
 
+// Mark employee as onboarded
+router.patch(
+  '/employees/:id/complete-onboarding',
+  authenticate,
+  requireModuleAccess('onboarding', 'canEdit'),
+  onboardingController.markAsOnboarded
+);
+
 // Get onboarding dashboard (all employees)
 router.get(
   '/dashboard',

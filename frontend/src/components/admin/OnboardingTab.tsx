@@ -1,22 +1,21 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Box, Typography, Button, Grid, Card, CardContent, Tabs, Tab } from '@mui/material';
+import { Box, Typography, Grid, Card, CardContent, Tabs, Tab } from '@mui/material';
 import { PersonAdd, People, Assignment, Build, School, Dashboard, Work } from '@mui/icons-material';
 import ApplicantsTab from './ApplicantsTab';
 import OnboardingJobsSubTab from './OnboardingJobsSubTab';
 import OnboardingEmployeesSubTab from './OnboardingEmployeesSubTab';
 import OnboardingEquipmentSubTab from './OnboardingEquipmentSubTab';
 import OnboardingTrainingSubTab from './OnboardingTrainingSubTab';
+import OnboardingDashboardTab from './OnboardingDashboardTab';
 
 interface OnboardingTabProps {
   onUpdate?: () => void;
 }
 
-type SubTab = 'overview' | 'applicants' | 'employees' | 'equipment' | 'training' | 'jobs';
+type SubTab = 'overview' | 'dashboard' | 'applicants' | 'employees' | 'equipment' | 'training' | 'jobs';
 
 const OnboardingTab: React.FC<OnboardingTabProps> = ({ onUpdate }) => {
-  const navigate = useNavigate();
-  const [activeSubTab, setActiveSubTab] = useState<SubTab>('overview');
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('dashboard');
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: SubTab) => {
     setActiveSubTab(newValue);
@@ -35,28 +34,28 @@ const OnboardingTab: React.FC<OnboardingTabProps> = ({ onUpdate }) => {
         title: 'Onboarding Dashboard',
         description: 'Übersicht aller laufenden Onboarding-Prozesse',
         icon: <Assignment sx={{ fontSize: 48 }} />,
-        action: () => navigate('/admin/onboarding'),
+        action: () => setActiveSubTab('dashboard'),
         color: '#4caf50',
       },
       {
         title: 'Mitarbeiter',
         description: 'Mitarbeiterverwaltung und Onboarding-Status',
         icon: <People sx={{ fontSize: 48 }} />,
-        action: () => navigate('/admin/onboarding/employees'),
+        action: () => setActiveSubTab('employees'),
         color: '#ff9800',
       },
       {
         title: 'Equipment',
         description: 'Geräte und Ausrüstung verwalten',
         icon: <Build sx={{ fontSize: 48 }} />,
-        action: () => navigate('/admin/onboarding/equipment'),
+        action: () => setActiveSubTab('equipment'),
         color: '#9c27b0',
       },
       {
         title: 'Schulungen',
         description: 'Schulungskatalog und Sitzungen planen',
         icon: <School sx={{ fontSize: 48 }} />,
-        action: () => navigate('/admin/onboarding/training'),
+        action: () => setActiveSubTab('training'),
         color: '#f44336',
       },
       {
@@ -175,7 +174,8 @@ const OnboardingTab: React.FC<OnboardingTabProps> = ({ onUpdate }) => {
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={activeSubTab} onChange={handleTabChange}>
+        <Tabs value={activeSubTab} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
+          <Tab icon={<Assignment />} label="Dashboard" value="dashboard" />
           <Tab icon={<Dashboard />} label="Übersicht" value="overview" />
           <Tab icon={<PersonAdd />} label="Bewerber" value="applicants" />
           <Tab icon={<Work />} label="Jobs" value="jobs" />
@@ -185,6 +185,7 @@ const OnboardingTab: React.FC<OnboardingTabProps> = ({ onUpdate }) => {
         </Tabs>
       </Box>
 
+      {activeSubTab === 'dashboard' && <OnboardingDashboardTab onNavigate={(subtab) => setActiveSubTab(subtab as SubTab)} />}
       {activeSubTab === 'overview' && renderOverview()}
       {activeSubTab === 'applicants' && <ApplicantsTab onUpdate={onUpdate} />}
       {activeSubTab === 'jobs' && <OnboardingJobsSubTab />}

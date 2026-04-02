@@ -14,7 +14,7 @@ import {
   Button,
   CircularProgress,
 } from '@mui/material';
-import { Warning, CheckCircle, People, Assignment, Error, Description } from '@mui/icons-material';
+import { Warning, CheckCircle, People, Assignment, Error, Description, DoneAll } from '@mui/icons-material';
 
 interface OnboardingDashboardTabProps {
   onNavigate?: (subtab: string) => void;
@@ -24,6 +24,17 @@ const OnboardingDashboardTab: React.FC<OnboardingDashboardTabProps> = ({ onNavig
   const [dashboard, setDashboard] = useState<OnboardingDashboardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editEmployee, setEditEmployee] = useState<{ id: string; name: string } | null>(null);
+
+  const handleMarkAsOnboarded = async (employeeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('Mitarbeiter als onboarded markieren? Er wird aus der Dashboard-Liste entfernt.')) return;
+    try {
+      await onboardingService.markAsOnboarded(employeeId);
+      loadDashboard();
+    } catch (error) {
+      console.error('Error marking as onboarded:', error);
+    }
+  };
 
   useEffect(() => {
     loadDashboard();
@@ -83,7 +94,7 @@ const OnboardingDashboardTab: React.FC<OnboardingDashboardTabProps> = ({ onNavig
                 variant="contained"
                 size="small"
                 sx={{ bgcolor: 'white', color: 'info.dark', '&:hover': { bgcolor: 'grey.100' } }}
-                onClick={() => onNavigate?.('templates')}
+                onClick={() => onNavigate?.('training')}
               >
                 Zu den Vorlagen
               </Button>
@@ -196,6 +207,18 @@ const OnboardingDashboardTab: React.FC<OnboardingDashboardTabProps> = ({ onNavig
                 <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5, display: 'block' }}>
                   {Math.round(item.progress.progressPercentage)}% abgeschlossen
                 </Typography>
+              </Box>
+              <Box sx={{ mt: 'auto', pt: 1 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="success"
+                  startIcon={<DoneAll />}
+                  onClick={(e) => handleMarkAsOnboarded(item.employee.id, e)}
+                  fullWidth
+                >
+                  Als onboarded markieren
+                </Button>
               </Box>
             </Paper>
           </Grid>

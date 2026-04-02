@@ -446,55 +446,69 @@ export const workflowService = {
     const startNode = nodes.find((n: any) => n.type === 'start');
     console.log(`[Workflow] Found start node: ${startNode?.id}`);
     
-    if (startNode) {
-      // Find all edges from start node
-      const startEdges = edges.filter((e: any) => e.source === startNode.id);
-      console.log(`[Workflow] Found ${startEdges.length} edges from start node`);
-      
-      for (const edge of startEdges) {
-        const targetNode = nodes.find((n: any) => n.id === edge.target);
-        console.log(`[Workflow] Edge target node: ${targetNode?.id} (type: ${targetNode?.type})`);
-        
-        if (targetNode) {
-          const targetStep = nodeToStepMap.get(targetNode.id);
-          if (targetStep) {
-            console.log(`[Workflow] Activating step "${targetStep.name}" (id: ${targetStep.id}, type: ${targetStep.type}) from start node`);
-            activeSteps.add(targetStep.id);
-            if (!firstActiveStepId && targetStep.type === 'APPROVAL') {
-              firstActiveStepId = targetStep.id;
-            }
-          } else {
-            console.log(`[Workflow] WARNING: No step mapping found for target node ${targetNode.id}`);
-          }
-        }
-      }
-    }
+    // Traverse graph from start node, activating all reachable steps
+    // Stop traversal at APPROVAL nodes (they block until user action)
+    const visited = new Set<string>();
+    const queue: string[] = [];
     
-    console.log(`[Workflow] Active steps after start node processing: ${activeSteps.size} steps`);
+    if (startNode) {
+      queue.push(startNode.id);
+      visited.add(startNode.id);
+    }
 
-    // Process VALUE_CONDITION nodes and activate connected steps
+    // Also seed from condition nodes that have been evaluated
     for (const [nodeId, conditionMet] of Array.from(evaluatedConditions.entries())) {
       const expectedHandle = conditionMet ? 'true' : 'false';
       const conditionEdges = edges.filter((e: any) => 
         e.source === nodeId && e.sourceHandle === expectedHandle
       );
-      
-      console.log(`[Workflow] Condition node ${nodeId} is ${conditionMet}, following ${conditionEdges.length} edges with sourceHandle="${expectedHandle}"`);
-      
       for (const edge of conditionEdges) {
-        const targetNode = nodes.find((n: any) => n.id === edge.target);
-        if (targetNode) {
-          const targetStep = nodeToStepMap.get(targetNode.id);
-          if (targetStep) {
-            console.log(`[Workflow] Activating step "${targetStep.name}" (type: ${targetStep.type}) from condition edge`);
-            activeSteps.add(targetStep.id);
-            if (!firstActiveStepId && targetStep.type === 'APPROVAL') {
-              firstActiveStepId = targetStep.id;
+        if (!visited.has(edge.target)) {
+          queue.push(edge.target);
+          visited.add(edge.target);
+        }
+      }
+    }
+
+    while (queue.length > 0) {
+      const currentNodeId = queue.shift()!;
+      const currentNode = nodes.find((n: any) => n.id === currentNodeId);
+      if (!currentNode) continue;
+
+      // Skip start/end nodes for step activation
+      if (currentNode.type !== 'start' && currentNode.type !== 'end') {
+        const step = nodeToStepMap.get(currentNodeId);
+        if (step) {
+          // VALUE_CONDITION nodes are always auto-evaluated, don't add as active step
+          if (step.type !== 'VALUE_CONDITION') {
+            activeSteps.add(step.id);
+            console.log(`[Workflow] Activating step "${step.name}" (type: ${step.type})`);
+            if (!firstActiveStepId && step.type === 'APPROVAL') {
+              firstActiveStepId = step.id;
             }
+          }
+
+          // APPROVAL and MESSAGE_DIALOG nodes block traversal — don't follow their outgoing edges
+          if (step.type === 'APPROVAL' || step.type === 'MESSAGE_DIALOG') {
+            console.log(`[Workflow] Blocking traversal at ${step.type} step "${step.name}"`);
+            continue;
+          }
+        }
+      }
+
+      // Follow outgoing edges (skip condition nodes — handled separately above)
+      if (currentNode.type !== 'valueCondition' && currentNode.type !== 'condition') {
+        const outgoingEdges = edges.filter((e: any) => e.source === currentNodeId);
+        for (const edge of outgoingEdges) {
+          if (!visited.has(edge.target)) {
+            visited.add(edge.target);
+            queue.push(edge.target);
           }
         }
       }
     }
+    
+    console.log(`[Workflow] Active steps after graph traversal: ${activeSteps.size} steps`);
     
     // Create instance steps with correct status
     for (const step of workflow.steps as any[]) {

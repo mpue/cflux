@@ -477,9 +477,19 @@ export async function getOnboardingProgress(employeeId: string) {
   };
 }
 
+export async function markAsOnboarded(employeeId: string) {
+  return prisma.employee.update({
+    where: { id: employeeId },
+    data: {
+      onboardingCompleted: true,
+      onboardingCompletedAt: new Date(),
+    },
+  });
+}
+
 export async function getOnboardingDashboard() {
   const employees = await prisma.employee.findMany({
-    where: { isActive: true },
+    where: { isActive: true, onboardingCompleted: false },
     include: {
       tasks: true,
     },

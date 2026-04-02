@@ -248,6 +248,12 @@ export const onboardingService = {
     const response = await api.get('/onboarding/dashboard');
     return response.data;
   },
+
+  // Mark employee as onboarded
+  markAsOnboarded: async (employeeId: string): Promise<Employee> => {
+    const response = await api.patch(`/onboarding/employees/${employeeId}/complete-onboarding`);
+    return response.data;
+  },
 };
 
 // ==================== EQUIPMENT ====================

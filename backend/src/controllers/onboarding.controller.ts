@@ -283,6 +283,17 @@ export async function getOnboardingProgress(req: Request, res: Response) {
   }
 }
 
+export async function markAsOnboarded(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const employee = await onboardingService.markAsOnboarded(id);
+    res.json(employee);
+  } catch (error: any) {
+    console.error('Error marking employee as onboarded:', error);
+    res.status(500).json({ error: 'Failed to mark as onboarded', details: error.message });
+  }
+}
+
 export async function getOnboardingDashboard(req: Request, res: Response) {
   try {
     const dashboard = await onboardingService.getOnboardingDashboard();

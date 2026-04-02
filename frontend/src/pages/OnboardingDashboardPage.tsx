@@ -15,13 +15,24 @@ import {
   Button,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { Warning, CheckCircle } from '@mui/icons-material';
+import { Warning, CheckCircle, DoneAll } from '@mui/icons-material';
 
 const OnboardingDashboardPage: React.FC = () => {
   const [dashboard, setDashboard] = useState<OnboardingDashboardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editEmployee, setEditEmployee] = useState<{ id: string; name: string } | null>(null);
   const navigate = useNavigate();
+
+  const handleMarkAsOnboarded = async (employeeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm('Mitarbeiter als onboarded markieren? Er wird aus der Dashboard-Liste entfernt.')) return;
+    try {
+      await onboardingService.markAsOnboarded(employeeId);
+      loadDashboard();
+    } catch (error) {
+      console.error('Error marking as onboarded:', error);
+    }
+  };
 
   useEffect(() => {
     loadDashboard();
@@ -161,10 +172,19 @@ const OnboardingDashboardPage: React.FC = () => {
                 />
               </Box>
 
-              <Box sx={{ mt: 2 }}>
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="caption" color="textSecondary">
                   {Math.round(item.progress.progressPercentage)}% abgeschlossen
                 </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="success"
+                  startIcon={<DoneAll />}
+                  onClick={(e) => handleMarkAsOnboarded(item.employee.id, e)}
+                >
+                  Als onboarded markieren
+                </Button>
               </Box>
             </Paper>
           </Grid>
