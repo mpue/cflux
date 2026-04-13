@@ -351,9 +351,11 @@ const NodeBasedWorkflowEditor: React.FC<NodeBasedWorkflowEditorProps> = ({
       case 'condition':
         return {
           name: 'Bedingung',
-          field: 'status',
+          mode: 'field',
+          field: 'user.role',
           operator: 'equals',
           value: '',
+          expression: '',
         };
       case 'logic':
         return {
@@ -1149,18 +1151,90 @@ const NodePropertiesEditor: React.FC<NodePropertiesEditorProps> = ({
               />
             </div>
             <div className="form-group">
-              <label>Ausdruck (x = Input-Wert)</label>
-              <input
-                type="text"
-                value={config.expression || ''}
-                onChange={(e) => handleChange('expression', e.target.value)}
-                placeholder="z.B. x > 1000"
-                style={{ fontFamily: 'monospace' }}
-              />
-              <small style={{ color: '#666', fontSize: '0.85em', display: 'block', marginTop: '4px' }}>
-                Beispiele: x {'>'} 1000, x {'<'}= 500, x == 0, x != 100<br/>
-                Ausgänge: A (true) wenn Ausdruck wahr, sonst B (false)
-              </small>
+              <label>Modus</label>
+              <select
+                value={config.mode || 'field'}
+                onChange={(e) => handleChange('mode', e.target.value)}
+              >
+                <option value="field">Feld / Operator / Wert</option>
+                <option value="expression">Freier Ausdruck</option>
+              </select>
+            </div>
+            {config.mode === 'expression' ? (
+              <div className="form-group">
+                <label>Ausdruck</label>
+                <input
+                  type="text"
+                  value={config.expression || ''}
+                  onChange={(e) => handleChange('expression', e.target.value)}
+                  placeholder="z.B. user.role == ADMIN"
+                  style={{ fontFamily: 'monospace' }}
+                />
+                <small style={{ color: '#666', fontSize: '0.85em', display: 'block', marginTop: '4px' }}>
+                  Beispiele:<br/>
+                  user.role == ADMIN<br/>
+                  user.email != admin@test.com<br/>
+                  user.department == IT
+                </small>
+              </div>
+            ) : (
+              <>
+                <div className="form-group">
+                  <label>Kontextvariable</label>
+                  <select
+                    value={config.field || 'user.role'}
+                    onChange={(e) => handleChange('field', e.target.value)}
+                  >
+                    <optgroup label="Benutzer">
+                      <option value="user.email">Benutzer E-Mail</option>
+                      <option value="user.firstName">Vorname</option>
+                      <option value="user.lastName">Nachname</option>
+                      <option value="user.fullName">Voller Name</option>
+                      <option value="user.role">Rolle</option>
+                      <option value="user.id">Benutzer-ID</option>
+                    </optgroup>
+                    <optgroup label="Entität">
+                      <option value="entityType">Entitätstyp</option>
+                      <option value="entityId">Entitäts-ID</option>
+                      <option value="entity.status">Status</option>
+                      <option value="entity.totalAmount">Gesamtbetrag</option>
+                    </optgroup>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Operator</label>
+                  <select
+                    value={config.operator || 'equals'}
+                    onChange={(e) => handleChange('operator', e.target.value)}
+                  >
+                    <option value="equals">gleich (==)</option>
+                    <option value="not_equals">ungleich (!=)</option>
+                    <option value="contains">enthält</option>
+                    <option value="not_contains">enthält nicht</option>
+                    <option value="starts_with">beginnt mit</option>
+                    <option value="ends_with">endet mit</option>
+                    <option value="is_empty">ist leer</option>
+                    <option value="is_not_empty">ist nicht leer</option>
+                  </select>
+                </div>
+                {config.operator !== 'is_empty' && config.operator !== 'is_not_empty' && (
+                  <div className="form-group">
+                    <label>Vergleichswert</label>
+                    <input
+                      type="text"
+                      value={config.value || ''}
+                      onChange={(e) => handleChange('value', e.target.value)}
+                      placeholder="z.B. ADMIN, IT, user@mail.com"
+                    />
+                  </div>
+                )}
+              </>
+            )}
+            <div style={{ marginTop: '12px', padding: '8px', background: '#f5f5f5', borderRadius: '4px', fontSize: '0.85em', color: '#666' }}>
+              <strong>Verfügbare Variablen:</strong><br/>
+              user.email, user.firstName, user.lastName,<br/>
+              user.fullName, user.role,<br/>
+              entityType, entityId, entity.status
             </div>
           </>
         );

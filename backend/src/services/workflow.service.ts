@@ -390,6 +390,59 @@ export const workflowService = {
     // Create a map of node IDs to steps
     console.log(`[Workflow] Creating node-to-step mapping for ${workflow.steps.length} steps and ${nodes.length} nodes`);
     const nodeToStepMap = new Map<string, any>();
+
+    // Build global context with user info and entity data
+    const globalContext: Record<string, any> = {
+      entityType,
+      entityId,
+      currentDate: new Date().toISOString(),
+    };
+
+    // Load triggered-by user data for context variables
+    if (triggeredById) {
+      try {
+        const triggerUser = await prisma.user.findUnique({
+          where: { id: triggeredById },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        });
+        if (triggerUser) {
+          globalContext['user.id'] = triggerUser.id;
+          globalContext['user.email'] = triggerUser.email;
+          globalContext['user.firstName'] = triggerUser.firstName || '';
+          globalContext['user.lastName'] = triggerUser.lastName || '';
+          globalContext['user.fullName'] = `${triggerUser.firstName || ''} ${triggerUser.lastName || ''}`.trim();
+          globalContext['user.role'] = triggerUser.role || '';
+        }
+      } catch (e) {
+        console.warn('[Workflow] Could not load trigger user data:', e);
+      }
+    }
+
+    // Merge entity data into context
+    if (entityData) {
+      for (const [key, value] of Object.entries(entityData)) {
+        if (value !== null && value !== undefined && typeof value !== 'object') {
+          globalContext[`entity.${key}`] = value;
+        }
+      }
+    }
+
+    // Merge custom contextData
+    if (contextData) {
+      for (const [key, value] of Object.entries(contextData)) {
+        if (value !== null && value !== undefined && typeof value !== 'object') {
+          globalContext[key] = value;
+        }
+      }
+    }
+
+    console.log(`[Workflow] Global context keys: ${Object.keys(globalContext).join(', ')}`);
     
     const workflowSteps = workflow.steps as any[];
     
@@ -429,7 +482,14 @@ export const workflowService = {
       if (step.type === 'VALUE_CONDITION') {
         const conditionMet = this.evaluateValueCondition(step, entityData);
         console.log(`[Workflow] Evaluating VALUE_CONDITION "${step.name}": ${conditionMet}`);
-        // Find the node for this step
+        const node = nodes.find((n: any) => n.data?.config?.name === step.name);
+        if (node) {
+          evaluatedConditions.set(node.id, conditionMet);
+          console.log(`[Workflow] Mapped condition node ${node.id} to result: ${conditionMet}`);
+        }
+      } else if (step.type === 'CONDITION') {
+        const conditionMet = this.evaluateGeneralCondition(step, globalContext);
+        console.log(`[Workflow] Evaluating CONDITION "${step.name}": ${conditionMet}`);
         const node = nodes.find((n: any) => n.data?.config?.name === step.name);
         if (node) {
           evaluatedConditions.set(node.id, conditionMet);
@@ -479,8 +539,8 @@ export const workflowService = {
       if (currentNode.type !== 'start' && currentNode.type !== 'end') {
         const step = nodeToStepMap.get(currentNodeId);
         if (step) {
-          // VALUE_CONDITION nodes are always auto-evaluated, don't add as active step
-          if (step.type !== 'VALUE_CONDITION') {
+          // Condition nodes are always auto-evaluated, don't add as active step
+          if (step.type !== 'VALUE_CONDITION' && step.type !== 'CONDITION') {
             activeSteps.add(step.id);
             console.log(`[Workflow] Activating step "${step.name}" (type: ${step.type})`);
             if (!firstActiveStepId && step.type === 'APPROVAL') {
@@ -514,8 +574,8 @@ export const workflowService = {
     for (const step of workflow.steps as any[]) {
       let stepStatus: 'PENDING' | 'SKIPPED' | 'COMPLETED' = 'SKIPPED';
 
-      if (step.type === 'VALUE_CONDITION') {
-        // VALUE_CONDITION is always evaluated, mark as SKIPPED (automatic)
+      if (step.type === 'VALUE_CONDITION' || step.type === 'CONDITION') {
+        // Condition nodes are always auto-evaluated, mark as SKIPPED
         stepStatus = 'SKIPPED';
       } else if (activeSteps.has(step.id)) {
         // Step is in the active path
@@ -639,6 +699,125 @@ export const workflowService = {
       }
     } catch (error) {
       console.error('Error evaluating VALUE_CONDITION:', error);
+      return false;
+    }
+  },
+
+  evaluateGeneralCondition(step: any, globalContext: Record<string, any>): boolean {
+    try {
+      const config = JSON.parse(step.config || '{}');
+
+      // Expression-based evaluation (e.g. "user.role == ADMIN")
+      if (config.expression) {
+        return this.evaluateExpression(config.expression, globalContext);
+      }
+
+      // Field/operator/value based evaluation
+      const { field, operator, value } = config;
+      if (!field) {
+        console.warn('[Workflow] CONDITION has no field or expression configured');
+        return false;
+      }
+
+      const fieldValue = String(globalContext[field] ?? '');
+      const compareValue = String(value ?? '');
+
+      switch (operator) {
+        case 'equals':
+        case '==':
+        case '=':
+          return fieldValue === compareValue;
+        case 'not_equals':
+        case '!=':
+          return fieldValue !== compareValue;
+        case 'contains':
+          return fieldValue.toLowerCase().includes(compareValue.toLowerCase());
+        case 'not_contains':
+          return !fieldValue.toLowerCase().includes(compareValue.toLowerCase());
+        case 'starts_with':
+          return fieldValue.toLowerCase().startsWith(compareValue.toLowerCase());
+        case 'ends_with':
+          return fieldValue.toLowerCase().endsWith(compareValue.toLowerCase());
+        case 'is_empty':
+          return !fieldValue || fieldValue.trim() === '';
+        case 'is_not_empty':
+          return !!fieldValue && fieldValue.trim() !== '';
+        default:
+          console.warn(`[Workflow] Unknown CONDITION operator: ${operator}`);
+          return false;
+      }
+    } catch (error) {
+      console.error('Error evaluating CONDITION:', error);
+      return false;
+    }
+  },
+
+  evaluateExpression(expression: string, context: Record<string, any>): boolean {
+    try {
+      // Replace context variable references with their values
+      // Supports: user.email == "test@test.com", user.role != ADMIN, etc.
+      let expr = expression.trim();
+
+      // Determine operator
+      let op = '';
+      let parts: string[] = [];
+
+      if (expr.includes('!=')) {
+        op = '!=';
+        parts = expr.split('!=').map(s => s.trim());
+      } else if (expr.includes('==')) {
+        op = '==';
+        parts = expr.split('==').map(s => s.trim());
+      } else if (expr.includes('>=')) {
+        op = '>=';
+        parts = expr.split('>=').map(s => s.trim());
+      } else if (expr.includes('<=')) {
+        op = '<=';
+        parts = expr.split('<=').map(s => s.trim());
+      } else if (expr.includes('>')) {
+        op = '>';
+        parts = expr.split('>').map(s => s.trim());
+      } else if (expr.includes('<')) {
+        op = '<';
+        parts = expr.split('<').map(s => s.trim());
+      } else {
+        console.warn(`[Workflow] Could not parse expression: ${expression}`);
+        return false;
+      }
+
+      if (parts.length !== 2) {
+        console.warn(`[Workflow] Invalid expression format: ${expression}`);
+        return false;
+      }
+
+      const resolveValue = (token: string): string => {
+        // Remove quotes if present
+        const unquoted = token.replace(/^["']|["']$/g, '');
+        // Check if it's a context variable
+        if (context[token] !== undefined) return String(context[token]);
+        if (context[unquoted] !== undefined) return String(context[unquoted]);
+        return unquoted;
+      };
+
+      const left = resolveValue(parts[0]);
+      const right = resolveValue(parts[1]);
+
+      // Try numeric comparison first
+      const leftNum = parseFloat(left);
+      const rightNum = parseFloat(right);
+      const bothNumeric = !isNaN(leftNum) && !isNaN(rightNum);
+
+      switch (op) {
+        case '==': return bothNumeric ? leftNum === rightNum : left === right;
+        case '!=': return bothNumeric ? leftNum !== rightNum : left !== right;
+        case '>': return bothNumeric ? leftNum > rightNum : left > right;
+        case '<': return bothNumeric ? leftNum < rightNum : left < right;
+        case '>=': return bothNumeric ? leftNum >= rightNum : left >= right;
+        case '<=': return bothNumeric ? leftNum <= rightNum : left <= right;
+        default: return false;
+      }
+    } catch (error) {
+      console.error(`[Workflow] Error evaluating expression "${expression}":`, error);
       return false;
     }
   },
