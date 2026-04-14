@@ -65,6 +65,22 @@ export interface IncidentComment {
   };
 }
 
+export interface IncidentAttachment {
+  id: string;
+  incidentId: string;
+  filename: string;
+  originalFilename: string;
+  mimeType: string;
+  fileSize: number;
+  uploadedById: string;
+  createdAt: string;
+  uploadedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
 export interface CreateIncidentDto {
   title: string;
   description: string;
@@ -191,6 +207,35 @@ export const incidentService = {
 
   async reorder(orderedIds: string[]): Promise<void> {
     await axios.put(`${API_URL}/incidents/reorder`, { orderedIds }, {
+      headers: getAuthHeader(),
+    });
+  },
+
+  async getAttachments(incidentId: string): Promise<IncidentAttachment[]> {
+    const response = await axios.get(`${API_URL}/incidents/${incidentId}/attachments`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  },
+
+  async uploadAttachment(incidentId: string, file: File): Promise<IncidentAttachment> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axios.post(`${API_URL}/incidents/${incidentId}/attachments`, formData, {
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  getAttachmentDownloadUrl(attachmentId: string): string {
+    return `${API_URL}/incidents/attachments/${attachmentId}/download`;
+  },
+
+  async deleteAttachment(attachmentId: string): Promise<void> {
+    await axios.delete(`${API_URL}/incidents/attachments/${attachmentId}`, {
       headers: getAuthHeader(),
     });
   },

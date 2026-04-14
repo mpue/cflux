@@ -7,7 +7,12 @@ export { AuthRequest };
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    let token = req.headers.authorization?.split(' ')[1];
+
+    // Fallback: support token as query parameter (for file downloads/previews)
+    if (!token && typeof req.query.token === 'string') {
+      token = req.query.token;
+    }
 
     if (!token) {
       return res.status(401).json({ error: 'No token provided' });

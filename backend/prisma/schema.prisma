@@ -114,6 +114,7 @@ model User {
   reportedIncidents Incident[] @relation("IncidentsReported")
   assignedIncidents Incident[] @relation("IncidentsAssigned")
   incidentComments  IncidentComment[]
+  incidentAttachments IncidentAttachment[] @relation("IncidentAttachmentsUploaded")
   workflowApprovals WorkflowInstanceStep[]
   userGroup     UserGroup? @relation("UserGroupDeprecated", fields: [userGroupId], references: [id], onDelete: SetNull)
   userGroupMemberships UserGroupMembership[]
@@ -1015,6 +1016,7 @@ model Incident {
   assignedTo      User?            @relation("IncidentsAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
   project         Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
   comments        IncidentComment[]
+  attachments     IncidentAttachment[]
   ehsTodos        EHSTodo[]
   
   @@index([reportedById])
@@ -1044,6 +1046,24 @@ model IncidentComment {
   @@index([userId])
   @@index([createdAt])
   @@map("incident_comments")
+}
+
+model IncidentAttachment {
+  id               String   @id @default(uuid())
+  incidentId       String
+  filename         String           // UUID-based filename on disk
+  originalFilename String           // Original filename from upload
+  mimeType         String
+  fileSize         Int
+  uploadedById     String
+
+  createdAt        DateTime @default(now())
+
+  incident         Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  uploadedBy       User     @relation("IncidentAttachmentsUploaded", fields: [uploadedById], references: [id])
+
+  @@index([incidentId])
+  @@map("incident_attachments")
 }
 
 // ========== WORKFLOW SYSTEM ==========

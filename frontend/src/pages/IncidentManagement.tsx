@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useModules } from '../contexts/ModuleContext';
-import { incidentService, Incident, IncidentStatistics, CreateIncidentDto, UpdateIncidentDto } from '../services/incident.service';
+import { incidentService, Incident, IncidentStatistics, CreateIncidentDto, UpdateIncidentDto, IncidentAttachment } from '../services/incident.service';
 import { userService } from '../services/user.service';
 import { projectService } from '../services/project.service';
 import AppNavbar from '../components/AppNavbar';
@@ -41,7 +41,8 @@ const IncidentManagement: React.FC = () => {
   const [filterPriority, setFilterPriority] = useState<string>('');
   const [filterProject, setFilterProject] = useState<string>('');
   const [newComment, setNewComment] = useState('');
-
+  const [attachments, setAttachments] = useState<IncidentAttachment[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [formData, setFormData] = useState<CreateIncidentDto>({
     title: '',
     description: '',
@@ -162,6 +163,7 @@ const IncidentManagement: React.FC = () => {
       const fullIncident = await incidentService.getById(incident.id);
       setSelectedIncident(fullIncident);
       setShowDetailModal(true);
+      loadAttachments(incident.id);
     } catch (err: any) {
       setError(err.message || 'Failed to load incident details');
     }
@@ -177,6 +179,50 @@ const IncidentManagement: React.FC = () => {
     } catch (err: any) {
       setError(err.message || 'Failed to add comment');
     }
+  };
+
+  const loadAttachments = async (incidentId: string) => {
+    try {
+      const data = await incidentService.getAttachments(incidentId);
+      setAttachments(data);
+    } catch (err: any) {
+      console.error('Failed to load attachments:', err);
+    }
+  };
+
+  const handleUploadAttachment = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!selectedIncident || !e.target.files?.length) return;
+    const file = e.target.files[0];
+    try {
+      setUploadingAttachment(true);
+      await incidentService.uploadAttachment(selectedIncident.id, file);
+      await loadAttachments(selectedIncident.id);
+    } catch (err: any) {
+      setError(err.message || 'Fehler beim Hochladen');
+    } finally {
+      setUploadingAttachment(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (!selectedIncident || !window.confirm('Anhang wirklich löschen?')) return;
+    try {
+      await incidentService.deleteAttachment(attachmentId);
+      await loadAttachments(selectedIncident.id);
+    } catch (err: any) {
+      setError(err.message || 'Fehler beim Löschen');
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const isImageMimeType = (mimeType: string): boolean => {
+    return mimeType.startsWith('image/');
   };
 
   // Drag & Drop handlers
@@ -783,6 +829,75 @@ const IncidentManagement: React.FC = () => {
                     <p>{selectedIncident.solution}</p>
                   </div>
                 )}
+
+                {/* Attachments Section */}
+                <div className="detail-section">
+                  <h3>Anhänge</h3>
+                  {attachments.length > 0 ? (
+                    <div className="attachments-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {attachments.map((att) => (
+                        <div key={att.id} style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '8px 12px',
+                          border: '1px solid var(--border-color, #e5e7eb)',
+                          borderRadius: '6px',
+                          background: 'var(--bg-secondary, #f9fafb)',
+                        }}>
+                          {isImageMimeType(att.mimeType) ? (
+                            <img
+                              src={`${incidentService.getAttachmentDownloadUrl(att.id)}?token=${localStorage.getItem('token')}`}
+                              alt={att.originalFilename}
+                              style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '4px' }}
+                            />
+                          ) : (
+                            <span style={{ fontSize: '24px' }}>📄</span>
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <a
+                              href={`${incidentService.getAttachmentDownloadUrl(att.id)}?token=${localStorage.getItem('token')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ fontWeight: 500, wordBreak: 'break-all' }}
+                            >
+                              {att.originalFilename}
+                            </a>
+                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                              {formatFileSize(att.fileSize)} · {att.uploadedBy ? `${att.uploadedBy.firstName} ${att.uploadedBy.lastName}` : ''} · {new Date(att.createdAt).toLocaleString('de-CH')}
+                            </div>
+                          </div>
+                          {canEditIncidents && (
+                            <button
+                              onClick={() => handleDeleteAttachment(att.id)}
+                              className="btn-small"
+                              style={{ color: '#dc2626', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                              title="Anhang löschen"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>Keine Anhänge</p>
+                  )}
+                  {canEditIncidents && (
+                    <div style={{ marginTop: '10px' }}>
+                      <label className="btn-secondary" style={{ cursor: 'pointer', display: 'inline-block' }}>
+                        {uploadingAttachment ? 'Wird hochgeladen...' : 'Datei anhängen'}
+                        <input
+                          type="file"
+                          onChange={handleUploadAttachment}
+                          style={{ display: 'none' }}
+                          disabled={uploadingAttachment}
+                          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
 
                 <div className="detail-section">
                   <h3>Kommentare</h3>
