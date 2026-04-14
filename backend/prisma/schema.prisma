@@ -960,6 +960,7 @@ enum IncidentStatus {
 
 model Incident {
   id              String           @id @default(uuid())
+  incidentNumber  String?          @unique // Menschenlesbare ID, z.B. CFLUX-11
   title           String
   description     String           @db.Text
   priority        IncidentPriority @default(MEDIUM)

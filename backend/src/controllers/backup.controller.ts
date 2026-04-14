@@ -80,6 +80,7 @@ const TABLE_MAP: Record<string, string> = {
   // Incidents
   incidents: 'incident',
   incidentComments: 'incidentComment',
+  incidentAttachments: 'incidentAttachment',
 
   // Automation
   systemActions: 'systemAction',
@@ -477,6 +478,7 @@ export const restoreBackup = async (req: Request, res: Response) => {
     await prisma.workflowStep.deleteMany();
 
     // Incidents
+    await prisma.incidentAttachment.deleteMany();
     await prisma.incidentComment.deleteMany();
     await prisma.incident.deleteMany();
 
@@ -771,6 +773,7 @@ export const restoreBackup = async (req: Request, res: Response) => {
     // ── Phase 13: Incidents ──────────────────────────────────
     restoredCount += await restoreTable('incidents', 'incident', 'Incidents');
     restoredCount += await restoreTable('incidentComments', 'incidentComment', 'IncidentComments');
+    restoredCount += await restoreTable('incidentAttachments', 'incidentAttachment', 'IncidentAttachments');
 
     // ── Phase 14: Workflows ──────────────────────────────────
     restoredCount += await restoreTable('workflows', 'workflow', 'Workflows');

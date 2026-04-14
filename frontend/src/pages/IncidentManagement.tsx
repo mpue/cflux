@@ -409,6 +409,7 @@ const IncidentManagement: React.FC = () => {
         <table>
           <thead>
             <tr>
+              <th>ID</th>
               <th>Titel</th>
               <th>Priorität</th>
               <th>Status</th>
@@ -433,6 +434,7 @@ const IncidentManagement: React.FC = () => {
                 className={dragOverIndex === index ? 'drag-over' : ''}
                 style={{ cursor: canEditIncidents ? 'grab' : 'pointer' }}
               >
+                <td><code>{incident.incidentNumber || incident.id.substring(0, 8)}</code></td>
                 <td>
                   <strong>{incident.title}</strong>
                   <br />

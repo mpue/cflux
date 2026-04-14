@@ -8,6 +8,7 @@ const API_URL = electronBackendUrl
 
 export interface Incident {
   id: string;
+  incidentNumber?: string;
   title: string;
   description: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';

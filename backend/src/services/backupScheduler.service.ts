@@ -60,6 +60,7 @@ const TABLE_MAP: Record<string, string> = {
   reminderSettings: 'reminderSettings',
   incidents: 'incident',
   incidentComments: 'incidentComment',
+  incidentAttachments: 'incidentAttachment',
   systemActions: 'systemAction',
   workflowTriggers: 'workflowTrigger',
   actionLogs: 'actionLog',

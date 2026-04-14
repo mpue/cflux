@@ -42,10 +42,35 @@ export interface AddCommentDto {
   userId: string;
 }
 
+async function generateIncidentNumber(projectId?: string): Promise<string> {
+  let prefix = 'INC';
+
+  if (projectId) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { name: true },
+    });
+    if (project) {
+      // Take project name, uppercase, remove non-alpha chars, first 4 chars
+      prefix = project.name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 4);
+    }
+  }
+
+  // Count existing incidents for this project to get the next number
+  const count = await prisma.incident.count({
+    where: projectId ? { projectId } : { projectId: null },
+  });
+
+  return `${prefix}-${count + 1}`;
+}
+
 export const incidentService = {
   async createIncident(data: CreateIncidentDto): Promise<Incident> {
+    const incidentNumber = await generateIncidentNumber(data.projectId);
+
     const incident = await prisma.incident.create({
       data: {
+        incidentNumber,
         title: data.title,
         description: data.description,
         priority: data.priority || 'MEDIUM',
@@ -253,6 +278,11 @@ export const incidentService = {
 
   async updateIncident(id: string, data: UpdateIncidentDto): Promise<Incident> {
     const updateData: any = { ...data };
+
+    // Regenerate incidentNumber when project changes
+    if (data.projectId !== undefined) {
+      updateData.incidentNumber = await generateIncidentNumber(data.projectId || undefined);
+    }
 
     // Handle status changes with timestamps
     if (data.status === 'RESOLVED' && data.solution) {
