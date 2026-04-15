@@ -87,7 +87,7 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
   const loadProjects = async () => {
     try {
       setIsLoading(true);
-      const projectsData = await projectService.getAllProjects();
+      const projectsData = await projectService.getMyProjects();
       setProjects(projectsData);
       if (projectsData.length > 0 && !selectedProject) {
         setSelectedProject(projectsData[0]);
@@ -679,7 +679,7 @@ const ProjectPlanningTab: React.FC<ProjectPlanningTabProps> = ({ onUpdate }) => 
         <div className="empty-state">
           {viewType === 'projects' ? (
             <>
-              <p>Keine Projekte vorhanden</p>
+              <p>Keine Projekte vorhanden, oder sind Ihnen keine Projekte zugeordnet</p>
               <p className="hint">Erstellen Sie zuerst Projekte im Tab "Projekte"</p>
             </>
           ) : (

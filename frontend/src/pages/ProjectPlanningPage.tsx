@@ -83,7 +83,7 @@ const ProjectPlanningPage: React.FC = () => {
   const loadProjects = async () => {
     try {
       setIsLoading(true);
-      const projectsData = await projectService.getAllProjects();
+      const projectsData = await projectService.getMyProjects();
       setProjects(projectsData);
       if (projectsData.length > 0) {
         setSelectedProject(projectsData[0]);
@@ -620,7 +620,7 @@ const ProjectPlanningPage: React.FC = () => {
           </div>
         ) : tasks.length === 0 ? (
           <div className="empty-state">
-            <p>Keine {viewType === 'projects' ? 'Projekte' : 'Aufgaben'} vorhanden</p>
+            <p>Keine {viewType === 'projects' ? 'Projekte vorhanden, oder sind Ihnen keine Projekte zugeordnet' : 'Aufgaben vorhanden'}</p>
             {viewType === 'projects' && (
               <button onClick={() => navigate('/projects')}>Projekt erstellen</button>
             )}
