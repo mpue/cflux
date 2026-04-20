@@ -326,18 +326,6 @@ const Dashboard: React.FC = () => {
       setShowMissedClockOutModal(false);
       setMissedClockOutEntry(null);
       await loadData();
-      // Per ablauf_zeiterfassung.md: After recording missed clock-out, auto-clock-in
-      try {
-        await timeService.clockIn(
-          selectedProject || undefined,
-          selectedLocation || undefined,
-          undefined,
-          selectedStory || undefined
-        );
-        await loadData();
-      } catch (_) {
-        // Auto-clock-in may fail (e.g. rest time violation) – user can clock in manually
-      }
     } catch (error: any) {
       alert(error.response?.data?.error || 'Fehler beim Nachtragen der Ausstempelung');
     }
