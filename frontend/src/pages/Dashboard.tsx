@@ -50,6 +50,7 @@ const Dashboard: React.FC = () => {
   const [allocations, setAllocations] = useState<AllocationInput[]>([]);
   const [existingAllocations, setExistingAllocations] = useState<ProjectTimeAllocation[]>([]);
   const [loggedInUsers, setLoggedInUsers] = useState<any[]>([]);
+  const [showManualEntryModal, setShowManualEntryModal] = useState(false);
 
   useEffect(() => {
     document.title = 'CFlux - Dashboard';
@@ -483,7 +484,16 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="card">
-          <h2>Zeit erfassen</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ margin: 0 }}>Zeit erfassen</h2>
+            <button
+              className="btn btn-secondary"
+              style={{ fontSize: '13px', padding: '6px 14px' }}
+              onClick={() => setShowManualEntryModal(true)}
+            >
+              + Manuell erfassen
+            </button>
+          </div>
           
           {currentEntry ? (
             <div>
@@ -823,6 +833,23 @@ const Dashboard: React.FC = () => {
           isAdmin={false}
         />
       )}
+
+      {showManualEntryModal && (
+        <ManualTimeEntryModal
+          projects={projects}
+          locations={locations}
+          onClose={() => setShowManualEntryModal(false)}
+          onSave={async (data) => {
+            try {
+              await timeService.createMyManualEntry(data);
+              setShowManualEntryModal(false);
+              await loadData();
+            } catch (error: any) {
+              alert(error.response?.data?.error || 'Fehler beim Speichern des Zeiteintrags');
+            }
+          }}
+        />
+      )}
     </>
   );
 };
@@ -1091,6 +1118,149 @@ const AbsenceModal: React.FC<{
             </button>
             <button type="submit" className="btn btn-primary">
               Antrag stellen
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const ManualTimeEntryModal: React.FC<{
+  projects: Project[];
+  locations: Location[];
+  onClose: () => void;
+  onSave: (data: {
+    clockIn: string;
+    clockOut?: string;
+    projectId?: string;
+    locationId?: string;
+    description?: string;
+    pauseMinutes?: number;
+  }) => Promise<void>;
+}> = ({ projects, locations, onClose, onSave }) => {
+  const today = new Date().toISOString().slice(0, 10);
+  const [formData, setFormData] = useState({
+    date: today,
+    clockIn: '08:00',
+    clockOut: '17:00',
+    projectId: '',
+    locationId: '',
+    description: '',
+    pauseMinutes: 0,
+  });
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clockInDate = new Date(`${formData.date}T${formData.clockIn}:00`);
+    const clockOutDate = formData.clockOut ? new Date(`${formData.date}T${formData.clockOut}:00`) : undefined;
+
+    if (clockOutDate && clockOutDate <= clockInDate) {
+      alert('Ausstempeln muss nach Einstempeln liegen!');
+      return;
+    }
+
+    await onSave({
+      clockIn: clockInDate.toISOString(),
+      clockOut: clockOutDate?.toISOString(),
+      projectId: formData.projectId || undefined,
+      locationId: formData.locationId || undefined,
+      description: formData.description || undefined,
+      pauseMinutes: formData.pauseMinutes || undefined,
+    });
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <h2>Manuellen Zeiteintrag erfassen</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label>Datum</label>
+            <input
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Einstempeln</label>
+            <input
+              type="time"
+              value={formData.clockIn}
+              onChange={(e) => setFormData({ ...formData, clockIn: e.target.value })}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Ausstempeln</label>
+            <input
+              type="time"
+              value={formData.clockOut}
+              onChange={(e) => setFormData({ ...formData, clockOut: e.target.value })}
+            />
+          </div>
+          <div className="form-group">
+            <label>Pause (Minuten)</label>
+            <input
+              type="number"
+              min="0"
+              value={formData.pauseMinutes}
+              onChange={(e) => setFormData({ ...formData, pauseMinutes: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+          <div className="form-group">
+            <label>Projekt (optional)</label>
+            <select
+              value={formData.projectId}
+              onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
+            >
+              <option value="">Kein Projekt</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Standort (optional)</label>
+            <select
+              value={formData.locationId}
+              onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
+            >
+              <option value="">Kein Standort</option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label>Beschreibung (optional)</label>
+            <input
+              type="text"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Was wurde gemacht..."
+            />
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn btn-secondary" onClick={onClose}>
+              Abbrechen
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Eintrag speichern
             </button>
           </div>
         </form>

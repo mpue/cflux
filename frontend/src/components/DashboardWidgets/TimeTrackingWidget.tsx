@@ -108,7 +108,7 @@ const TimeTrackingWidget: React.FC<TimeTrackingWidgetProps> = ({
               </span>
             </div>
             
-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
               {currentEntry.status === 'CLOCKED_IN' && (
                 <>
                   <button className="btn" style={{ background: '#ff9800', color: 'white' }} onClick={onStartPause}>
@@ -122,6 +122,15 @@ const TimeTrackingWidget: React.FC<TimeTrackingWidgetProps> = ({
               {currentEntry.status === 'ON_PAUSE' && (
                 <button className="btn btn-primary" onClick={onEndPause}>
                   ▶️ Pause beenden
+                </button>
+              )}
+              {onManualEntry && (
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowManualModal(true)}
+                  title="Zeiteintrag manuell erfassen"
+                >
+                  ✏️ Manuell erfassen
                 </button>
               )}
             </div>
@@ -216,9 +225,14 @@ interface ManualEntryModalProps {
   }) => Promise<void>;
 }
 
+const toLocalDatetimeStr = (d: Date) => {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 const ManualEntryModal: React.FC<ManualEntryModalProps> = ({ projects, locations, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    clockIn: new Date().toISOString().slice(0, 16),
+    clockIn: toLocalDatetimeStr(new Date()),
     clockOut: '',
     projectId: '',
     storyId: '',
@@ -259,8 +273,8 @@ const ManualEntryModal: React.FC<ManualEntryModalProps> = ({ projects, locations
     setSaving(true);
     try {
       await onSave({
-        clockIn: formData.clockIn,
-        clockOut: formData.clockOut || undefined,
+        clockIn: new Date(formData.clockIn).toISOString(),
+        clockOut: formData.clockOut ? new Date(formData.clockOut).toISOString() : undefined,
         projectId: formData.projectId || undefined,
         storyId: formData.storyId || undefined,
         locationId: formData.locationId || undefined,
