@@ -190,6 +190,13 @@ async function seedActions() {
         category: 'INCIDENTS',
         isSystem: true,
       },
+      {
+        actionKey: 'incident.comment_added',
+        displayName: 'Kommentar zu Vorfall hinzugefügt',
+        description: 'Wird ausgelöst wenn ein Kommentar zu einem Vorfall hinzugefügt wird',
+        category: 'INCIDENTS',
+        isSystem: true,
+      },
 
       // Compliance
       {

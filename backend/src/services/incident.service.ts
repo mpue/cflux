@@ -384,6 +384,27 @@ export const incidentService = {
       },
     });
 
+    // Trigger incident.comment_added action
+    try {
+      const incident = await prisma.incident.findUnique({
+        where: { id: incidentId },
+        select: { id: true, title: true, status: true, reportedById: true, assignedToId: true },
+      });
+      if (incident) {
+        await actionService.triggerAction('incident.comment_added', {
+          entityType: 'INCIDENT',
+          entityId: incident.id,
+          userId: data.userId,
+          title: incident.title,
+          status: incident.status,
+          comment: data.comment,
+          commentId: comment.id,
+        });
+      }
+    } catch (actionError) {
+      console.error('[Action] Failed to trigger incident.comment_added:', actionError);
+    }
+
     return comment;
   },
 
