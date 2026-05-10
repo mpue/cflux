@@ -15,7 +15,30 @@ export type WidgetType =
   | 'bauhaus-clock'
   | 'onboarding'
   | 'checklists'
-  | 'news';
+  | 'news'
+  | 'ehs-kpi';
+
+// EHS KPI Widget configuration
+export type EHSKPIMetric =
+  | 'ltifr' | 'trir' | 'ytdLTIFR' | 'ytdTRIR'
+  | 'totalHours' | 'ytdTotalHours'
+  | 'ltis' | 'recordables' | 'nearMisses' | 'firstAids'
+  | 'fatalities' | 'unsafeConditions' | 'unsafeBehaviors'
+  | 'propertyDamages' | 'environmentIncidents' | 'safetyObservations'
+  | 'totalIncidents';
+
+export type EHSKPIDisplayType = 'numeric' | 'gauge' | 'bar-h' | 'bar-v' | 'trend' | 'radial' | 'traffic-light';
+
+export interface EHSKPIConfig {
+  metric: EHSKPIMetric;
+  displayType: EHSKPIDisplayType;
+  timeRange: 'current-month' | 'ytd';
+  year?: number;
+  month?: number;
+  maxValue?: number;   // For gauge/bar: upper bound (auto if omitted)
+  label?: string;     // Custom display label (auto if omitted)
+  decimals?: number;  // Decimal places for numeric display
+}
 
 export interface DashboardWidget {
   id: string;
@@ -26,6 +49,9 @@ export interface DashboardWidget {
   minH?: number;
   defaultW?: number;
   defaultH?: number;
+  config?: Record<string, any>;
+  /** If true, multiple independent instances of this widget can be added */
+  multiInstance?: boolean;
 }
 
 export interface WidgetLayout {
@@ -203,5 +229,22 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
     minH: 3,
     defaultW: 6,
     defaultH: 5,
+  },
+  {
+    id: 'ehs-kpi',
+    type: 'ehs-kpi',
+    title: '🦺 EHS KPI',
+    isVisible: false,
+    minW: 2,
+    minH: 2,
+    defaultW: 4,
+    defaultH: 3,
+    multiInstance: true,
+    config: {
+      metric: 'ltifr',
+      displayType: 'numeric',
+      timeRange: 'current-month',
+      decimals: 2,
+    },
   },
 ];

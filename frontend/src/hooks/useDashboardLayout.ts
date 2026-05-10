@@ -174,16 +174,23 @@ export const useDashboardLayout = (userId: string | undefined) => {
 
   // Add a new widget
   const addWidget = useCallback((widgetId: string) => {
-    const widgetToAdd = DEFAULT_WIDGETS.find(w => w.id === widgetId);
-    if (!widgetToAdd) return;
+    const template = DEFAULT_WIDGETS.find(w => w.id === widgetId);
+    if (!template) return;
+
+    // For multi-instance widgets, always create a new instance with a unique ID
+    const instanceId = template.multiInstance
+      ? `${widgetId}-${Date.now()}`
+      : widgetId;
+
+    const widgetToAdd = { ...template, id: instanceId };
 
     let newWidgets: DashboardWidget[];
-    const existingWidget = widgets.find(w => w.id === widgetId);
-    
+    const existingWidget = widgets.find(w => w.id === instanceId);
+
     if (existingWidget) {
       // Widget exists, just make it visible
-      newWidgets = widgets.map(w => 
-        w.id === widgetId ? { ...w, isVisible: true } : w
+      newWidgets = widgets.map(w =>
+        w.id === instanceId ? { ...w, isVisible: true } : w
       );
     } else {
       // Widget doesn't exist yet, add it to the list
@@ -200,9 +207,9 @@ export const useDashboardLayout = (userId: string | undefined) => {
     const maxYSm = currentLayouts.sm.reduce((max, item) => Math.max(max, item.y + item.h), 0);
 
     // Add layout for new widget if it doesn't exist
-    if (!currentLayouts.lg.find(l => l.i === widgetId)) {
+    if (!currentLayouts.lg.find(l => l.i === instanceId)) {
       currentLayouts.lg.push({
-        i: widgetId,
+        i: instanceId,
         x: 0,
         y: maxYLg,
         w: widgetToAdd.defaultW || 6,
@@ -212,9 +219,9 @@ export const useDashboardLayout = (userId: string | undefined) => {
       });
     }
 
-    if (!currentLayouts.md.find(l => l.i === widgetId)) {
+    if (!currentLayouts.md.find(l => l.i === instanceId)) {
       currentLayouts.md.push({
-        i: widgetId,
+        i: instanceId,
         x: 0,
         y: maxYMd,
         w: Math.min(widgetToAdd.defaultW || 5, 10),
@@ -224,9 +231,9 @@ export const useDashboardLayout = (userId: string | undefined) => {
       });
     }
 
-    if (!currentLayouts.sm.find(l => l.i === widgetId)) {
+    if (!currentLayouts.sm.find(l => l.i === instanceId)) {
       currentLayouts.sm.push({
-        i: widgetId,
+        i: instanceId,
         x: 0,
         y: maxYSm,
         w: 6,
@@ -241,12 +248,30 @@ export const useDashboardLayout = (userId: string | undefined) => {
 
   // Remove a widget
   const removeWidget = useCallback((widgetId: string) => {
-    const newWidgets = widgets.map(w => 
-      w.id === widgetId ? { ...w, isVisible: false } : w
-    );
+    const widget = widgets.find(w => w.id === widgetId);
+    let newWidgets: DashboardWidget[];
+
+    if (widget?.multiInstance) {
+      // Multi-instance: fully remove so the list doesn't grow forever
+      newWidgets = widgets.filter(w => w.id !== widgetId);
+    } else {
+      // Single-instance: just hide so it can be re-added via the modal
+      newWidgets = widgets.map(w =>
+        w.id === widgetId ? { ...w, isVisible: false } : w
+      );
+    }
+
     const newLayouts = generateDefaultLayouts(newWidgets);
     saveLayout(newLayouts, newWidgets);
   }, [widgets, saveLayout]);
+
+  // Update widget config (e.g. EHS KPI settings)
+  const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, any>) => {
+    const newWidgets = widgets.map(w =>
+      w.id === widgetId ? { ...w, config: { ...w.config, ...config } } : w
+    );
+    saveLayout(layouts, newWidgets);
+  }, [widgets, layouts, saveLayout]);
 
   // Reset to default layout
   const resetLayout = useCallback(async () => {
@@ -282,6 +307,7 @@ export const useDashboardLayout = (userId: string | undefined) => {
     toggleWidget,
     addWidget,
     removeWidget,
+    updateWidgetConfig,
     resetLayout,
   };
 };

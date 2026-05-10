@@ -36,6 +36,7 @@ import {
   BauhausClockWidget,
   ChecklistsWidget,
   NewsWidget,
+  EHSKPIWidget,
   WidgetSettingsModal,
   AddWidgetModal,
 } from '../components/DashboardWidgets';
@@ -50,7 +51,7 @@ const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { modules } = useModules();
   const navigate = useNavigate();
-  const { widgets, layouts, isLoading, handleLayoutChange, toggleWidget, addWidget, removeWidget, resetLayout } = useDashboardLayout(user?.id);
+  const { widgets, layouts, isLoading, handleLayoutChange, toggleWidget, addWidget, removeWidget, updateWidgetConfig, resetLayout } = useDashboardLayout(user?.id);
   
   // View mode state
   const [viewMode, setViewMode] = useState<'grid' | 'classic'>('grid');
@@ -748,6 +749,18 @@ const Dashboard: React.FC = () => {
                     <NewsWidget 
                       widgetId={widget.id}
                       onRemove={() => removeWidget(widget.id)}
+                    />
+                  </div>
+                );
+              
+              case 'ehs-kpi':
+                return (
+                  <div key={widget.id}>
+                    <EHSKPIWidget
+                      widgetId={widget.id}
+                      config={widget.config}
+                      onRemove={() => removeWidget(widget.id)}
+                      onConfigChange={(cfg) => updateWidgetConfig(widget.id, cfg)}
                     />
                   </div>
                 );

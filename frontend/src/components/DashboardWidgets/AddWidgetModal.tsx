@@ -17,8 +17,9 @@ const AddWidgetModal: React.FC<AddWidgetModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  // Filter out already visible widgets
+  // Filter out already visible widgets, but always show multi-instance widgets
   const availableWidgets = DEFAULT_WIDGETS.filter(widget => {
+    if (widget.multiInstance) return true;
     const currentWidget = currentWidgets.find(w => w.id === widget.id);
     return !currentWidget?.isVisible;
   });
@@ -54,6 +55,11 @@ const AddWidgetModal: React.FC<AddWidgetModalProps> = ({
                   </div>
                   <div className="widget-selection-title">
                     {widget.title.split(' ').slice(1).join(' ')}
+                    {widget.multiInstance && (
+                      <span style={{ fontSize: '0.7rem', color: '#666', display: 'block', marginTop: 2 }}>
+                        Mehrfach verwendbar
+                      </span>
+                    )}
                   </div>
                   <div className="widget-selection-action">
                     <button className="btn btn-primary btn-small">
