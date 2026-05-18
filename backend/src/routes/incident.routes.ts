@@ -36,6 +36,9 @@ router.use(authenticate);
 // Get all incidents (with optional filters)
 router.get('/', incidentController.getAllIncidents);
 
+// Export incidents as CSV
+router.get('/export/csv', incidentController.exportCSV);
+
 // Get statistics
 router.get('/statistics', incidentController.getStatistics);
 

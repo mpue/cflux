@@ -188,6 +188,10 @@ model User {
   assignedTools    Tool[]             @relation("ToolAssignedTo")
   toolAssignments  ToolAssignment[]   @relation("ToolAssignments")
   
+  // Kalender
+  createdCalendarEvents CalendarEvent[]        @relation("CalendarEventCreator")
+  calendarAttendees     CalendarEventAttendee[] @relation("CalendarEventAttendees")
+  
   // Workflows
   triggeredWorkflows WorkflowInstance[] @relation("WorkflowTriggeredBy")
   
@@ -3578,4 +3582,64 @@ model ToolAssignment {
   @@index([toolId])
   @@index([userId])
   @@map("tool_assignments")
+}
+
+// ============================================================
+// KALENDER-MODUL
+// ============================================================
+
+enum CalendarEventType {
+  APPOINTMENT
+  MEETING
+  REMINDER
+  TASK
+}
+
+enum CalendarAttendeeStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model CalendarEvent {
+  id          String            @id @default(uuid())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  allDay      Boolean           @default(false)
+  location    String?
+  color       String?           @default("#3B82F6")
+  eventType   CalendarEventType @default(APPOINTMENT)
+  isPrivate   Boolean           @default(false)
+
+  createdById String
+  createdBy   User              @relation("CalendarEventCreator", fields: [createdById], references: [id])
+
+  attendees   CalendarEventAttendee[]
+
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  deletedAt   DateTime?
+
+  @@index([startDate])
+  @@index([endDate])
+  @@index([createdById])
+  @@index([deletedAt])
+  @@map("calendar_events")
+}
+
+model CalendarEventAttendee {
+  id       String                 @id @default(uuid())
+  eventId  String
+  userId   String
+  status   CalendarAttendeeStatus @default(PENDING)
+
+  event    CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user     User          @relation("CalendarEventAttendees", fields: [userId], references: [id])
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@map("calendar_event_attendees")
 }

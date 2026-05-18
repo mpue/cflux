@@ -61,14 +61,17 @@ const loadInitialState = (): { widgets: DashboardWidget[], layouts: Layouts } =>
     if (stored) {
       const parsed: UserDashboardLayout = JSON.parse(stored);
       
-      // Merge with DEFAULT_WIDGETS to ensure all widgets are present
+      // Merge with DEFAULT_WIDGETS to ensure all base widgets are present
       const mergedWidgets = DEFAULT_WIDGETS.map(defaultWidget => {
         const savedWidget = parsed.widgets.find(w => w.id === defaultWidget.id);
         return savedWidget || defaultWidget;
       });
+      // Re-append multi-instance widgets (their IDs are not in DEFAULT_WIDGETS)
+      const defaultIds = new Set(DEFAULT_WIDGETS.map(w => w.id));
+      const multiInstances = parsed.widgets.filter(w => !defaultIds.has(w.id));
       
       return {
-        widgets: mergedWidgets,
+        widgets: [...mergedWidgets, ...multiInstances],
         layouts: parsed.layouts
       };
     }
@@ -98,22 +101,26 @@ export const useDashboardLayout = (userId: string | undefined) => {
         if (userId) {
           const backendLayout = await dashboardLayoutService.getMyLayout();
           if (backendLayout) {
-            // Merge with DEFAULT_WIDGETS to ensure all widgets are present
+            // Merge with DEFAULT_WIDGETS to ensure all base widgets are present
             const mergedWidgets = DEFAULT_WIDGETS.map(defaultWidget => {
               const savedWidget = backendLayout.widgets.find(w => w.id === defaultWidget.id);
               return savedWidget || defaultWidget;
             });
+            // Re-append multi-instance widgets (their IDs are not in DEFAULT_WIDGETS)
+            const defaultIds = new Set(DEFAULT_WIDGETS.map(w => w.id));
+            const multiInstances = backendLayout.widgets.filter(w => !defaultIds.has(w.id));
+            const mergedWidgets2 = [...mergedWidgets, ...multiInstances];
             
             // Only update if different from current state
             const layoutChanged = JSON.stringify(backendLayout.layouts) !== JSON.stringify(layouts);
-            const widgetsChanged = JSON.stringify(mergedWidgets) !== JSON.stringify(widgets);
+            const widgetsChanged = JSON.stringify(mergedWidgets2) !== JSON.stringify(widgets);
             
             if (layoutChanged || widgetsChanged) {
-              setWidgets(mergedWidgets);
+              setWidgets(mergedWidgets2);
               setLayouts(backendLayout.layouts);
               // Also update localStorage
               localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                widgets: mergedWidgets,
+                widgets: mergedWidgets2,
                 layouts: backendLayout.layouts
               }));
             }

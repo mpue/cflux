@@ -210,22 +210,19 @@ export const updateMonthlyData = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Year and month are required' });
     }
 
-    const monthlyData = await prisma.eHSMonthlyData.upsert({
-      where: {
-        year_month_projectId: {
-          year: parseInt(year),
-          month: parseInt(month),
-          projectId: projectId || null,
-        },
-      },
-      update: data,
-      create: {
-        year: parseInt(year),
-        month: parseInt(month),
-        projectId,
-        ...data,
-      },
+    const yearInt = parseInt(year);
+    const monthInt = parseInt(month);
+    const pid = projectId || null;
+
+    const existing = await prisma.eHSMonthlyData.findFirst({
+      where: { year: yearInt, month: monthInt, projectId: pid },
     });
+
+    const monthlyData = existing
+      ? await prisma.eHSMonthlyData.update({ where: { id: existing.id }, data })
+      : await prisma.eHSMonthlyData.create({
+          data: { year: yearInt, month: monthInt, projectId: pid, ...data },
+        });
 
     res.json(monthlyData);
   } catch (error) {
@@ -299,53 +296,37 @@ export const calculateMonthlyKPIs = async (req: AuthRequest, res: Response) => {
     const closingRate = incidents.length > 0 ? (closedIncidents / incidents.length) * 100 : null;
 
     // Update monthly data
-    const monthlyData = await prisma.eHSMonthlyData.upsert({
-      where: {
-        year_month_projectId: {
-          year: parseInt(year),
-          month: parseInt(month),
-          projectId: projectId || null,
-        },
-      },
-      update: {
-        unsafeConditions,
-        unsafeBehaviors,
-        nearMisses,
-        firstAids,
-        recordables,
-        ltis,
-        fatalities,
-        propertyDamages,
-        environmentIncidents,
-        safetyObservations,
-        ltifr,
-        trir,
-        closingRate,
-      },
-      create: {
-        year: parseInt(year),
-        month: parseInt(month),
-        projectId,
-        unsafeConditions,
-        unsafeBehaviors,
-        nearMisses,
-        firstAids,
-        recordables,
-        ltis,
-        fatalities,
-        propertyDamages,
-        environmentIncidents,
-        safetyObservations,
-        ltifr,
-        trir,
-        closingRate,
-        workingDays: existingData?.workingDays || 0,
-        workersPerDay: existingData?.workersPerDay || 0,
-        hoursPerDay: existingData?.hoursPerDay || 0,
-        totalEmployees: existingData?.totalEmployees || 0,
-        totalHours: existingData?.totalHours || 0,
-      },
-    });
+    const kpiFields = {
+      unsafeConditions,
+      unsafeBehaviors,
+      nearMisses,
+      firstAids,
+      recordables,
+      ltis,
+      fatalities,
+      propertyDamages,
+      environmentIncidents,
+      safetyObservations,
+      ltifr,
+      trir,
+      closingRate,
+    };
+
+    const monthlyData = existingData
+      ? await prisma.eHSMonthlyData.update({ where: { id: existingData.id }, data: kpiFields })
+      : await prisma.eHSMonthlyData.create({
+          data: {
+            year: parseInt(year),
+            month: parseInt(month),
+            projectId: projectId || null,
+            ...kpiFields,
+            workingDays: 0,
+            workersPerDay: 0,
+            hoursPerDay: 0,
+            totalEmployees: 0,
+            totalHours: 0,
+          },
+        });
 
     res.json({
       monthlyData,

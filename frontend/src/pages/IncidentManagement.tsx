@@ -324,11 +324,20 @@ const IncidentManagement: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <h1>Incident Management</h1>
         </div>
-        {canEditIncidents && (
-          <button onClick={() => setShowCreateModal(true)} className="btn-primary">
-            Neuer Vorfall
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => incidentService.exportCSV(filterStatus, filterPriority, filterProject)}
+            className="btn-secondary"
+            title="Incidents als CSV exportieren"
+          >
+            CSV Export
           </button>
-        )}
+          {canEditIncidents && (
+            <button onClick={() => setShowCreateModal(true)} className="btn-primary">
+              Neuer Vorfall
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (

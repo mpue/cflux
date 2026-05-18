@@ -240,4 +240,29 @@ export const incidentService = {
       headers: getAuthHeader(),
     });
   },
+
+  async exportCSV(status?: string, priority?: string, projectId?: string): Promise<void> {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (priority) params.append('priority', priority);
+    if (projectId) params.append('projectId', projectId);
+
+    const response = await axios.get(`${API_URL}/incidents/export/csv?${params.toString()}`, {
+      headers: getAuthHeader(),
+      responseType: 'blob',
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.href = url;
+    const disposition = response.headers['content-disposition'];
+    const filename = disposition
+      ? disposition.split('filename=')[1]?.replace(/"/g, '') ?? 'incidents.csv'
+      : 'incidents.csv';
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };

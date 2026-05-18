@@ -38,6 +38,7 @@ import {
   HealthAndSafety as EHSIcon,
   School as SchoolIcon,
   ChecklistRtl as ChecklistIcon,
+  CalendarMonth as CalendarIcon,
 } from '@mui/icons-material';
 
 interface AppNavbarProps {
@@ -254,6 +255,18 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
             <MenuItem onClick={() => { onPdfReport(); handleMoreMenuClose(); }}>
               <PdfIcon sx={{ mr: 1 }} />
               PDF-Bericht
+            </MenuItem>
+          )}
+          {hasModuleAccess('calendar') && (
+            <MenuItem onClick={() => navigateTo('/calendar')}>
+              <CalendarIcon sx={{ mr: 1 }} />
+              Kalender
+            </MenuItem>
+          )}
+          {hasModuleAccess('calendar') && (
+            <MenuItem onClick={() => navigateTo('/calendar')}>
+              <CalendarIcon sx={{ mr: 1 }} />
+              Kalender
             </MenuItem>
           )}
           {hasModuleAccess('travel_expenses') && (

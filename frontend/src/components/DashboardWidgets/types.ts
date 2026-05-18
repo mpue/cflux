@@ -16,7 +16,8 @@ export type WidgetType =
   | 'onboarding'
   | 'checklists'
   | 'news'
-  | 'ehs-kpi';
+  | 'ehs-kpi'
+  | 'ehs-pyramid';
 
 // EHS KPI Widget configuration
 export type EHSKPIMetric =
@@ -246,5 +247,15 @@ export const DEFAULT_WIDGETS: DashboardWidget[] = [
       timeRange: 'current-month',
       decimals: 2,
     },
+  },
+  {
+    id: 'ehs-pyramid',
+    type: 'ehs-pyramid',
+    title: '▲ EHS Pyramide',
+    isVisible: false,
+    minW: 3,
+    minH: 4,
+    defaultW: 4,
+    defaultH: 7,
   },
 ];

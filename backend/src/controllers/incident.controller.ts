@@ -247,4 +247,83 @@ export const incidentController = {
       res.status(500).json({ error: 'Failed to reorder incidents' });
     }
   },
+
+  async exportCSV(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+
+      const hasReadPermission = await checkModulePermission(userId, 'incidents', 'READ');
+      if (!hasReadPermission) {
+        res.status(403).json({ error: 'No permission to export incidents' });
+        return;
+      }
+
+      const { status, priority, assignedToId, year, projectId } = req.query;
+
+      const incidents = await incidentService.getAllIncidents(
+        status as IncidentStatus,
+        priority as IncidentPriority,
+        assignedToId as string,
+        year ? parseInt(year as string) : undefined,
+        projectId as string
+      );
+
+      const escapeCsv = (value: any): string => {
+        if (value === null || value === undefined) return '';
+        const str = String(value);
+        if (str.includes('"') || str.includes(',') || str.includes('\n') || str.includes('\r')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      const formatDate = (date: any): string => {
+        if (!date) return '';
+        return new Date(date).toLocaleDateString('de-CH');
+      };
+
+      const headers = [
+        'Vorfallsnummer', 'Titel', 'Status', 'Priorität', 'Kategorie', 'Betroffenes System',
+        'Gemeldet am', 'Vorfallsdatum', 'Fälligkeitsdatum', 'Gelöst am', 'Geschlossen am',
+        'Gemeldet von', 'Zugewiesen an', 'Projekt',
+        'EHS-relevant', 'EHS-Kategorie', 'EHS-Schweregrad', 'Ort',
+        'Beschreibung', 'Lösung', 'Notizen',
+      ];
+
+      const rows = incidents.map((inc: any) => [
+        escapeCsv(inc.incidentNumber),
+        escapeCsv(inc.title),
+        escapeCsv(inc.status),
+        escapeCsv(inc.priority),
+        escapeCsv(inc.category),
+        escapeCsv(inc.affectedSystem),
+        escapeCsv(formatDate(inc.reportedAt)),
+        escapeCsv(formatDate(inc.incidentDate)),
+        escapeCsv(formatDate(inc.dueDate)),
+        escapeCsv(formatDate(inc.resolvedAt)),
+        escapeCsv(formatDate(inc.closedAt)),
+        escapeCsv(inc.reportedBy ? `${inc.reportedBy.firstName} ${inc.reportedBy.lastName}` : ''),
+        escapeCsv(inc.assignedTo ? `${inc.assignedTo.firstName} ${inc.assignedTo.lastName}` : ''),
+        escapeCsv(inc.project?.name),
+        escapeCsv(inc.isEHSRelevant ? 'Ja' : 'Nein'),
+        escapeCsv(inc.ehsCategory),
+        escapeCsv(inc.ehsSeverity),
+        escapeCsv(inc.location),
+        escapeCsv(inc.description),
+        escapeCsv(inc.solution),
+        escapeCsv(inc.notes),
+      ].join(','));
+
+      const csv = [headers.join(','), ...rows].join('\r\n');
+      const bom = '\uFEFF'; // UTF-8 BOM for Excel compatibility
+
+      const filename = `incidents_${new Date().toISOString().slice(0, 10)}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(bom + csv);
+    } catch (error) {
+      console.error('Error exporting incidents:', error);
+      res.status(500).json({ error: 'Failed to export incidents' });
+    }
+  },
 };

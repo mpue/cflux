@@ -55,6 +55,7 @@ import newsRoutes from './routes/news.routes';
 import departmentRoutes from './routes/department.routes';
 import storyRoutes from './routes/story.routes';
 import werkzeugeRoutes from './routes/werkzeuge.routes';
+import calendarRoutes from './routes/calendar.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { authenticate } from './middleware/auth';
 import { backupScheduler } from './services/backupScheduler.service';
@@ -148,6 +149,7 @@ app.use('/api/news', newsRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/werkzeuge', werkzeugeRoutes);
+app.use('/api/calendar', calendarRoutes);
 
 // Version endpoint
 app.get('/api/version', (req, res) => {

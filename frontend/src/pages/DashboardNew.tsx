@@ -37,6 +37,7 @@ import {
   ChecklistsWidget,
   NewsWidget,
   EHSKPIWidget,
+  EHSPyramidWidget,
   WidgetSettingsModal,
   AddWidgetModal,
 } from '../components/DashboardWidgets';
@@ -757,6 +758,18 @@ const Dashboard: React.FC = () => {
                 return (
                   <div key={widget.id}>
                     <EHSKPIWidget
+                      widgetId={widget.id}
+                      config={widget.config}
+                      onRemove={() => removeWidget(widget.id)}
+                      onConfigChange={(cfg) => updateWidgetConfig(widget.id, cfg)}
+                    />
+                  </div>
+                );
+              
+              case 'ehs-pyramid':
+                return (
+                  <div key={widget.id}>
+                    <EHSPyramidWidget
                       widgetId={widget.id}
                       config={widget.config}
                       onRemove={() => removeWidget(widget.id)}

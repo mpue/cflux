@@ -329,6 +329,14 @@ async function seedModules() {
       route: '/admin?tab=informationen',
       sortOrder: 38,
     },
+    {
+      name: 'Kalender',
+      key: 'calendar',
+      description: 'Persönlicher Kalender mit Jahres-, Monats- und Wochenansicht',
+      icon: 'calendar_month',
+      route: '/calendar',
+      sortOrder: 39,
+    },
   ];
 
   for (const module of modules) {
