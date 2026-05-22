@@ -3349,6 +3349,9 @@ model ChecklistItem {
   dueAfterDays      Int?     // "5 Tage nach Start" → 5
   dueDayOffset      Int?     // Relative zu Startdatum
   
+  // Externer Link (wird bei der Abarbeitung angezeigt)
+  externalLink      String?  // z.B. "https://wiki.firma.ch/onboarding"
+  
   // Bedingte Logik
   conditionalParentId String?
   showIfParentValue   String? // "yes", "no", specific value

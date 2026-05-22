@@ -381,6 +381,7 @@
 [data-theme=dark] .ehskpi-display-name { color: #e5e7eb; }
 [data-theme=dark] .ehskpi-display-btn.active .ehskpi-display-icon,
 [data-theme=dark] .ehskpi-display-btn.active .ehskpi-display-name { color: #60a5fa; }
+[data-theme=dark] .ehskpi-field { color: #9ca3af; }
 [data-theme=dark] .ehskpi-select,
 [data-theme=dark] .ehskpi-input { background: #1f2937; border-color: #374151; color: #e5e7eb; }
 [data-theme=dark] .ehskpi-section { border-color: #374151; }

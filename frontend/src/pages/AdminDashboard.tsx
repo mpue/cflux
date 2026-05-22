@@ -46,6 +46,7 @@ import {
   DepartmentsTab
 } from '../components/admin';
 import OnboardingTab from '../components/admin/OnboardingTab';
+import OnboardingEmployeesSubTab from '../components/admin/OnboardingEmployeesSubTab';
 import OrgChartTab from '../components/admin/OrgChartTab';
 import ChecklistsTab from '../components/admin/ChecklistsTab';
 import JobFunctionsTab from '../components/admin/JobFunctionsTab';
@@ -73,7 +74,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel' | 'informationen';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'onboardingEmployees' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel' | 'informationen';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -194,6 +195,7 @@ const AdminDashboard: React.FC = () => {
       zeitmodelle: 'Zeitmodelle',
       elearning: 'E-Learning',
       onboarding: 'Onboarding',
+      onboardingEmployees: 'Mitarbeiterliste',
       jobFunctions: 'Funktionen',
       checklists: 'Checklisten',
       news: 'News',
@@ -840,7 +842,7 @@ const AdminDashboard: React.FC = () => {
 
             {/* System & Konfiguration */}
             {(() => {
-              const groupCheck = shouldShowGroup('System Konfiguration', ['Workflows', 'Module', 'Berechtigungen', 'Einstellungen', 'E-Learning', 'Onboarding', 'Funktionen', 'Checklisten', 'News', 'Dokumente', 'Hilfsmittel', 'Backup']);
+              const groupCheck = shouldShowGroup('System Konfiguration', ['Workflows', 'Module', 'Berechtigungen', 'Einstellungen', 'E-Learning', 'Onboarding', 'Mitarbeiterliste', 'Funktionen', 'Checklisten', 'News', 'Dokumente', 'Hilfsmittel', 'Backup']);
               return groupCheck.show && (
             <div className="tab-group">
               <div 
@@ -908,6 +910,13 @@ const AdminDashboard: React.FC = () => {
                       active={activeTab === 'onboarding'}
                       onClick={() => changeTab('onboarding')}
                       label="👤 Onboarding"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('onboarding')) && (groupCheck.showAll || matchesSearch('Mitarbeiterliste')) && (
+                    <TabButton
+                      active={activeTab === 'onboardingEmployees'}
+                      onClick={() => changeTab('onboardingEmployees')}
+                      label="👥 Mitarbeiterliste"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('job_functions')) && (groupCheck.showAll || matchesSearch('Funktionen')) && (
@@ -982,6 +991,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'projectPlanning' && <ProjectPlanningTab onUpdate={loadData} />}
             {activeTab === 'elearning' && <ELearningManagementTab onUpdate={loadData} />}
             {activeTab === 'onboarding' && <OnboardingTab onUpdate={loadData} />}
+            {activeTab === 'onboardingEmployees' && <OnboardingEmployeesSubTab onUpdate={loadData} />}
             {activeTab === 'jobFunctions' && <JobFunctionsTab onUpdate={loadData} />}
             {activeTab === 'checklists' && <ChecklistsTab onUpdate={loadData} />}
             {activeTab === 'news' && <NewsTab onUpdate={loadData} />}

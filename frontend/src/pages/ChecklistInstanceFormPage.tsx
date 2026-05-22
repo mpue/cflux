@@ -195,7 +195,7 @@ const ChecklistInstanceFormPage: React.FC = () => {
                   value={users.find((u) => u.id === formData.userId) || null}
                   onChange={(_, newValue) => handleInputChange('userId', newValue?.id || '')}
                   renderInput={(params) => (
-                    <TextField {...params} label="Mitarbeiter *" required />
+                    <TextField {...params} label="Für wen (Betroffener Mitarbeiter) *" required helperText="Für welchen Mitarbeiter ist diese Checkliste?" />
                   )}
                 />
               </Grid>
@@ -209,8 +209,8 @@ const ChecklistInstanceFormPage: React.FC = () => {
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Zugewiesen an (optional)"
-                      helperText="Wer soll diese Checkliste bearbeiten?"
+                      label="Zuständig – wer führt aus? (optional)"
+                      helperText="Z.B. die HR-Person, die diese Checkliste abarbeitet"
                     />
                   )}
                 />

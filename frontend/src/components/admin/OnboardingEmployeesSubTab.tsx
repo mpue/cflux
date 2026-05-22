@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {
   Add, ExpandMore, ExpandLess, Edit, CheckCircle, PlayArrow, Refresh,
-  PlaylistAddCheck, OpenInNew, Close,
+  PlaylistAddCheck, OpenInNew, Close, Delete,
 } from '@mui/icons-material';
 import { onboardingService } from '../../services/onboardingService';
 import { userService } from '../../services/user.service';
@@ -85,6 +85,7 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [checklistTargetDate, setChecklistTargetDate] = useState<string>('');
   const [checklistNotes, setChecklistNotes] = useState<string>('');
+  const [checklistAssignedToId, setChecklistAssignedToId] = useState<string>('');
   const [employeeChecklists, setEmployeeChecklists] = useState<Record<string, ChecklistInstance[]>>({});
   const [expandedTab, setExpandedTab] = useState<Record<string, 'tasks' | 'checklists'>>({});
 
@@ -194,6 +195,7 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
     setSelectedTemplateId('');
     setChecklistTargetDate('');
     setChecklistNotes('');
+    setChecklistAssignedToId('');
     setChecklistDialogOpen(true);
   };
 
@@ -264,6 +266,18 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
     }
   };
 
+  const handleDeleteChecklist = async (instanceId: string, employeeId: string, userId?: string) => {
+    if (!window.confirm('Checkliste wirklich vom Mitarbeiter entfernen?')) return;
+    try {
+      await api.delete(`/checklists/instances/${instanceId}`);
+      await loadChecklists(employeeId, userId);
+      onUpdate?.();
+    } catch (err: any) {
+      console.error('Error deleting checklist instance:', err);
+      setError('Fehler beim Entfernen der Checkliste');
+    }
+  };
+
   const handleAssignChecklist = async () => {
     const emp = employees.find((e) => e.id === selectedEmployeeId);
     if (!emp?.userId) {
@@ -275,6 +289,7 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
       await api.post('/checklists/instances', {
         templateId: selectedTemplateId,
         userId: emp.userId,
+        assignedToId: checklistAssignedToId || undefined,
         targetEndDate: checklistTargetDate ? new Date(checklistTargetDate).toISOString() : undefined,
         notes: checklistNotes || undefined,
       });
@@ -552,6 +567,7 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
                                     <TableRow>
                                       <TableCell>Checkliste</TableCell>
                                       <TableCell>Typ</TableCell>
+                                      <TableCell>Zuständig</TableCell>
                                       <TableCell>Fortschritt</TableCell>
                                       <TableCell>Status</TableCell>
                                       <TableCell>Fällig bis</TableCell>
@@ -572,6 +588,11 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
                                             size="small"
                                             variant="outlined"
                                           />
+                                        </TableCell>
+                                        <TableCell>
+                                          {cl.assignedTo
+                                            ? `${cl.assignedTo.firstName} ${cl.assignedTo.lastName}`
+                                            : '–'}
                                         </TableCell>
                                         <TableCell sx={{ minWidth: 120 }}>
                                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -605,6 +626,15 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
                                               onClick={(e) => { e.stopPropagation(); openProcessDialog(cl.id); }}
                                             >
                                               <OpenInNew />
+                                            </IconButton>
+                                          </Tooltip>
+                                          <Tooltip title="Checkliste entfernen">
+                                            <IconButton
+                                              size="small"
+                                              color="error"
+                                              onClick={(e) => { e.stopPropagation(); handleDeleteChecklist(cl.id, emp.id, emp.userId); }}
+                                            >
+                                              <Delete />
                                             </IconButton>
                                           </Tooltip>
                                         </TableCell>
@@ -707,6 +737,19 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
               onChange={(_, newValue) => setSelectedTemplateId(newValue?.id || '')}
               renderInput={(params) => (
                 <TextField {...params} label="Checklisten-Vorlage" required />
+              )}
+            />
+            <Autocomplete
+              options={users}
+              getOptionLabel={(u) => `${u.firstName} ${u.lastName} (${u.email})`}
+              value={users.find((u) => u.id === checklistAssignedToId) || null}
+              onChange={(_, newValue) => setChecklistAssignedToId(newValue?.id || '')}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Zuständig – wer führt aus? (optional)"
+                  helperText="Z.B. die HR-Person, die diese Checkliste abarbeitet"
+                />
               )}
             />
             <TextField

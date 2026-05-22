@@ -2,7 +2,7 @@
 .dashboard-grid-container {
   width: 100%;
   padding: 20px;
-  background: var(--background-color, #f5f5f5);
+  background: var(--bg-secondary);
 }
 
 .dashboard-toolbar {
@@ -11,9 +11,10 @@
   align-items: center;
   margin-bottom: 20px;
   padding: 15px;
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 4px var(--shadow-color);
 }
 
 .dashboard-toolbar h1 {
@@ -114,9 +115,10 @@
 
 /* Widget Card Styles */
 .dashboard-widget {
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px var(--shadow-color);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -125,7 +127,7 @@
 }
 
 .dashboard-widget:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px var(--shadow-hover);
 }
 
 .widget-header {
@@ -133,8 +135,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 15px 20px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #fafafa;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
   cursor: move;
   user-select: none;
 }
@@ -143,7 +145,7 @@
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-color, #333);
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -184,7 +186,7 @@
 }
 
 .widget-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--bg-tertiary);
   border-radius: 4px;
 }
 
@@ -233,6 +235,11 @@
   margin: 10px;
 }
 
+[data-theme='dark'] .widget-error {
+  color: #fca5a5;
+  background: #3b1a1a;
+}
+
 /* Compact Mode */
 .dashboard-widget.compact .widget-content {
   padding: 10px;
@@ -242,27 +249,8 @@
   padding: 10px 15px;
 }
 
-/* Dark Mode Support */
-.dark-mode .dashboard-grid-container {
-  background: #1e1e1e;
-}
-
-.dark-mode .dashboard-toolbar {
-  background: #2d2d2d;
-  color: #e0e0e0;
-}
-
-.dark-mode .dashboard-widget {
-  background: #2d2d2d;
-  color: #e0e0e0;
-}
-
-.dark-mode .widget-header {
-  background: #252525;
-  border-bottom-color: #444;
-}
-
-.dark-mode .widget-settings-btn:hover {
+/* Dark Mode Support – overrides that can't be handled via CSS vars */
+[data-theme='dark'] .widget-settings-btn:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -298,18 +286,14 @@
 }
 
 .widget-settings-content {
-  background: white;
+  background: var(--card-bg);
+  color: var(--text-primary);
   border-radius: 8px;
   padding: 30px;
   max-width: 600px;
   width: 90%;
   max-height: 80vh;
   overflow-y: auto;
-}
-
-.dark-mode .widget-settings-content {
-  background: #2d2d2d;
-  color: #e0e0e0;
 }
 
 .widget-settings-list {
@@ -323,10 +307,10 @@
   align-items: center;
   justify-content: space-between;
   padding: 15px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.dark-mode .widget-settings-item {
+[data-theme='dark'] .widget-settings-item {
   border-bottom-color: #444;
 }
 
@@ -378,7 +362,7 @@
   transform: translateX(24px);
 }
 
-.dark-mode .widget-toggle-slider {
+[data-theme='dark'] .widget-toggle-slider {
   background-color: #555;
 }
 
@@ -391,8 +375,8 @@
 }
 
 .widget-selection-card {
-  background: white;
-  border: 2px solid #e0e0e0;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   padding: 20px;
   cursor: pointer;
@@ -417,7 +401,7 @@
 .widget-selection-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   text-align: center;
 }
 
@@ -459,17 +443,84 @@
   opacity: 1;
 }
 
-.dark-mode .widget-selection-card {
-  background: #2a2a2a;
-  border-color: #444;
+/* ---- Shared modal styles for widget settings dialogs ---- */
+
+/* overlay backdrop */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--modal-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
 }
 
-.dark-mode .widget-selection-card:hover {
-  border-color: #007bff;
+/* modal container */
+.modal-content {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px var(--shadow-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.dark-mode .widget-selection-title {
-  color: #e0e0e0;
+[data-theme='dark'] .modal-content {
+  border: 1px solid var(--border-color);
+}
+
+/* modal header */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* close button used in widget settings modals */
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.modal-close-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* modal body */
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+/* modal footer */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
 }
 
 /* Clock Widget Styles */
@@ -537,7 +588,7 @@
 }
 
 /* Dark mode adjustments */
-.dark-mode .clock-widget-content {
+[data-theme='dark'] .clock-widget-content {
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
 }
 

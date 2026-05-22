@@ -89,6 +89,7 @@ const ChecklistTemplateFormPage: React.FC = () => {
             required: item.required,
             assignedRole: item.assignedRole || '',
             dueAfterDays: item.dueAfterDays || undefined,
+            externalLink: item.externalLink || '',
           }))
         );
       }
@@ -113,6 +114,7 @@ const ChecklistTemplateFormPage: React.FC = () => {
       itemType: ChecklistItemType.CHECKBOX,
       required: false,
       assignedRole: '',
+      externalLink: '',
     };
     setItems([...items, newItem]);
   };
@@ -178,6 +180,7 @@ const ChecklistTemplateFormPage: React.FC = () => {
           required: item.required,
           assignedRole: item.assignedRole,
           dueAfterDays: item.dueAfterDays,
+          externalLink: item.externalLink || undefined,
         };
 
         if (item.tempId.startsWith('temp-')) {
@@ -193,6 +196,7 @@ const ChecklistTemplateFormPage: React.FC = () => {
             required: item.required,
             assignedRole: item.assignedRole,
             dueAfterDays: item.dueAfterDays,
+            externalLink: item.externalLink || undefined,
           });
         }
       }
@@ -365,6 +369,16 @@ const ChecklistTemplateFormPage: React.FC = () => {
                             label="Beschreibung"
                             value={item.description}
                             onChange={(e) => updateItem(item.tempId, 'description', e.target.value)}
+                          />
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            label="Externer Link (optional)"
+                            placeholder="https://wiki.firma.ch/beispiel"
+                            value={item.externalLink || ''}
+                            onChange={(e) => updateItem(item.tempId, 'externalLink', e.target.value)}
+                            helperText="Wird bei der Abarbeitung als klickbarer Link angezeigt"
                           />
                         </Grid>
                         <Grid item xs={12} md={4}>

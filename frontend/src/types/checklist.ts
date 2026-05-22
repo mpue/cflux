@@ -66,6 +66,7 @@ export interface ChecklistItem {
   dueDayOffset?: number;
   conditionalParentId?: string;
   showIfParentValue?: string;
+  externalLink?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -162,6 +163,7 @@ export interface CreateTemplateItemDto {
   dueDayOffset?: number;
   conditionalParentId?: string;
   showIfParentValue?: string;
+  externalLink?: string;
 }
 
 export interface UpdateTemplateItemDto {

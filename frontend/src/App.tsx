@@ -2,9 +2,10 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ModuleProvider, useModules } from './contexts/ModuleContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { CurrencyProvider } from './contexts/CurrencyContext';
 import { WorkflowMessageProvider } from './contexts/WorkflowMessageContext';
+import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import ThemeToggle from './components/ThemeToggle';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -91,7 +92,8 @@ const PrivateRoute: React.FC<{ children: React.ReactNode; adminOnly?: boolean; a
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
+      <MuiThemeWrapper>
+        <AuthProvider>
         <WorkflowMessageProvider>
         <CurrencyProvider>
         <ModuleProvider>
@@ -464,8 +466,19 @@ function App() {
         </CurrencyProvider>
         </WorkflowMessageProvider>
     </AuthProvider>
+      </MuiThemeWrapper>
   </ThemeProvider>
   );
 }
+
+const MuiThemeWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { theme } = useTheme();
+  const muiTheme = createTheme({
+    palette: {
+      mode: theme === 'dark' ? 'dark' : 'light',
+    },
+  });
+  return <MuiThemeProvider theme={muiTheme}>{children}</MuiThemeProvider>;
+};
 
 export default App;

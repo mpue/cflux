@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Box, Typography, Grid, Card, CardContent, Tabs, Tab } from '@mui/material';
-import { PersonAdd, People, Assignment, Build, School, Dashboard, Work } from '@mui/icons-material';
+import { PersonAdd, Assignment, Build, School, Dashboard, Work } from '@mui/icons-material';
 import ApplicantsTab from './ApplicantsTab';
 import OnboardingJobsSubTab from './OnboardingJobsSubTab';
-import OnboardingEmployeesSubTab from './OnboardingEmployeesSubTab';
 import OnboardingEquipmentSubTab from './OnboardingEquipmentSubTab';
 import OnboardingTrainingSubTab from './OnboardingTrainingSubTab';
 import OnboardingDashboardTab from './OnboardingDashboardTab';
@@ -12,7 +11,7 @@ interface OnboardingTabProps {
   onUpdate?: () => void;
 }
 
-type SubTab = 'overview' | 'dashboard' | 'applicants' | 'employees' | 'equipment' | 'training' | 'jobs';
+type SubTab = 'overview' | 'dashboard' | 'applicants' | 'equipment' | 'training' | 'jobs';
 
 const OnboardingTab: React.FC<OnboardingTabProps> = ({ onUpdate }) => {
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('dashboard');
@@ -36,13 +35,6 @@ const OnboardingTab: React.FC<OnboardingTabProps> = ({ onUpdate }) => {
         icon: <Assignment sx={{ fontSize: 48 }} />,
         action: () => setActiveSubTab('dashboard'),
         color: '#4caf50',
-      },
-      {
-        title: 'Mitarbeiter',
-        description: 'Mitarbeiterverwaltung und Onboarding-Status',
-        icon: <People sx={{ fontSize: 48 }} />,
-        action: () => setActiveSubTab('employees'),
-        color: '#ff9800',
       },
       {
         title: 'Equipment',
@@ -179,7 +171,6 @@ const OnboardingTab: React.FC<OnboardingTabProps> = ({ onUpdate }) => {
           <Tab icon={<Dashboard />} label="Übersicht" value="overview" />
           <Tab icon={<PersonAdd />} label="Bewerber" value="applicants" />
           <Tab icon={<Work />} label="Jobs" value="jobs" />
-          <Tab icon={<People />} label="Mitarbeiter" value="employees" />
           <Tab icon={<Build />} label="Equipment" value="equipment" />
           <Tab icon={<School />} label="Schulungen" value="training" />
         </Tabs>
@@ -189,7 +180,6 @@ const OnboardingTab: React.FC<OnboardingTabProps> = ({ onUpdate }) => {
       {activeSubTab === 'overview' && renderOverview()}
       {activeSubTab === 'applicants' && <ApplicantsTab onUpdate={onUpdate} />}
       {activeSubTab === 'jobs' && <OnboardingJobsSubTab />}
-      {activeSubTab === 'employees' && <OnboardingEmployeesSubTab />}
       {activeSubTab === 'equipment' && <OnboardingEquipmentSubTab />}
       {activeSubTab === 'training' && <OnboardingTrainingSubTab />}
     </Box>

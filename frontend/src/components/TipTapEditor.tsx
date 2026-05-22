@@ -256,7 +256,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ content, onChange, editable
         </>
       )}
       <Box
-        sx={{
+        sx={(theme) => ({
           p: 2,
           flexGrow: 1,
           minHeight: 0,
@@ -289,24 +289,27 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ content, onChange, editable
               paddingLeft: '2em',
             },
             '& code': {
-              backgroundColor: '#f5f5f5',
+              backgroundColor: theme.palette.mode === 'dark' ? '#2d2d2d' : '#f5f5f5',
+              color: theme.palette.mode === 'dark' ? '#e0e0e0' : 'inherit',
               padding: '0.2em 0.4em',
               borderRadius: '3px',
               fontSize: '0.9em',
               fontFamily: 'monospace',
             },
             '& pre': {
-              backgroundColor: '#f5f5f5',
+              backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f5f5f5',
+              color: theme.palette.mode === 'dark' ? '#e0e0e0' : 'inherit',
               padding: '1em',
               borderRadius: '5px',
               overflow: 'auto',
               '& code': {
                 backgroundColor: 'transparent',
+                color: 'inherit',
                 padding: 0,
               },
             },
             '& blockquote': {
-              borderLeft: '3px solid #ccc',
+              borderLeft: theme.palette.mode === 'dark' ? '3px solid #555' : '3px solid #ccc',
               paddingLeft: '1em',
               marginLeft: 0,
               fontStyle: 'italic',
@@ -314,7 +317,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ content, onChange, editable
             '& hr': {
               margin: '1em 0',
               border: 'none',
-              borderTop: '2px solid #ccc',
+              borderTop: theme.palette.mode === 'dark' ? '2px solid #555' : '2px solid #ccc',
             },
             '& a': {
               color: '#1976d2',
@@ -326,17 +329,17 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ content, onChange, editable
               width: '100%',
               margin: '1em 0',
               '& td, & th': {
-                border: '1px solid #ddd',
+                border: theme.palette.mode === 'dark' ? '1px solid #555' : '1px solid #ddd',
                 padding: '0.5em',
                 textAlign: 'left',
               },
               '& th': {
-                backgroundColor: '#f5f5f5',
+                backgroundColor: theme.palette.mode === 'dark' ? '#2d2d2d' : '#f5f5f5',
                 fontWeight: 'bold',
               },
             },
           },
-        }}
+        })}
       >
         <EditorContent editor={editor} />
       </Box>

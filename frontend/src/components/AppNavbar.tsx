@@ -263,12 +263,6 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
               Kalender
             </MenuItem>
           )}
-          {hasModuleAccess('calendar') && (
-            <MenuItem onClick={() => navigateTo('/calendar')}>
-              <CalendarIcon sx={{ mr: 1 }} />
-              Kalender
-            </MenuItem>
-          )}
           {hasModuleAccess('travel_expenses') && (
             <MenuItem onClick={() => navigateTo('/travel-expenses')}>
               <MoneyIcon sx={{ mr: 1 }} />

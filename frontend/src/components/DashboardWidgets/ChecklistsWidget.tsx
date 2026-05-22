@@ -2,13 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChecklistInstance, ChecklistStatus } from '../../types/checklist';
 import api from '../../services/api';
+import WidgetHeader from './WidgetHeader';
 import './DashboardWidgets.css';
 
 interface ChecklistsWidgetProps {
+  widgetId?: string;
+  config?: Record<string, any>;
+  onRemove?: () => void;
+  onConfigChange?: (config: Record<string, any>) => void;
   userId?: string;
 }
 
-const ChecklistsWidget: React.FC<ChecklistsWidgetProps> = ({ userId }) => {
+const ChecklistsWidget: React.FC<ChecklistsWidgetProps> = ({ userId, onRemove }) => {
   const navigate = useNavigate();
   const [myInstances, setMyInstances] = useState<ChecklistInstance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,14 +69,29 @@ const ChecklistsWidget: React.FC<ChecklistsWidgetProps> = ({ userId }) => {
     }
   };
 
+  const header = (
+    <WidgetHeader
+      title="Meine Checklisten"
+      icon="📋"
+      onRemove={onRemove}
+      actions={
+        <button
+          className="widget-action-btn"
+          onClick={() => navigate('/checklists')}
+          title="Alle Checklisten anzeigen"
+        >
+          Alle →
+        </button>
+      }
+    />
+  );
+
   if (loading) {
     return (
-      <div className="widget-card">
-        <div className="widget-header">
-          <h3>📋 Meine Checklisten</h3>
-        </div>
-        <div className="widget-body" style={{ textAlign: 'center', padding: '20px' }}>
-          Lädt...
+      <div className="dashboard-widget">
+        {header}
+        <div className="widget-content" style={{ textAlign: 'center', padding: '20px' }}>
+          <div className="spinner" /><p>Lädt...</p>
         </div>
       </div>
     );
@@ -79,11 +99,9 @@ const ChecklistsWidget: React.FC<ChecklistsWidgetProps> = ({ userId }) => {
 
   if (error) {
     return (
-      <div className="widget-card">
-        <div className="widget-header">
-          <h3>📋 Meine Checklisten</h3>
-        </div>
-        <div className="widget-body" style={{ textAlign: 'center', padding: '20px', color: '#f44336' }}>
+      <div className="dashboard-widget">
+        {header}
+        <div className="widget-content" style={{ textAlign: 'center', padding: '20px', color: '#f44336' }}>
           {error}
         </div>
       </div>
@@ -91,20 +109,11 @@ const ChecklistsWidget: React.FC<ChecklistsWidgetProps> = ({ userId }) => {
   }
 
   return (
-    <div className="widget-card">
-      <div className="widget-header">
-        <h3>📋 Meine Checklisten</h3>
-        <button
-          className="widget-action-btn"
-          onClick={() => navigate('/checklists')}
-          title="Alle Checklisten anzeigen"
-        >
-          Alle anzeigen →
-        </button>
-      </div>
-      <div className="widget-body" style={{ padding: 0 }}>
+    <div className="dashboard-widget">
+      {header}
+      <div className="widget-content" style={{ padding: 0, overflow: 'hidden' }}>
         {myInstances.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+          <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-secondary)' }}>
             Keine aktiven Checklisten
           </div>
         ) : (
@@ -114,20 +123,20 @@ const ChecklistsWidget: React.FC<ChecklistsWidgetProps> = ({ userId }) => {
                 key={instance.id}
                 style={{
                   padding: '12px 16px',
-                  borderBottom: '1px solid #eee',
+                  borderBottom: '1px solid var(--border-color)',
                   cursor: 'pointer',
                   transition: 'background-color 0.2s',
                 }}
                 onClick={() => navigate(`/checklists/instances/${instance.id}`)}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f5f5f5')}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)')}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500, marginBottom: '4px' }}>
+                    <div style={{ fontWeight: 500, marginBottom: '4px', color: 'var(--text-primary)' }}>
                       {instance.template?.name || 'Unbenannte Checkliste'}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#666' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                       {instance.completedItems} / {instance.totalItems} Aufgaben
                     </div>
                   </div>
@@ -144,7 +153,7 @@ const ChecklistsWidget: React.FC<ChecklistsWidgetProps> = ({ userId }) => {
                     {getStatusLabel(instance.status)}
                   </div>
                 </div>
-                <div style={{ width: '100%', height: '6px', backgroundColor: '#e0e0e0', borderRadius: '3px', overflow: 'hidden' }}>
+                <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '3px', overflow: 'hidden' }}>
                   <div
                     style={{
                       width: `${instance.progressPercent}%`,

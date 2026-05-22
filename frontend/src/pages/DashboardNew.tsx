@@ -740,7 +740,11 @@ const Dashboard: React.FC = () => {
               case 'checklists':
                 return (
                   <div key={widget.id}>
-                    <ChecklistsWidget userId={user?.id} />
+                    <ChecklistsWidget
+                      widgetId={widget.id}
+                      userId={user?.id}
+                      onRemove={() => removeWidget(widget.id)}
+                    />
                   </div>
                 );
               
@@ -1017,8 +1021,9 @@ const PauseReminderModal: React.FC<{
           </p>
 
           <div style={{ 
-            background: '#fff3cd', 
-            border: '1px solid #ffc107',
+            background: 'var(--warning-bg)', 
+            border: '1px solid var(--warning-border)',
+            color: 'var(--warning-text)',
             padding: '15px', 
             borderRadius: '8px',
             marginBottom: '20px',
@@ -1086,8 +1091,9 @@ const BreakTimeWarningModal: React.FC<{
           </p>
 
           <div style={{
-            background: '#fee2e2',
-            border: '1px solid #fca5a5',
+            background: 'var(--danger-bg)',
+            border: '1px solid var(--danger-border)',
+            color: 'var(--danger-text)',
             padding: '15px',
             borderRadius: '8px',
             marginBottom: '20px',
@@ -1101,7 +1107,9 @@ const BreakTimeWarningModal: React.FC<{
           </div>
 
           <div style={{
-            background: '#f0f7ff',
+            background: 'var(--info-bg)',
+            border: '1px solid var(--info-border)',
+            color: 'var(--info-text)',
             padding: '15px',
             borderRadius: '8px',
             marginBottom: '20px',
@@ -1115,7 +1123,7 @@ const BreakTimeWarningModal: React.FC<{
             </ul>
           </div>
 
-          <p style={{ fontSize: '14px', color: '#666' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
             Bitte warte noch mindestens {remaining} Minuten, bevor du dich wieder einstempelst.
           </p>
 
@@ -1174,8 +1182,9 @@ const MissedClockOutModal: React.FC<{
 
         <div style={{ padding: '10px 0 20px 0' }}>
           <div style={{
-            background: '#fff3cd',
-            border: '1px solid #ffc107',
+            background: 'var(--warning-bg)',
+            border: '1px solid var(--warning-border)',
+            color: 'var(--warning-text)',
             padding: '15px',
             borderRadius: '8px',
             marginBottom: '20px',
@@ -1308,12 +1317,13 @@ const PauseModal: React.FC<{
           </div>
 
           <div style={{ 
-            background: '#f0f7ff', 
+            background: 'var(--info-bg)', 
+            border: '1px solid var(--info-border)',
             padding: '15px', 
             borderRadius: '8px', 
             marginTop: '20px',
             fontSize: '14px',
-            color: '#333'
+            color: 'var(--info-text)'
           }}>
             <strong>📋 Gesetzliche Pausenzeiten (Art. 15 ArGV 1):</strong>
             <ul style={{ marginTop: '10px', marginBottom: '0', paddingLeft: '20px' }}>
@@ -1526,7 +1536,9 @@ const AllocationModal: React.FC<{
         
         <div style={{ 
           padding: '15px 20px', 
-          background: remaining < -0.1 ? '#f8d7da' : remaining <= 0.1 ? '#d4edda' : '#fff3cd',
+          background: remaining < -0.1 ? 'var(--danger-bg)' : remaining <= 0.1 ? '#1e4620' : 'var(--warning-bg)',
+          border: remaining < -0.1 ? '1px solid var(--danger-border)' : remaining <= 0.1 ? '1px solid #276a2e' : '1px solid var(--warning-border)',
+          color: remaining < -0.1 ? 'var(--danger-text)' : remaining <= 0.1 ? '#7bc67e' : 'var(--warning-text)',
           borderRadius: '8px',
           marginBottom: '25px',
           fontSize: '16px'

@@ -1,6 +1,6 @@
 .document-approval-panel {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 20px;
   margin-top: 20px;
@@ -12,14 +12,14 @@
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 15px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .approval-header h3 {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .approval-error {
@@ -43,7 +43,7 @@
   align-items: flex-start;
   gap: 12px;
   padding: 12px;
-  background: #f9fafb;
+  background: var(--bg-tertiary);
   border-radius: 6px;
 }
 
@@ -60,14 +60,14 @@
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 4px;
   letter-spacing: 0.025em;
 }
 
 .history-value {
   font-size: 0.875rem;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .rejection-reason {
@@ -152,7 +152,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
   max-width: 500px;
   width: 90%;
@@ -164,21 +164,21 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .modal-close {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
   width: 32px;
@@ -190,8 +190,8 @@
 }
 
 .modal-close:hover {
-  background-color: #f3f4f6;
-  color: #111827;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .modal-body {
@@ -201,27 +201,30 @@
 .modal-body p {
   margin-top: 0;
   margin-bottom: 12px;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .modal-body textarea {
   width: 100%;
   padding: 10px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 0.875rem;
   resize: vertical;
   font-family: inherit;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .modal-body select {
   width: 100%;
   padding: 10px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 0.875rem;
   font-family: inherit;
-  background-color: white;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
@@ -237,88 +240,6 @@
   justify-content: flex-end;
   gap: 12px;
   padding: 20px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-color);
 }
 
-/* Dark Mode */
-body.dark-mode .document-approval-panel {
-  background: #1f2937;
-  border-color: #374151;
-}
-
-body.dark-mode .approval-header {
-  border-bottom-color: #374151;
-}
-
-body.dark-mode .approval-header h3 {
-  color: #f9fafb;
-}
-
-body.dark-mode .approval-error {
-  background-color: #450a0a;
-  color: #fca5a5;
-}
-
-body.dark-mode .approval-history-item {
-  background: #111827;
-}
-
-body.dark-mode .history-label {
-  color: #9ca3af;
-}
-
-body.dark-mode .history-value {
-  color: #f9fafb;
-}
-
-body.dark-mode .rejection-reason {
-  background: #450a0a;
-  border-left-color: #dc2626;
-  color: #fca5a5;
-}
-
-body.dark-mode .modal-content {
-  background: #1f2937;
-}
-
-body.dark-mode .modal-header {
-  border-bottom-color: #374151;
-}
-
-body.dark-mode .modal-header h3 {
-  color: #f9fafb;
-}
-
-body.dark-mode .modal-close {
-  color: #9ca3af;
-}
-
-body.dark-mode .modal-close:hover {
-  background-color: #374151;
-  color: #f9fafb;
-}
-
-body.dark-mode .modal-body p {
-  color: #d1d5db;
-}
-
-body.dark-mode .modal-body textarea {
-  background: #111827;
-  border-color: #374151;
-  color: #f9fafb;
-}
-
-body.dark-mode .modal-body select {
-  background: #111827;
-  border-color: #374151;
-  color: #f9fafb;
-}
-
-body.dark-mode .modal-body textarea:focus,
-body.dark-mode .modal-body select:focus {
-  border-color: #2563eb;
-}
-
-body.dark-mode .modal-footer {
-  border-top-color: #374151;
-}

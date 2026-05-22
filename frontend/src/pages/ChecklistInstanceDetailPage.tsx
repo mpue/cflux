@@ -28,6 +28,7 @@ import {
   Edit as EditIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
+  OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -319,6 +320,21 @@ const ChecklistInstanceDetailPage: React.FC = () => {
                             {completion.item.description}
                           </Typography>
                         )}
+                        {completion.item?.externalLink && (
+                          <Box sx={{ mt: 0.5 }}>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              startIcon={<OpenInNewIcon />}
+                              href={completion.item.externalLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              sx={{ textTransform: 'none' }}
+                            >
+                              Link öffnen
+                            </Button>
+                          </Box>
+                        )}
                         {renderItemInput(completion)}
                         {completion.comment && (
                           <Typography
@@ -360,6 +376,21 @@ const ChecklistInstanceDetailPage: React.FC = () => {
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   {selectedCompletion.item.description}
                 </Typography>
+              )}
+              {selectedCompletion.item?.externalLink && (
+                <Box sx={{ mb: 1 }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<OpenInNewIcon />}
+                    href={selectedCompletion.item.externalLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Link öffnen
+                  </Button>
+                </Box>
               )}
 
               {selectedCompletion.item?.itemType === ChecklistItemType.TEXT && (

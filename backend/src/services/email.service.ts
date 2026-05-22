@@ -6,6 +6,11 @@ export interface EmailOptions {
   subject: string;
   html: string;
   text?: string;
+  attachments?: Array<{
+    filename: string;
+    content: string;
+    contentType: string;
+  }>;
 }
 
 class EmailService {
@@ -67,6 +72,7 @@ class EmailService {
         subject: options.subject,
         html: options.html,
         text: options.text || options.html.replace(/<[^>]*>/g, ''),
+        attachments: options.attachments,
       };
 
       const info = await transporter.sendMail(mailOptions);
@@ -157,6 +163,129 @@ Ihr ${companyName} Team
       text,
     });
   }
+
+  async sendChecklistInvitation(options: {
+    subjectUser: { email: string; firstName: string; lastName: string };
+    executor?: { email: string; firstName: string; lastName: string } | null;
+    checklistName: string;
+    dueDate: Date;
+    notes?: string;
+    companyName?: string;
+  }): Promise<void> {
+    const company = options.companyName || 'CFlux';
+    const dueDateStr = options.dueDate.toLocaleDateString('de-CH', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    });
+
+    const ics = generateICS({
+      summary: `Checkliste fällig: ${options.checklistName}`,
+      description: options.notes,
+      date: options.dueDate,
+      organizer: company,
+      attendees: [
+        options.subjectUser.email,
+        ...(options.executor ? [options.executor.email] : []),
+      ],
+    });
+
+    // Email to subject user
+    await this.sendEmail({
+      to: options.subjectUser.email,
+      subject: `${company} – Checkliste: ${options.checklistName}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          <div style="background:linear-gradient(135deg,#10b981,#0ea5e9);color:white;padding:20px;border-radius:8px 8px 0 0">
+            <h2 style="margin:0">Checkliste zugewiesen</h2>
+          </div>
+          <div style="background:#f9fafb;padding:24px;border-radius:0 0 8px 8px">
+            <p>Hallo ${options.subjectUser.firstName},</p>
+            <p>Es wurde eine Checkliste für Sie erstellt:</p>
+            <table style="width:100%;border-collapse:collapse;margin:16px 0">
+              <tr><td style="padding:8px;font-weight:bold;width:140px">Checkliste</td><td style="padding:8px">${options.checklistName}</td></tr>
+              <tr style="background:#fff"><td style="padding:8px;font-weight:bold">Fällig bis</td><td style="padding:8px">${dueDateStr}</td></tr>
+              ${options.executor ? `<tr><td style="padding:8px;font-weight:bold">Zuständig</td><td style="padding:8px">${options.executor.firstName} ${options.executor.lastName}</td></tr>` : ''}
+              ${options.notes ? `<tr style="background:#fff"><td style="padding:8px;font-weight:bold">Notizen</td><td style="padding:8px">${options.notes}</td></tr>` : ''}
+            </table>
+            <p style="color:#6b7280;font-size:13px">Den Kalendertermin finden Sie als Anhang (ICS-Datei).</p>
+          </div>
+        </div>
+      `,
+      attachments: [{ filename: 'checkliste.ics', content: ics, contentType: 'text/calendar; method=REQUEST' }],
+    });
+
+    // Email to executor (if different)
+    if (options.executor && options.executor.email !== options.subjectUser.email) {
+      await this.sendEmail({
+        to: options.executor.email,
+        subject: `${company} – Checkliste zur Bearbeitung: ${options.checklistName}`,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+            <div style="background:linear-gradient(135deg,#10b981,#0ea5e9);color:white;padding:20px;border-radius:8px 8px 0 0">
+              <h2 style="margin:0">Checkliste zugewiesen – zur Bearbeitung</h2>
+            </div>
+            <div style="background:#f9fafb;padding:24px;border-radius:0 0 8px 8px">
+              <p>Hallo ${options.executor.firstName},</p>
+              <p>Sie wurden als zuständige Person für folgende Checkliste eingetragen:</p>
+              <table style="width:100%;border-collapse:collapse;margin:16px 0">
+                <tr><td style="padding:8px;font-weight:bold;width:140px">Checkliste</td><td style="padding:8px">${options.checklistName}</td></tr>
+                <tr style="background:#fff"><td style="padding:8px;font-weight:bold">Betroffener</td><td style="padding:8px">${options.subjectUser.firstName} ${options.subjectUser.lastName}</td></tr>
+                <tr><td style="padding:8px;font-weight:bold">Fällig bis</td><td style="padding:8px">${dueDateStr}</td></tr>
+                ${options.notes ? `<tr style="background:#fff"><td style="padding:8px;font-weight:bold">Notizen</td><td style="padding:8px">${options.notes}</td></tr>` : ''}
+              </table>
+              <p style="color:#6b7280;font-size:13px">Den Kalendertermin finden Sie als Anhang (ICS-Datei).</p>
+            </div>
+          </div>
+        `,
+        attachments: [{ filename: 'checkliste.ics', content: ics, contentType: 'text/calendar; method=REQUEST' }],
+      });
+    }
+  }
+}
+
+function generateICS(options: {
+  summary: string;
+  description?: string;
+  date: Date;
+  organizer: string;
+  attendees: string[];
+}): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const formatDate = (d: Date) =>
+    `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+  const nextDay = new Date(options.date);
+  nextDay.setDate(nextDay.getDate() + 1);
+  const uid = `checklist-${Date.now()}@cflux`;
+  const now = new Date();
+  const dtstamp = `${formatDate(now)}T${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}Z`;
+
+  const attendeeLines = options.attendees
+    .map((email) => `ATTENDEE;CUTYPE=INDIVIDUAL;ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:${email}`)
+    .join('\r\n');
+
+  const description = options.description
+    ? `DESCRIPTION:${options.description.replace(/\n/g, '\\n')}`
+    : '';
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//CFlux//CFlux//DE',
+    'CALSCALE:GREGORIAN',
+    'METHOD:REQUEST',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${dtstamp}`,
+    `DTSTART;VALUE=DATE:${formatDate(options.date)}`,
+    `DTEND;VALUE=DATE:${formatDate(nextDay)}`,
+    `SUMMARY:${options.summary}`,
+    ...(description ? [description] : []),
+    `ORGANIZER;CN=${options.organizer}:mailto:noreply@cflux.local`,
+    attendeeLines,
+    'STATUS:CONFIRMED',
+    'TRANSP:TRANSPARENT',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
 }
 
 export const emailService = new EmailService();

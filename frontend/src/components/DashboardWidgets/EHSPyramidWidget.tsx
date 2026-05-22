@@ -42,8 +42,14 @@ const LEVELS: { key: keyof PyramidData; label: string; color: string }[] = [
   { key: 'safetyObservations',  label: 'Sicherheitsbeob.',        color: '#3b82f6' },
 ];
 
-// Each level is 9% wider than the previous, starting at 10%
-const widths = LEVELS.map((_, i) => 10 + i * 9);  // 10,19,28,...,91
+// SVG pyramid constants
+const SVG_W = 400;
+const SVG_H = 300;
+const SVG_CX = SVG_W / 2;
+const SVG_MIN_HW = 0;    // half-width at top edge (0 = pointed apex)
+const SVG_MAX_HW = 194;  // half-width at bottom edge
+const SVG_GAP = 2;       // px gap between levels
+const SVG_LEVEL_H = (SVG_H - SVG_GAP * (LEVELS.length - 1)) / LEVELS.length;
 
 const MONTH_NAMES = [
   'Januar','Februar','März','April','Mai','Juni',
@@ -148,25 +154,95 @@ const EHSPyramidWidget: React.FC<Props> = ({ widgetId, config, onRemove, onConfi
         {!isLoading && !error && pyramid && (
           <div className="ehspyr-wrap">
             <div className="ehspyr-total">Gesamt: <strong>{total}</strong></div>
-            <div className="ehspyr-pyramid">
+            <svg
+              className="ehspyr-svg"
+              viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+              preserveAspectRatio="xMidYMid meet"
+              aria-label="EHS Pyramide"
+            >
+              <defs>
+                <linearGradient id="ehspyr-shine" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="white" stopOpacity={0.18} />
+                  <stop offset="100%" stopColor="white" stopOpacity={0} />
+                </linearGradient>
+              </defs>
               {LEVELS.map((lvl, i) => {
                 const count = pyramid[lvl.key] ?? 0;
+                const n = LEVELS.length;
+                const topY      = i * (SVG_LEVEL_H + SVG_GAP);
+                const bottomY   = topY + SVG_LEVEL_H;
+                const midY      = (topY + bottomY) / 2;
+                const topHW     = SVG_MIN_HW + (SVG_MAX_HW - SVG_MIN_HW) * i / n;
+                const bottomHW  = SVG_MIN_HW + (SVG_MAX_HW - SVG_MIN_HW) * (i + 1) / n;
+                const midHW     = (topHW + bottomHW) / 2;
+                const pts = [
+                  `${SVG_CX - topHW},${topY}`,
+                  `${SVG_CX + topHW},${topY}`,
+                  `${SVG_CX + bottomHW},${bottomY}`,
+                  `${SVG_CX - bottomHW},${bottomY}`,
+                ].join(' ');
+                const clipId  = `ehspyr-clip-${i}`;
+                const hasLabel = midHW * 2 > 90;
+
                 return (
-                  <div
-                    key={lvl.key}
-                    className="ehspyr-level"
-                    style={{
-                      width: `${widths[i]}%`,
-                      background: lvl.color,
-                    }}
-                    title={`${lvl.label}: ${count}`}
-                  >
-                    <span className="ehspyr-label">{lvl.label}</span>
-                    <span className="ehspyr-count">{count}</span>
-                  </div>
+                  <g key={lvl.key}>
+                    <defs>
+                      <clipPath id={clipId}>
+                        <polygon points={pts} />
+                      </clipPath>
+                    </defs>
+                    {/* Füllfarbe */}
+                    <polygon points={pts} fill={lvl.color} />
+                    {/* Glanz-Overlay */}
+                    <polygon points={pts} fill="url(#ehspyr-shine)" />
+                    {/* Beschriftung */}
+                    <g clipPath={`url(#${clipId})`}>
+                      {hasLabel ? (
+                        <>
+                          <text
+                            x={SVG_CX - midHW + 8}
+                            y={midY + 4}
+                            fontSize={9.5}
+                            fill="white"
+                            fontWeight={700}
+                            fontFamily="system-ui, -apple-system, sans-serif"
+                          >
+                            {lvl.label}
+                          </text>
+                          <text
+                            x={SVG_CX + midHW - 8}
+                            y={midY + 4}
+                            fontSize={11}
+                            fill="white"
+                            fontWeight={800}
+                            textAnchor="end"
+                            fontFamily="system-ui, -apple-system, sans-serif"
+                          >
+                            {count}
+                          </text>
+                        </>
+                      ) : (
+                        <text
+                          x={SVG_CX}
+                          y={midY + 4}
+                          fontSize={10}
+                          fill="white"
+                          fontWeight={800}
+                          textAnchor="middle"
+                          fontFamily="system-ui, -apple-system, sans-serif"
+                        >
+                          {count}
+                        </text>
+                      )}
+                    </g>
+                    {/* Transparentes Polygon für Tooltip */}
+                    <polygon points={pts} fill="transparent">
+                      <title>{`${lvl.label}: ${count}`}</title>
+                    </polygon>
+                  </g>
                 );
               })}
-            </div>
+            </svg>
           </div>
         )}
       </div>

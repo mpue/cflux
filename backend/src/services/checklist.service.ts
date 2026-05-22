@@ -1,5 +1,7 @@
-import { ChecklistType, ChecklistItemType, ChecklistStatus } from '@prisma/client';
+import { ChecklistType, ChecklistItemType, ChecklistStatus, CalendarEventType, CalendarAttendeeStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma';
+import { emailService } from './email.service';
+import { systemSettingsService } from './systemSettings.service';
 
 
 export interface CreateTemplateDto {
@@ -34,6 +36,7 @@ export interface CreateTemplateItemDto {
   dueDayOffset?: number;
   conditionalParentId?: string;
   showIfParentValue?: string;
+  externalLink?: string;
 }
 
 export interface UpdateTemplateItemDto {
@@ -47,6 +50,7 @@ export interface UpdateTemplateItemDto {
   dueDayOffset?: number;
   conditionalParentId?: string;
   showIfParentValue?: string;
+  externalLink?: string;
 }
 
 export interface CreateInstanceDto {
@@ -306,6 +310,60 @@ class ChecklistService {
         },
       },
     });
+
+    // Create calendar event and send email invitations if targetEndDate is set
+    if (data.targetEndDate) {
+      const dueDate = new Date(data.targetEndDate);
+      dueDate.setHours(0, 0, 0, 0);
+      const dueDateEnd = new Date(dueDate);
+      dueDateEnd.setHours(23, 59, 59, 999);
+
+      const executorId = data.assignedToId && data.assignedToId !== data.userId
+        ? data.assignedToId
+        : null;
+
+      await prisma.calendarEvent.create({
+        data: {
+          title: `Checkliste fällig: ${template.name}`,
+          description: data.notes ? `Notizen: ${data.notes}` : undefined,
+          startDate: dueDate,
+          endDate: dueDateEnd,
+          allDay: true,
+          eventType: CalendarEventType.TASK,
+          isPrivate: true,
+          createdById: data.userId,
+          ...(executorId ? {
+            attendees: {
+              create: [{
+                userId: executorId,
+                status: CalendarAttendeeStatus.ACCEPTED,
+              }],
+            },
+          } : {}),
+        },
+      });
+
+      // Fetch user details for email invitations
+      const userIds = [data.userId, ...(executorId ? [executorId] : [])];
+      const users = await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, firstName: true, lastName: true, email: true },
+      });
+      const subjectUser = users.find((u) => u.id === data.userId);
+      const executor = executorId ? users.find((u) => u.id === executorId) : null;
+
+      if (subjectUser) {
+        const settings = await systemSettingsService.getSettings();
+        emailService.sendChecklistInvitation({
+          subjectUser,
+          executor: executor || null,
+          checklistName: template.name,
+          dueDate,
+          notes: data.notes,
+          companyName: settings.companyName || 'CFlux',
+        }).catch((err) => console.error('Failed to send checklist invitation email:', err));
+      }
+    }
 
     return instance;
   }
