@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../services/api';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // ---- Types ----
 
@@ -50,6 +51,8 @@ interface CrossDeptLink {
 // ---- Component ----
 
 const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [users, setUsers] = useState<OrgUser[]>([]);
   const [departments, setDepartments] = useState<OrgDepartment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -422,6 +425,7 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
             transition: 'all 0.3s ease',
             boxShadow: isHighlighted ? '0 0 12px rgba(255, 193, 7, 0.5)' : '0 1px 3px rgba(0,0,0,0.06)',
             position: 'relative',
+            color: 'var(--text-primary)',
           }}
         >
           {/* Connector line */}
@@ -432,7 +436,7 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
               top: '50%',
               width: 12,
               height: 1,
-              background: '#ccc',
+              background: isDark ? '#4a4a4a' : '#ccc',
             }} />
           )}
 
@@ -444,7 +448,9 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
                 onClick={(e) => { e.stopPropagation(); toggleUser(user.id); }}
                 style={{
                   width: 20, height: 20, border: 'none', borderRadius: '50%',
-                  background: '#e9ecef', cursor: 'pointer', fontSize: '10px',
+                  background: isDark ? '#3a3a3a' : '#e9ecef',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer', fontSize: '10px',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
                 }}
@@ -485,7 +491,7 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
               <div style={{ fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user.firstName} {user.lastName}
               </div>
-              <div style={{ fontSize: '11px', color: '#888', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {position || user.email}
               </div>
             </div>
@@ -526,8 +532,8 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
               style={{
                 display: 'flex', alignItems: 'center', gap: '4px',
                 padding: '3px 8px', border: 'none', borderRadius: '4px',
-                background: 'linear-gradient(90deg, #e3f2fd, #bbdefb)',
-                cursor: 'pointer', fontSize: '10px', color: '#1565c0',
+                background: isDark ? 'linear-gradient(90deg, #1a2e4a, #1e3a5c)' : 'linear-gradient(90deg, #e3f2fd, #bbdefb)',
+                cursor: 'pointer', fontSize: '10px', color: isDark ? '#90caf9' : '#1565c0',
                 fontWeight: 500, width: 'fit-content',
                 transition: 'background 0.15s',
               }}
@@ -537,7 +543,7 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
               <span>Berichtet an</span>
               <strong>{supervisor.firstName} {supervisor.lastName}</strong>
               <span style={{
-                background: '#1565c0', color: '#fff', padding: '1px 5px',
+                background: isDark ? '#2563eb' : '#1565c0', color: '#fff', padding: '1px 5px',
                 borderRadius: '3px', fontSize: '9px',
               }}>
                 {supervisorDept?.name || '?'}
@@ -561,8 +567,8 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
                     style={{
                       display: 'flex', alignItems: 'center', gap: '4px',
                       padding: '3px 8px', border: 'none', borderRadius: '4px',
-                      background: 'linear-gradient(90deg, #e8f5e9, #c8e6c9)',
-                      cursor: 'pointer', fontSize: '10px', color: '#2e7d32',
+                        background: isDark ? 'linear-gradient(90deg, #1a3020, #1e3a26)' : 'linear-gradient(90deg, #e8f5e9, #c8e6c9)',
+                        cursor: 'pointer', fontSize: '10px', color: isDark ? '#86efac' : '#2e7d32',
                       fontWeight: 500, transition: 'background 0.15s',
                     }}
                     title={`Navigiere zu ${dept.name}: ${subsInDept.map(s => s.userName).join(', ')}`}
@@ -571,7 +577,7 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
                     <span>Leitet</span>
                     <strong>{dept.name}</strong>
                     <span style={{
-                      background: '#2e7d32', color: '#fff', padding: '1px 5px',
+                      background: isDark ? '#166534' : '#2e7d32', color: '#fff', padding: '1px 5px',
                       borderRadius: '3px', fontSize: '9px',
                     }}>
                       {subsInDept.length}
@@ -585,7 +591,7 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
 
         {/* Subordinates */}
         {hasSubs && isExpanded && (
-          <div style={{ borderLeft: '2px solid #dee2e6', marginLeft: 18, paddingLeft: 6 }}>
+          <div style={{ borderLeft: isDark ? '2px solid #3a3a3a' : '2px solid #dee2e6', marginLeft: 18, paddingLeft: 6 }}>
             {subs.map(sub => renderUserCard(sub, depth + 1))}
           </div>
         )}
@@ -604,7 +610,7 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2>Organigramm</h2>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <span style={{ fontSize: '12px', color: '#888' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
             {users.length} Mitarbeiter · {departments.length} Abteilungen
           </span>
           <button className="btn btn-sm btn-secondary" onClick={() => setZoom(z => Math.min(2, z + 0.1))}>+</button>
@@ -619,7 +625,7 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
       <div style={{
         padding: '10px 14px', marginBottom: '16px', borderRadius: '6px',
         background: 'var(--card-bg, #f8f9fa)', border: '1px solid var(--border-color, #dee2e6)',
-        fontSize: '12px', color: '#666',
+        fontSize: '12px', color: 'var(--text-secondary)',
       }}>
         <strong>Bedienung:</strong> Mitarbeiter per Drag & Drop auf einen anderen Mitarbeiter ziehen = Vorgesetzten zuweisen.
         Auf eine Abteilung ziehen = Abteilung wechseln. Alt+Maus = Verschieben · Strg/⌘+Scroll = Zoom
@@ -681,7 +687,7 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
                   transition: 'border 0.15s',
                 }}
               >
-                {/* Department header */}
+                  {/* Department header */}
                 <div
                   onClick={() => toggleDept(dept.id)}
                   style={{
@@ -689,7 +695,10 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
                     padding: '12px 16px', cursor: 'pointer',
                     borderBottom: isExpanded ? '1px solid var(--border-color, #dee2e6)' : 'none',
                     borderRadius: isExpanded ? '10px 10px 0 0' : '10px',
-                    background: 'linear-gradient(135deg, #e3f2fd, #f3e5f5)',
+                    background: isDark
+                      ? 'linear-gradient(135deg, #1a2a3e, #261a36)'
+                      : 'linear-gradient(135deg, #e3f2fd, #f3e5f5)',
+                    color: 'var(--text-primary)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -697,11 +706,11 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: '14px' }}>{dept.name}</div>
                       {dept.description && (
-                        <div style={{ fontSize: '11px', color: '#888' }}>{dept.description}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{dept.description}</div>
                       )}
                     </div>
                     <span style={{
-                      fontSize: '11px', background: '#e3f2fd', color: '#1976d2',
+                      fontSize: '11px', background: isDark ? '#1a2e4a' : '#e3f2fd', color: isDark ? '#90caf9' : '#1976d2',
                       padding: '2px 8px', borderRadius: '10px', fontWeight: 600,
                     }}>
                       {deptUsers.length}
@@ -712,14 +721,14 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
                   {/* Head info line */}
                   {head && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '28px' }}>
-                      <span style={{ fontSize: '10px', color: '#666' }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
                         👑 Leitung: <strong>{head.firstName} {head.lastName}</strong>
                       </span>
                       {headSupervisor && headSupervisorDept && headSupervisorDept.id !== dept.id && (
                         <span
                           onClick={(e) => { e.stopPropagation(); scrollToUser(headSupervisor.id); }}
                           style={{
-                            fontSize: '9px', background: '#bbdefb', color: '#1565c0',
+                            fontSize: '9px', background: isDark ? '#1a2e4a' : '#bbdefb', color: isDark ? '#90caf9' : '#1565c0',
                             padding: '1px 6px', borderRadius: '3px', cursor: 'pointer',
                             fontWeight: 500,
                           }}
@@ -736,7 +745,7 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
                 {isExpanded && (
                   <div style={{ padding: '8px 12px', minHeight: 40 }}>
                     {topLevel.length === 0 ? (
-                      <div style={{ padding: '16px', textAlign: 'center', color: '#aaa', fontSize: '12px', fontStyle: 'italic' }}>
+                      <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '12px', fontStyle: 'italic' }}>
                         Keine Mitarbeiter zugeordnet – hierher ziehen
                       </div>
                     ) : (
@@ -758,7 +767,9 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
               maxWidth: 420,
               flex: '1 1 300px',
               borderRadius: '10px',
-              border: dragOverTarget === 'unassigned' ? '2px dashed #dc3545' : '1px dashed #ccc',
+              border: dragOverTarget === 'unassigned'
+                ? '2px dashed #dc3545'
+                : isDark ? '1px dashed #4a4a4a' : '1px dashed #ccc',
               background: dragOverTarget === 'unassigned' ? 'rgba(220,53,69,0.06)' : 'var(--card-bg, #fff)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
             }}
@@ -768,14 +779,17 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
               padding: '12px 16px',
               borderBottom: '1px solid var(--border-color, #dee2e6)',
               borderRadius: '10px 10px 0 0',
-              background: 'linear-gradient(135deg, #fff3cd, #ffeeba)',
+              background: isDark
+                ? 'linear-gradient(135deg, #332800, #3d3000)'
+                : 'linear-gradient(135deg, #fff3cd, #ffeeba)',
+              color: 'var(--text-primary)',
             }}>
               <span style={{ fontSize: '18px' }}>📋</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: '14px' }}>Ohne Abteilung</div>
               </div>
               <span style={{
-                fontSize: '11px', background: '#fff3cd', color: '#856404',
+                fontSize: '11px', background: isDark ? '#332800' : '#fff3cd', color: isDark ? '#fbbf24' : '#856404',
                 padding: '2px 8px', borderRadius: '10px', fontWeight: 600,
               }}>
                 {unassigned.length}
@@ -783,7 +797,7 @@ const OrgChartTab: React.FC<{ onUpdate: () => void }> = ({ onUpdate }) => {
             </div>
             <div style={{ padding: '8px 12px', minHeight: 40 }}>
               {unassigned.length === 0 ? (
-                <div style={{ padding: '16px', textAlign: 'center', color: '#aaa', fontSize: '12px', fontStyle: 'italic' }}>
+                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '12px', fontStyle: 'italic' }}>
                   Alle Mitarbeiter sind zugeordnet
                 </div>
               ) : (

@@ -138,7 +138,7 @@ const MessagesPage: React.FC = () => {
   return (
     <>
       <AppNavbar title="Nachrichten" />
-      <div className="messages-page" style={{ paddingTop: '20px' }}>
+      <div className="messages-page">
       <div className="messages-header">
         <h1>📨 Nachrichten</h1>
         <button className="btn btn-primary" onClick={() => navigate('/messages/compose')}>

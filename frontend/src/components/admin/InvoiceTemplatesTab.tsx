@@ -110,11 +110,11 @@ const InvoiceTemplatesTab: React.FC = () => {
           ) : (
             templates.map((template) => (
               <div key={template.id} style={{
-                background: 'white',
+                background: 'var(--card-bg)',
                 borderRadius: '8px',
                 padding: '20px',
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                border: '1px solid #e5e7eb'
+                border: '1px solid var(--border-color)'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <h3 style={{ margin: 0, fontSize: '18px' }}>{template.name}</h3>
@@ -129,7 +129,7 @@ const InvoiceTemplatesTab: React.FC = () => {
                     }}>Standard</span>
                   )}
                 </div>
-                <div style={{ marginBottom: '16px', fontSize: '14px', color: '#6b7280' }}>
+                <div style={{ marginBottom: '16px', fontSize: '14px', color: 'var(--text-secondary)' }}>
                   <div style={{ marginBottom: '8px' }}>
                     <strong>Firma:</strong> {template.companyName}
                   </div>
@@ -164,7 +164,7 @@ const InvoiceTemplatesTab: React.FC = () => {
                     <>
                       <button
                         className="btn"
-                        style={{ padding: '6px 12px', fontSize: '13px', background: '#f3f4f6', color: '#374151' }}
+                        style={{ padding: '6px 12px', fontSize: '13px', background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
                         onClick={() => handleSetDefault(template.id)}
                       >
                         Als Standard

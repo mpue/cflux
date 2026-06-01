@@ -1,6 +1,6 @@
 .project-planning-page {
   min-height: 100vh;
-  background: var(--background-color);
+  background: var(--bg-primary);
   display: flex;
   flex-direction: column;
 }
@@ -72,7 +72,7 @@
   padding: 0.75rem 1rem;
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  background: var(--background-color);
+  background: var(--input-bg);
   color: var(--text-primary);
   font-size: 1rem;
   cursor: pointer;
@@ -167,7 +167,7 @@
   margin-bottom: 2rem;
   gap: 2rem;
   flex-wrap: wrap;
-  background: var(--card-background);
+  background: var(--card-bg);
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -182,14 +182,14 @@
 .view-controls label {
   font-weight: 600;
   margin-right: 0.5rem;
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 .view-controls button {
   padding: 0.5rem 1rem;
-  border: 1px solid #ddd;
-  background: white;
-  color: #333;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-primary);
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.2s;
@@ -197,7 +197,7 @@
 }
 
 .view-controls button:hover {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-color: #007bff;
 }
 
@@ -218,7 +218,7 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 .legend-color {
@@ -244,7 +244,7 @@
 }
 
 .gantt-wrapper {
-  background: var(--card-background);
+  background: var(--card-bg);
   padding: 1rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -257,16 +257,16 @@
 }
 
 .gantt-wrapper .gantt-table-header {
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
+  background-color: var(--bg-secondary);
+  border-bottom: 2px solid var(--border-color);
 }
 
 .gantt-wrapper .gantt-table-row {
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .gantt-wrapper .gantt-table-row:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-secondary);
 }
 
 /* Loading State */
@@ -276,13 +276,13 @@
   align-items: center;
   justify-content: center;
   padding: 4rem;
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 .spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid #f3f3f3;
+  border: 4px solid var(--border-color);
   border-top: 4px solid #007bff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -301,13 +301,13 @@
   align-items: center;
   justify-content: center;
   padding: 4rem;
-  background: var(--card-background);
+  background: var(--card-bg);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .empty-state p {
-  color: var(--text-color);
+  color: var(--text-primary);
   margin-bottom: 1rem;
   font-size: 1.1rem;
 }
@@ -343,7 +343,7 @@
 }
 
 .modal-content {
-  background: var(--card-background);
+  background: var(--card-bg);
   border-radius: 8px;
   width: 100%;
   max-width: 600px;
@@ -357,12 +357,12 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-header h2 {
   margin: 0;
-  color: var(--text-color);
+  color: var(--text-primary);
   font-size: 1.5rem;
 }
 
@@ -371,7 +371,7 @@
   border: none;
   font-size: 2rem;
   cursor: pointer;
-  color: #666;
+  color: var(--text-secondary);
   padding: 0;
   width: 40px;
   height: 40px;
@@ -384,8 +384,8 @@
 }
 
 .modal-close:hover {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .close-btn {
@@ -393,7 +393,7 @@
   border: none;
   font-size: 2rem;
   cursor: pointer;
-  color: #666;
+  color: var(--text-secondary);
   padding: 0;
   width: 40px;
   height: 40px;
@@ -405,8 +405,8 @@
 }
 
 .close-btn:hover {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .modal-body {
@@ -420,7 +420,7 @@
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: var(--text-color);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -430,10 +430,10 @@
 .form-group textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  background: var(--background-color);
-  color: var(--text-color);
+  background: var(--input-bg);
+  color: var(--text-primary);
   font-size: 1rem;
   transition: border-color 0.2s;
 }
@@ -467,7 +467,7 @@
 
 .info-row strong {
   min-width: 120px;
-  color: var(--text-color);
+  color: var(--text-primary);
 }
 
 .info-row span, .info-row p {
@@ -514,7 +514,7 @@
   justify-content: flex-end;
   gap: 1rem;
   padding: 1.5rem;
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid var(--border-color);
 }
 
 .btn-cancel {
@@ -577,63 +577,35 @@
 /* Info Section */
 .planning-info {
   padding: 1.5rem 2rem;
-  background: #f8f9fa;
-  border-top: 1px solid #dee2e6;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
 }
 
 .planning-info p {
   margin: 0.5rem 0;
-  color: #495057;
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
 /* Dark Mode Support */
-body.dark-mode .view-controls button {
-  background: #2d3748;
-  color: #e2e8f0;
-  border-color: #4a5568;
+[data-theme='dark'] .status-badge.active {
+  background: #1e3a5f;
+  color: #93c5fd;
 }
 
-body.dark-mode .view-controls button:hover {
-  background: #374151;
-  border-color: #60a5fa;
+[data-theme='dark'] .status-badge.completed {
+  background: #14532d;
+  color: #86efac;
 }
 
-body.dark-mode .view-controls button.active {
-  background: #3b82f6;
-  color: white;
+[data-theme='dark'] .status-badge.on_hold {
+  background: #451a03;
+  color: #fde68a;
 }
 
-body.dark-mode .gantt-wrapper .gantt-table-header {
-  background-color: #2d3748;
-  border-bottom-color: #4a5568;
-}
-
-body.dark-mode .gantt-wrapper .gantt-table-row {
-  border-bottom-color: #374151;
-}
-
-body.dark-mode .gantt-wrapper .gantt-table-row:hover {
-  background-color: #374151;
-}
-
-body.dark-mode .modal-close:hover {
-  background: #374151;
-  color: #e2e8f0;
-}
-
-body.dark-mode .close-btn:hover {
-  background: #374151;
-  color: #e2e8f0;
-}
-
-body.dark-mode .planning-info {
-  background: #1a202c;
-  border-top-color: #2d3748;
-}
-
-body.dark-mode .planning-info p {
-  color: #cbd5e0;
+[data-theme='dark'] .status-badge.cancelled {
+  background: #450a0a;
+  color: #fca5a5;
 }
 
 /* Responsive Design */

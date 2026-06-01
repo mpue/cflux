@@ -3,6 +3,7 @@ import { Invoice, Customer, Article } from '../../types';
 import * as invoiceService from '../../services/invoiceService';
 import InvoicePreviewModal from '../InvoicePreviewModal';
 import { useCurrency } from '../../contexts/CurrencyContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface InvoicesTabProps {
   invoices: Invoice[];
@@ -13,6 +14,8 @@ interface InvoicesTabProps {
 
 const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles, onUpdate }) => {
   const { currency } = useCurrency();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [showModal, setShowModal] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [initialDocumentType, setInitialDocumentType] = useState<'INVOICE' | 'QUOTE'>('INVOICE');
@@ -34,7 +37,19 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
     return matchesSearch && matchesStatus && matchesCustomer;
   });
 
-  const getStatusColor = (status: string) => {
+const getStatusColor = (status: string, isDark: boolean = false) => {
+  if (isDark) {
+    switch (status) {
+      case 'DRAFT': return { bg: '#1e3a5c', color: '#90caf9' };
+      case 'SENT': return { bg: '#3d2e00', color: '#fcd34d' };
+      case 'PAID': return { bg: '#1a3520', color: '#86efac' };
+      case 'OVERDUE': return { bg: '#3b1a1a', color: '#fca5a5' };
+      case 'CANCELLED': return { bg: '#2a2a2a', color: '#9ca3af' };
+      case 'ACCEPTED': return { bg: '#1a3520', color: '#86efac' };
+      case 'DECLINED': return { bg: '#3b1a1a', color: '#fca5a5' };
+      default: return { bg: '#2a2a2a', color: '#f5f5f5' };
+    }
+  }
     switch (status) {
       case 'DRAFT': return { bg: '#e3f2fd', color: '#1565c0' };
       case 'SENT': return { bg: '#fff3e0', color: '#e65100' };
@@ -94,12 +109,12 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
           placeholder="Suche nach Rechnungsnummer, Kunde oder Notizen..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+          style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-primary)' }}
         />
         <select
           value={filterCustomerId}
           onChange={(e) => setFilterCustomerId(e.target.value)}
-          style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+          style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-primary)' }}
         >
           <option value="">Alle Kunden</option>
           {customers.filter(c => c.isActive).map(customer => (
@@ -109,7 +124,7 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+          style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-primary)' }}
         >
           <option value="">Alle Status</option>
           <option value="DRAFT">Entwurf</option>
@@ -136,13 +151,13 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
         <tbody>
           {filteredInvoices.length === 0 ? (
             <tr>
-              <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+              <td colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
                 Keine Dokumente gefunden
               </td>
             </tr>
           ) : (
             filteredInvoices.map((invoice) => {
-              const statusStyle = getStatusColor(invoice.status);
+              const statusStyle = getStatusColor(invoice.status, isDark);
               return (
                 <tr key={invoice.id}>
                   <td>
@@ -150,8 +165,12 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
                       padding: '2px 6px',
                       borderRadius: '4px',
                       fontSize: '0.75em',
-                      backgroundColor: invoice.documentType === 'QUOTE' ? '#f3e8ff' : '#e3f2fd',
-                      color: invoice.documentType === 'QUOTE' ? '#7c3aed' : '#1565c0'
+                      backgroundColor: invoice.documentType === 'QUOTE'
+                        ? (isDark ? '#2d1a4a' : '#f3e8ff')
+                        : (isDark ? '#1a2e4a' : '#e3f2fd'),
+                      color: invoice.documentType === 'QUOTE'
+                        ? (isDark ? '#c4b5fd' : '#7c3aed')
+                        : (isDark ? '#90caf9' : '#1565c0')
                     }}>
                       {invoice.documentType === 'QUOTE' ? 'Angebot' : 'Rechnung'}
                     </span>
@@ -169,7 +188,7 @@ const InvoicesTab: React.FC<InvoicesTabProps> = ({ invoices, customers, articles
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <strong>{currency} {invoice.totalAmount.toFixed(2)}</strong>
-                    <div style={{ fontSize: '0.85em', color: '#666' }}>
+                    <div style={{ fontSize: '0.85em', color: 'var(--text-secondary)' }}>
                       Netto: {currency} {invoice.subtotal.toFixed(2)}
                     </div>
                   </td>
@@ -502,7 +521,7 @@ const InvoiceModal: React.FC<{
                   type="text"
                   value={invoice.customer?.name || 'Unbekannt'}
                   disabled
-                  style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
+                  style={{ backgroundColor: 'var(--bg-tertiary)', cursor: 'not-allowed' }}
                 />
               ) : (
                 <select
@@ -630,7 +649,7 @@ const InvoiceModal: React.FC<{
             <tbody>
               {formData.items.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '1rem', color: '#999' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-secondary)' }}>
                     Keine Positionen vorhanden
                   </td>
                 </tr>
@@ -732,7 +751,7 @@ const InvoiceModal: React.FC<{
             <div style={{ marginBottom: '5px' }}>
               <strong>MwSt:</strong> <span style={{ display: 'inline-block', width: '120px', textAlign: 'right' }}>{currency} {vatAmount.toFixed(2)}</span>
             </div>
-            <div style={{ fontSize: '1.2em', marginTop: '10px', paddingTop: '10px', borderTop: '2px solid #333' }}>
+            <div style={{ fontSize: '1.2em', marginTop: '10px', paddingTop: '10px', borderTop: '2px solid var(--border-color)' }}>
               <strong>Gesamtbetrag:</strong> <span style={{ display: 'inline-block', width: '140px', textAlign: 'right' }}>{currency} {totalAmount.toFixed(2)}</span>
             </div>
           </div>

@@ -112,7 +112,7 @@ export const HolidaysTab: React.FC = () => {
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+            style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-primary)' }}
           >
             {[...Array(5)].map((_, i) => {
               const year = new Date().getFullYear() - 1 + i;
@@ -123,7 +123,7 @@ export const HolidaysTab: React.FC = () => {
           <select
             value={selectedCanton}
             onChange={(e) => setSelectedCanton(e.target.value)}
-            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+            style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-primary)' }}
           >
             <option value="ALL">Alle Kantone</option>
             {cantons.map(canton => (
@@ -151,7 +151,7 @@ export const HolidaysTab: React.FC = () => {
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px' }}>Lade Feiertage...</div>
       ) : holidays.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
           <p>Keine Feiertage gefunden für {selectedYear}</p>
           <button className="btn btn-primary" onClick={syncHolidays}>
             Jetzt von API synchronisieren
@@ -159,7 +159,7 @@ export const HolidaysTab: React.FC = () => {
         </div>
       ) : (
         <div>
-          <div style={{ marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+          <div style={{ marginBottom: '20px', padding: '15px', background: 'var(--bg-secondary)', borderRadius: '8px', color: 'var(--text-primary)' }}>
             <strong>{holidays.length} Feiertage</strong> für {selectedCanton === 'ALL' ? 'alle Kantone' : cantons.find(c => c.code === selectedCanton)?.name}
           </div>
 

@@ -222,6 +222,30 @@ const CalendarPage: React.FC = () => {
   // Drag state
   const dragEventRef = useRef<CalendarEvent | null>(null);
 
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    type: 'day' | 'event';
+    day?: Date;
+    event?: CalendarEvent;
+  } | null>(null);
+
+  function openContextMenu(
+    e: React.MouseEvent,
+    type: 'day' | 'event',
+    day?: Date,
+    event?: CalendarEvent,
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY, type, day, event });
+  }
+
+  function closeContextMenu() {
+    setContextMenu(null);
+  }
+
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
   const fetchEvents = useCallback(async () => {
@@ -415,6 +439,7 @@ const CalendarPage: React.FC = () => {
   function EventChip({ event, compact = false }: { event: CalendarEvent; compact?: boolean }) {
     return (
       <div
+        id={`cal-event-${event.id}`}
         className={`cal-event-chip${compact ? ' compact' : ''}`}
         style={{ backgroundColor: event.color }}
         draggable={event.createdById === user?.id}
@@ -425,6 +450,7 @@ const CalendarPage: React.FC = () => {
           setDetailPos({ x: rect.left, y: rect.bottom + 6 });
           setDetailEvent(event);
         }}
+        onContextMenu={(e) => openContextMenu(e, 'event', undefined, event)}
         title={event.title}
       >
         {!compact && !event.allDay && (
@@ -455,6 +481,7 @@ const CalendarPage: React.FC = () => {
               key={idx}
               className={`cal-day-cell${isCurrentMonth ? '' : ' other-month'}${isToday ? ' today' : ''}`}
               onClick={() => openCreate(day)}
+              onContextMenu={(e) => isCurrentMonth && openContextMenu(e, 'day', day)}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => onDropDay(e, day)}
             >
@@ -534,6 +561,7 @@ const CalendarPage: React.FC = () => {
                   return (
                     <div
                       key={ev.id}
+                      id={`cal-event-${ev.id}`}
                       className="cal-week-event"
                       style={{ top, height, backgroundColor: ev.color }}
                       draggable={ev.createdById === user?.id}
@@ -544,6 +572,7 @@ const CalendarPage: React.FC = () => {
                         setDetailPos({ x: rect.right + 8, y: rect.top });
                         setDetailEvent(ev);
                       }}
+                      onContextMenu={(e) => openContextMenu(e, 'event', undefined, ev)}
                     >
                       <div className="cal-week-event-title">{ev.title}</div>
                       <div className="cal-week-event-time">
@@ -881,6 +910,146 @@ const CalendarPage: React.FC = () => {
     );
   }
 
+  async function copyEvent(ev: CalendarEvent) {
+    const origStart = new Date(ev.startDate);
+    const origEnd = new Date(ev.endDate);
+    // Copy to next day
+    const newStart = new Date(origStart);
+    newStart.setDate(newStart.getDate() + 1);
+    const newEnd = new Date(origEnd);
+    newEnd.setDate(newEnd.getDate() + 1);
+    try {
+      await api.post('/calendar', {
+        title: `${ev.title} (Kopie)`,
+        description: ev.description,
+        startDate: newStart.toISOString(),
+        endDate: newEnd.toISOString(),
+        allDay: ev.allDay,
+        location: ev.location,
+        color: ev.color,
+        eventType: ev.eventType,
+        isPrivate: ev.isPrivate,
+        attendeeIds: [],
+      });
+      fetchEvents();
+    } catch {
+      alert('Fehler beim Kopieren');
+    }
+  }
+
+  // ── Context Menu ────────────────────────────────────────────────────────────
+
+  function ContextMenu() {
+    if (!contextMenu) return null;
+
+    const { x, y, type, day, event } = contextMenu;
+    const isOwner = event?.createdById === user?.id;
+    const myAttendee = event?.attendees.find((a) => a.user.id === user?.id);
+
+    // Clamp to viewport
+    const menuW = 220;
+    const menuH = type === 'event' ? 200 : 130;
+    const left = Math.min(x, window.innerWidth - menuW - 8);
+    const top = Math.min(y, window.innerHeight - menuH - 8);
+
+    return (
+      <>
+        <div className="cal-ctx-backdrop" onClick={closeContextMenu} onContextMenu={(e) => { e.preventDefault(); closeContextMenu(); }} />
+        <div className="cal-ctx-menu" style={{ left, top }}>
+          {type === 'day' && day && (
+            <>
+              <div className="cal-ctx-header">
+                {day.toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </div>
+              <button className="cal-ctx-item" onClick={() => { closeContextMenu(); openCreate(day); }}>
+                <span className="cal-ctx-icon">+</span>
+                Neuer Termin
+              </button>
+              <button className="cal-ctx-item" onClick={() => {
+                closeContextMenu();
+                const d = new Date(day);
+                setForm({ ...defaultForm(d), allDay: true });
+                setEditingEvent(null);
+                setShowModal(true);
+              }}>
+                <span className="cal-ctx-icon">📅</span>
+                Ganztägiges Ereignis
+              </button>
+              <button className="cal-ctx-item" onClick={() => {
+                closeContextMenu();
+                const d = new Date(day);
+                setForm({ ...defaultForm(d), eventType: 'MEETING' });
+                setEditingEvent(null);
+                setShowModal(true);
+              }}>
+                <span className="cal-ctx-icon">👥</span>
+                Besprechung planen
+              </button>
+              <div className="cal-ctx-divider" />
+              <button className="cal-ctx-item" onClick={() => {
+                closeContextMenu();
+                setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
+              }}>
+                <span className="cal-ctx-icon">⌂</span>
+                Zum heutigen Monat
+              </button>
+            </>
+          )}
+
+          {type === 'event' && event && (
+            <>
+              <div className="cal-ctx-header" style={{ borderLeft: `3px solid ${event.color}`, paddingLeft: 10 }}>
+                {event.title}
+              </div>
+              <button className="cal-ctx-item" onClick={() => {
+                closeContextMenu();
+                const rect = document.getElementById(`cal-event-${event.id}`)?.getBoundingClientRect();
+                setDetailPos({ x: rect ? rect.left : x, y: rect ? rect.bottom + 6 : y });
+                setDetailEvent(event);
+              }}>
+                <span className="cal-ctx-icon">🔍</span>
+                Details anzeigen
+              </button>
+              {isOwner && (
+                <button className="cal-ctx-item" onClick={() => { closeContextMenu(); openEdit(event); }}>
+                  <span className="cal-ctx-icon">✏️</span>
+                  Bearbeiten
+                </button>
+              )}
+              {isOwner && (
+                <button className="cal-ctx-item" onClick={() => { closeContextMenu(); copyEvent(event); }}>
+                  <span className="cal-ctx-icon">📋</span>
+                  Kopieren (nächster Tag)
+                </button>
+              )}
+              {myAttendee && !isOwner && myAttendee.status !== 'ACCEPTED' && (
+                <button className="cal-ctx-item cal-ctx-accept" onClick={() => { closeContextMenu(); respond(event.id, 'ACCEPTED'); }}>
+                  <span className="cal-ctx-icon">✓</span>
+                  Annehmen
+                </button>
+              )}
+              {myAttendee && !isOwner && myAttendee.status !== 'DECLINED' && (
+                <button className="cal-ctx-item cal-ctx-decline" onClick={() => { closeContextMenu(); respond(event.id, 'DECLINED'); }}>
+                  <span className="cal-ctx-icon">✗</span>
+                  Ablehnen
+                </button>
+              )}
+              {isOwner && (
+                <>
+                  <div className="cal-ctx-divider" />
+                  <button className="cal-ctx-item cal-ctx-danger" onClick={() => { closeContextMenu(); deleteEvent(event.id); }}>
+                    <span className="cal-ctx-icon">🗑</span>
+                    Löschen
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </>
+    );
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -944,6 +1113,7 @@ const CalendarPage: React.FC = () => {
 
       <EventModal />
       <DetailPopup />
+      <ContextMenu />
     </div>
     </>
   );

@@ -226,11 +226,12 @@ const Dashboard: React.FC = () => {
       const approvals = results[6].status === 'fulfilled' ? results[6].value : [];
       const unreadCount = results[7].status === 'fulfilled' ? results[7].value : 0;
 
-      // Detect missed clock-out from a previous day
+      // Detect missed clock-out from a previous day.
+      // Use UTC date strings (YYYY-MM-DD) to match the backend's timezone-safe check.
       if (current && (current.status === 'CLOCKED_IN' || current.status === 'ON_PAUSE')) {
-        const clockInDate = new Date(current.clockIn);
-        const today = new Date();
-        const isFromPreviousDay = clockInDate.toDateString() !== today.toDateString() && clockInDate < today;
+        const clockInDateUTC = new Date(current.clockIn).toISOString().slice(0, 10);
+        const todayUTC = new Date().toISOString().slice(0, 10);
+        const isFromPreviousDay = clockInDateUTC < todayUTC;
         if (isFromPreviousDay) {
           setMissedClockOutEntry(current);
           setShowMissedClockOutModal(true);
@@ -325,6 +326,11 @@ const Dashboard: React.FC = () => {
         status: 'CLOCKED_OUT',
         pauseMinutes: pauseMins,
       } as any);
+      // Immediately clear the active entry so the widget stops showing "clocked in"
+      // and the 1-second timer doesn't compute a stale (inflated) work duration
+      // while loadData() is still fetching fresh state from the server.
+      setCurrentEntry(null);
+      setWorkDuration('0h 0m');
       setShowMissedClockOutModal(false);
       setMissedClockOutEntry(null);
       await loadData();

@@ -401,10 +401,12 @@ export const updateMyTimeEntry = async (req: AuthRequest, res: Response) => {
     // Allow project and description updates for active entries
     // Only restrict clockIn/clockOut changes for active entries
     if (existingEntry.status === 'CLOCKED_IN' || existingEntry.status === 'ON_PAUSE') {
-      // Check if this is a missed clock-out from a previous day
-      const entryDate = new Date(existingEntry.clockIn).toDateString();
-      const today = new Date().toDateString();
-      const isMissedClockOut = entryDate !== today && clockOut && status === 'CLOCKED_OUT';
+      // Check if this is a missed clock-out from a previous day.
+      // Use UTC date strings (YYYY-MM-DD) so the comparison is timezone-safe
+      // regardless of the server's local timezone.
+      const entryDateUTC = new Date(existingEntry.clockIn).toISOString().slice(0, 10);
+      const todayUTC = new Date().toISOString().slice(0, 10);
+      const isMissedClockOut = entryDateUTC !== todayUTC && clockOut && status === 'CLOCKED_OUT';
 
       if (isMissedClockOut) {
         // Allow retroactive clock-out for missed entries from previous days

@@ -489,11 +489,6 @@ const ProjectPlanningPage: React.FC = () => {
           </div>
         )}
         
-        {/* DEBUG: Test if this renders */}
-        <h1 style={{color: 'red', fontSize: '48px', background: 'yellow', padding: '20px'}}>
-          🚨 TEST - WENN DU DAS SIEHST, RENDERT REACT HIER! 🚨
-        </h1>
-        
         {/* Tab Switcher */}
         <div className="view-tabs">
           <button

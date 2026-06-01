@@ -76,7 +76,7 @@ const ComposeMessage: React.FC = () => {
   return (
     <>
       <AppNavbar title="Neue Nachricht" />
-      <div className="compose-message-page" style={{ paddingTop: '20px' }}>
+      <div className="compose-message-page">
       <div className="compose-header">
         <h1>✍️ Neue Nachricht</h1>
         <button className="btn btn-secondary" onClick={() => navigate('/messages')}>

@@ -14,7 +14,7 @@
 .page-header h1 {
   margin: 0;
   font-size: 28px;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .templates-grid {
@@ -50,13 +50,13 @@
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .template-header h3 {
   margin: 0;
   font-size: 20px;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .badge-default {
@@ -77,11 +77,11 @@
 .info-item {
   margin-bottom: 8px;
   font-size: 14px;
-  color: #4b5563;
+  color: var(--text-primary);
 }
 
 .info-item strong {
-  color: #374151;
+  color: var(--text-primary);
   margin-right: 8px;
 }
 
@@ -91,7 +91,7 @@
   flex-wrap: wrap;
   margin-top: 20px;
   padding-top: 16px;
-  border-top: 2px solid #f3f4f6;
+  border-top: 2px solid var(--border-color);
 }
 
 .btn {
@@ -124,7 +124,7 @@
 }
 
 .btn-outline {
-  background-color: white;
+  background-color: var(--card-bg);
   color: #2563eb;
   border: 1px solid #2563eb;
 }
@@ -134,7 +134,7 @@
 }
 
 .btn-danger {
-  background-color: white;
+  background-color: var(--card-bg);
   color: #dc2626;
   border: 1px solid #dc2626;
 }
@@ -159,14 +159,14 @@
 .loading {
   text-align: center;
   padding: 60px;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 16px;
 }
 
 .empty-state {
   text-align: center;
   padding: 60px;
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -174,7 +174,7 @@
 .empty-state p {
   margin: 0 0 20px 0;
   font-size: 16px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .alert {
@@ -232,4 +232,33 @@
 [data-theme='dark'] .btn-small:hover {
   background: var(--bg-secondary);
   border-color: var(--text-secondary);
+}
+
+[data-theme='dark'] .badge-default {
+  background-color: #1e3a5c;
+  color: #90caf9;
+}
+
+[data-theme='dark'] .btn-outline {
+  color: #90caf9;
+  border-color: #4a90d9;
+}
+
+[data-theme='dark'] .btn-outline:hover {
+  background-color: #1a2e4a;
+}
+
+[data-theme='dark'] .btn-danger {
+  color: #fca5a5;
+  border-color: #b91c1c;
+}
+
+[data-theme='dark'] .btn-danger:hover {
+  background-color: #3b1a1a;
+}
+
+[data-theme='dark'] .alert-error {
+  background-color: #3b1a1a;
+  color: #fca5a5;
+  border-color: #b91c1c;
 }

@@ -110,7 +110,7 @@ const MessageDetail: React.FC = () => {
   return (
     <>
       <AppNavbar title="Nachrichtendetails" />
-      <div className="message-detail-page" style={{ paddingTop: '20px' }}>
+      <div className="message-detail-page">
       <div className="message-detail-header">
         <button className="btn btn-secondary" onClick={() => navigate('/messages')}>
           ← Zurück zu Nachrichten

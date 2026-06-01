@@ -67,10 +67,19 @@
   background: #fafafa;
   color: #bbb;
 }
+
+[data-theme='dark'] .vp-day-header {
+  background: #252525;
+  color: #6b7280;
+}
 .vp-absent {
   border: 1px solid #bbb;
   color: #fff;
   cursor: pointer;
+}
+
+[data-theme='dark'] .vp-absent {
+  border-color: #4a4a4a;
 }
 .vp-legend {
   margin-top: 12px;

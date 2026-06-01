@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { absenceService } from '../services/absence.service';
 import { userService } from '../services/user.service';
 import { AbsenceRequest, User } from '../types';
+import { useTheme } from '../contexts/ThemeContext';
 import './VacationPlanner.css';
 
 const months = [
@@ -17,6 +18,8 @@ const absenceColors: Record<string, string> = {
 };
 
 const VacationPlanner: React.FC = () => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [absences, setAbsences] = useState<AbsenceRequest[]>([]);
@@ -95,24 +98,24 @@ const VacationPlanner: React.FC = () => {
       </div>
 
       {/* Filter Section */}
-      <div className="vp-filters" style={{ marginBottom: 16, padding: 16, background: '#f5f5f5', borderRadius: 8, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+      <div className="vp-filters" style={{ marginBottom: 16, padding: 16, background: 'var(--bg-secondary)', borderRadius: 8, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 200px', minWidth: '150px' }}>
-          <label style={{ marginRight: 8, fontWeight: 'bold', display: 'block', marginBottom: 4 }}>Benutzer:</label>
+          <label style={{ marginRight: 8, fontWeight: 'bold', display: 'block', marginBottom: 4, color: 'var(--text-primary)' }}>Benutzer:</label>
           <input
             type="text"
             placeholder="Name eingeben..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: 4, border: '1px solid #ddd', width: '100%', fontSize: '14px' }}
+            style={{ padding: '8px 12px', borderRadius: 4, border: '1px solid var(--border-color)', width: '100%', fontSize: '14px', background: 'var(--input-bg)', color: 'var(--text-primary)' }}
           />
         </div>
         
         <div style={{ flex: '1 1 180px', minWidth: '150px' }}>
-          <label style={{ marginRight: 8, fontWeight: 'bold', display: 'block', marginBottom: 4 }}>Typ:</label>
+          <label style={{ marginRight: 8, fontWeight: 'bold', display: 'block', marginBottom: 4, color: 'var(--text-primary)' }}>Typ:</label>
           <select 
             value={filterType} 
             onChange={(e) => setFilterType(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: 4, border: '1px solid #ddd', width: '100%', fontSize: '14px' }}
+            style={{ padding: '8px 12px', borderRadius: 4, border: '1px solid var(--border-color)', width: '100%', fontSize: '14px', background: 'var(--input-bg)', color: 'var(--text-primary)' }}
           >
             <option value="ALL">Alle Typen</option>
             <option value="VACATION">Urlaub</option>
@@ -124,11 +127,11 @@ const VacationPlanner: React.FC = () => {
         </div>
 
         <div style={{ flex: '1 1 160px', minWidth: '150px' }}>
-          <label style={{ marginRight: 8, fontWeight: 'bold', display: 'block', marginBottom: 4 }}>Status:</label>
+          <label style={{ marginRight: 8, fontWeight: 'bold', display: 'block', marginBottom: 4, color: 'var(--text-primary)' }}>Status:</label>
           <select 
             value={filterStatus} 
             onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: 4, border: '1px solid #ddd', width: '100%', fontSize: '14px' }}
+            style={{ padding: '8px 12px', borderRadius: 4, border: '1px solid var(--border-color)', width: '100%', fontSize: '14px', background: 'var(--input-bg)', color: 'var(--text-primary)' }}
           >
             <option value="APPROVED">Genehmigt</option>
             <option value="PENDING">Ausstehend</option>

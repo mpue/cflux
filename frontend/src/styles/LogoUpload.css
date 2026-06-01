@@ -51,10 +51,22 @@
   color: #3b82f6;
 }
 
+[data-theme='dark'] .btn-change:hover {
+  background: #1a2e4a;
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+
 .btn-remove:hover {
   background: #fee;
   border-color: #ef4444;
   color: #ef4444;
+}
+
+[data-theme='dark'] .btn-remove:hover {
+  background: #3b1a1a;
+  border-color: #ef4444;
+  color: #fca5a5;
 }
 
 .logo-dropzone {
@@ -102,14 +114,14 @@
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .upload-hint {
   display: block;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .uploading {
@@ -122,7 +134,7 @@
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #e5e7eb;
+  border: 3px solid var(--border-color);
   border-top-color: #3b82f6;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -136,7 +148,7 @@
 
 .uploading span {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .upload-error {
@@ -147,4 +159,10 @@
   border-radius: 6px;
   color: #c00;
   font-size: 13px;
+}
+
+[data-theme='dark'] .upload-error {
+  background: #3b1a1a;
+  border-color: #b91c1c;
+  color: #fca5a5;
 }

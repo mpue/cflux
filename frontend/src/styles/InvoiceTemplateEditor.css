@@ -15,6 +15,7 @@
 
 .editor-content-split {
   background: var(--card-bg);
+  color: var(--text-primary);
   border-radius: 12px;
   box-shadow: 0 20px 60px var(--shadow-color);
   max-width: 1400px;
@@ -24,7 +25,7 @@
   margin: auto;
   display: flex;
   flex-direction: column;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .editor-content {
@@ -71,6 +72,7 @@
   overflow-y: auto;
   border-right: 2px solid var(--border-color);
   background: var(--card-bg);
+  color: var(--text-primary);
   transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
@@ -114,6 +116,18 @@
   border: 1px solid #cfc;
 }
 
+[data-theme='dark'] .alert-error {
+  background-color: #3b1a1a;
+  color: #fca5a5;
+  border-color: #b91c1c;
+}
+
+[data-theme='dark'] .alert-success {
+  background-color: #1a3520;
+  color: #86efac;
+  border-color: #16a34a;
+}
+
 .template-basics {
   margin-bottom: 24px;
 }
@@ -122,14 +136,20 @@
   margin-bottom: 16px;
 }
 
+.form-group label {
+  color: var(--text-primary);
+}
+
 .form-group input[type="text"],
 .form-group input[type="email"],
 .form-group textarea {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 14px;
+  background: var(--input-bg);
+  color: var(--text-primary);
   transition: border-color 0.2s;
 }
 
@@ -149,7 +169,7 @@
   display: block;
   margin-top: 4px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .checkbox-group label {
@@ -170,7 +190,7 @@
   display: flex;
   gap: 8px;
   margin-bottom: 24px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .tabs button {
@@ -180,7 +200,7 @@
   border-bottom: 2px solid transparent;
   font-size: 14px;
   font-weight: 500;
-  color: #6b7280;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
   margin-bottom: -2px;
@@ -201,7 +221,7 @@
 
 .tab-pane h3 {
   font-size: 18px;
-  color: #111827;
+  color: var(--text-primary);
   margin: 0 0 20px 0;
 }
 
@@ -220,7 +240,7 @@
 .color-picker-group input[type="color"] {
   width: 60px;
   height: 40px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
 }
@@ -235,7 +255,7 @@
   gap: 12px;
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-color);
 }
 
 .btn {
@@ -263,18 +283,18 @@
 }
 
 .btn-secondary {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .btn-secondary:hover {
-  background-color: #e5e7eb;
+  background-color: var(--bg-secondary);
 }
 
 .loading {
   text-align: center;
   padding: 40px;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 16px;
 }
 
@@ -287,7 +307,7 @@
 
   .editor-panel {
     border-right: none;
-    border-bottom: 2px solid #e5e7eb;
+    border-bottom: 2px solid var(--border-color);
   }
 
   .preview-panel {

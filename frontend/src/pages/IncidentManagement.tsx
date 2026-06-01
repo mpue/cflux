@@ -874,7 +874,7 @@ const IncidentManagement: React.FC = () => {
                             >
                               {att.originalFilename}
                             </a>
-                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                               {formatFileSize(att.fileSize)} · {att.uploadedBy ? `${att.uploadedBy.firstName} ${att.uploadedBy.lastName}` : ''} · {new Date(att.createdAt).toLocaleString('de-CH')}
                             </div>
                           </div>
