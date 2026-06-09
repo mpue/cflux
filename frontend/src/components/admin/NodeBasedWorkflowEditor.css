@@ -410,3 +410,162 @@
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
+
+/* ===== DARK MODE ===== */
+[data-theme='dark'] .node-workflow-editor {
+  background: var(--bg-secondary);
+}
+
+[data-theme='dark'] .workflow-editor-header {
+  background: var(--card-bg);
+  border-bottom-color: var(--border-color);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+
+[data-theme='dark'] .workflow-header-info h2 {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .workflow-name-input {
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border-color: var(--input-border);
+}
+
+[data-theme='dark'] .workflow-name-input:focus {
+  border-color: var(--primary-color);
+}
+
+[data-theme='dark'] .workflow-sidebar {
+  background: var(--card-bg);
+  border-right-color: var(--border-color);
+  box-shadow: 2px 0 4px rgba(0,0,0,0.3);
+}
+
+[data-theme='dark'] .workflow-sidebar h3 {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .palette-node {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .palette-node:hover {
+  background: #1a2d3d;
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+
+[data-theme='dark'] .node-label {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .node-description {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .workflow-description textarea {
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border-color: var(--input-border);
+}
+
+[data-theme='dark'] .workflow-canvas-wrapper {
+  background: var(--bg-primary);
+}
+
+[data-theme='dark'] .node-properties-panel {
+  background: var(--card-bg);
+  border-left-color: var(--border-color);
+  box-shadow: -2px 0 4px rgba(0,0,0,0.3);
+}
+
+[data-theme='dark'] .panel-header {
+  background: var(--bg-tertiary);
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme='dark'] .panel-header h3 {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .btn-close {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .btn-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .form-group input[type="text"],
+[data-theme='dark'] .form-group input[type="number"],
+[data-theme='dark'] .form-group input[type="date"],
+[data-theme='dark'] .form-group select,
+[data-theme='dark'] .form-group textarea {
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--input-border) !important;
+}
+
+[data-theme='dark'] .form-group input:focus,
+[data-theme='dark'] .form-group select:focus,
+[data-theme='dark'] .form-group textarea:focus {
+  border-color: var(--primary-color) !important;
+}
+
+[data-theme='dark'] .form-group select option {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .user-selection {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .user-checkbox:hover {
+  background: #1a2d3d;
+}
+
+[data-theme='dark'] .node-actions {
+  border-top-color: var(--border-color);
+}
+
+[data-theme='dark'] .btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .btn-secondary:hover:not(:disabled) {
+  background: var(--bg-primary);
+  border-color: var(--text-secondary);
+}
+
+/* React Flow dark overrides */
+[data-theme='dark'] .react-flow__controls {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+}
+
+[data-theme='dark'] .react-flow__controls button {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-bottom-color: var(--border-color);
+  fill: var(--text-primary);
+}
+
+[data-theme='dark'] .react-flow__controls button:hover {
+  background: var(--bg-tertiary);
+}
+
+[data-theme='dark'] .react-flow__minimap {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .react-flow__background {
+  background: var(--bg-primary);
+}

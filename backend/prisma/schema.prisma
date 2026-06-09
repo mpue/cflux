@@ -178,6 +178,7 @@ model User {
   userChecklists ChecklistInstance[] @relation("UserChecklists")
   assignedChecklists ChecklistInstance[] @relation("AssignedChecklists")
   checklistCompletions ChecklistItemCompletion[]
+  checklistItemNotifications ChecklistItem[] @relation("ChecklistItemNotifyUsers")
   
   // News
   createdNewsSources NewsSource[]
@@ -3355,6 +3356,9 @@ model ChecklistItem {
   // Bedingte Logik
   conditionalParentId String?
   showIfParentValue   String? // "yes", "no", specific value
+  
+  // Benachrichtigungen bei Zuweisung (ICS Kalender)
+  notifyUsers       User[]   @relation("ChecklistItemNotifyUsers")
   
   // Für konkrete Instanzen
   completions       ChecklistItemCompletion[]

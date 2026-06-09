@@ -514,3 +514,122 @@
 .btn-remove-attachment:hover {
   background-color: rgba(211, 47, 47, 1) !important;
 }
+
+/* ===== DARK MODE ===== */
+[data-theme='dark'] .ehs-todos-container {
+  background-color: var(--bg-secondary);
+}
+
+[data-theme='dark'] .ehs-todos-header h1 {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .stat-card {
+  background: var(--card-bg) !important;
+  border-color: var(--border-color);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+[data-theme='dark'] .stat-card-warning {
+  background: var(--card-bg) !important;
+}
+
+[data-theme='dark'] .stat-card h3 {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .search-input {
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--input-border) !important;
+}
+
+[data-theme='dark'] .filters-section select {
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--input-border) !important;
+}
+
+[data-theme='dark'] .filters-section select option {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .todo-card {
+  background: var(--card-bg) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+}
+
+[data-theme='dark'] .todo-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+[data-theme='dark'] .todo-title-section h3 {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .badge-category {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .badge-medium {
+  color: #1f2937;
+}
+
+[data-theme='dark'] .todo-description {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .todo-meta {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .progress-bar {
+  background: var(--bg-tertiary);
+}
+
+[data-theme='dark'] .progress-text {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .status-select {
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--input-border) !important;
+}
+
+[data-theme='dark'] .status-select option {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .form-group input,
+[data-theme='dark'] .form-group select,
+[data-theme='dark'] .form-group textarea {
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--input-border) !important;
+}
+
+[data-theme='dark'] .form-group select option {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .modal-actions {
+  border-top-color: var(--border-color);
+}
+
+[data-theme='dark'] .modal-close {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .modal-close:hover {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .loading,
+[data-theme='dark'] .no-todos {
+  color: var(--text-secondary);
+}

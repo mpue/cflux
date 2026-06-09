@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import logo from '../assets/logo.png';
 import '../App.css';
@@ -14,6 +15,8 @@ const Login: React.FC = () => {
   const [lockedSeconds, setLockedSeconds] = useState(0);
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
   const { login, user, refreshUser } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -81,14 +84,18 @@ const Login: React.FC = () => {
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #e0f2fe 0%, #d1fae5 100%)'
+      background: isDark
+        ? 'linear-gradient(135deg, #0a0f1e 0%, #0a1a12 100%)'
+        : 'linear-gradient(135deg, #e0f2fe 0%, #d1fae5 100%)'
     }}>
       <div style={{
         width: '100%',
         maxWidth: '450px',
-        backgroundColor: 'white',
+        backgroundColor: isDark ? '#1e1e1e' : 'white',
         borderRadius: '16px',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        boxShadow: isDark
+          ? '0 20px 25px -5px rgba(0,0,0,0.6), 0 10px 10px -5px rgba(0,0,0,0.4)'
+          : '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
         padding: '40px'
       }}>
         
@@ -98,19 +105,23 @@ const Login: React.FC = () => {
             alt="Logo" 
             style={{ height: '56px', margin: '0 auto 12px' }}
           />
-          <h1 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '8px', color: '#1f2937' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '8px', color: isDark ? '#f5f5f5' : '#1f2937' }}>
             CFlux
           </h1>
-          <p style={{ fontSize: '14px', color: '#6b7280' }}>
+          <p style={{ fontSize: '14px', color: isDark ? '#b0b0b0' : '#6b7280' }}>
             Manage your data flow efficiently
           </p>
         </div>
 
         {error && (
           <div style={{
-            backgroundColor: lockedSeconds > 0 ? '#fef3c7' : '#fef2f2',
-            border: `1px solid ${lockedSeconds > 0 ? '#fcd34d' : '#fecaca'}`,
-            color: lockedSeconds > 0 ? '#92400e' : '#dc2626',
+            backgroundColor: lockedSeconds > 0
+              ? (isDark ? '#3d2c00' : '#fef3c7')
+              : (isDark ? '#3b1a1a' : '#fef2f2'),
+            border: `1px solid ${lockedSeconds > 0 ? (isDark ? '#a16207' : '#fcd34d') : (isDark ? '#b91c1c' : '#fecaca')}`,
+            color: lockedSeconds > 0
+              ? (isDark ? '#fde68a' : '#92400e')
+              : (isDark ? '#fca5a5' : '#dc2626'),
             padding: '12px 16px',
             borderRadius: '8px',
             marginBottom: '16px',
@@ -135,7 +146,7 @@ const Login: React.FC = () => {
             <label htmlFor="email" style={{ 
               display: 'block',
               fontSize: '14px', 
-              color: '#4b5563',
+              color: isDark ? '#d1d5db' : '#4b5563',
               marginBottom: '4px'
             }}>
               E-Mail
@@ -149,18 +160,20 @@ const Login: React.FC = () => {
               style={{
                 width: '100%',
                 padding: '10px 16px',
-                border: '1px solid #d1d5db',
+                border: `1px solid ${isDark ? '#4a4a4a' : '#d1d5db'}`,
                 borderRadius: '8px',
                 fontSize: '14px',
                 outline: 'none',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                backgroundColor: isDark ? '#2d2d2d' : '#ffffff',
+                color: isDark ? '#f5f5f5' : '#1f2937'
               }}
               onFocus={(e) => {
                 e.target.style.borderColor = '#10b981';
-                e.target.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+                e.target.style.boxShadow = `0 0 0 3px rgba(16, 185, 129, ${isDark ? '0.2' : '0.1'})`;
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = '#d1d5db';
+                e.target.style.borderColor = isDark ? '#4a4a4a' : '#d1d5db';
                 e.target.style.boxShadow = 'none';
               }}
             />
@@ -170,7 +183,7 @@ const Login: React.FC = () => {
             <label htmlFor="password" style={{ 
               display: 'block',
               fontSize: '14px', 
-              color: '#4b5563',
+              color: isDark ? '#d1d5db' : '#4b5563',
               marginBottom: '4px'
             }}>
               Passwort
@@ -185,18 +198,20 @@ const Login: React.FC = () => {
                 style={{
                   width: '100%',
                   padding: '10px 40px 10px 16px',
-                  border: '1px solid #d1d5db',
+                  border: `1px solid ${isDark ? '#4a4a4a' : '#d1d5db'}`,
                   borderRadius: '8px',
                   fontSize: '14px',
                   outline: 'none',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  backgroundColor: isDark ? '#2d2d2d' : '#ffffff',
+                  color: isDark ? '#f5f5f5' : '#1f2937'
                 }}
                 onFocus={(e) => {
                   e.target.style.borderColor = '#10b981';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(16, 185, 129, 0.1)';
+                  e.target.style.boxShadow = `0 0 0 3px rgba(16, 185, 129, ${isDark ? '0.2' : '0.1'})`;
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = '#d1d5db';
+                  e.target.style.borderColor = isDark ? '#4a4a4a' : '#d1d5db';
                   e.target.style.boxShadow = 'none';
                 }}
               />
@@ -212,7 +227,7 @@ const Login: React.FC = () => {
                   border: 'none',
                   cursor: 'pointer',
                   padding: '4px',
-                  color: '#6b7280',
+                  color: isDark ? '#9ca3af' : '#6b7280',
                   fontSize: '18px',
                   lineHeight: 1,
                 }}
@@ -256,7 +271,7 @@ const Login: React.FC = () => {
         <p style={{ 
           textAlign: 'center', 
           fontSize: '14px', 
-          color: '#6b7280',
+          color: isDark ? '#9ca3af' : '#6b7280',
           marginTop: '24px'
         }}>
           <Link 

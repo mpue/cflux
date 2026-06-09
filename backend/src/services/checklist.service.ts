@@ -37,6 +37,7 @@ export interface CreateTemplateItemDto {
   conditionalParentId?: string;
   showIfParentValue?: string;
   externalLink?: string;
+  notifyUserIds?: string[];
 }
 
 export interface UpdateTemplateItemDto {
@@ -51,6 +52,7 @@ export interface UpdateTemplateItemDto {
   conditionalParentId?: string;
   showIfParentValue?: string;
   externalLink?: string;
+  notifyUserIds?: string[];
 }
 
 export interface CreateInstanceDto {
@@ -154,6 +156,9 @@ class ChecklistService {
         },
         items: {
           orderBy: { order: 'asc' },
+          include: {
+            notifyUsers: { select: { id: true, firstName: true, lastName: true, email: true } },
+          },
         },
         instances: {
           select: {
@@ -211,15 +216,33 @@ class ChecklistService {
   // ==================== Template Items ====================
 
   async createTemplateItem(data: CreateTemplateItemDto) {
+    const { notifyUserIds, ...itemData } = data;
     return prisma.checklistItem.create({
-      data,
+      data: {
+        ...itemData,
+        ...(notifyUserIds?.length ? {
+          notifyUsers: { connect: notifyUserIds.map((id) => ({ id })) },
+        } : {}),
+      },
+      include: {
+        notifyUsers: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
     });
   }
 
   async updateTemplateItem(id: string, data: UpdateTemplateItemDto) {
+    const { notifyUserIds, ...itemData } = data;
     return prisma.checklistItem.update({
       where: { id },
-      data,
+      data: {
+        ...itemData,
+        ...(notifyUserIds !== undefined ? {
+          notifyUsers: { set: notifyUserIds.map((uid) => ({ id: uid })) },
+        } : {}),
+      },
+      include: {
+        notifyUsers: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
     });
   }
 
@@ -362,6 +385,30 @@ class ChecklistService {
           notes: data.notes,
           companyName: settings.companyName || 'CFlux',
         }).catch((err) => console.error('Failed to send checklist invitation email:', err));
+      }
+    }
+
+    // Send ICS notifications to users configured on individual items
+    const itemsWithNotify = await prisma.checklistItem.findMany({
+      where: { templateId: data.templateId, notifyUsers: { some: {} } },
+      include: {
+        notifyUsers: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
+    });
+
+    if (itemsWithNotify.length > 0) {
+      const settings = await systemSettingsService.getSettings();
+      const startDate = instance.startDate instanceof Date ? instance.startDate : new Date(instance.startDate);
+      for (const item of itemsWithNotify) {
+        for (const notifyUser of item.notifyUsers) {
+          emailService.sendChecklistItemNotification({
+            notifyUser,
+            checklistName: template.name,
+            itemTitle: item.title,
+            startDate,
+            companyName: settings.companyName || 'CFlux',
+          }).catch((err) => console.error('Failed to send item notification email:', err));
+        }
       }
     }
 

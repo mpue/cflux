@@ -4,6 +4,7 @@ import * as invoiceService from '../../services/invoiceService';
 import InvoicePreviewModal from '../InvoicePreviewModal';
 import { useCurrency } from '../../contexts/CurrencyContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import '../../styles/InvoicesTab.css';
 
 interface InvoicesTabProps {
   invoices: Invoice[];
@@ -343,6 +344,8 @@ const InvoiceModal: React.FC<{
   onSave: (data: any) => Promise<void>;
 }> = ({ invoice, initialDocumentType = 'INVOICE', customers, articles, onClose, onSave }) => {
   const { currency } = useCurrency();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [formData, setFormData] = useState({
     documentType: invoice?.documentType || initialDocumentType,
     invoiceNumber: invoice?.invoiceNumber || '',
@@ -488,7 +491,7 @@ const InvoiceModal: React.FC<{
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}>
+      <div className="modal invoice-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}>
         <h2>{invoice ? (formData.documentType === 'QUOTE' ? 'Angebot bearbeiten' : 'Rechnung bearbeiten') : (formData.documentType === 'QUOTE' ? 'Neues Angebot' : 'Neue Rechnung')}</h2>
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
@@ -620,8 +623,8 @@ const InvoiceModal: React.FC<{
             />
           </div>
 
-          <div style={{ marginTop: '20px', marginBottom: '10px' }}>
-            <h3 style={{ display: 'inline', marginRight: '15px' }}>Positionen</h3>
+          <div className="invoice-positions-header">
+            <h3 style={{ margin: 0 }}>Positionen</h3>
             <button
               type="button"
               className="btn btn-primary"
@@ -744,14 +747,14 @@ const InvoiceModal: React.FC<{
             </tbody>
           </table>
 
-          <div style={{ textAlign: 'right', marginBottom: '20px', paddingRight: '20px' }}>
+          <div className="invoice-totals-section" style={{ textAlign: 'right', marginBottom: '20px' }}>
             <div style={{ marginBottom: '5px' }}>
               <strong>Zwischensumme:</strong> <span style={{ display: 'inline-block', width: '120px', textAlign: 'right' }}>{currency} {subtotal.toFixed(2)}</span>
             </div>
             <div style={{ marginBottom: '5px' }}>
               <strong>MwSt:</strong> <span style={{ display: 'inline-block', width: '120px', textAlign: 'right' }}>{currency} {vatAmount.toFixed(2)}</span>
             </div>
-            <div style={{ fontSize: '1.2em', marginTop: '10px', paddingTop: '10px', borderTop: '2px solid var(--border-color)' }}>
+            <div className="invoice-total-sum" style={{ fontSize: '1.2em', marginTop: '10px', paddingTop: '10px', borderTop: `2px solid ${isDark ? 'var(--border-color)' : '#dee2e6'}` }}>
               <strong>Gesamtbetrag:</strong> <span style={{ display: 'inline-block', width: '140px', textAlign: 'right' }}>{currency} {totalAmount.toFixed(2)}</span>
             </div>
           </div>

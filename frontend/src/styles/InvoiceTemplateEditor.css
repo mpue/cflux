@@ -76,10 +76,18 @@
   transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
+.preview-panel .invoice-preview {
+  flex: 1;
+  max-height: none;
+  overflow-y: auto;
+}
+
 .preview-panel {
   padding: 20px;
   background: var(--bg-tertiary);
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   transition: background-color 0.3s ease;
 }
 
@@ -163,6 +171,119 @@
 .form-group textarea {
   resize: vertical;
   font-family: inherit;
+}
+
+/* --- Dark Mode: alle Eingabefelder im Template-Editor --- */
+[data-theme='dark'] .editor-content-split input,
+[data-theme='dark'] .editor-content-split select,
+[data-theme='dark'] .editor-content-split textarea {
+  background-color: #2d2d2d !important;
+  color: #f5f5f5 !important;
+  border-color: #4a4a4a !important;
+}
+
+[data-theme='dark'] .editor-content-split input::placeholder,
+[data-theme='dark'] .editor-content-split textarea::placeholder {
+  color: #808080 !important;
+}
+
+[data-theme='dark'] .editor-content-split input:focus,
+[data-theme='dark'] .editor-content-split select:focus,
+[data-theme='dark'] .editor-content-split textarea:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+}
+
+[data-theme='dark'] .editor-content-split input:disabled,
+[data-theme='dark'] .editor-content-split select:disabled {
+  background-color: #1a1a1a !important;
+  color: #808080 !important;
+  opacity: 0.7;
+}
+
+[data-theme='dark'] .editor-content-split select option {
+  background-color: #2d2d2d !important;
+  color: #f5f5f5 !important;
+}
+
+/* Tabs im Dark Mode */
+[data-theme='dark'] .tabs {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme='dark'] .tabs button {
+  color: var(--text-secondary);
+}
+
+[data-theme='dark'] .tabs button:hover {
+  color: #90caf9;
+}
+
+[data-theme='dark'] .tabs button.active {
+  color: #90caf9;
+  border-bottom-color: #90caf9;
+}
+
+/* Tab-Inhalt Hintergrund */
+[data-theme='dark'] .tab-content {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .tab-pane h3 {
+  color: var(--text-primary);
+}
+
+/* Farbwähler im Dark Mode */
+[data-theme='dark'] .color-picker-group input[type="color"] {
+  background-color: transparent !important;
+  border-color: #4a4a4a !important;
+}
+
+/* Template-Basics Bereich */
+[data-theme='dark'] .template-basics {
+  background-color: transparent;
+}
+
+/* Editor-Header */
+[data-theme='dark'] .editor-header {
+  background: #252525;
+  border-bottom-color: var(--border-color);
+}
+
+/* Editor-Panel und Preview-Panel */
+[data-theme='dark'] .editor-panel {
+  background: var(--card-bg);
+}
+
+[data-theme='dark'] .preview-panel {
+  background: #1a1a1a;
+}
+
+/* Form-Aktionen */
+[data-theme='dark'] .form-actions {
+  border-top-color: var(--border-color);
+}
+
+/* Scroolbar im Dark Mode */
+[data-theme='dark'] .editor-panel::-webkit-scrollbar,
+[data-theme='dark'] .editor-content-split::-webkit-scrollbar {
+  width: 8px;
+}
+
+[data-theme='dark'] .editor-panel::-webkit-scrollbar-track,
+[data-theme='dark'] .editor-content-split::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+[data-theme='dark'] .editor-panel::-webkit-scrollbar-thumb,
+[data-theme='dark'] .editor-content-split::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 4px;
+}
+
+[data-theme='dark'] .editor-panel::-webkit-scrollbar-thumb:hover,
+[data-theme='dark'] .editor-content-split::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
 }
 
 .form-group small {

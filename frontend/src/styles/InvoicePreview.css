@@ -8,6 +8,48 @@
   color: var(--text-primary);
 }
 
+/* Dark mode: document page text */
+[data-theme='dark'] .preview-page {
+  color: #e5e7eb !important;
+}
+
+/* Dark mode: customer address box */
+[data-theme='dark'] .preview-customer {
+  background: #333333 !important;
+  color: #e5e7eb !important;
+}
+
+/* Dark mode: intro text */
+[data-theme='dark'] .preview-intro {
+  color: #d1d5db !important;
+}
+
+/* Dark mode: items table borders and text */
+[data-theme='dark'] .preview-items th,
+[data-theme='dark'] .preview-items td {
+  border-color: #4a4a4a !important;
+  color: #e5e7eb !important;
+}
+
+/* Dark mode: payment terms box */
+[data-theme='dark'] .preview-payment {
+  background: #2a2015 !important;
+  border-left-color: #b45309 !important;
+  color: #e5e7eb !important;
+}
+
+/* Dark mode: bank info box */
+[data-theme='dark'] .preview-payment-info {
+  background: #15202a !important;
+  border-left-color: #0369a1 !important;
+  color: #e5e7eb !important;
+}
+
+/* Dark mode: header text block */
+[data-theme='dark'] .preview-header-text {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
 [data-theme='dark'] .invoice-preview {
   background: #121212;
 }

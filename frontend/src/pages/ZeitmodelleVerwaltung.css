@@ -418,7 +418,7 @@
 .zeitmodelle-verwaltung,
 .zeitmodell-card,
 .zeitmodell-form-container,
-.form-section,
+.zeitmodelle-verwaltung .form-section,
 .eintrag-card {
   background: white !important;
   color: #333 !important;

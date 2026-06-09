@@ -1,0 +1,135 @@
+/* =============================================
+   InvoicesTab – Dark Mode Optimierung
+   ============================================= */
+
+/* --- Modal Grundfarben --- */
+[data-theme='dark'] .invoice-modal {
+  background-color: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .invoice-modal h2,
+[data-theme='dark'] .invoice-modal h3,
+[data-theme='dark'] .invoice-modal label,
+[data-theme='dark'] .invoice-modal strong {
+  color: var(--text-primary) !important;
+}
+
+/* --- Alle Eingabefelder im Rechnungsdialog (höchste Spezifität) --- */
+[data-theme='dark'] .invoice-modal input,
+[data-theme='dark'] .invoice-modal select,
+[data-theme='dark'] .invoice-modal textarea {
+  background-color: #2d2d2d !important;
+  color: #f5f5f5 !important;
+  border-color: #4a4a4a !important;
+}
+
+[data-theme='dark'] .invoice-modal input::placeholder,
+[data-theme='dark'] .invoice-modal textarea::placeholder {
+  color: #808080 !important;
+}
+
+[data-theme='dark'] .invoice-modal input:focus,
+[data-theme='dark'] .invoice-modal select:focus,
+[data-theme='dark'] .invoice-modal textarea:focus {
+  border-color: #3b82f6 !important;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+}
+
+[data-theme='dark'] .invoice-modal input:disabled,
+[data-theme='dark'] .invoice-modal select:disabled,
+[data-theme='dark'] .invoice-modal textarea:disabled {
+  background-color: #1a1a1a !important;
+  color: #808080 !important;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+[data-theme='dark'] .invoice-modal select option {
+  background-color: #2d2d2d !important;
+  color: #f5f5f5 !important;
+}
+
+/* --- Tabellen-Kopfzeile im Rechnungsdialog --- */
+.invoice-modal .table th {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .invoice-modal .table th {
+  background-color: #2a2a2a !important;
+  color: var(--text-primary);
+  border-bottom-color: var(--table-border);
+}
+
+[data-theme='dark'] .invoice-modal .table tbody tr {
+  background-color: var(--card-bg);
+}
+
+[data-theme='dark'] .invoice-modal .table tbody tr:hover {
+  background-color: var(--table-hover);
+}
+
+[data-theme='dark'] .invoice-modal .table td {
+  border-bottom-color: var(--table-border);
+}
+
+/* --- Zusammenfassungsbereich (Totals) --- */
+.invoice-totals-section {
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 12px 20px 12px 0;
+  border: 1px solid var(--border-color);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+[data-theme='dark'] .invoice-totals-section {
+  background-color: #252525;
+  border-color: var(--border-color);
+}
+
+/* --- Positionen-Header (h3 + Button) --- */
+.invoice-positions-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+[data-theme='dark'] .invoice-positions-header {
+  border-bottom-color: var(--border-color);
+}
+
+/* --- Deaktiviertes Kundeneingabefeld --- */
+[data-theme='dark'] .invoice-modal input:disabled {
+  background-color: #1a1a1a !important;
+  color: var(--text-secondary) !important;
+  cursor: not-allowed;
+}
+
+/* --- Gesamtbetrag Trennlinie --- */
+[data-theme='dark'] .invoice-total-sum {
+  border-top-color: var(--border-color) !important;
+}
+
+/* --- Modal scrollbar im Dark Mode --- */
+[data-theme='dark'] .invoice-modal::-webkit-scrollbar {
+  width: 8px;
+}
+
+[data-theme='dark'] .invoice-modal::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+[data-theme='dark'] .invoice-modal::-webkit-scrollbar-thumb {
+  background: #3a3a3a;
+  border-radius: 4px;
+}
+
+[data-theme='dark'] .invoice-modal::-webkit-scrollbar-thumb:hover {
+  background: #4a4a4a;
+}

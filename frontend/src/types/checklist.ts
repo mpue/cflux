@@ -67,6 +67,12 @@ export interface ChecklistItem {
   conditionalParentId?: string;
   showIfParentValue?: string;
   externalLink?: string;
+  notifyUsers?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -164,6 +170,7 @@ export interface CreateTemplateItemDto {
   conditionalParentId?: string;
   showIfParentValue?: string;
   externalLink?: string;
+  notifyUserIds?: string[];
 }
 
 export interface UpdateTemplateItemDto {
@@ -177,6 +184,7 @@ export interface UpdateTemplateItemDto {
   dueDayOffset?: number;
   conditionalParentId?: string;
   showIfParentValue?: string;
+  notifyUserIds?: string[];
 }
 
 export interface CreateInstanceDto {

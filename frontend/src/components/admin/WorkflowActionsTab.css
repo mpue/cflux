@@ -15,13 +15,14 @@
 .workflow-actions-header h2 {
   margin: 0;
   font-size: 24px;
+  color: var(--text-primary);
 }
 
 .workflow-actions-loading {
   text-align: center;
   padding: 40px;
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .workflow-actions-content {
@@ -36,15 +37,15 @@
   width: 350px;
   display: flex;
   flex-direction: column;
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px var(--shadow-color);
   overflow: hidden;
 }
 
 .category-filter {
   padding: 15px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .category-filter label {
@@ -52,14 +53,17 @@
   margin-bottom: 8px;
   font-weight: 500;
   font-size: 14px;
+  color: var(--text-primary);
 }
 
 .category-filter select {
   width: 100%;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   font-size: 14px;
+  background: var(--input-bg);
+  color: var(--input-text);
 }
 
 .actions-list {
@@ -81,12 +85,12 @@
 }
 
 .action-item:hover {
-  background: #f5f5f5;
+  background: var(--bg-tertiary);
 }
 
 .action-item.selected {
-  background: #e3f2fd;
-  border-color: #2196f3;
+  background: var(--info-bg);
+  border-color: var(--primary-color);
 }
 
 .action-item.inactive {
@@ -107,18 +111,19 @@
   font-weight: 500;
   font-size: 14px;
   margin-bottom: 4px;
+  color: var(--text-primary);
 }
 
 .action-key {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   font-family: 'Courier New', monospace;
   margin-bottom: 4px;
 }
 
 .action-stats {
   font-size: 12px;
-  color: #2196f3;
+  color: var(--primary-color);
   font-weight: 500;
 }
 
@@ -127,15 +132,15 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: white;
+  background: var(--card-bg);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px var(--shadow-color);
   overflow: hidden;
 }
 
 .selected-action-header {
   padding: 20px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -144,10 +149,11 @@
 .selected-action-header h3 {
   margin: 0 0 10px 0;
   font-size: 20px;
+  color: var(--text-primary);
 }
 
 .action-description {
-  color: #666;
+  color: var(--text-secondary);
   margin: 10px 0;
   font-size: 14px;
 }
@@ -155,7 +161,7 @@
 .action-key-display {
   display: inline-block;
   padding: 4px 8px;
-  background: #f5f5f5;
+  background: var(--bg-tertiary);
   border-radius: 4px;
   font-size: 12px;
   font-family: 'Courier New', monospace;
@@ -184,12 +190,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 15px 20px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .triggers-header h4 {
   margin: 0;
   font-size: 16px;
+  color: var(--text-primary);
 }
 
 .triggers-list {
@@ -201,20 +208,20 @@
 .triggers-empty {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .trigger-item {
-  background: #fafafa;
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 15px;
   margin-bottom: 15px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
 }
 
 .trigger-item.inactive {
   opacity: 0.6;
-  background: #f5f5f5;
+  background: var(--bg-tertiary);
 }
 
 .trigger-header {
@@ -232,12 +239,13 @@
 
 .trigger-workflow strong {
   font-size: 14px;
+  color: var(--text-primary);
 }
 
 .trigger-timing {
   font-size: 12px;
   padding: 2px 8px;
-  background: #2196f3;
+  background: var(--primary-color);
   color: white;
   border-radius: 4px;
 }
@@ -271,12 +279,12 @@
   width: 32px;
   height: 32px;
   border: none;
-  background: #fff;
+  background: var(--card-bg);
   border-radius: 4px;
   cursor: pointer;
   font-size: 16px;
   transition: all 0.2s;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
 }
 
 .btn-delete:hover {
@@ -298,28 +306,29 @@
 
 .trigger-detail-item .label {
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .trigger-detail-item .value {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .trigger-detail-item code {
   display: block;
   padding: 8px;
-  background: #f5f5f5;
+  background: var(--bg-tertiary);
   border-radius: 4px;
   font-size: 12px;
   white-space: pre-wrap;
   max-width: 100%;
   overflow-x: auto;
+  color: var(--text-primary);
 }
 
 /* Trigger Form */
 .trigger-form {
-  background: #f9f9f9;
-  border: 2px solid #2196f3;
+  background: var(--bg-secondary);
+  border: 2px solid var(--primary-color);
   border-radius: 8px;
   padding: 20px;
   margin: 0 20px 20px 20px;
@@ -329,32 +338,41 @@
   margin-bottom: 15px;
 }
 
+.form-group label {
+  color: var(--text-primary);
+}
+
 .form-group input,
 .form-group select {
   width: 100%;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   font-size: 14px;
+  background: var(--input-bg);
+  color: var(--input-text);
 }
 
 .form-group small {
   display: block;
   margin-top: 4px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
-.form-section {
+.trigger-form .form-section {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #ddd;
+  padding-bottom: 0;
+  border-top: 1px solid var(--border-color);
+  background-color: transparent;
+  border-radius: 0;
 }
 
-.form-section h5 {
+.trigger-form .form-section h5 {
   margin: 0 0 15px 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .form-row {
@@ -368,7 +386,7 @@
   gap: 10px;
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--border-color);
 }
 
 .no-action-selected {
@@ -376,13 +394,13 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #999;
+  color: var(--text-secondary);
   font-size: 16px;
 }
 
 /* Buttons */
 .btn-primary {
-  background: #2196f3;
+  background: var(--primary-color);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -394,13 +412,19 @@
 }
 
 .btn-primary:hover {
-  background: #1976d2;
+  background: var(--primary-hover);
+}
+
+.btn-primary:disabled {
+  background: var(--text-secondary);
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .btn-secondary {
-  background: white;
-  color: #2196f3;
-  border: 1px solid #2196f3;
+  background: var(--card-bg);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
   padding: 10px 20px;
   border-radius: 4px;
   cursor: pointer;
@@ -410,7 +434,7 @@
 }
 
 .btn-secondary:hover {
-  background: #e3f2fd;
+  background: var(--info-bg);
 }
 
 /* Responsive */
@@ -427,4 +451,66 @@
   .form-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* ===== DARK MODE ===== */
+[data-theme='dark'] .action-item.selected {
+  background: #1a2d3d;
+}
+
+[data-theme='dark'] .action-key-display {
+  color: #f87171;
+}
+
+[data-theme='dark'] .trigger-detail-item code {
+  color: #a5f3fc;
+  border: 1px solid var(--border-color);
+}
+
+[data-theme='dark'] .trigger-form {
+  background: #0d1f35;
+}
+
+[data-theme='dark'] .trigger-form .form-section {
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+  border-top-color: var(--border-color);
+}
+
+[data-theme='dark'] .trigger-form .form-section h5 {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme='dark'] .form-group select option {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .btn-delete:hover {
+  background: #7f1d1d;
+  border-color: #ef4444;
+  color: white;
+}
+
+[data-theme='dark'] .btn-secondary:hover {
+  background: #1a2d3d;
+}
+
+/* Trigger-Form inputs: erhöhte Spezifität für Production-Build */
+[data-theme='dark'] .trigger-form input,
+[data-theme='dark'] .trigger-form select,
+[data-theme='dark'] .trigger-form textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  border-color: var(--input-border) !important;
+}
+
+[data-theme='dark'] .trigger-form input:focus,
+[data-theme='dark'] .trigger-form select:focus,
+[data-theme='dark'] .trigger-form textarea:focus {
+  border-color: var(--primary-color) !important;
+}
+
+[data-theme='dark'] .trigger-form input::placeholder {
+  color: var(--text-secondary) !important;
 }

@@ -240,6 +240,50 @@ Ihr ${companyName} Team
       });
     }
   }
+
+  async sendChecklistItemNotification(options: {
+    notifyUser: { email: string; firstName: string; lastName: string };
+    checklistName: string;
+    itemTitle: string;
+    startDate: Date;
+    companyName?: string;
+  }): Promise<void> {
+    const company = options.companyName || 'CFlux';
+    const dateStr = options.startDate.toLocaleDateString('de-CH', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    });
+
+    const ics = generateICS({
+      summary: `Checkliste zugewiesen: ${options.checklistName}`,
+      description: `Punkt: ${options.itemTitle}`,
+      date: options.startDate,
+      organizer: company,
+      attendees: [options.notifyUser.email],
+    });
+
+    await this.sendEmail({
+      to: options.notifyUser.email,
+      subject: `${company} – Checkliste zugewiesen: ${options.checklistName}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          <div style="background:linear-gradient(135deg,#10b981,#0ea5e9);color:white;padding:20px;border-radius:8px 8px 0 0">
+            <h2 style="margin:0">Checkliste zugewiesen – Benachrichtigung</h2>
+          </div>
+          <div style="background:#f9fafb;padding:24px;border-radius:0 0 8px 8px">
+            <p>Hallo ${options.notifyUser.firstName},</p>
+            <p>Eine Checkliste wurde zugewiesen. Sie wurden als Benachrichtigungsempfänger für folgenden Punkt eingetragen:</p>
+            <table style="width:100%;border-collapse:collapse;margin:16px 0">
+              <tr><td style="padding:8px;font-weight:bold;width:140px">Checkliste</td><td style="padding:8px">${options.checklistName}</td></tr>
+              <tr style="background:#fff"><td style="padding:8px;font-weight:bold">Punkt</td><td style="padding:8px">${options.itemTitle}</td></tr>
+              <tr><td style="padding:8px;font-weight:bold">Startdatum</td><td style="padding:8px">${dateStr}</td></tr>
+            </table>
+            <p style="color:#6b7280;font-size:13px">Den Kalendertermin finden Sie als Anhang (ICS-Datei).</p>
+          </div>
+        </div>
+      `,
+      attachments: [{ filename: 'checkliste-benachrichtigung.ics', content: ics, contentType: 'text/calendar; method=REQUEST' }],
+    });
+  }
 }
 
 function generateICS(options: {

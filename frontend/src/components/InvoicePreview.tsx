@@ -2,6 +2,7 @@ import React from 'react';
 import { InvoiceTemplateFormData } from '../types/invoiceTemplate';
 import { normalizeUploadUrl } from '../services/api';
 import { useCurrency } from '../contexts/CurrencyContext';
+import { useTheme } from '../contexts/ThemeContext';
 import '../styles/InvoicePreview.css';
 
 interface InvoicePreviewProps {
@@ -11,6 +12,8 @@ interface InvoicePreviewProps {
 
 const InvoicePreview: React.FC<InvoicePreviewProps> = ({ template, onLogoPositionChange }) => {
   const { currency } = useCurrency();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const [isDragging, setIsDragging] = React.useState(false);
   const [isResizing, setIsResizing] = React.useState(false);
   
@@ -147,7 +150,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ template, onLogoPositio
         <span className="preview-label">Live-Ansicht der Rechnung</span>
       </div>
 
-      <div className="preview-page" style={{ backgroundColor: '#ffffff' }}>
+      <div className="preview-page" style={{ backgroundColor: isDark ? '#2a2a2a' : '#ffffff' }}>
         {/* Logo (draggable) */}
         {template.showLogo && template.logoUrl && (
           <div
@@ -255,7 +258,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ template, onLogoPositio
           </thead>
           <tbody>
             {mockInvoice.items.map((item, index) => (
-              <tr key={index} style={{ borderBottom: '1px solid #e5e7eb' }}>
+              <tr key={index} style={{ borderBottom: isDark ? '1px solid #3a3a3a' : '1px solid #e5e7eb' }}>
                 <td style={{ padding: '6px' }}>{item.description}</td>
                 <td style={{ textAlign: 'right', padding: '6px' }}>{item.quantity}</td>
                 <td style={{ textAlign: 'right', padding: '6px' }}>{item.unit}</td>
@@ -280,7 +283,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ template, onLogoPositio
               </td>
               <td style={{ textAlign: 'right', padding: '6px' }}>{currency} {vat.toFixed(2)}</td>
             </tr>
-            <tr style={{ fontWeight: 'bold', backgroundColor: '#f9fafb' }}>
+            <tr style={{ fontWeight: 'bold', backgroundColor: isDark ? '#333333' : '#f9fafb' }}>
               <td colSpan={5} style={{ textAlign: 'right', padding: '8px', color: template.primaryColor }}>
                 Total {currency}:
               </td>
@@ -313,7 +316,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ template, onLogoPositio
         {template.footerText && (
           <div
             className="preview-footer"
-            style={{ fontSize: '9px', color: '#6b7280', marginTop: '20px', borderTop: '1px solid #e5e7eb', paddingTop: '10px' }}
+            style={{ fontSize: '9px', color: isDark ? '#9ca3af' : '#6b7280', marginTop: '20px', borderTop: isDark ? '1px solid #3a3a3a' : '1px solid #e5e7eb', paddingTop: '10px' }}
           >
             {template.footerText}
           </div>
@@ -321,7 +324,7 @@ const InvoicePreview: React.FC<InvoicePreviewProps> = ({ template, onLogoPositio
 
         {/* Tax ID */}
         {template.showTaxId && template.companyTaxId && (
-          <div className="preview-tax-id" style={{ fontSize: '9px', color: '#6b7280', marginTop: '5px' }}>
+          <div className="preview-tax-id" style={{ fontSize: '9px', color: isDark ? '#9ca3af' : '#6b7280', marginTop: '5px' }}>
             UID: {template.companyTaxId}
           </div>
         )}

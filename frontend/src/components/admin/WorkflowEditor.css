@@ -2,7 +2,7 @@
   padding: 20px;
   height: 100%;
   overflow-y: auto;
-  background: var(--background-primary);
+  background: var(--bg-primary);
 }
 
 .workflow-editor-header {
@@ -29,7 +29,7 @@
 }
 
 .workflow-basic-info {
-  background: var(--card-background);
+  background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 24px;
@@ -37,7 +37,7 @@
 }
 
 .workflow-steps-section {
-  background: var(--card-background);
+  background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 24px;
@@ -72,7 +72,7 @@
 }
 
 .workflow-step-card {
-  background: var(--background-primary);
+  background: var(--bg-primary);
   border: 2px solid var(--border-color);
   border-radius: 8px;
   padding: 20px;
@@ -126,7 +126,7 @@
   border-radius: 6px;
   font-size: 14px;
   font-family: inherit;
-  background: var(--input-background);
+  background: var(--input-bg);
   color: var(--text-primary);
   transition: border-color 0.2s;
 }
@@ -163,7 +163,7 @@
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 8px;
-  background: var(--background-primary);
+  background: var(--bg-primary);
 }
 
 .approver-checkbox {
@@ -178,7 +178,7 @@
 }
 
 .approver-checkbox:hover {
-  background: var(--hover-background);
+  background: var(--bg-tertiary);
 }
 
 .approver-checkbox input[type="checkbox"] {
@@ -209,7 +209,7 @@
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--primary-color-dark);
+  background: var(--primary-hover);
 }
 
 .btn-primary:disabled {
@@ -229,7 +229,7 @@
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--hover-background);
+  background: var(--bg-tertiary);
   border-color: var(--text-secondary);
 }
 
@@ -244,7 +244,7 @@
 }
 
 .btn-icon:hover:not(:disabled) {
-  background: var(--hover-background);
+  background: var(--bg-tertiary);
 }
 
 .btn-icon:disabled {

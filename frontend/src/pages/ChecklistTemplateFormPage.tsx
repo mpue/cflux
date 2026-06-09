@@ -14,6 +14,8 @@ import {
   FormControlLabel,
   Checkbox,
   Divider,
+  Autocomplete,
+  Chip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -33,6 +35,13 @@ import {
   ChecklistTemplate,
   ChecklistItem,
 } from '../types/checklist';
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
 
 interface TemplateItemForm extends Partial<CreateTemplateItemDto> {
   tempId: string;
@@ -56,8 +65,10 @@ const ChecklistTemplateFormPage: React.FC = () => {
   const [items, setItems] = useState<TemplateItemForm[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
+    api.get('/users').then((res) => setUsers(res.data)).catch(() => {});
     if (isEditMode) {
       loadTemplate();
     }
@@ -90,6 +101,7 @@ const ChecklistTemplateFormPage: React.FC = () => {
             assignedRole: item.assignedRole || '',
             dueAfterDays: item.dueAfterDays || undefined,
             externalLink: item.externalLink || '',
+            notifyUserIds: item.notifyUsers?.map((u) => u.id) || [],
           }))
         );
       }
@@ -115,6 +127,7 @@ const ChecklistTemplateFormPage: React.FC = () => {
       required: false,
       assignedRole: '',
       externalLink: '',
+      notifyUserIds: [],
     };
     setItems([...items, newItem]);
   };
@@ -181,6 +194,7 @@ const ChecklistTemplateFormPage: React.FC = () => {
           assignedRole: item.assignedRole,
           dueAfterDays: item.dueAfterDays,
           externalLink: item.externalLink || undefined,
+          notifyUserIds: item.notifyUserIds || [],
         };
 
         if (item.tempId.startsWith('temp-')) {
@@ -197,6 +211,7 @@ const ChecklistTemplateFormPage: React.FC = () => {
             assignedRole: item.assignedRole,
             dueAfterDays: item.dueAfterDays,
             externalLink: item.externalLink || undefined,
+            notifyUserIds: item.notifyUserIds || [],
           });
         }
       }
@@ -407,6 +422,35 @@ const ChecklistTemplateFormPage: React.FC = () => {
                               />
                             }
                             label="Pflichtfeld"
+                          />
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Autocomplete
+                            multiple
+                            options={users}
+                            getOptionLabel={(u) => `${u.firstName} ${u.lastName} (${u.email})`}
+                            value={users.filter((u) => (item.notifyUserIds || []).includes(u.id))}
+                            onChange={(_, selected) =>
+                              updateItem(item.tempId, 'notifyUserIds', selected.map((u) => u.id))
+                            }
+                            renderTags={(value, getTagProps) =>
+                              value.map((u, i) => (
+                                <Chip
+                                  {...getTagProps({ index: i })}
+                                  key={u.id}
+                                  label={`${u.firstName} ${u.lastName}`}
+                                  size="small"
+                                />
+                              ))
+                            }
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Nachricht an (ICS-Benachrichtigung bei Zuweisung)"
+                                placeholder="Personen auswählen..."
+                                helperText="Diese Personen erhalten eine ICS-Kalendereinladung, wenn die Checkliste zugewiesen wird"
+                              />
+                            )}
                           />
                         </Grid>
                         <Grid item xs={12}>
