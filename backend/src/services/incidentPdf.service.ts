@@ -503,7 +503,10 @@ export async function generateIncidentPdfBuffer(
   for (let i = 0; i < range.count; i++) {
     doc.switchToPage(range.start + i);
 
-    const footerY = PAGE.height - PAGE.margin - 8;
+    // Fußzeile bewusst oberhalb der Bottom-Margin-Schwelle platzieren und
+    // lineBreak deaktivieren, damit PDFKit keine automatischen (leeren)
+    // Folgeseiten anhängt.
+    const footerY = PAGE.height - PAGE.margin - 26;
     doc
       .moveTo(PAGE.margin, footerY - 6)
       .lineTo(PAGE.width - PAGE.margin, footerY - 6)
@@ -518,7 +521,7 @@ export async function generateIncidentPdfBuffer(
         `${companyName} · Vertraulich – nur für interne Verwendung · Erstellt am ${generatedAt}`,
         PAGE.margin,
         footerY,
-        { width: CONTENT_WIDTH - 60 }
+        { width: CONTENT_WIDTH - 60, lineBreak: false }
       );
     doc
       .font('Helvetica')
@@ -527,6 +530,7 @@ export async function generateIncidentPdfBuffer(
       .text(`Seite ${i + 1} / ${range.count}`, PAGE.margin, footerY, {
         width: CONTENT_WIDTH,
         align: 'right',
+        lineBreak: false,
       });
   }
 
@@ -872,7 +876,9 @@ export async function generateIncidentsSummaryPdfBuffer(
   const range = doc.bufferedPageRange();
   for (let i = 0; i < range.count; i++) {
     doc.switchToPage(range.start + i);
-    const footerY = PAGE.height - PAGE.margin - 8;
+    // Fußzeile oberhalb der Bottom-Margin-Schwelle und ohne lineBreak, damit
+    // PDFKit keine automatischen (leeren) Folgeseiten anhängt.
+    const footerY = PAGE.height - PAGE.margin - 26;
     doc
       .moveTo(PAGE.margin, footerY - 6)
       .lineTo(PAGE.width - PAGE.margin, footerY - 6)
@@ -886,7 +892,7 @@ export async function generateIncidentsSummaryPdfBuffer(
         `${companyName} · Vertraulich – nur für interne Verwendung · Erstellt am ${generatedAt}`,
         PAGE.margin,
         footerY,
-        { width: CONTENT_WIDTH - 60 }
+        { width: CONTENT_WIDTH - 60, lineBreak: false }
       );
     doc
       .font('Helvetica')
@@ -895,6 +901,7 @@ export async function generateIncidentsSummaryPdfBuffer(
       .text(`Seite ${i + 1} / ${range.count}`, PAGE.margin, footerY, {
         width: CONTENT_WIDTH,
         align: 'right',
+        lineBreak: false,
       });
   }
 
