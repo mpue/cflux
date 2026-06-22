@@ -177,6 +177,21 @@ const IncidentManagement: React.FC = () => {
     }
   };
 
+  const handleExportSummary = async (download = false) => {
+    try {
+      await incidentService.exportSummaryPDF(
+        {
+          status: filterStatus || undefined,
+          priority: filterPriority || undefined,
+          projectId: filterProject || undefined,
+        },
+        { download }
+      );
+    } catch (err: any) {
+      setError(err.message || 'Gesamtbericht konnte nicht erstellt werden');
+    }
+  };
+
   const handleAddComment = async () => {
     if (!selectedIncident || !newComment.trim()) return;
     try {
@@ -334,19 +349,18 @@ const IncidentManagement: React.FC = () => {
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button
-            onClick={() =>
-              incidentService
-                .exportSummaryPDF({
-                  status: filterStatus || undefined,
-                  priority: filterPriority || undefined,
-                  projectId: filterProject || undefined,
-                })
-                .catch((err: any) => setError(err.message || 'Gesamtbericht konnte nicht erstellt werden'))
-            }
+            onClick={() => handleExportSummary(false)}
             className="btn-primary"
-            title="Gesamtbericht (alle Vorfälle) als PDF für die Geschäftsleitung"
+            title="Gesamtbericht (alle Vorfälle) im Browser ansehen"
           >
-            📊 Gesamtbericht (PDF)
+            📊 Gesamtbericht
+          </button>
+          <button
+            onClick={() => handleExportSummary(true)}
+            className="btn-secondary"
+            title="Gesamtbericht als PDF herunterladen"
+          >
+            ⬇ PDF
           </button>
           <button
             onClick={() => incidentService.exportCSV(filterStatus, filterPriority, filterProject)}
@@ -505,11 +519,11 @@ const IncidentManagement: React.FC = () => {
                       Details
                     </button>
                     <button
-                      onClick={() => handleExportPdf(incident)}
+                      onClick={() => handleExportPdf(incident, true)}
                       className="btn-small"
-                      title="PDF-Report öffnen"
+                      title="Vorfallbericht als PDF herunterladen"
                     >
-                      📄 PDF
+                      ⬇ PDF
                     </button>
                   </div>
                 </td>
@@ -699,11 +713,18 @@ const IncidentManagement: React.FC = () => {
               <h2>{selectedIncident.title}</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
-                  onClick={() => handleExportPdf(selectedIncident)}
+                  onClick={() => handleExportPdf(selectedIncident, false)}
                   className="btn-secondary"
-                  title="Vorfallbericht als PDF für die Geschäftsleitung öffnen"
+                  title="Vorfallbericht im Browser ansehen"
                 >
-                  📄 PDF-Report
+                  📄 Ansehen
+                </button>
+                <button
+                  onClick={() => handleExportPdf(selectedIncident, true)}
+                  className="btn-secondary"
+                  title="Vorfallbericht als PDF herunterladen"
+                >
+                  ⬇ Download
                 </button>
                 <button onClick={() => setShowDetailModal(false)}>✕</button>
               </div>
