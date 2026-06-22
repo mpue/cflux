@@ -265,4 +265,85 @@ export const incidentService = {
     link.remove();
     window.URL.revokeObjectURL(url);
   },
+
+  /**
+   * Lädt den hochwertigen Vorfallbericht (PDF) für die Geschäftsleitung.
+   * Öffnet das PDF standardmäßig in einem neuen Tab (Vorschau/Drucken);
+   * mit download=true wird es direkt heruntergeladen.
+   */
+  async exportPDF(incidentId: string, options?: { download?: boolean }): Promise<void> {
+    const download = options?.download ?? false;
+    const response = await axios.get(
+      `${API_URL}/incidents/${incidentId}/pdf${download ? '?download=true' : ''}`,
+      {
+        headers: getAuthHeader(),
+        responseType: 'blob',
+      }
+    );
+
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+
+    const disposition = response.headers['content-disposition'];
+    const filename = disposition
+      ? disposition.split('filename=')[1]?.replace(/"/g, '') ?? 'Vorfallbericht.pdf'
+      : 'Vorfallbericht.pdf';
+
+    if (download) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } else {
+      window.open(url, '_blank');
+    }
+
+    // Object-URL nach kurzer Zeit freigeben (Tab/Direktdownload hat dann geladen)
+    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  },
+
+  /**
+   * Lädt den Gesamtbericht (Management-Übersicht über alle Vorfälle) als PDF.
+   * Berücksichtigt die gleichen Filter wie der CSV-Export.
+   */
+  async exportSummaryPDF(
+    filters?: { status?: string; priority?: string; projectId?: string; year?: number },
+    options?: { download?: boolean }
+  ): Promise<void> {
+    const download = options?.download ?? false;
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.priority) params.append('priority', filters.priority);
+    if (filters?.projectId) params.append('projectId', filters.projectId);
+    if (filters?.year) params.append('year', String(filters.year));
+    if (download) params.append('download', 'true');
+
+    const response = await axios.get(`${API_URL}/incidents/export/pdf?${params.toString()}`, {
+      headers: getAuthHeader(),
+      responseType: 'blob',
+    });
+
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+    const url = window.URL.createObjectURL(blob);
+
+    const disposition = response.headers['content-disposition'];
+    const filename = disposition
+      ? disposition.split('filename=')[1]?.replace(/"/g, '') ?? 'Vorfallbericht_Gesamtuebersicht.pdf'
+      : 'Vorfallbericht_Gesamtuebersicht.pdf';
+
+    if (download) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } else {
+      window.open(url, '_blank');
+    }
+
+    setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+  },
 };

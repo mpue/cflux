@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { incidentController } from '../controllers/incident.controller';
 import { incidentAttachmentController } from '../controllers/incidentAttachment.controller';
+import { generateIncidentPdf, generateIncidentsSummaryPdf } from '../controllers/incidentPdf.controller';
 import { authenticate } from '../middleware/auth';
 import multer from 'multer';
 import path from 'path';
@@ -39,6 +40,9 @@ router.get('/', incidentController.getAllIncidents);
 // Export incidents as CSV
 router.get('/export/csv', incidentController.exportCSV);
 
+// Export incidents as PDF summary report (Gesamtbericht für die Geschäftsleitung)
+router.get('/export/pdf', generateIncidentsSummaryPdf);
+
 // Get statistics
 router.get('/statistics', incidentController.getStatistics);
 
@@ -48,6 +52,9 @@ router.put('/reorder', incidentController.reorder);
 // Attachment routes (must be before /:id to avoid route conflicts)
 router.get('/attachments/:attachmentId/download', incidentAttachmentController.downloadAttachment);
 router.delete('/attachments/:attachmentId', incidentAttachmentController.deleteAttachment);
+
+// Export incident as PDF report (Geschäftsleitung)
+router.get('/:id/pdf', generateIncidentPdf);
 
 // Get incident by ID
 router.get('/:id', incidentController.getIncidentById);

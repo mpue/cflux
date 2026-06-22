@@ -169,6 +169,14 @@ const IncidentManagement: React.FC = () => {
     }
   };
 
+  const handleExportPdf = async (incident: Incident, download = false) => {
+    try {
+      await incidentService.exportPDF(incident.id, { download });
+    } catch (err: any) {
+      setError(err.message || 'PDF-Report konnte nicht erstellt werden');
+    }
+  };
+
   const handleAddComment = async () => {
     if (!selectedIncident || !newComment.trim()) return;
     try {
@@ -326,6 +334,21 @@ const IncidentManagement: React.FC = () => {
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button
+            onClick={() =>
+              incidentService
+                .exportSummaryPDF({
+                  status: filterStatus || undefined,
+                  priority: filterPriority || undefined,
+                  projectId: filterProject || undefined,
+                })
+                .catch((err: any) => setError(err.message || 'Gesamtbericht konnte nicht erstellt werden'))
+            }
+            className="btn-primary"
+            title="Gesamtbericht (alle Vorfälle) als PDF für die Geschäftsleitung"
+          >
+            📊 Gesamtbericht (PDF)
+          </button>
+          <button
             onClick={() => incidentService.exportCSV(filterStatus, filterPriority, filterProject)}
             className="btn-secondary"
             title="Incidents als CSV exportieren"
@@ -474,12 +497,21 @@ const IncidentManagement: React.FC = () => {
                 </td>
                 <td>{new Date(incident.reportedAt).toLocaleString('de-CH')}</td>
                 <td>
-                  <button
-                    onClick={() => handleViewDetails(incident)}
-                    className="btn-small"
-                  >
-                    Details
-                  </button>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => handleViewDetails(incident)}
+                      className="btn-small"
+                    >
+                      Details
+                    </button>
+                    <button
+                      onClick={() => handleExportPdf(incident)}
+                      className="btn-small"
+                      title="PDF-Report öffnen"
+                    >
+                      📄 PDF
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -665,7 +697,16 @@ const IncidentManagement: React.FC = () => {
           <div className="modal modal-large">
             <div className="modal-header">
               <h2>{selectedIncident.title}</h2>
-              <button onClick={() => setShowDetailModal(false)}>✕</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => handleExportPdf(selectedIncident)}
+                  className="btn-secondary"
+                  title="Vorfallbericht als PDF für die Geschäftsleitung öffnen"
+                >
+                  📄 PDF-Report
+                </button>
+                <button onClick={() => setShowDetailModal(false)}>✕</button>
+              </div>
             </div>
             <div className="modal-body">
               <div className="incident-details">
