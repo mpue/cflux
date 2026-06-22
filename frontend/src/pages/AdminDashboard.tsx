@@ -17,6 +17,8 @@ import * as invoiceService from '../services/invoiceService';
 import { reminderService } from '../services/reminder.service';
 import { deviceService, Device } from '../services/device.service';
 import { werkzeugeService, Tool } from '../services/werkzeuge.service';
+import { contactService, Contact, ContactGroup } from '../services/contact.service';
+import { userGroupService, UserGroup } from '../services/userGroup.service';
 import { travelExpenseService } from '../services/travelExpense.service';
 import { User, Project, AbsenceRequest, Report, Location, Customer, Supplier, ArticleGroup, Article, Invoice, ComplianceViolation, ComplianceStats } from '../types';
 import { Reminder, OverdueInvoice, ReminderStats } from '../types/reminder.types';
@@ -40,6 +42,7 @@ import {
   InvoicesTab,
   RemindersTab,
   DevicesTab,
+  ContactsTab,
   TravelExpensesTab,
   OrdersTab,
   ELearningManagementTab,
@@ -74,7 +77,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'onboardingEmployees' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel' | 'informationen';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'onboardingEmployees' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel' | 'informationen' | 'contacts';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -101,6 +104,9 @@ const AdminDashboard: React.FC = () => {
   const [violationFilter, setViolationFilter] = useState<'all' | 'unresolved' | 'critical'>('unresolved');
   const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleTimeString('de-DE'));
   const [devices, setDevices] = useState<Device[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactGroups, setContactGroups] = useState<ContactGroup[]>([]);
+  const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
   const [tools, setTools] = useState<Tool[]>([]);
   const [travelExpenses, setTravelExpenses] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
@@ -202,7 +208,8 @@ const AdminDashboard: React.FC = () => {
       dokumente: 'Dokumente',
       werkzeuge: 'Werkzeuge',
       hilfsmittel: 'Hilfsmittel',
-      informationen: 'Informationen'
+      informationen: 'Informationen',
+      contacts: 'Kontakte'
     };
     return titles[tab] || tab;
   };
@@ -334,6 +341,21 @@ const AdminDashboard: React.FC = () => {
           const deviceUsers = await userService.getAllUsersAdmin();
           deviceUsers.sort((a: User, b: User) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`));
           setUsers(deviceUsers);
+          break;
+        case 'contacts':
+          const [contactsData, contactGroupsData] = await Promise.all([
+            contactService.getAllContacts(),
+            contactService.getAllContactGroups(),
+          ]);
+          setContacts(contactsData);
+          setContactGroups(contactGroupsData);
+          // Benutzergruppen werden nur für die (Admin-)Gruppenverwaltung benötigt.
+          // Endpunkt ist Admin-only, daher Fehler bei normalen Benutzern tolerieren.
+          try {
+            setUserGroups(await userGroupService.getAll());
+          } catch {
+            setUserGroups([]);
+          }
           break;
         case 'werkzeuge':
           const toolsData = await werkzeugeService.getAllTools();
@@ -643,7 +665,7 @@ const AdminDashboard: React.FC = () => {
 
             {/* Stammdaten */}
             {(() => {
-              const groupCheck = shouldShowGroup('Stammdaten', ['Kunden', 'Lieferanten', 'Abteilungen', 'Bestellungen', 'Artikelgruppen', 'Artikel', 'Geräte', 'Werkzeuge', 'Kostenstellen', 'Lagerbestand', 'Inventar']);
+              const groupCheck = shouldShowGroup('Stammdaten', ['Kunden', 'Lieferanten', 'Abteilungen', 'Bestellungen', 'Artikelgruppen', 'Artikel', 'Geräte', 'Kontakte', 'Werkzeuge', 'Kostenstellen', 'Lagerbestand', 'Inventar']);
               return groupCheck.show && (
             <div className="tab-group">
               <div 
@@ -705,6 +727,13 @@ const AdminDashboard: React.FC = () => {
                       active={activeTab === 'devices'}
                       onClick={() => changeTab('devices')}
                       label="💻 Geräte"
+                    />
+                  )}
+                  {(user?.role === 'ADMIN' || hasModuleAccess('contacts')) && (groupCheck.showAll || matchesSearch('Kontakte')) && (
+                    <TabButton
+                      active={activeTab === 'contacts'}
+                      onClick={() => changeTab('contacts')}
+                      label="📇 Kontakte"
                     />
                   )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('tools')) && (groupCheck.showAll || matchesSearch('Werkzeuge')) && (
@@ -982,6 +1011,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'projects' && <ProjectsTab projects={projects} onUpdate={loadData} />}
             {activeTab === 'locations' && <LocationsTab locations={locations} onUpdate={loadData} />}
             {activeTab === 'devices' && <DevicesTab devices={devices} users={users} onUpdate={loadData} />}
+            {activeTab === 'contacts' && <ContactsTab contacts={contacts} contactGroups={contactGroups} userGroups={userGroups} onUpdate={loadData} />}
             {activeTab === 'werkzeuge' && <WerkzeugeTab tools={tools} users={users} onUpdate={loadData} />}
             {activeTab === 'travelExpenses' && <TravelExpensesTab expenses={travelExpenses} users={users} onUpdate={loadData} />}
             {activeTab === 'costCenters' && <CostCentersTab onUpdate={loadData} />}

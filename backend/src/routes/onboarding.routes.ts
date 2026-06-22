@@ -146,6 +146,22 @@ router.patch(
   applicantController.updateApplicantStatus
 );
 
+// Reset applicant (Onboarding-Prozess zurücksetzen, Bewerber bleibt erhalten)
+router.post(
+  '/applicants/:id/reset',
+  authenticate,
+  requireModuleAccess('onboarding', 'canEdit'),
+  applicantController.resetApplicant
+);
+
+// Delete applicant (optional inkl. verknüpftem Mitarbeiter via ?deleteEmployee=true)
+router.delete(
+  '/applicants/:id',
+  authenticate,
+  requireModuleAccess('onboarding', 'canDelete'),
+  applicantController.deleteApplicant
+);
+
 // ==================== INTERVIEWS (HR Access) ====================
 
 // Schedule interview
@@ -243,6 +259,14 @@ router.post(
   authenticate,
   requireModuleAccess('onboarding', 'canCreate'),
   onboardingController.hireApplicant
+);
+
+// Start onboarding wizard (employee + tutor + checklists)
+router.post(
+  '/start',
+  authenticate,
+  requireModuleAccess('onboarding', 'canCreate'),
+  onboardingController.startOnboarding
 );
 
 // Get all employees

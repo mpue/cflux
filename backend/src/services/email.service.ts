@@ -8,8 +8,9 @@ export interface EmailOptions {
   text?: string;
   attachments?: Array<{
     filename: string;
-    content: string;
-    contentType: string;
+    content?: string;
+    contentType?: string;
+    path?: string;
   }>;
 }
 
@@ -164,18 +165,112 @@ Ihr ${companyName} Team
     });
   }
 
+  async sendWelcomeEmail(options: {
+    email: string;
+    firstName: string;
+    tempPassword: string;
+  }): Promise<boolean> {
+    const settings = await systemSettingsService.getSettings();
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const loginUrl = `${frontendUrl}/#/login`;
+    const companyName = settings.companyName || 'CFlux';
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .button { display: inline-block; background: linear-gradient(to right, #10b981, #0ea5e9); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; }
+          .credentials { background: white; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb; }
+          .credentials td { padding: 6px 8px; }
+          .warning { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; margin: 20px 0; border-radius: 4px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0;">Willkommen bei ${companyName}!</h1>
+          </div>
+          <div class="content">
+            <p>Hallo ${options.firstName},</p>
+            <p>Herzlich willkommen im Team! Für Sie wurde ein Zugang zu ${companyName} eingerichtet.</p>
+            <p>Mit den folgenden Zugangsdaten können Sie sich anmelden:</p>
+            <div class="credentials">
+              <table>
+                <tr><td style="font-weight:bold;width:140px">Benutzername</td><td style="font-family:monospace">${options.email}</td></tr>
+                <tr><td style="font-weight:bold">Passwort</td><td style="font-family:monospace">${options.tempPassword}</td></tr>
+              </table>
+            </div>
+            <div style="text-align: center;">
+              <a href="${loginUrl}" class="button">Jetzt anmelden</a>
+            </div>
+            <p>Oder kopieren Sie diesen Link in Ihren Browser:</p>
+            <p style="word-break: break-all; background: white; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 14px;">
+              ${loginUrl}
+            </p>
+            <div class="warning">
+              <strong>🔒 Wichtig:</strong><br>
+              Aus Sicherheitsgründen müssen Sie beim ersten Login Ihr Passwort ändern.
+            </div>
+          </div>
+          <div class="footer">
+            <p>Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht darauf.</p>
+            <p>&copy; ${new Date().getFullYear()} ${companyName}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+Hallo ${options.firstName},
+
+Herzlich willkommen im Team! Für Sie wurde ein Zugang zu ${companyName} eingerichtet.
+
+Ihre Zugangsdaten:
+  Benutzername: ${options.email}
+  Passwort: ${options.tempPassword}
+
+Anmelden unter:
+${loginUrl}
+
+WICHTIG: Aus Sicherheitsgründen müssen Sie beim ersten Login Ihr Passwort ändern.
+
+Mit freundlichen Grüßen,
+Ihr ${companyName} Team
+    `.trim();
+
+    return this.sendEmail({
+      to: options.email,
+      subject: `Willkommen bei ${companyName} – Ihre Zugangsdaten`,
+      html,
+      text,
+    });
+  }
+
   async sendChecklistInvitation(options: {
     subjectUser: { email: string; firstName: string; lastName: string };
-    executor?: { email: string; firstName: string; lastName: string } | null;
+    executors?: Array<{ email: string; firstName: string; lastName: string }> | null;
     checklistName: string;
     dueDate: Date;
     notes?: string;
     companyName?: string;
+    itemAttachments?: Array<{ filename: string; path: string }>;
   }): Promise<void> {
     const company = options.companyName || 'CFlux';
     const dueDateStr = options.dueDate.toLocaleDateString('de-CH', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     });
+
+    // Verantwortliche ohne den betroffenen Mitarbeiter (Doppel-E-Mail vermeiden)
+    const executors = (options.executors || []).filter(
+      (e) => e.email !== options.subjectUser.email
+    );
 
     const ics = generateICS({
       summary: `Checkliste fällig: ${options.checklistName}`,
@@ -184,9 +279,15 @@ Ihr ${companyName} Team
       organizer: company,
       attendees: [
         options.subjectUser.email,
-        ...(options.executor ? [options.executor.email] : []),
+        ...executors.map((e) => e.email),
       ],
     });
+
+    // Gemeinsame Anhänge: ICS-Termin + alle Datei-Anhänge der Checklisten-Punkte
+    const attachments = [
+      { filename: 'checkliste.ics', content: ics, contentType: 'text/calendar; method=REQUEST' },
+      ...(options.itemAttachments || []).map((a) => ({ filename: a.filename, path: a.path })),
+    ];
 
     // Email to subject user
     await this.sendEmail({
@@ -203,20 +304,20 @@ Ihr ${companyName} Team
             <table style="width:100%;border-collapse:collapse;margin:16px 0">
               <tr><td style="padding:8px;font-weight:bold;width:140px">Checkliste</td><td style="padding:8px">${options.checklistName}</td></tr>
               <tr style="background:#fff"><td style="padding:8px;font-weight:bold">Fällig bis</td><td style="padding:8px">${dueDateStr}</td></tr>
-              ${options.executor ? `<tr><td style="padding:8px;font-weight:bold">Zuständig</td><td style="padding:8px">${options.executor.firstName} ${options.executor.lastName}</td></tr>` : ''}
+              ${executors.length ? `<tr><td style="padding:8px;font-weight:bold">Zuständig</td><td style="padding:8px">${executors.map((e) => `${e.firstName} ${e.lastName}`).join(', ')}</td></tr>` : ''}
               ${options.notes ? `<tr style="background:#fff"><td style="padding:8px;font-weight:bold">Notizen</td><td style="padding:8px">${options.notes}</td></tr>` : ''}
             </table>
             <p style="color:#6b7280;font-size:13px">Den Kalendertermin finden Sie als Anhang (ICS-Datei).</p>
           </div>
         </div>
       `,
-      attachments: [{ filename: 'checkliste.ics', content: ics, contentType: 'text/calendar; method=REQUEST' }],
+      attachments,
     });
 
-    // Email to executor (if different)
-    if (options.executor && options.executor.email !== options.subjectUser.email) {
+    // Email an jede/n Verantwortliche/n
+    for (const executor of executors) {
       await this.sendEmail({
-        to: options.executor.email,
+        to: executor.email,
         subject: `${company} – Checkliste zur Bearbeitung: ${options.checklistName}`,
         html: `
           <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
@@ -224,7 +325,7 @@ Ihr ${companyName} Team
               <h2 style="margin:0">Checkliste zugewiesen – zur Bearbeitung</h2>
             </div>
             <div style="background:#f9fafb;padding:24px;border-radius:0 0 8px 8px">
-              <p>Hallo ${options.executor.firstName},</p>
+              <p>Hallo ${executor.firstName},</p>
               <p>Sie wurden als zuständige Person für folgende Checkliste eingetragen:</p>
               <table style="width:100%;border-collapse:collapse;margin:16px 0">
                 <tr><td style="padding:8px;font-weight:bold;width:140px">Checkliste</td><td style="padding:8px">${options.checklistName}</td></tr>
@@ -236,7 +337,7 @@ Ihr ${companyName} Team
             </div>
           </div>
         `,
-        attachments: [{ filename: 'checkliste.ics', content: ics, contentType: 'text/calendar; method=REQUEST' }],
+        attachments,
       });
     }
   }

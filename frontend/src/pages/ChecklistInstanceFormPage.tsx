@@ -50,6 +50,7 @@ const ChecklistInstanceFormPage: React.FC = () => {
     templateId: '',
     userId: '',
     assignedToId: undefined,
+    responsibleIds: [],
     startDate: new Date().toISOString().split('T')[0],
     targetEndDate: undefined,
     notes: '',
@@ -205,12 +206,40 @@ const ChecklistInstanceFormPage: React.FC = () => {
                   options={users}
                   getOptionLabel={(user) => `${user.firstName} ${user.lastName} (${user.email})`}
                   value={users.find((u) => u.id === formData.assignedToId) || null}
-                  onChange={(_, newValue) => handleInputChange('assignedToId', newValue?.id || undefined)}
+                  onChange={(_, newValue) => {
+                    handleInputChange('assignedToId', newValue?.id || undefined);
+                    // Hauptverantwortlichen aus den weiteren Verantwortlichen entfernen
+                    if (newValue) {
+                      handleInputChange(
+                        'responsibleIds',
+                        (formData.responsibleIds || []).filter((id) => id !== newValue.id)
+                      );
+                    }
+                  }}
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Zuständig – wer führt aus? (optional)"
+                      label="Hauptverantwortlich – wer führt aus? (optional)"
                       helperText="Z.B. die HR-Person, die diese Checkliste abarbeitet"
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <Autocomplete
+                  multiple
+                  options={users.filter((u) => u.id !== formData.assignedToId)}
+                  getOptionLabel={(user) => `${user.firstName} ${user.lastName} (${user.email})`}
+                  value={users.filter((u) => (formData.responsibleIds || []).includes(u.id))}
+                  onChange={(_, newValue) =>
+                    handleInputChange('responsibleIds', newValue.map((u) => u.id))
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Weitere Verantwortliche (optional)"
+                      helperText="Erhalten ebenfalls Kalendertermin und E-Mail-Einladung"
                     />
                   )}
                 />

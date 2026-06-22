@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import fs from 'fs';
 import checklistService from '../services/checklist.service';
 import { ChecklistType, ChecklistItemType, ChecklistStatus } from '@prisma/client';
 
@@ -115,6 +116,83 @@ class ChecklistController {
       res.json({ message: 'Items reordered successfully' });
     } catch (error: any) {
       console.error('Error reordering template items:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // ==================== Item Attachments ====================
+
+  async uploadItemAttachments(req: Request, res: Response) {
+    try {
+      const { itemId } = req.params;
+      const files = (req.files as Express.Multer.File[]) || [];
+      if (files.length === 0) {
+        return res.status(400).json({ error: 'Keine Datei hochgeladen' });
+      }
+      const userId = (req as any).user?.id;
+      const created = [];
+      for (const file of files) {
+        created.push(
+          await checklistService.addItemAttachment({
+            itemId,
+            fileName: file.originalname,
+            filePath: file.path,
+            fileSize: file.size,
+            mimeType: file.mimetype,
+            uploadedById: userId,
+          })
+        );
+      }
+      res.status(201).json(created);
+    } catch (error: any) {
+      console.error('Error uploading item attachments:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getItemAttachments(req: Request, res: Response) {
+    try {
+      const { itemId } = req.params;
+      const attachments = await checklistService.getItemAttachments(itemId);
+      res.json(attachments);
+    } catch (error: any) {
+      console.error('Error fetching item attachments:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async downloadAttachment(req: Request, res: Response) {
+    try {
+      const { attachmentId } = req.params;
+      const attachment = await checklistService.getAttachmentById(attachmentId);
+      if (!attachment) {
+        return res.status(404).json({ error: 'Anhang nicht gefunden' });
+      }
+      if (!fs.existsSync(attachment.filePath)) {
+        return res.status(404).json({ error: 'Datei nicht gefunden' });
+      }
+      res.download(attachment.filePath, attachment.fileName);
+    } catch (error: any) {
+      console.error('Error downloading attachment:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async deleteAttachment(req: Request, res: Response) {
+    try {
+      const { attachmentId } = req.params;
+      const attachment = await checklistService.getAttachmentById(attachmentId);
+      if (!attachment) {
+        return res.status(404).json({ error: 'Anhang nicht gefunden' });
+      }
+      await checklistService.deleteItemAttachment(attachmentId);
+      // Datei von der Festplatte entfernen (Fehler hier nicht fatal)
+      fs.promises.unlink(attachment.filePath).catch((err) =>
+        console.error('Failed to unlink attachment file:', err)
+      );
+      res.json({ message: 'Anhang gelöscht' });
+    } catch (error: any) {
+      console.error('Error deleting attachment:', error);
       res.status(500).json({ error: error.message });
     }
   }

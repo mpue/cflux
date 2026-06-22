@@ -593,6 +593,13 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
                                           {cl.assignedTo
                                             ? `${cl.assignedTo.firstName} ${cl.assignedTo.lastName}`
                                             : '–'}
+                                          {cl.responsibles && cl.responsibles.length > 0 && (
+                                            <Typography variant="caption" color="text.secondary" display="block">
+                                              + {cl.responsibles
+                                                .map((r) => `${r.firstName} ${r.lastName}`)
+                                                .join(', ')}
+                                            </Typography>
+                                          )}
                                         </TableCell>
                                         <TableCell sx={{ minWidth: 120 }}>
                                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

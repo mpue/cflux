@@ -369,8 +369,39 @@
   z-index: 1;
 }
 .cal-week-event:hover { filter: brightness(0.9); }
+.cal-week-event.editable { cursor: grab; }
+.cal-week-event.editable:active { cursor: grabbing; }
+.cal-week-event.dragging {
+  opacity: 0.85;
+  z-index: 5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  filter: brightness(0.95);
+  user-select: none;
+}
 .cal-week-event-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cal-week-event-time { opacity: 0.85; }
+.cal-week-event-resize {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 8px;
+  cursor: ns-resize;
+}
+.cal-week-event-resize::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 24px;
+  height: 3px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.55);
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.cal-week-event:hover .cal-week-event-resize::after { opacity: 1; }
 
 /* ─── Year View ───────────────────────────────────────────────────────────── */
 .cal-year-grid {

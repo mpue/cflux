@@ -47,6 +47,7 @@ import ApplicantVerifyEmailPage from './pages/ApplicantVerifyEmailPage';
 import ApplicantVerifyPage from './pages/ApplicantVerifyPage';
 import ApplicantPortalPage from './pages/ApplicantPortalPage';
 import LandingPage from './pages/LandingPage';
+import LightModeOnly from './components/common/LightModeOnly';
 import JobBoardPage from './pages/JobBoardPage';
 import JobDetailPage from './pages/JobDetailPage';
 import UserProfile from './pages/UserProfile';
@@ -112,9 +113,9 @@ function App() {
               <Route path="/applicant/verify" element={<ApplicantVerifyPage />} />
               <Route path="/applicant/portal" element={<ApplicantPortalPage />} />
               
-              {/* Job Board (public) */}
-              <Route path="/jobs" element={<JobBoardPage />} />
-              <Route path="/jobs/:jobId" element={<JobDetailPage />} />
+              {/* Job Board (public) – nur im Light Mode */}
+              <Route path="/jobs" element={<LightModeOnly><JobBoardPage /></LightModeOnly>} />
+              <Route path="/jobs/:jobId" element={<LightModeOnly><JobDetailPage /></LightModeOnly>} />
               
               {/* Protected Routes */}
             <Route
@@ -457,8 +458,8 @@ function App() {
                 </PrivateRoute>
               }
             />
-            {/* Root Route - Landing Page */}
-            <Route path="/" element={<LandingPage />} />
+            {/* Root Route - Landing Page (nur im Light Mode) */}
+            <Route path="/" element={<LightModeOnly><LandingPage /></LightModeOnly>} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Router>

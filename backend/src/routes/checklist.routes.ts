@@ -1,9 +1,32 @@
 import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import checklistController from '../controllers/checklist.controller';
 import { authenticate } from '../middleware/auth';
 import { requireModuleAccess } from '../middleware/moduleAccess';
 
 const router = Router();
+
+// File upload configuration for checklist item attachments
+const attachmentStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'checklist-item-attachments');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  },
+});
+
+const attachmentUpload = multer({
+  storage: attachmentStorage,
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB pro Datei
+});
 
 // All routes require authentication and checklist module access
 router.use(authenticate);
@@ -73,6 +96,37 @@ router.post(
   '/templates/:templateId/reorder',
   requireModuleAccess('checklists', 'canEdit'),
   checklistController.reorderTemplateItems
+);
+
+// ==================== Item Attachments ====================
+
+// Upload one or more attachments for a checklist item (requires edit permission)
+router.post(
+  '/items/:itemId/attachments',
+  requireModuleAccess('checklists', 'canEdit'),
+  attachmentUpload.array('files', 10),
+  checklistController.uploadItemAttachments
+);
+
+// List attachments of a checklist item (requires view permission)
+router.get(
+  '/items/:itemId/attachments',
+  requireModuleAccess('checklists', 'canView'),
+  checklistController.getItemAttachments
+);
+
+// Download an attachment (requires view permission)
+router.get(
+  '/attachments/:attachmentId/download',
+  requireModuleAccess('checklists', 'canView'),
+  checklistController.downloadAttachment
+);
+
+// Delete an attachment (requires edit permission)
+router.delete(
+  '/attachments/:attachmentId',
+  requireModuleAccess('checklists', 'canEdit'),
+  checklistController.deleteAttachment
 );
 
 // ==================== Instances ====================

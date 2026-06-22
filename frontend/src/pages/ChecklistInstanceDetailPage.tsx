@@ -220,10 +220,22 @@ const ChecklistInstanceDetailPage: React.FC = () => {
           {instance.assignedTo && (
             <Box>
               <Typography variant="body2" color="text.secondary">
-                Zugewiesen an
+                Hauptverantwortlich
               </Typography>
               <Typography variant="body1">
                 {instance.assignedTo.firstName} {instance.assignedTo.lastName}
+              </Typography>
+            </Box>
+          )}
+          {instance.responsibles && instance.responsibles.length > 0 && (
+            <Box>
+              <Typography variant="body2" color="text.secondary">
+                Weitere Verantwortliche
+              </Typography>
+              <Typography variant="body1">
+                {instance.responsibles
+                  .map((r) => `${r.firstName} ${r.lastName}`)
+                  .join(', ')}
               </Typography>
             </Box>
           )}

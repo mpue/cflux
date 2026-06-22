@@ -3,9 +3,11 @@
 # cflux - Micro ERP and Swiss Compliant Time Tracking System
 ## Executive Summary für die Geschäftsleitung
 
-**Berichtsdatum:** 23. Februar 2026  
-**Version:** 1.5  
-**Status:** Production with Stories, E-Learning PDF Upload & Org Management
+**Berichtsdatum:** 12. Juni 2026  
+**Version:** 1.6  
+**Status:** Production with Calendar, Contacts, EHS Dashboards & System-wide Dark Mode
+
+> 📄 **Ergänzender Report:** Eine kompakte Übersicht nur der Änderungen seit Februar 2026 findet sich in [`executive_report_june_2026.md`](executive_report_june_2026.md).
 
 ---
 
@@ -19,6 +21,8 @@
 - ⚖️ **Automatisierte Compliance-Prüfung** und Warnsystem
 - 📊 **Professionelle Reports** für Kunden und Management
 - 🔐 **Modulares Berechtigungssystem** für unterschiedliche Benutzergruppen
+- 📅 **Kalender** mit Termin-/Besprechungsverwaltung, Teilnehmern und Drag & Drop (NEU Mai 2026)
+- 📇 **Kontaktverwaltung** mit gruppenbasierter Sichtbarkeit und Mitarbeiter-Synchronisation (NEU Juni 2026)
 - 🏢 **Abteilungen & Organigramm** mit Vorgesetzten-Hierarchie und Cross-Department-Visualisierung (NEU Februar 2026)
 - 🏷️ **Story-Tags** pro Projekt für granulare Zeitbuchung und Reporting (NEU Februar 2026)
 - 👤 **Digitales Onboarding** für neue Mitarbeiter (NEU Januar 2026)
@@ -842,6 +846,61 @@ Vollständige Organisations-Verwaltung mit Abteilungen, Vorgesetzten-Hierarchie 
 
 ---
 
+### 16. 📅 Kalender (NEU: Mai 2026)
+**Status:** ✅ Produktiv
+
+**Überblick:**
+Vollständiges Kalender-Modul für Termine, Besprechungen, Erinnerungen und Aufgaben mit Team-Integration und interaktiver Bedienung.
+
+**Kernfunktionen:**
+- **Event-Typen:** Termin, Besprechung, Erinnerung, Aufgabe
+- **Teilnehmer-Management** mit Status-Rückmeldung (Ausstehend / Zugesagt / Abgelehnt)
+- **Monats- und Wochenansicht**
+- **Drag & Drop und Resize** in der Wochenansicht (15-Minuten-Raster, nur eigene Termine)
+- **Ganztägige Termine**, Orte, Beschreibungen und farbige Markierung
+- **Private Termine** (nur für den Ersteller sichtbar)
+- **Kontextmenü** für schnelle Aktionen
+- Vollständige Dark-Mode-Unterstützung
+
+**Technische Details:**
+- Prisma-Modelle `CalendarEvent` und `CalendarEventAttendee` (Soft-Delete)
+- REST API: `/api/calendar/*` mit eigenem Service-Layer
+- Eintrag in der Hauptnavigation
+
+**Geschäftlicher Nutzen:**
+- Zentrale Termin- und Besprechungsplanung im System
+- Transparente Teilnehmer-Koordination mit Zu-/Absagen
+- Schnelle Umplanung per Drag & Drop
+
+---
+
+### 17. 📇 Kontaktverwaltung (NEU: Juni 2026)
+**Status:** ✅ Produktiv
+
+**Überblick:**
+Zentrale Kontaktverwaltung mit Kontaktgruppen, granularer Sichtbarkeitssteuerung und automatischer Mitarbeiter-Synchronisation.
+
+**Kernfunktionen:**
+- **Kontakte** mit umfangreichen Stammdaten (Firma, Position, E-Mail, Telefon, Mobil, Adresse, Kategorie, Notizen)
+- **Kontaktgruppen** mit Name, Beschreibung und Farbe
+- **Gruppenbasierte Sichtbarkeit:** Kontakte einer Gruppe nur für freigegebene Benutzergruppen sichtbar; Admins sehen alles
+- **Mitarbeiter-Synchronisation** (Mitarbeiter → Kontakt, eine Richtung):
+  - Aktive Mitarbeiter werden als interne Kontakte übernommen
+  - Erneuter Sync aktualisiert statt zu duplizieren (über `employeeId`)
+- **Berechtigungen:** Lesen für alle (sichtbarkeitsgefiltert), Schreiben nur für Admins
+
+**Technische Details:**
+- Prisma-Modelle `Contact` und `ContactGroup` mit Sichtbarkeits-Relation zu Benutzergruppen
+- REST API: `/api/contacts/*` inkl. `/groups` und `/sync-employees`
+- Modul „Kontakte" (Route `/contacts`), `ContactsTab` im Admin-Dashboard
+
+**Geschäftlicher Nutzen:**
+- Zentrales Adressbuch für Kunden, Lieferanten, Partner und interne Kontakte
+- Datenschutzgerechte Sichtbarkeitssteuerung pro Abteilung
+- Keine Doppelpflege dank Übernahme aus dem Mitarbeiterstamm
+
+---
+
 ##  Sicherheit & Datenschutz
 
 ### Technische Sicherheit
@@ -853,6 +912,7 @@ Vollständige Organisations-Verwaltung mit Abteilungen, Vorgesetzten-Hierarchie 
 -  Input-Validierung auf Backend (express-validator)
 -  XSS-Protection durch Input Sanitization
 -  Rate-Limiting für API-Endpoints (z.B. 5 Login-Versuche / 15 Min)
+-  Login-Throttling als Brute-Force-Schutz (Drosselung wiederholter Fehlversuche, NEU März 2026)
 -  CORS-Configuration für Origin-Kontrolle
 
 ### Authentifizierung
@@ -894,7 +954,7 @@ Vollständige Organisations-Verwaltung mit Abteilungen, Vorgesetzten-Hierarchie 
   - **JSON:** 14'461 Zeilen (Configs, Package Files)
 - **Dateien:** 880 Dateien gesamt
 - **Datenbank:** 100+ Tabellen (Prisma Schema ~2'100 Zeilen)
-- **Module:** 26+ implementierte Module
+- **Module:** 28+ implementierte Module (inkl. Kalender & Kontakte)
 - **API-Endpoints:** 210+ REST-Endpunkte
 - **Tests:** 
   - Jest Unit-Tests
@@ -958,6 +1018,53 @@ Vollständige Organisations-Verwaltung mit Abteilungen, Vorgesetzten-Hierarchie 
 - Große Community und Support
 - Einfaches Deployment
 - Schema-First Database Design (keine Migrations-Fehler)
+
+---
+
+## Letzte Updates (März – Juni 2026)
+
+> Eine ausführliche Darstellung dieser Erweiterungen findet sich im separaten [`executive_report_june_2026.md`](executive_report_june_2026.md).
+
+### 📅 Kalender-Modul (Mai 2026)
+- Neues Kalender-Modul mit Event-Typen (Termin, Besprechung, Erinnerung, Aufgabe)
+- Teilnehmer-Management mit Zu-/Absage-Status
+- Monats- und Wochenansicht mit Drag & Drop und Resize (15-Minuten-Raster)
+- Ganztägige und private Termine, farbige Markierung, Kontextmenü
+- Prisma-Modelle `CalendarEvent`/`CalendarEventAttendee`, REST API `/api/calendar`
+
+### 📇 Kontaktverwaltung (Juni 2026)
+- Kontakte und Kontaktgruppen mit gruppenbasierter Sichtbarkeit
+- Mitarbeiter-Synchronisation (Mitarbeiter → Kontakt, ohne Duplikate)
+- Schreibzugriff Admin-only, Lesen sichtbarkeitsgefiltert
+- Prisma-Modelle `Contact`/`ContactGroup`, REST API `/api/contacts`
+
+### 🚨 EHS- & Incident-Erweiterungen (April/Mai 2026)
+- Automatische Vorfallnummerierung (projektbezogenes Präfix)
+- Datei-Anhänge an Vorfällen
+- Neuer Workflow-Trigger „incident:comment"
+- Neue Dashboard-Widgets: EHS-KPI und EHS-Pyramide
+- UX-Verbesserungen im Incident-Management
+
+### 🔀 Workflow Condition-Node (April 2026)
+- Bedingungs-Knoten im node-basierten Workflow-Editor für verzweigte Prozesse
+- Ergänzte Workflow-Trigger
+
+### 📄 Gotenberg-Dokumentenkonvertierung (März 2026)
+- Serverseitige PDF-Konvertierung von Office-Dokumenten über Gotenberg
+- Überarbeiteter Dokumenten-Import und PDF-Erzeugung im Intranet
+- Bereitstellung als zusätzlicher Docker-Container
+
+### ⏱️ Zeiterfassung (März/April 2026)
+- Automatisches Ausstempeln entfernt
+- Überarbeitete Pausenlogik und partielle Zeitbuchungen
+- Korrektur der UTC-Zeitkonvertierung
+
+### 🔐 Sicherheit & Plattform (März – Juni 2026)
+- Login-Throttling als Brute-Force-Schutz
+- Systemweiter Dark Mode (Dashboard, Dokumentation, Kalender, gesamte UI)
+- Neues System-Statistik-Modul mit Build-Versionierung
+- Projekt-Filterung, verbesserte Benutzer-Sortierung, neue Dashboard-Elemente
+- Backend-Refactoring und zusätzliche automatisierte Tests
 
 ---
 
@@ -1826,6 +1933,7 @@ Eine vollständige, interaktive Präsentation mit allen Screenshots ist verfügb
 ---
 
 **Erstellt am:** 23. Februar 2026  
-**Version:** 1.5  
+**Aktualisiert am:** 12. Juni 2026  
+**Version:** 1.6  
 **Autor:** Matthias Püski / Aquist GmbH Schweiz  
-**Status:** Production with Stories, E-Learning PDF Upload & Org Management
+**Status:** Production with Calendar, Contacts, EHS Dashboards & System-wide Dark Mode

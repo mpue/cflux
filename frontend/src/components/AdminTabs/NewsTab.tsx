@@ -1,5 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Table, Badge, Modal, Form, Row, Col, Alert } from 'react-bootstrap';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
+  Switch,
+  FormControlLabel,
+  Grid,
+  Box,
+  Typography,
+  IconButton,
+  Button,
+  Alert,
+  Card,
+  CardHeader,
+  Chip,
+  Stack,
+  Link,
+  Tooltip,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  ToggleButton,
+  ToggleButtonGroup,
+} from '@mui/material';
+import {
+  Close,
+  RssFeed,
+  Check,
+  Newspaper,
+  Add,
+  Edit,
+  Delete,
+  Sync,
+  PushPin,
+} from '@mui/icons-material';
 import newsService, { NewsSource, NewsItem } from '../../services/news.service';
 
 interface NewsTabProps {
@@ -12,7 +52,7 @@ const NewsTab: React.FC<NewsTabProps> = ({ onUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<'sources' | 'items'>('sources');
-  
+
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [showItemModal, setShowItemModal] = useState(false);
   const [editingSource, setEditingSource] = useState<NewsSource | null>(null);
@@ -77,7 +117,7 @@ const NewsTab: React.FC<NewsTabProps> = ({ onUpdate }) => {
     try {
       setLoading(true);
       const result = await newsService.refreshRssFeeds();
-      const message = result.map((r: any) => 
+      const message = result.map((r: any) =>
         `${r.sourceName}: ${r.success ? r.newItemsCount + ' neue Nachrichten' : 'Fehler - ' + r.error}`
       ).join('\n');
       alert(`RSS-Feeds aktualisiert:\n${message}`);
@@ -89,210 +129,219 @@ const NewsTab: React.FC<NewsTabProps> = ({ onUpdate }) => {
     }
   };
 
-  return (
-    <div className="tab-content-inner">
-      {error && <Alert variant="danger">{error}</Alert>}
+  const typeColor = (type: NewsSource['type']): 'info' | 'default' | 'primary' =>
+    type === 'RSS' ? 'info' : type === 'MANUAL' ? 'default' : 'primary';
 
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div className="btn-group" role="group">
-          <button
-            type="button"
-            className={`btn ${activeSubTab === 'sources' ? 'btn-primary' : 'btn-outline-primary'}`}
-            onClick={() => setActiveSubTab('sources')}
-          >
-            <i className="fas fa-rss me-2"></i>
+  const priorityColor = (priority: NewsItem['priority']): 'error' | 'warning' | 'info' | 'default' =>
+    priority === 'URGENT' ? 'error' : priority === 'HIGH' ? 'warning' : priority === 'NORMAL' ? 'info' : 'default';
+
+  return (
+    <Box className="tab-content-inner">
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+        <ToggleButtonGroup
+          value={activeSubTab}
+          exclusive
+          color="primary"
+          size="small"
+          onChange={(_e, val) => val && setActiveSubTab(val)}
+        >
+          <ToggleButton value="sources">
+            <RssFeed fontSize="small" sx={{ mr: 1 }} />
             Quellen ({sources.length})
-          </button>
-          <button
-            type="button"
-            className={`btn ${activeSubTab === 'items' ? 'btn-primary' : 'btn-outline-primary'}`}
-            onClick={() => setActiveSubTab('items')}
-          >
-            <i className="fas fa-newspaper me-2"></i>
+          </ToggleButton>
+          <ToggleButton value="items">
+            <Newspaper fontSize="small" sx={{ mr: 1 }} />
             Nachrichten ({items.length})
-          </button>
-        </div>
-        <Button variant="info" onClick={handleRefreshFeeds} disabled={loading}>
-          <i className="fas fa-sync-alt me-2"></i>
+          </ToggleButton>
+        </ToggleButtonGroup>
+
+        <Button variant="outlined" color="info" startIcon={<Sync />} onClick={handleRefreshFeeds} disabled={loading}>
           RSS aktualisieren
         </Button>
-      </div>
+      </Box>
 
       {activeSubTab === 'sources' && (
         <Card>
-          <Card.Header className="d-flex justify-content-between align-items-center">
-            <h5 className="mb-0">News-Quellen</h5>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                setEditingSource(null);
-                setShowSourceModal(true);
-              }}
-            >
-              <i className="fas fa-plus me-2"></i>
-              Neue Quelle
-            </Button>
-          </Card.Header>
-          <Card.Body className="p-0">
-            <Table striped hover responsive className="mb-0">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Typ</th>
-                  <th>URL</th>
-                  <th>Status</th>
-                  <th>Nachrichten</th>
-                  <th style={{ width: '200px' }}>Aktionen</th>
-                </tr>
-              </thead>
-              <tbody>
+          <CardHeader
+            title={<Typography variant="h6">News-Quellen</Typography>}
+            action={
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<Add />}
+                onClick={() => {
+                  setEditingSource(null);
+                  setShowSourceModal(true);
+                }}
+              >
+                Neue Quelle
+              </Button>
+            }
+          />
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Typ</TableCell>
+                  <TableCell>URL</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Nachrichten</TableCell>
+                  <TableCell sx={{ width: 200 }}>Aktionen</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
                 {sources.map((source) => (
-                  <tr key={source.id}>
-                    <td>
-                      {source.icon && <i className={`${source.icon} me-2`} style={{ color: source.color }}></i>}
+                  <TableRow key={source.id} hover>
+                    <TableCell>
+                      {source.icon && <i className={source.icon} style={{ color: source.color, marginRight: 8 }} />}
                       <strong>{source.name}</strong>
-                    </td>
-                    <td>
-                      <Badge bg={source.type === 'RSS' ? 'info' : source.type === 'MANUAL' ? 'secondary' : 'primary'}>
-                        {source.type}
-                      </Badge>
-                    </td>
-                    <td>
+                    </TableCell>
+                    <TableCell>
+                      <Chip size="small" label={source.type} color={typeColor(source.type)} />
+                    </TableCell>
+                    <TableCell>
                       {source.url ? (
-                        <a href={source.url} target="_blank" rel="noopener noreferrer" className="text-truncate d-inline-block" style={{ maxWidth: '200px' }}>
+                        <Link
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          noWrap
+                          sx={{ display: 'inline-block', maxWidth: 200, verticalAlign: 'bottom' }}
+                        >
                           {source.url}
-                        </a>
+                        </Link>
                       ) : '-'}
-                    </td>
-                    <td>
-                      <Badge bg={source.isActive ? 'success' : 'danger'}>
-                        {source.isActive ? 'Aktiv' : 'Inaktiv'}
-                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Chip size="small" label={source.isActive ? 'Aktiv' : 'Inaktiv'} color={source.isActive ? 'success' : 'error'} />
                       {source.displayOnDashboard && (
-                        <Badge bg="info" className="ms-1">Dashboard</Badge>
+                        <Chip size="small" label="Dashboard" color="info" sx={{ ml: 0.5 }} />
                       )}
-                    </td>
-                    <td>{source._count?.items || 0}</td>
-                    <td>
-                      <div className="d-flex gap-2">
+                    </TableCell>
+                    <TableCell>{source._count?.items || 0}</TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={1}>
                         <Button
-                          variant="primary"
-                          size="sm"
+                          variant="outlined"
+                          size="small"
+                          startIcon={<Edit />}
                           onClick={() => {
                             setEditingSource(source);
                             setShowSourceModal(true);
                           }}
                         >
-                          <i className="fas fa-edit"></i> Bearbeiten
+                          Bearbeiten
                         </Button>
                         <Button
-                          variant="danger"
-                          size="sm"
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          startIcon={<Delete />}
                           onClick={() => handleDeleteSource(source.id)}
                         >
-                          <i className="fas fa-trash"></i> Löschen
+                          Löschen
                         </Button>
-                      </div>
-                    </td>
-                  </tr>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
+              </TableBody>
             </Table>
-          </Card.Body>
+          </TableContainer>
         </Card>
       )}
 
       {activeSubTab === 'items' && (
         <Card>
-          <Card.Header className="d-flex justify-content-between align-items-center">
-            <h5 className="mb-0">Nachrichten</h5>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                setEditingItem(null);
-                setShowItemModal(true);
-              }}
-            >
-              <i className="fas fa-plus me-2"></i>
-              Neue Nachricht
-            </Button>
-          </Card.Header>
-          <Card.Body className="p-0">
-            <Table striped hover responsive className="mb-0">
-              <thead>
-                <tr>
-                  <th>Titel</th>
-                  <th>Quelle</th>
-                  <th>Priorität</th>
-                  <th>Status</th>
-                  <th>Veröffentlicht</th>
-                  <th style={{ width: '280px' }}>Aktionen</th>
-                </tr>
-              </thead>
-              <tbody>
+          <CardHeader
+            title={<Typography variant="h6">Nachrichten</Typography>}
+            action={
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<Add />}
+                onClick={() => {
+                  setEditingItem(null);
+                  setShowItemModal(true);
+                }}
+              >
+                Neue Nachricht
+              </Button>
+            }
+          />
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Titel</TableCell>
+                  <TableCell>Quelle</TableCell>
+                  <TableCell>Priorität</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Veröffentlicht</TableCell>
+                  <TableCell sx={{ width: 280 }}>Aktionen</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
                 {items.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      {item.isPinned && <i className="fas fa-thumbtack text-primary me-2"></i>}
+                  <TableRow key={item.id} hover>
+                    <TableCell>
+                      {item.isPinned && <PushPin color="primary" fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} />}
                       <strong>{item.title}</strong>
-                    </td>
-                    <td>
-                      {item.source?.icon && <i className={`${item.source.icon} me-2`}></i>}
+                    </TableCell>
+                    <TableCell>
+                      {item.source?.icon && <i className={item.source.icon} style={{ marginRight: 8 }} />}
                       {item.source?.name || 'Unbekannt'}
-                    </td>
-                    <td>
-                      <Badge
-                        bg={
-                          item.priority === 'URGENT' ? 'danger' :
-                          item.priority === 'HIGH' ? 'warning' :
-                          item.priority === 'NORMAL' ? 'info' : 'secondary'
-                        }
-                      >
-                        {item.priority}
-                      </Badge>
-                    </td>
-                    <td>
-                      <Badge bg={item.isActive ? 'success' : 'danger'}>
-                        {item.isActive ? 'Aktiv' : 'Inaktiv'}
-                      </Badge>
-                    </td>
-                    <td>{new Date(item.publishedAt).toLocaleDateString('de-DE')}</td>
-                    <td>
-                      <div className="d-flex gap-2">
+                    </TableCell>
+                    <TableCell>
+                      <Chip size="small" label={item.priority} color={priorityColor(item.priority)} />
+                    </TableCell>
+                    <TableCell>
+                      <Chip size="small" label={item.isActive ? 'Aktiv' : 'Inaktiv'} color={item.isActive ? 'success' : 'error'} />
+                    </TableCell>
+                    <TableCell>{new Date(item.publishedAt).toLocaleDateString('de-DE')}</TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={1}>
+                        <Tooltip title={item.isPinned ? 'Anpinnen aufheben' : 'Anpinnen'}>
+                          <Button
+                            variant={item.isPinned ? 'contained' : 'outlined'}
+                            color="warning"
+                            size="small"
+                            onClick={() => handleTogglePin(item.id)}
+                            sx={{ minWidth: 0, px: 1 }}
+                          >
+                            <PushPin fontSize="small" />
+                          </Button>
+                        </Tooltip>
                         <Button
-                          variant={item.isPinned ? 'warning' : 'outline-warning'}
-                          size="sm"
-                          onClick={() => handleTogglePin(item.id)}
-                          title={item.isPinned ? 'Anpinnen aufheben' : 'Anpinnen'}
-                        >
-                          <i className="fas fa-thumbtack"></i>
-                        </Button>
-                        <Button
-                          variant="primary"
-                          size="sm"
+                          variant="outlined"
+                          size="small"
+                          startIcon={<Edit />}
                           onClick={() => {
                             setEditingItem(item);
                             setShowItemModal(true);
                           }}
                         >
-                          <i className="fas fa-edit"></i> Bearbeiten
+                          Bearbeiten
                         </Button>
                         <Button
-                          variant="danger"
-                          size="sm"
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          startIcon={<Delete />}
                           onClick={() => handleDeleteItem(item.id)}
                         >
-                          <i className="fas fa-trash"></i> Löschen
+                          Löschen
                         </Button>
-                      </div>
-                    </td>
-                  </tr>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
+              </TableBody>
             </Table>
-          </Card.Body>
+          </TableContainer>
         </Card>
       )}
 
@@ -342,11 +391,11 @@ const NewsTab: React.FC<NewsTabProps> = ({ onUpdate }) => {
           }
         }}
       />
-    </div>
+    </Box>
   );
 };
 
-// Verbesserte Source Modal Component
+// Source Modal Component (MUI)
 const SourceModal: React.FC<{
   show: boolean;
   source: NewsSource | null;
@@ -399,158 +448,137 @@ const SourceModal: React.FC<{
   };
 
   return (
-    <Modal show={show} onHide={onClose} size="lg" centered>
-      <Modal.Header closeButton className="bg-light">
-        <Modal.Title>
-          <i className="fas fa-rss me-2"></i>
+    <Dialog open={show} onClose={onClose} maxWidth="md" fullWidth>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <RssFeed color="primary" />
           {source ? 'Quelle bearbeiten' : 'Neue Quelle'}
-        </Modal.Title>
-      </Modal.Header>
-      <Form onSubmit={handleSubmit}>
-        <Modal.Body className="p-4">
-          <Row>
-            <Col md={8}>
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Name *</strong></Form.Label>
-                <Form.Control
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="z.B. Unternehmensnews"
-                  required
-                  size="lg"
-                />
-              </Form.Group>
-            </Col>
-            <Col md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Typ *</strong></Form.Label>
-                <Form.Select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
-                  size="lg"
-                >
-                  <option value="MANUAL">Manuell</option>
-                  <option value="RSS">RSS Feed</option>
-                  <option value="INTERNAL">Intern</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-          </Row>
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <Close />
+        </IconButton>
+      </DialogTitle>
+      <Box component="form" onSubmit={handleSubmit}>
+        <DialogContent dividers>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={8}>
+              <TextField
+                label="Name"
+                required
+                fullWidth
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="z.B. Unternehmensnews"
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                select
+                label="Typ"
+                required
+                fullWidth
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+              >
+                <MenuItem value="MANUAL">Manuell</MenuItem>
+                <MenuItem value="RSS">RSS Feed</MenuItem>
+                <MenuItem value="INTERNAL">Intern</MenuItem>
+              </TextField>
+            </Grid>
+          </Grid>
 
           {formData.type === 'RSS' && (
-            <div className="bg-light p-3 rounded mb-3">
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Feed URL *</strong></Form.Label>
-                <Form.Control
-                  type="url"
-                  value={formData.url}
-                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                  placeholder="https://example.com/feed.xml"
-                  required={formData.type === 'RSS'}
-                  size="lg"
-                />
-                <Form.Text className="text-muted">
-                  Vollständige URL zum RSS/Atom Feed
-                </Form.Text>
-              </Form.Group>
-
-              <Form.Group className="mb-0">
-                <Form.Label><strong>Aktualisierungsintervall</strong></Form.Label>
-                <Form.Control
-                  type="number"
-                  value={formData.refreshInterval}
-                  onChange={(e) => setFormData({ ...formData, refreshInterval: parseInt(e.target.value) })}
-                  size="lg"
-                />
-                <Form.Text className="text-muted">
-                  In Sekunden (Standard: 3600 = 1 Stunde)
-                </Form.Text>
-              </Form.Group>
-            </div>
+            <Box sx={{ bgcolor: 'action.hover', p: 2, borderRadius: 1, mt: 2 }}>
+              <TextField
+                label="Feed URL"
+                type="url"
+                required
+                fullWidth
+                value={formData.url}
+                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                placeholder="https://example.com/feed.xml"
+                helperText="Vollständige URL zum RSS/Atom Feed"
+              />
+              <TextField
+                label="Aktualisierungsintervall"
+                type="number"
+                fullWidth
+                sx={{ mt: 2 }}
+                value={formData.refreshInterval}
+                onChange={(e) => setFormData({ ...formData, refreshInterval: parseInt(e.target.value) })}
+                helperText="In Sekunden (Standard: 3600 = 1 Stunde)"
+              />
+            </Box>
           )}
 
-          <Row>
-            <Col md={8}>
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Icon</strong></Form.Label>
-                <Form.Control
-                  type="text"
-                  value={formData.icon}
-                  onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                  placeholder="z.B. fas fa-newspaper"
-                  size="lg"
-                />
-                <Form.Text className="text-muted">
-                  Font Awesome Icon-Klasse
-                </Form.Text>
-              </Form.Group>
-            </Col>
-            <Col md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Farbe</strong></Form.Label>
-                <Form.Control
-                  type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  size="lg"
-                  style={{ height: '48px' }}
-                />
-              </Form.Group>
-            </Col>
-          </Row>
+          <Grid container spacing={2} sx={{ mt: 0 }}>
+            <Grid item xs={12} md={8}>
+              <TextField
+                label="Icon"
+                fullWidth
+                value={formData.icon}
+                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                placeholder="z.B. fas fa-newspaper"
+                helperText="Font Awesome Icon-Klasse"
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                label="Farbe"
+                type="color"
+                fullWidth
+                value={formData.color}
+                onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+          </Grid>
 
-          <Form.Group className="mb-3">
-            <Form.Label><strong>Priorität</strong></Form.Label>
-            <Form.Control
-              type="number"
-              value={formData.priority}
-              onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
-              size="lg"
+          <TextField
+            label="Priorität"
+            type="number"
+            fullWidth
+            sx={{ mt: 2 }}
+            value={formData.priority}
+            onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
+            helperText="Höhere Werte werden zuerst angezeigt"
+          />
+
+          <Box sx={{ borderTop: 1, borderColor: 'divider', mt: 2, pt: 2 }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                />
+              }
+              label={<Typography fontWeight="bold">Aktiv</Typography>}
             />
-            <Form.Text className="text-muted">
-              Höhere Werte werden zuerst angezeigt
-            </Form.Text>
-          </Form.Group>
-
-          <div className="border-top pt-3">
-            <Form.Group className="mb-2">
-              <Form.Check
-                type="switch"
-                id="isActive"
-                label={<strong>Aktiv</strong>}
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-0">
-              <Form.Check
-                type="switch"
-                id="displayOnDashboard"
-                label={<strong>Auf Dashboard anzeigen</strong>}
-                checked={formData.displayOnDashboard}
-                onChange={(e) => setFormData({ ...formData, displayOnDashboard: e.target.checked })}
-              />
-            </Form.Group>
-          </div>
-        </Modal.Body>
-        <Modal.Footer className="bg-light">
-          <Button variant="secondary" onClick={onClose} size="lg">
-            <i className="fas fa-times me-2"></i>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.displayOnDashboard}
+                  onChange={(e) => setFormData({ ...formData, displayOnDashboard: e.target.checked })}
+                />
+              }
+              label={<Typography fontWeight="bold">Auf Dashboard anzeigen</Typography>}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={onClose} color="inherit" startIcon={<Close />}>
             Abbrechen
           </Button>
-          <Button variant="primary" type="submit" size="lg">
-            <i className="fas fa-check me-2"></i>
+          <Button type="submit" variant="contained" startIcon={<Check />}>
             Speichern
           </Button>
-        </Modal.Footer>
-      </Form>
-    </Modal>
+        </DialogActions>
+      </Box>
+    </Dialog>
   );
 };
 
-// Verbesserte Item Modal Component
+// Item Modal Component (MUI)
 const ItemModal: React.FC<{
   show: boolean;
   item: NewsItem | null;
@@ -611,223 +639,201 @@ const ItemModal: React.FC<{
     e.preventDefault();
     const data = {
       ...formData,
-      tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
+      tags: formData.tags.split(',').map((t) => t.trim()).filter(Boolean),
     };
     onSave(data);
   };
 
   if (sources.length === 0) {
     return (
-      <Modal show={show} onHide={onClose} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Keine Quellen verfügbar</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Alert variant="warning">
+      <Dialog open={show} onClose={onClose} maxWidth="xs" fullWidth>
+        <DialogTitle>Keine Quellen verfügbar</DialogTitle>
+        <DialogContent dividers>
+          <Alert severity="warning">
             Bitte erstellen Sie zuerst eine News-Quelle, bevor Sie Nachrichten hinzufügen.
           </Alert>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={onClose}>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={onClose} color="inherit">
             Schließen
           </Button>
-        </Modal.Footer>
-      </Modal>
+        </DialogActions>
+      </Dialog>
     );
   }
 
   return (
-    <Modal show={show} onHide={onClose} size="xl" centered>
-      <Modal.Header closeButton className="bg-light">
-        <Modal.Title>
-          <i className="fas fa-newspaper me-2"></i>
+    <Dialog open={show} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Newspaper color="primary" />
           {item ? 'Nachricht bearbeiten' : 'Neue Nachricht'}
-        </Modal.Title>
-      </Modal.Header>
-      <Form onSubmit={handleSubmit}>
-        <Modal.Body className="p-4">
-          <Row>
-            <Col md={8}>
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Titel *</strong></Form.Label>
-                <Form.Control
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Aussagekräftiger Titel"
-                  required
-                  size="lg"
+        </Box>
+        <IconButton onClick={onClose} size="small">
+          <Close />
+        </IconButton>
+      </DialogTitle>
+      <Box component="form" onSubmit={handleSubmit}>
+        <DialogContent dividers>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={8}>
+              <TextField
+                label="Titel"
+                required
+                fullWidth
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Aussagekräftiger Titel"
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                select
+                label="Quelle"
+                required
+                fullWidth
+                value={formData.sourceId}
+                onChange={(e) => setFormData({ ...formData, sourceId: e.target.value })}
+              >
+                {sources.map((source) => (
+                  <MenuItem key={source.id} value={source.id}>
+                    {source.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          </Grid>
+
+          <TextField
+            label="Inhalt"
+            required
+            fullWidth
+            multiline
+            minRows={8}
+            sx={{ mt: 2 }}
+            value={formData.content}
+            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+            placeholder="Vollständiger Nachrichtentext..."
+          />
+
+          <TextField
+            label="Kurzbeschreibung"
+            fullWidth
+            multiline
+            minRows={2}
+            sx={{ mt: 2 }}
+            value={formData.excerpt}
+            onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+            placeholder="Kurze Zusammenfassung für die Vorschau..."
+            helperText="Wird in der Übersicht angezeigt, wenn vorhanden"
+          />
+
+          <Grid container spacing={2} sx={{ mt: 0 }}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Externer Link"
+                type="url"
+                fullWidth
+                value={formData.externalUrl}
+                onChange={(e) => setFormData({ ...formData, externalUrl: e.target.value })}
+                placeholder="https://..."
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                label="Bild-URL"
+                type="url"
+                fullWidth
+                value={formData.imageUrl}
+                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                placeholder="https://..."
+              />
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={2} sx={{ mt: 0 }}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                label="Autor"
+                fullWidth
+                value={formData.author}
+                onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                placeholder="Verfasser"
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                select
+                label="Priorität"
+                fullWidth
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
+              >
+                <MenuItem value="LOW">Niedrig</MenuItem>
+                <MenuItem value="NORMAL">Normal</MenuItem>
+                <MenuItem value="HIGH">Hoch</MenuItem>
+                <MenuItem value="URGENT">Dringend</MenuItem>
+              </TextField>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                label="Veröffentlichungsdatum"
+                type="datetime-local"
+                fullWidth
+                value={formData.publishedAt}
+                onChange={(e) => setFormData({ ...formData, publishedAt: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Grid>
+          </Grid>
+
+          <TextField
+            label="Tags"
+            fullWidth
+            sx={{ mt: 2 }}
+            value={formData.tags}
+            onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+            placeholder="z.B. Wichtig, Update, Release"
+            helperText="Mehrere Tags mit Komma trennen"
+          />
+
+          <Box sx={{ borderTop: 1, borderColor: 'divider', mt: 2, pt: 2 }}>
+            <Grid container>
+              <Grid item xs={12} md={6}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.isPinned}
+                      onChange={(e) => setFormData({ ...formData, isPinned: e.target.checked })}
+                    />
+                  }
+                  label={<Typography fontWeight="bold">📌 Angepinnt (oben fixieren)</Typography>}
                 />
-              </Form.Group>
-            </Col>
-            <Col md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Quelle *</strong></Form.Label>
-                <Form.Select
-                  value={formData.sourceId}
-                  onChange={(e) => setFormData({ ...formData, sourceId: e.target.value })}
-                  required
-                  size="lg"
-                >
-                  {sources.map((source) => (
-                    <option key={source.id} value={source.id}>
-                      {source.name}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </Col>
-          </Row>
-
-          <Form.Group className="mb-3">
-            <Form.Label><strong>Inhalt *</strong></Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={8}
-              value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              placeholder="Vollständiger Nachrichtentext..."
-              required
-              style={{ fontSize: '1rem' }}
-            />
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label><strong>Kurzbeschreibung</strong></Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={2}
-              value={formData.excerpt}
-              onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-              placeholder="Kurze Zusammenfassung für die Vorschau..."
-              style={{ fontSize: '1rem' }}
-            />
-            <Form.Text className="text-muted">
-              Wird in der Übersicht angezeigt, wenn vorhanden
-            </Form.Text>
-          </Form.Group>
-
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Externer Link</strong></Form.Label>
-                <Form.Control
-                  type="url"
-                  value={formData.externalUrl}
-                  onChange={(e) => setFormData({ ...formData, externalUrl: e.target.value })}
-                  placeholder="https://..."
-                  size="lg"
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                    />
+                  }
+                  label={<Typography fontWeight="bold">✓ Aktiv (sichtbar)</Typography>}
                 />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Bild-URL</strong></Form.Label>
-                <Form.Control
-                  type="url"
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="https://..."
-                  size="lg"
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-
-          <Row>
-            <Col md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Autor</strong></Form.Label>
-                <Form.Control
-                  type="text"
-                  value={formData.author}
-                  onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                  placeholder="Verfasser"
-                  size="lg"
-                />
-              </Form.Group>
-            </Col>
-            <Col md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Priorität</strong></Form.Label>
-                <Form.Select
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
-                  size="lg"
-                >
-                  <option value="LOW">Niedrig</option>
-                  <option value="NORMAL">Normal</option>
-                  <option value="HIGH">Hoch</option>
-                  <option value="URGENT">Dringend</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-            <Col md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label><strong>Veröffentlichungsdatum</strong></Form.Label>
-                <Form.Control
-                  type="datetime-local"
-                  value={formData.publishedAt}
-                  onChange={(e) => setFormData({ ...formData, publishedAt: e.target.value })}
-                  size="lg"
-                />
-              </Form.Group>
-            </Col>
-          </Row>
-
-          <Form.Group className="mb-3">
-            <Form.Label><strong>Tags</strong></Form.Label>
-            <Form.Control
-              type="text"
-              value={formData.tags}
-              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-              placeholder="z.B. Wichtig, Update, Release"
-              size="lg"
-            />
-            <Form.Text className="text-muted">
-              Mehrere Tags mit Komma trennen
-            </Form.Text>
-          </Form.Group>
-
-          <div className="border-top pt-3">
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-2">
-                  <Form.Check
-                    type="switch"
-                    id="isPinned"
-                    label={<strong>📌 Angepinnt (oben fixieren)</strong>}
-                    checked={formData.isPinned}
-                    onChange={(e) => setFormData({ ...formData, isPinned: e.target.checked })}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-0">
-                  <Form.Check
-                    type="switch"
-                    id="isActiveItem"
-                    label={<strong>✓ Aktiv (sichtbar)</strong>}
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-          </div>
-        </Modal.Body>
-        <Modal.Footer className="bg-light">
-          <Button variant="secondary" onClick={onClose} size="lg">
-            <i className="fas fa-times me-2"></i>
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={onClose} color="inherit" startIcon={<Close />}>
             Abbrechen
           </Button>
-          <Button variant="primary" type="submit" size="lg">
-            <i className="fas fa-check me-2"></i>
+          <Button type="submit" variant="contained" startIcon={<Check />}>
             Speichern
           </Button>
-        </Modal.Footer>
-      </Form>
-    </Modal>
+        </DialogActions>
+      </Box>
+    </Dialog>
   );
 };
 

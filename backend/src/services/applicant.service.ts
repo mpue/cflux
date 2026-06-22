@@ -147,6 +147,99 @@ export async function getApplicantByEmail(email: string) {
   });
 }
 
+/**
+ * Entfernt den zu einem Mitarbeiter gehörenden Onboarding-Datenbestand:
+ * - Checklisten-Instanzen, bei denen der Mitarbeiter der/die Betroffene ist
+ *   (inkl. zugehöriger Completions via Cascade)
+ * - den Mitarbeiter selbst (Onboarding-Tasks, Mitarbeiter-Dokumente,
+ *   Equipment-/Trainings-Zuordnungen etc. werden per DB-Cascade entfernt)
+ *
+ * Der zugehörige User-Account (Login) bleibt bestehen und wird bei einer
+ * erneuten Einstellung über die E-Mail wiederverwendet.
+ */
+async function purgeEmployeeOnboarding(employeeId: string): Promise<void> {
+  const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+  if (!employee) {
+    return;
+  }
+
+  // Checklisten-Instanzen des Mitarbeiters (als betroffener User) löschen
+  if (employee.userId) {
+    await prisma.checklistInstance.deleteMany({ where: { userId: employee.userId } });
+  }
+
+  // Mitarbeiter löschen – abhängige Datensätze kaskadieren bzw. werden auf NULL gesetzt
+  await prisma.employee.delete({ where: { id: employeeId } });
+}
+
+/**
+ * Setzt einen Bewerber zurück, sodass ein fehlerhafter Onboarding-Prozess neu
+ * gestartet werden kann. Der Bewerber bleibt erhalten, aber:
+ * - der verknüpfte Mitarbeiter inkl. Onboarding-Daten wird entfernt
+ * - die Verknüpfung wird gelöst (employeeId = null)
+ * - der Status wird auf einen vor-Einstellungs-Status zurückgesetzt
+ *   (Standard: IN_REVIEW)
+ */
+export async function resetApplicant(
+  applicantId: string,
+  options?: { status?: ApplicantStatus }
+) {
+  const applicant = await prisma.applicant.findUnique({
+    where: { id: applicantId },
+  });
+  if (!applicant) {
+    throw new Error('Bewerber nicht gefunden');
+  }
+
+  // Verknüpften Mitarbeiter + Onboarding-Daten entfernen
+  if (applicant.employeeId) {
+    // Zuerst die Verknüpfung lösen, damit das Löschen des Mitarbeiters nicht
+    // durch den Fremdschlüssel des Bewerbers blockiert wird
+    await prisma.applicant.update({
+      where: { id: applicantId },
+      data: { employeeId: null },
+    });
+    await purgeEmployeeOnboarding(applicant.employeeId);
+  }
+
+  // Status zurücksetzen (ohne Status-Mail an den Bewerber)
+  return prisma.applicant.update({
+    where: { id: applicantId },
+    data: { status: options?.status ?? ApplicantStatus.IN_REVIEW },
+  });
+}
+
+/**
+ * Löscht einen Bewerber vollständig. Dokumente, Interviews und Notizen werden
+ * per DB-Cascade entfernt. Optional wird auch der verknüpfte Mitarbeiter inkl.
+ * Onboarding-Daten gelöscht (z. B. um einen fehlerhaften Prozess komplett zu
+ * bereinigen).
+ */
+export async function deleteApplicant(
+  applicantId: string,
+  options?: { deleteEmployee?: boolean }
+) {
+  const applicant = await prisma.applicant.findUnique({
+    where: { id: applicantId },
+  });
+  if (!applicant) {
+    throw new Error('Bewerber nicht gefunden');
+  }
+
+  const employeeId = applicant.employeeId;
+
+  // Bewerber löschen (Dokumente/Interviews/Notizen kaskadieren). Dadurch wird
+  // auch der Fremdschlüssel auf den Mitarbeiter aufgelöst.
+  await prisma.applicant.delete({ where: { id: applicantId } });
+
+  // Optional den verknüpften Mitarbeiter inkl. Onboarding-Daten entfernen
+  if (options?.deleteEmployee && employeeId) {
+    await purgeEmployeeOnboarding(employeeId);
+  }
+
+  return { id: applicantId, deletedEmployee: Boolean(options?.deleteEmployee && employeeId) };
+}
+
 export async function updateApplicantStatus(applicantId: string, status: ApplicantStatus) {
   const applicant = await prisma.applicant.update({
     where: { id: applicantId },

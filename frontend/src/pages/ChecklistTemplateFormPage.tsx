@@ -8,20 +8,24 @@ import {
   Button,
   MenuItem,
   IconButton,
-  Card,
-  CardContent,
   Grid,
   FormControlLabel,
   Checkbox,
   Divider,
   Autocomplete,
   Chip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   Save as SaveIcon,
   ArrowBack as ArrowBackIcon,
+  AttachFile as AttachFileIcon,
+  Download as DownloadIcon,
+  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,8 +47,16 @@ interface User {
   email: string;
 }
 
+interface ItemAttachment {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+}
+
 interface TemplateItemForm extends Partial<CreateTemplateItemDto> {
   tempId: string;
+  attachments?: ItemAttachment[];
 }
 
 const ChecklistTemplateFormPage: React.FC = () => {
@@ -66,6 +78,25 @@ const ChecklistTemplateFormPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  // Aufklapp-Status je Punkt (für die Übersicht bei vielen Punkten)
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
+
+  const itemTypeLabels: Record<string, string> = {
+    [ChecklistItemType.CHECKBOX]: 'Checkbox',
+    [ChecklistItemType.TEXT]: 'Text',
+    [ChecklistItemType.DATE]: 'Datum',
+    [ChecklistItemType.NUMBER]: 'Zahl',
+    [ChecklistItemType.SELECT]: 'Auswahl',
+    [ChecklistItemType.FILE_UPLOAD]: 'Datei-Upload',
+    [ChecklistItemType.SIGNATURE]: 'Unterschrift',
+    [ChecklistItemType.PHOTO]: 'Foto',
+  };
+
+  const toggleExpanded = (tempId: string) =>
+    setExpandedItems((prev) => ({ ...prev, [tempId]: !prev[tempId] }));
+
+  const setAllExpanded = (value: boolean) =>
+    setExpandedItems(Object.fromEntries(items.map((item) => [item.tempId, value])));
 
   useEffect(() => {
     api.get('/users').then((res) => setUsers(res.data)).catch(() => {});
@@ -102,6 +133,7 @@ const ChecklistTemplateFormPage: React.FC = () => {
             dueAfterDays: item.dueAfterDays || undefined,
             externalLink: item.externalLink || '',
             notifyUserIds: item.notifyUsers?.map((u) => u.id) || [],
+            attachments: (item as any).attachments || [],
           }))
         );
       }
@@ -130,6 +162,8 @@ const ChecklistTemplateFormPage: React.FC = () => {
       notifyUserIds: [],
     };
     setItems([...items, newItem]);
+    // Neuen Punkt direkt aufgeklappt anzeigen
+    setExpandedItems((prev) => ({ ...prev, [newItem.tempId]: true }));
   };
 
   const updateItem = (tempId: string, field: keyof TemplateItemForm, value: any) => {
@@ -140,6 +174,70 @@ const ChecklistTemplateFormPage: React.FC = () => {
 
   const removeItem = (tempId: string) => {
     setItems((prev) => prev.filter((item) => item.tempId !== tempId));
+  };
+
+  // ===== Anhänge je Checklisten-Punkt =====
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleUploadAttachments = async (itemId: string, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const formData = new FormData();
+    Array.from(files).forEach((file) => formData.append('files', file));
+    try {
+      const res = await api.post(`/checklists/items/${itemId}/attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const created: ItemAttachment[] = res.data;
+      setItems((prev) =>
+        prev.map((item) =>
+          item.tempId === itemId
+            ? { ...item, attachments: [...(item.attachments || []), ...created] }
+            : item
+        )
+      );
+    } catch (error: any) {
+      console.error('Error uploading attachments:', error);
+      alert(error.response?.data?.error || 'Fehler beim Hochladen der Anhänge');
+    }
+  };
+
+  const handleDeleteAttachment = async (itemId: string, attachmentId: string) => {
+    try {
+      await api.delete(`/checklists/attachments/${attachmentId}`);
+      setItems((prev) =>
+        prev.map((item) =>
+          item.tempId === itemId
+            ? { ...item, attachments: (item.attachments || []).filter((a) => a.id !== attachmentId) }
+            : item
+        )
+      );
+    } catch (error: any) {
+      console.error('Error deleting attachment:', error);
+      alert(error.response?.data?.error || 'Fehler beim Löschen des Anhangs');
+    }
+  };
+
+  const handleDownloadAttachment = async (attachmentId: string, fileName: string) => {
+    try {
+      const response = await api.get(`/checklists/attachments/${attachmentId}/download`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading attachment:', error);
+      alert('Fehler beim Herunterladen des Anhangs');
+    }
   };
 
   const moveItem = (index: number, direction: 'up' | 'down') => {
@@ -324,15 +422,27 @@ const ChecklistTemplateFormPage: React.FC = () => {
           </Paper>
 
           <Paper sx={{ p: 3, mb: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="h6">Checklisten-Punkte</Typography>
-              <Button
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={addItem}
-              >
-                Punkt hinzufügen
-              </Button>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+              <Typography variant="h6">Checklisten-Punkte ({items.length})</Typography>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {items.length > 1 && (
+                  <>
+                    <Button size="small" onClick={() => setAllExpanded(true)}>
+                      Alle aufklappen
+                    </Button>
+                    <Button size="small" onClick={() => setAllExpanded(false)}>
+                      Alle einklappen
+                    </Button>
+                  </>
+                )}
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={addItem}
+                >
+                  Punkt hinzufügen
+                </Button>
+              </Box>
             </Box>
 
             {items.length === 0 ? (
@@ -343,10 +453,46 @@ const ChecklistTemplateFormPage: React.FC = () => {
                 </Typography>
               </Box>
             ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {items.map((item, index) => (
-                  <Card key={item.tempId} variant="outlined">
-                    <CardContent>
+                  <Accordion
+                    key={item.tempId}
+                    variant="outlined"
+                    expanded={!!expandedItems[item.tempId]}
+                    onChange={() => toggleExpanded(item.tempId)}
+                  >
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', pr: 1 }}>
+                        <Typography sx={{ fontWeight: 600 }}>
+                          {index + 1}. {item.title?.trim() || 'Unbenannter Punkt'}
+                        </Typography>
+                        <Chip size="small" label={itemTypeLabels[item.itemType as string] || item.itemType} />
+                        {item.required && <Chip size="small" color="warning" label="Pflicht" />}
+                        {(item.attachments?.length || 0) > 0 && (
+                          <Chip
+                            size="small"
+                            variant="outlined"
+                            icon={<AttachFileIcon />}
+                            label={item.attachments!.length}
+                          />
+                        )}
+                        <Box sx={{ flex: 1 }} />
+                        <IconButton
+                          component="div"
+                          role="button"
+                          size="small"
+                          color="error"
+                          title="Punkt entfernen"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeItem(item.tempId);
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </AccordionSummary>
+                    <AccordionDetails>
                       <Grid container spacing={2}>
                         <Grid item xs={12} md={6}>
                           <TextField
@@ -454,6 +600,78 @@ const ChecklistTemplateFormPage: React.FC = () => {
                           />
                         </Grid>
                         <Grid item xs={12}>
+                          <Divider sx={{ mb: 1 }} />
+                          <Typography variant="subtitle2" gutterBottom>
+                            Anhänge
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                            Diese Dateien werden mit der Kalendernachricht an alle Empfänger verschickt.
+                          </Typography>
+                          {item.tempId.startsWith('temp-') ? (
+                            <Typography variant="body2" color="text.secondary">
+                              Bitte zuerst die Vorlage speichern, danach können Anhänge zu diesem Punkt
+                              hinzugefügt werden.
+                            </Typography>
+                          ) : (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              {(item.attachments || []).length > 0 ? (
+                                (item.attachments || []).map((att) => (
+                                  <Box
+                                    key={att.id}
+                                    sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                                  >
+                                    <AttachFileIcon fontSize="small" color="action" />
+                                    <Typography variant="body2" sx={{ flex: 1 }}>
+                                      {att.fileName}{' '}
+                                      <Typography component="span" variant="caption" color="text.secondary">
+                                        ({formatFileSize(att.fileSize)})
+                                      </Typography>
+                                    </Typography>
+                                    <IconButton
+                                      size="small"
+                                      onClick={() => handleDownloadAttachment(att.id, att.fileName)}
+                                      title="Herunterladen"
+                                    >
+                                      <DownloadIcon fontSize="small" />
+                                    </IconButton>
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      onClick={() => handleDeleteAttachment(item.tempId, att.id)}
+                                      title="Entfernen"
+                                    >
+                                      <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                  </Box>
+                                ))
+                              ) : (
+                                <Typography variant="body2" color="text.secondary">
+                                  Noch keine Anhänge.
+                                </Typography>
+                              )}
+                              <Box>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  component="label"
+                                  startIcon={<AttachFileIcon />}
+                                >
+                                  Dateien hinzufügen
+                                  <input
+                                    type="file"
+                                    hidden
+                                    multiple
+                                    onChange={(e) => {
+                                      handleUploadAttachments(item.tempId, e.target.files);
+                                      e.target.value = '';
+                                    }}
+                                  />
+                                </Button>
+                              </Box>
+                            </Box>
+                          )}
+                        </Grid>
+                        <Grid item xs={12}>
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button
                               size="small"
@@ -469,18 +687,11 @@ const ChecklistTemplateFormPage: React.FC = () => {
                             >
                               ↓ Nach unten
                             </Button>
-                            <Box sx={{ flex: 1 }} />
-                            <IconButton
-                              color="error"
-                              onClick={() => removeItem(item.tempId)}
-                            >
-                              <DeleteIcon />
-                            </IconButton>
                           </Box>
                         </Grid>
                       </Grid>
-                    </CardContent>
-                  </Card>
+                    </AccordionDetails>
+                  </Accordion>
                 ))}
               </Box>
             )}

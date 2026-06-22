@@ -177,6 +177,7 @@ model User {
   createdChecklistTemplates ChecklistTemplate[] @relation("CreatedTemplates")
   userChecklists ChecklistInstance[] @relation("UserChecklists")
   assignedChecklists ChecklistInstance[] @relation("AssignedChecklists")
+  responsibleChecklists ChecklistInstance[] @relation("ResponsibleChecklists")
   checklistCompletions ChecklistItemCompletion[]
   checklistItemNotifications ChecklistItem[] @relation("ChecklistItemNotifyUsers")
   
@@ -221,7 +222,8 @@ model UserGroup {
   moduleAccess ModuleAccess[]
   documentNodePermissions DocumentNodeGroupPermission[]
   visibleNewsSources NewsSource[] @relation("NewsSourceVisibility")
-  
+  visibleContactGroups ContactGroup[] @relation("ContactGroupVisibility")
+
   @@map("user_groups")
 }
 
@@ -1564,10 +1566,61 @@ model DeviceAssignment {
   
   device        Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   assignedUser  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([deviceId])
   @@index([userId])
   @@map("device_assignments")
+}
+
+// Kontaktgruppe: bündelt Kontakte und steuert deren Sichtbarkeit über Benutzergruppen.
+// Kontakte einer Gruppe sind nur für Benutzer sichtbar, die Mitglied einer der
+// verknüpften Benutzergruppen (visibleToGroups) sind. Ohne verknüpfte Benutzergruppe
+// ist die Gruppe für alle sichtbar.
+model ContactGroup {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  color       String?  // Hex-Farbe für die UI-Darstellung
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contacts        Contact[]
+  visibleToGroups UserGroup[] @relation("ContactGroupVisibility")
+
+  @@map("contact_groups")
+}
+
+model Contact {
+  id             String   @id @default(uuid())
+  firstName      String
+  lastName       String
+  company        String?
+  position       String?
+  email          String?
+  phone          String?
+  mobile         String?
+  street         String?
+  zipCode        String?
+  city           String?
+  country        String?
+  category       String?  // z.B. "Kunde", "Lieferant", "Partner", "Intern"
+  notes          String?
+  isActive       Boolean  @default(true)
+  contactGroupId String?
+  // Herkunft: gesetzt, wenn der Kontakt aus einem Mitarbeiter synchronisiert wurde.
+  // Ermöglicht Update statt Duplikat beim erneuten Sync (Mitarbeiter -> Kontakt, eine Richtung).
+  employeeId     String?  @unique
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  contactGroup   ContactGroup? @relation(fields: [contactGroupId], references: [id], onDelete: SetNull)
+  employee       Employee?     @relation("EmployeeContactSync", fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@index([contactGroupId])
+  @@index([lastName])
+  @@map("contacts")
 }
 
 model TravelExpense {
@@ -2973,7 +3026,10 @@ model Employee {
   // Project Task Relations
   assignedTasks       ProjectTask[]     @relation("TaskAssignee")
   createdTasks        ProjectTask[]     @relation("TaskCreator")
-  
+
+  // Kontakt-Synchronisation (Mitarbeiter -> Kontakt)
+  syncedContact       Contact?          @relation("EmployeeContactSync")
+
   @@index([email])
   @@index([userId])
   @@index([supervisorId])
@@ -3362,12 +3418,33 @@ model ChecklistItem {
   
   // Für konkrete Instanzen
   completions       ChecklistItemCompletion[]
-  
+
+  // Datei-Anhänge des Checklisten-Punkts (werden mit der Kalendernachricht versendet)
+  attachments       ChecklistItemAttachment[]
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  
+
   @@index([templateId, order])
   @@map("checklist_items")
+}
+
+// Datei-Anhang eines Checklisten-Punkts (Vorlage)
+model ChecklistItemAttachment {
+  id           String        @id @default(cuid())
+  itemId       String
+  item         ChecklistItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  fileName     String
+  filePath     String
+  fileSize     Int
+  mimeType     String
+  uploadedById String?
+
+  createdAt    DateTime      @default(now())
+
+  @@index([itemId])
+  @@map("checklist_item_attachments")
 }
 
 // Konkrete Checklist-Instanz (für einen Mitarbeiter)
@@ -3392,9 +3469,12 @@ model ChecklistInstance {
   progressPercent   Int      @default(0)
   
   // Zuweisungen
-  assignedToId      String?  // HR-Person die überwacht
+  assignedToId      String?  // Hauptverantwortliche/r (HR-Person die überwacht)
   assignedTo        User?    @relation("AssignedChecklists", fields: [assignedToId], references: [id])
-  
+
+  // Weitere Verantwortliche (zusätzlich zum Hauptverantwortlichen)
+  responsibles      User[]   @relation("ResponsibleChecklists")
+
   // Kontext
   notes             String?  @db.Text
   projectId         String?  // Falls projekt-bezogen

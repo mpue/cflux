@@ -29,15 +29,22 @@ import {
   ListItemSecondaryAction,
   Divider,
 } from '@mui/material';
-import { 
-  Visibility, 
-  CheckCircle, 
-  Cancel, 
+import {
+  Visibility,
+  CheckCircle,
+  Cancel,
   Email,
   Description,
   Event,
   GetApp,
+  PersonAdd,
+  RestartAlt,
+  Delete,
 } from '@mui/icons-material';
+import {
+  FormControlLabel,
+  Checkbox,
+} from '@mui/material';
 
 interface ApplicantDocument {
   id: string;
@@ -81,6 +88,17 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [documentsDialogOpen, setDocumentsDialogOpen] = useState(false);
   const [applicantDocuments, setApplicantDocuments] = useState<ApplicantDocument[]>([]);
+  const [hireDialogOpen, setHireDialogOpen] = useState(false);
+  const [hireSubmitting, setHireSubmitting] = useState(false);
+  const [hireForm, setHireForm] = useState({
+    startDate: new Date().toISOString().slice(0, 10),
+    department: '',
+    probationEndDate: '',
+  });
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteEmployeeToo, setDeleteEmployeeToo] = useState(false);
+  const [actionSubmitting, setActionSubmitting] = useState(false);
 
   useEffect(() => {
     loadApplicants();
@@ -153,6 +171,90 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
   const handleViewDetails = (applicant: Applicant) => {
     setSelectedApplicant(applicant);
     setDetailDialogOpen(true);
+  };
+
+  const handleOpenHire = (applicant: Applicant) => {
+    setSelectedApplicant(applicant);
+    setHireForm({
+      startDate: new Date().toISOString().slice(0, 10),
+      department: '',
+      probationEndDate: '',
+    });
+    setDetailDialogOpen(false);
+    setHireDialogOpen(true);
+  };
+
+  const handleHireSubmit = async () => {
+    if (!selectedApplicant) return;
+    if (!hireForm.startDate) {
+      setError('Bitte ein Eintrittsdatum angeben');
+      return;
+    }
+    try {
+      setHireSubmitting(true);
+      setError(null);
+      await api.post('/onboarding/hire', {
+        applicantId: selectedApplicant.id,
+        startDate: hireForm.startDate,
+        department: hireForm.department || undefined,
+        probationEndDate: hireForm.probationEndDate || undefined,
+      });
+      setHireDialogOpen(false);
+      loadApplicants();
+      if (onUpdate) onUpdate();
+    } catch (err: any) {
+      console.error('Error hiring applicant:', err);
+      setError(err?.response?.data?.details || 'Fehler beim Einstellen des Bewerbers');
+    } finally {
+      setHireSubmitting(false);
+    }
+  };
+
+  const handleOpenReset = (applicant: Applicant) => {
+    setSelectedApplicant(applicant);
+    setResetDialogOpen(true);
+  };
+
+  const handleResetSubmit = async () => {
+    if (!selectedApplicant) return;
+    try {
+      setActionSubmitting(true);
+      setError(null);
+      await api.post(`/onboarding/applicants/${selectedApplicant.id}/reset`, {});
+      setResetDialogOpen(false);
+      loadApplicants();
+      if (onUpdate) onUpdate();
+    } catch (err: any) {
+      console.error('Error resetting applicant:', err);
+      setError(err?.response?.data?.details || 'Fehler beim Zurücksetzen des Bewerbers');
+    } finally {
+      setActionSubmitting(false);
+    }
+  };
+
+  const handleOpenDelete = (applicant: Applicant) => {
+    setSelectedApplicant(applicant);
+    setDeleteEmployeeToo(applicant.status === 'HIRED');
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteSubmit = async () => {
+    if (!selectedApplicant) return;
+    try {
+      setActionSubmitting(true);
+      setError(null);
+      await api.delete(`/onboarding/applicants/${selectedApplicant.id}`, {
+        params: deleteEmployeeToo ? { deleteEmployee: true } : undefined,
+      });
+      setDeleteDialogOpen(false);
+      loadApplicants();
+      if (onUpdate) onUpdate();
+    } catch (err: any) {
+      console.error('Error deleting applicant:', err);
+      setError(err?.response?.data?.details || 'Fehler beim Löschen des Bewerbers');
+    } finally {
+      setActionSubmitting(false);
+    }
   };
 
   const handleViewDocuments = async (applicant: Applicant) => {
@@ -382,6 +484,14 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
                           </IconButton>
                           <IconButton
                             size="small"
+                            color="secondary"
+                            onClick={() => handleOpenHire(applicant)}
+                            title="Einstellen"
+                          >
+                            <PersonAdd fontSize="small" />
+                          </IconButton>
+                          <IconButton
+                            size="small"
                             color="error"
                             onClick={() => handleStatusChange(applicant.id, 'REJECTED')}
                             title="Ablehnen"
@@ -390,6 +500,24 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
                           </IconButton>
                         </>
                       )}
+                      {applicant.status === 'HIRED' && (
+                        <IconButton
+                          size="small"
+                          color="warning"
+                          onClick={() => handleOpenReset(applicant)}
+                          title="Onboarding zurücksetzen (neu starten)"
+                        >
+                          <RestartAlt fontSize="small" />
+                        </IconButton>
+                      )}
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleOpenDelete(applicant)}
+                        title="Bewerber löschen"
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -467,14 +595,12 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
                   >
                     Angebot machen
                   </Button>
-                  <Button 
-                    size="small" 
-                    variant="outlined"
+                  <Button
+                    size="small"
+                    variant="contained"
                     color="success"
-                    onClick={() => {
-                      handleStatusChange(selectedApplicant.id, 'HIRED');
-                      setDetailDialogOpen(false);
-                    }}
+                    startIcon={<PersonAdd />}
+                    onClick={() => handleOpenHire(selectedApplicant)}
                   >
                     Einstellen
                   </Button>
@@ -499,6 +625,66 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
         </DialogActions>
       </Dialog>
 
+      {/* Hire Dialog */}
+      <Dialog
+        open={hireDialogOpen}
+        onClose={() => !hireSubmitting && setHireDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Bewerber einstellen: {selectedApplicant?.firstName} {selectedApplicant?.lastName}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Der Bewerber wird in einen Mitarbeiter umgewandelt. Dabei werden ein
+            Mitarbeiter-Profil und ein Benutzerkonto (Login) erstellt, der Bewerberstatus
+            auf „Eingestellt" gesetzt und die Standard-Onboarding-Aufgaben angelegt.
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Eintrittsdatum"
+              type="date"
+              required
+              value={hireForm.startDate}
+              onChange={(e) => setHireForm({ ...hireForm, startDate: e.target.value })}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+            />
+            <TextField
+              label="Abteilung"
+              value={hireForm.department}
+              onChange={(e) => setHireForm({ ...hireForm, department: e.target.value })}
+              placeholder="optional"
+              fullWidth
+            />
+            <TextField
+              label="Ende der Probezeit"
+              type="date"
+              value={hireForm.probationEndDate}
+              onChange={(e) => setHireForm({ ...hireForm, probationEndDate: e.target.value })}
+              InputLabelProps={{ shrink: true }}
+              helperText="optional"
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setHireDialogOpen(false)} disabled={hireSubmitting}>
+            Abbrechen
+          </Button>
+          <Button
+            onClick={handleHireSubmit}
+            variant="contained"
+            color="success"
+            disabled={hireSubmitting}
+            startIcon={<PersonAdd />}
+          >
+            {hireSubmitting ? 'Wird eingestellt…' : 'Einstellen'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Verify Email Dialog */}
       <Dialog open={verifyDialogOpen} onClose={() => setVerifyDialogOpen(false)}>
         <DialogTitle>E-Mail verifizieren</DialogTitle>
@@ -518,9 +704,88 @@ const ApplicantsTab: React.FC<ApplicantsTabProps> = ({ onUpdate }) => {
         </DialogActions>
       </Dialog>
 
+      {/* Reset Dialog */}
+      <Dialog
+        open={resetDialogOpen}
+        onClose={() => !actionSubmitting && setResetDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Onboarding zurücksetzen: {selectedApplicant?.firstName} {selectedApplicant?.lastName}
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Der verknüpfte Mitarbeiter inkl. laufendem Onboarding (Aufgaben und
+            Checklisten-Instanzen) wird entfernt. Der Bewerber bleibt erhalten und der
+            Status wird auf „In Prüfung" zurückgesetzt, sodass die Einstellung neu
+            gestartet werden kann.
+          </Alert>
+          <Typography variant="body2" color="text.secondary">
+            Das Benutzerkonto (Login) bleibt bestehen und wird bei einer erneuten
+            Einstellung wiederverwendet.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResetDialogOpen(false)} disabled={actionSubmitting}>
+            Abbrechen
+          </Button>
+          <Button
+            onClick={handleResetSubmit}
+            variant="contained"
+            color="warning"
+            disabled={actionSubmitting}
+            startIcon={<RestartAlt />}
+          >
+            {actionSubmitting ? 'Wird zurückgesetzt…' : 'Zurücksetzen'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => !actionSubmitting && setDeleteDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Bewerber löschen: {selectedApplicant?.firstName} {selectedApplicant?.lastName}
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            Der Bewerber wird endgültig gelöscht – inkl. Dokumenten, Interviews und
+            Notizen. Diese Aktion kann nicht rückgängig gemacht werden.
+          </Alert>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={deleteEmployeeToo}
+                onChange={(e) => setDeleteEmployeeToo(e.target.checked)}
+              />
+            }
+            label="Auch den verknüpften Mitarbeiter inkl. Onboarding-Daten löschen"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={actionSubmitting}>
+            Abbrechen
+          </Button>
+          <Button
+            onClick={handleDeleteSubmit}
+            variant="contained"
+            color="error"
+            disabled={actionSubmitting}
+            startIcon={<Delete />}
+          >
+            {actionSubmitting ? 'Wird gelöscht…' : 'Löschen'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Documents Dialog */}
-      <Dialog 
-        open={documentsDialogOpen} 
+      <Dialog
+        open={documentsDialogOpen}
         onClose={() => setDocumentsDialogOpen(false)}
         maxWidth="md"
         fullWidth

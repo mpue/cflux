@@ -331,3 +331,24 @@ export async function getOnboardingDashboard(req: Request, res: Response) {
     res.status(500).json({ error: 'Failed to fetch dashboard', details: error.message });
   }
 }
+
+// ==================== ONBOARDING WIZARD ====================
+
+export async function startOnboarding(req: Request, res: Response) {
+  try {
+    const result = await onboardingService.startOnboarding({
+      employeeId: req.body.employeeId,
+      newEmployee: req.body.newEmployee,
+      tutorEmployeeId: req.body.tutorEmployeeId,
+      responsibleEmployeeIds: req.body.responsibleEmployeeIds,
+      templateIds: req.body.templateIds,
+      startDate: req.body.startDate ? new Date(req.body.startDate) : undefined,
+      targetEndDate: req.body.targetEndDate ? new Date(req.body.targetEndDate) : undefined,
+      notes: req.body.notes,
+    });
+    res.status(201).json(result);
+  } catch (error: any) {
+    console.error('Error starting onboarding:', error);
+    res.status(400).json({ error: 'Failed to start onboarding', details: error.message });
+  }
+}

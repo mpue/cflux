@@ -337,6 +337,14 @@ async function seedModules() {
       route: '/calendar',
       sortOrder: 39,
     },
+    {
+      name: 'Kontakte',
+      key: 'contacts',
+      description: 'Kontaktverwaltung mit Kontaktgruppen und gruppenbasierter Sichtbarkeit',
+      icon: 'contacts',
+      route: '/contacts',
+      sortOrder: 40,
+    },
   ];
 
   for (const module of modules) {

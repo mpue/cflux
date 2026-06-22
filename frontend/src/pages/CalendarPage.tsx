@@ -219,8 +219,28 @@ const CalendarPage: React.FC = () => {
   // Users for attendee picker
   const [allUsers, setAllUsers] = useState<UserOption[]>([]);
 
-  // Drag state
+  // Drag state (month view, HTML5 drag)
   const dragEventRef = useRef<CalendarEvent | null>(null);
+
+  // Pointer drag/resize state (week view)
+  const [dragState, setDragState] = useState<{
+    id: string;
+    mode: 'move' | 'resize';
+    startMin: number;
+    endMin: number;
+    dayIndex: number;
+  } | null>(null);
+  const dragCtx = useRef<{
+    id: string;
+    mode: 'move' | 'resize';
+    durationMin: number;
+    grabOffsetMin: number;
+    startMin: number;
+    endMin: number;
+    dayIndex: number;
+    moved: boolean;
+  } | null>(null);
+  const suppressClickRef = useRef(false);
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -434,6 +454,117 @@ const CalendarPage: React.FC = () => {
     }
   }
 
+  // ── Week-view pointer move/resize ───────────────────────────────────────────
+  // Geometry: 1 hour = 60px in the week grid, so 1px = 1 minute. Events snap to
+  // 15-minute steps. Dragging the body moves the event (changing day + time),
+  // dragging the bottom handle resizes it (changing the end time).
+
+  const SNAP_MIN = 15;
+
+  function snapMin(min: number) {
+    return Math.round(min / SNAP_MIN) * SNAP_MIN;
+  }
+
+  function fmtMin(m: number) {
+    return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  }
+
+  // Resolve the day column under the pointer and the minutes-from-midnight there.
+  function colMinutesAt(clientX: number, clientY: number) {
+    const el = document.elementFromPoint(clientX, clientY);
+    const col = el?.closest('[data-day-col]') as HTMLElement | null;
+    if (!col) return null;
+    const rect = col.getBoundingClientRect();
+    return { min: clientY - rect.top, dayIndex: Number(col.dataset.dayCol) };
+  }
+
+  function onWeekEventPointerDown(
+    e: React.MouseEvent,
+    event: CalendarEvent,
+    mode: 'move' | 'resize',
+  ) {
+    if (e.button !== 0) return;
+    if (event.createdById !== user?.id) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const start = new Date(event.startDate);
+    const end = new Date(event.endDate);
+    const startMin = start.getHours() * 60 + start.getMinutes();
+    const endMin = end.getHours() * 60 + end.getMinutes();
+    const durationMin = Math.max(endMin - startMin, SNAP_MIN);
+
+    const hit = colMinutesAt(e.clientX, e.clientY);
+    dragCtx.current = {
+      id: event.id,
+      mode,
+      durationMin,
+      grabOffsetMin: hit ? hit.min - startMin : 0,
+      startMin,
+      endMin,
+      dayIndex: hit ? hit.dayIndex : 0,
+      moved: false,
+    };
+
+    // The current week is fixed for the duration of a drag — capture it now.
+    const weekDays = getWeekDays(currentDate);
+
+    const onMove = (me: MouseEvent) => {
+      const ctx = dragCtx.current;
+      if (!ctx) return;
+      const h = colMinutesAt(me.clientX, me.clientY);
+      if (!h) return;
+      ctx.moved = true;
+      if (ctx.mode === 'move') {
+        let ns = snapMin(h.min - ctx.grabOffsetMin);
+        ns = Math.max(0, Math.min(ns, 1440 - ctx.durationMin));
+        ctx.startMin = ns;
+        ctx.endMin = ns + ctx.durationMin;
+        ctx.dayIndex = h.dayIndex;
+      } else {
+        let ne = snapMin(h.min);
+        ne = Math.max(ctx.startMin + SNAP_MIN, Math.min(ne, 1440));
+        ctx.endMin = ne;
+      }
+      setDragState({
+        id: ctx.id,
+        mode: ctx.mode,
+        startMin: ctx.startMin,
+        endMin: ctx.endMin,
+        dayIndex: ctx.dayIndex,
+      });
+    };
+
+    const onUp = async () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      const ctx = dragCtx.current;
+      dragCtx.current = null;
+      setDragState(null);
+      if (!ctx || !ctx.moved) return;
+      suppressClickRef.current = true; // swallow the click that follows mouseup
+
+      const targetDay = weekDays[ctx.dayIndex] ?? weekDays[0];
+      const newStart = new Date(targetDay);
+      newStart.setHours(Math.floor(ctx.startMin / 60), ctx.startMin % 60, 0, 0);
+      const newEnd = new Date(targetDay);
+      newEnd.setHours(Math.floor(ctx.endMin / 60), ctx.endMin % 60, 0, 0);
+
+      try {
+        await api.put(`/calendar/${ctx.id}`, {
+          startDate: newStart.toISOString(),
+          endDate: newEnd.toISOString(),
+        });
+        fetchEvents();
+      } catch {
+        alert('Fehler beim Verschieben');
+      }
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
   // ── Event chip ─────────────────────────────────────────────────────────────
 
   function EventChip({ event, compact = false }: { event: CalendarEvent; compact?: boolean }) {
@@ -531,13 +662,62 @@ const CalendarPage: React.FC = () => {
             ))}
           </div>
           {days.map((day, di) => {
-            const dayEvents = getEventsForDay(events, day).filter((e) => !e.allDay);
+            const dayEvents = getEventsForDay(events, day).filter(
+              (e) => !e.allDay && e.id !== dragState?.id,
+            );
+            // The event being dragged is rendered in its live target column.
+            const draggedEvent =
+              dragState && dragState.dayIndex === di
+                ? events.find((e) => e.id === dragState.id) ?? null
+                : null;
+
+            const renderEvent = (
+              ev: CalendarEvent,
+              startMin: number,
+              endMin: number,
+              dragging: boolean,
+            ) => {
+              const editable = ev.createdById === user?.id;
+              return (
+                <div
+                  key={ev.id}
+                  id={`cal-event-${ev.id}`}
+                  className={`cal-week-event${dragging ? ' dragging' : ''}${
+                    editable ? ' editable' : ''
+                  }`}
+                  style={{ top: startMin, height: Math.max(endMin - startMin, 22), backgroundColor: ev.color }}
+                  onMouseDown={(e) => onWeekEventPointerDown(e, ev, 'move')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (suppressClickRef.current) {
+                      suppressClickRef.current = false;
+                      return;
+                    }
+                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    setDetailPos({ x: rect.right + 8, y: rect.top });
+                    setDetailEvent(ev);
+                  }}
+                  onContextMenu={(e) => openContextMenu(e, 'event', undefined, ev)}
+                >
+                  <div className="cal-week-event-title">{ev.title}</div>
+                  <div className="cal-week-event-time">
+                    {fmtMin(startMin)} – {fmtMin(endMin)}
+                  </div>
+                  {editable && (
+                    <div
+                      className="cal-week-event-resize"
+                      onMouseDown={(e) => onWeekEventPointerDown(e, ev, 'resize')}
+                    />
+                  )}
+                </div>
+              );
+            };
+
             return (
               <div
                 key={di}
+                data-day-col={di}
                 className={`cal-week-day-col${isSameDay(day, today) ? ' today-col' : ''}`}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => onDropDay(e, day)}
               >
                 {hours.map((h) => (
                   <div
@@ -553,34 +733,15 @@ const CalendarPage: React.FC = () => {
                 {dayEvents.map((ev) => {
                   const start = new Date(ev.startDate);
                   const end = new Date(ev.endDate);
-                  const top = (start.getHours() + start.getMinutes() / 60) * 60;
-                  const height = Math.max(
-                    ((end.getTime() - start.getTime()) / 3600000) * 60,
-                    22,
-                  );
-                  return (
-                    <div
-                      key={ev.id}
-                      id={`cal-event-${ev.id}`}
-                      className="cal-week-event"
-                      style={{ top, height, backgroundColor: ev.color }}
-                      draggable={ev.createdById === user?.id}
-                      onDragStart={(e) => onDragStart(e, ev)}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                        setDetailPos({ x: rect.right + 8, y: rect.top });
-                        setDetailEvent(ev);
-                      }}
-                      onContextMenu={(e) => openContextMenu(e, 'event', undefined, ev)}
-                    >
-                      <div className="cal-week-event-title">{ev.title}</div>
-                      <div className="cal-week-event-time">
-                        {toLocalTimeStr(start)} – {toLocalTimeStr(end)}
-                      </div>
-                    </div>
+                  return renderEvent(
+                    ev,
+                    start.getHours() * 60 + start.getMinutes(),
+                    end.getHours() * 60 + end.getMinutes(),
+                    false,
                   );
                 })}
+                {draggedEvent &&
+                  renderEvent(draggedEvent, dragState!.startMin, dragState!.endMin, true)}
               </div>
             );
           })}
@@ -1111,9 +1272,9 @@ const CalendarPage: React.FC = () => {
         </div>
       </div>
 
-      <EventModal />
-      <DetailPopup />
-      <ContextMenu />
+      {EventModal()}
+      {DetailPopup()}
+      {ContextMenu()}
     </div>
     </>
   );

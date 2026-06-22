@@ -1,6 +1,29 @@
 import { ApplicantStatus, DocumentStatus, OnboardingTaskStatus, OnboardingDocumentType } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
+import checklistService from './checklist.service';
+import { emailService } from './email.service';
+
+/**
+ * Versendet die Willkommens-Mail an einen neu angelegten Mitarbeiter-Account.
+ * Fehler beim Mailversand dürfen die Einstellung/das Onboarding nicht abbrechen,
+ * daher wird hier defensiv gefangen und nur geloggt.
+ */
+async function sendWelcomeEmailSafe(
+  employee: { email: string; firstName: string; lastName: string },
+  tempPassword: string
+): Promise<void> {
+  try {
+    await emailService.sendWelcomeEmail({
+      email: employee.email,
+      firstName: employee.firstName,
+      tempPassword,
+    });
+  } catch (error) {
+    console.error('❌ Willkommens-Mail konnte nicht versendet werden:', error);
+  }
+}
 
 
 /**
@@ -31,20 +54,42 @@ export async function hireApplicant(data: {
     throw new Error('Bewerber wurde bereits eingestellt');
   }
 
-  // Create employee record
-  const employee = await prisma.employee.create({
-    data: {
-      firstName: applicant.firstName,
-      lastName: applicant.lastName,
-      email: applicant.email,
-      phone: applicant.phone,
-      position: applicant.position,
-      department: data.department,
-      supervisorId: data.supervisorId,
-      startDate: data.startDate,
-      probationEndDate: data.probationEndDate,
-    },
+  // Falls bereits ein Mitarbeiter mit dieser E-Mail existiert (z. B. über den
+  // Onboarding-Wizard angelegt oder ein vorheriger, teilweise fehlgeschlagener
+  // Einstellungsversuch), diesen wiederverwenden statt einen neuen anzulegen –
+  // sonst verletzt employee.create() den Unique-Constraint auf email.
+  const existingEmployee = await prisma.employee.findUnique({
+    where: { email: applicant.email },
   });
+
+  // Create employee record (oder bestehenden aktualisieren)
+  const employee = existingEmployee
+    ? await prisma.employee.update({
+        where: { id: existingEmployee.id },
+        data: {
+          firstName: applicant.firstName,
+          lastName: applicant.lastName,
+          phone: applicant.phone,
+          position: applicant.position,
+          department: data.department,
+          supervisorId: data.supervisorId,
+          startDate: data.startDate,
+          probationEndDate: data.probationEndDate,
+        },
+      })
+    : await prisma.employee.create({
+        data: {
+          firstName: applicant.firstName,
+          lastName: applicant.lastName,
+          email: applicant.email,
+          phone: applicant.phone,
+          position: applicant.position,
+          department: data.department,
+          supervisorId: data.supervisorId,
+          startDate: data.startDate,
+          probationEndDate: data.probationEndDate,
+        },
+      });
 
   // Update applicant status and link to employee
   await prisma.applicant.update({
@@ -55,10 +100,29 @@ export async function hireApplicant(data: {
     },
   });
 
-  // Create default onboarding tasks
-  await createDefaultOnboardingTasks(employee.id, data.startDate);
+  // Benutzerkonto (Login) für den neuen Mitarbeiter anlegen und verknüpfen
+  const userResult = await ensureUserForEmployee(employee.id);
 
-  return employee;
+  // Willkommens-Mail mit Login-Link und Zugangsdaten versenden (nur wenn ein
+  // neuer User-Account mit temporärem Passwort angelegt wurde). Das Passwort
+  // muss beim ersten Login geändert werden (requiresPasswordChange).
+  if (userResult.created && userResult.tempPassword) {
+    await sendWelcomeEmailSafe(employee, userResult.tempPassword);
+  }
+
+  // Create default onboarding tasks (nur für neu angelegte Mitarbeiter, um
+  // doppelte Aufgaben bei bereits existierenden Mitarbeitern zu vermeiden)
+  if (!existingEmployee) {
+    await createDefaultOnboardingTasks(employee.id, data.startDate);
+  }
+
+  // Mitarbeiter inkl. verknüpftem Benutzerkonto zurückgeben
+  return prisma.employee.findUnique({
+    where: { id: employee.id },
+    include: {
+      user: { select: { id: true, email: true } },
+    },
+  });
 }
 
 export async function getAllEmployees(filters?: {
@@ -521,4 +585,188 @@ export async function getOnboardingDashboard() {
   });
 
   return dashboard;
+}
+
+// ==================== ONBOARDING WIZARD (START ONBOARDING) ====================
+
+/**
+ * Stellt sicher, dass ein Mitarbeiter einen verknüpften User-Account besitzt.
+ * Checklisten-Instanzen referenzieren User (nicht Employee), daher wird bei
+ * Bedarf ein User mit zufälligem Passwort (Passwortänderung erforderlich) angelegt.
+ * Existiert bereits ein User mit derselben E-Mail, wird dieser verknüpft.
+ * Gibt die User-ID zurück.
+ */
+async function ensureUserForEmployee(
+  employeeId: string
+): Promise<{ userId: string; tempPassword?: string; created: boolean }> {
+  const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+  if (!employee) {
+    throw new Error('Mitarbeiter nicht gefunden');
+  }
+  if (employee.userId) {
+    return { userId: employee.userId, created: false };
+  }
+
+  let user = await prisma.user.findUnique({ where: { email: employee.email } });
+  let tempPassword: string | undefined;
+  let created = false;
+  if (!user) {
+    tempPassword = crypto.randomBytes(12).toString('hex');
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    user = await prisma.user.create({
+      data: {
+        email: employee.email,
+        password: hashedPassword,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        requiresPasswordChange: true,
+      },
+    });
+    created = true;
+  }
+
+  await prisma.employee.update({
+    where: { id: employee.id },
+    data: { userId: user.id },
+  });
+
+  return { userId: user.id, tempPassword, created };
+}
+
+/**
+ * Startet ein neues Onboarding für einen Mitarbeiter:
+ * - wählt einen bestehenden Mitarbeiter oder legt einen neuen an
+ * - bestimmt den Hauptverantwortlichen (Tutor) aus den Mitarbeitern
+ * - erstellt für jede gewählte Checklisten-Vorlage eine Instanz, die dem Tutor
+ *   für diesen Mitarbeiter zugewiesen wird
+ * - markiert den Mitarbeiter als "Onboarding gestartet" (aktiv, nicht abgeschlossen)
+ */
+export async function startOnboarding(data: {
+  employeeId?: string;
+  newEmployee?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    position?: string;
+    department?: string;
+  };
+  tutorEmployeeId: string;
+  responsibleEmployeeIds?: string[]; // Weitere Verantwortliche (zusätzlich zum Tutor)
+  templateIds: string[];
+  startDate?: Date;
+  targetEndDate?: Date;
+  notes?: string;
+}) {
+  if (!data.tutorEmployeeId) {
+    throw new Error('Ein Hauptverantwortlicher (Tutor) muss ausgewählt werden');
+  }
+  if (!Array.isArray(data.templateIds) || data.templateIds.length === 0) {
+    throw new Error('Mindestens eine Checkliste muss ausgewählt werden');
+  }
+
+  const startDate = data.startDate || new Date();
+
+  // 1. Mitarbeiter bestimmen oder neu anlegen
+  let employee;
+  if (data.employeeId) {
+    employee = await prisma.employee.findUnique({ where: { id: data.employeeId } });
+    if (!employee) {
+      throw new Error('Mitarbeiter nicht gefunden');
+    }
+  } else if (data.newEmployee) {
+    const { firstName, lastName, email } = data.newEmployee;
+    if (!firstName || !lastName || !email) {
+      throw new Error('Vorname, Nachname und E-Mail sind für neue Mitarbeiter erforderlich');
+    }
+    const existing = await prisma.employee.findUnique({ where: { email } });
+    if (existing) {
+      throw new Error('Ein Mitarbeiter mit dieser E-Mail existiert bereits');
+    }
+    employee = await prisma.employee.create({
+      data: {
+        firstName,
+        lastName,
+        email,
+        position: data.newEmployee.position,
+        department: data.newEmployee.department,
+        startDate,
+        isActive: true,
+        onboardingCompleted: false,
+      },
+    });
+    await createDefaultOnboardingTasks(employee.id, startDate);
+  } else {
+    throw new Error('Es muss ein Mitarbeiter ausgewählt oder ein neuer angelegt werden');
+  }
+
+  // 2. Sicherstellen, dass Mitarbeiter und Tutor je einen User-Account haben
+  const employeeUserResult = await ensureUserForEmployee(employee.id);
+  const employeeUserId = employeeUserResult.userId;
+
+  // Willkommens-Mail an den neuen Mitarbeiter (nur wenn ein neuer User-Account
+  // mit temporärem Passwort angelegt wurde)
+  if (employeeUserResult.created && employeeUserResult.tempPassword) {
+    await sendWelcomeEmailSafe(employee, employeeUserResult.tempPassword);
+  }
+
+  const tutor = await prisma.employee.findUnique({ where: { id: data.tutorEmployeeId } });
+  if (!tutor) {
+    throw new Error('Hauptverantwortlicher (Tutor) nicht gefunden');
+  }
+  const tutorUserId = (await ensureUserForEmployee(tutor.id)).userId;
+
+  // 2b. Weitere Verantwortliche bestimmen (ohne Tutor-Duplikat) und je einen
+  //     User-Account sicherstellen
+  const responsibleEmployeeIds = Array.from(
+    new Set((data.responsibleEmployeeIds || []).filter((id) => id && id !== data.tutorEmployeeId))
+  );
+  const responsibleUserIds: string[] = [];
+  for (const respEmployeeId of responsibleEmployeeIds) {
+    const resp = await prisma.employee.findUnique({ where: { id: respEmployeeId } });
+    if (!resp) {
+      throw new Error('Verantwortliche/r nicht gefunden');
+    }
+    responsibleUserIds.push((await ensureUserForEmployee(resp.id)).userId);
+  }
+
+  // 3. Pro gewählter Checkliste eine Instanz für den Mitarbeiter erstellen,
+  //    zugewiesen an den Tutor (Hauptverantwortlicher) und weitere Verantwortliche
+  const instances = [];
+  for (const templateId of data.templateIds) {
+    const instance = await checklistService.createInstance({
+      templateId,
+      userId: employeeUserId,
+      assignedToId: tutorUserId,
+      responsibleIds: responsibleUserIds,
+      startDate,
+      targetEndDate: data.targetEndDate,
+      notes: data.notes,
+    });
+    instances.push(instance);
+  }
+
+  // 4. Mitarbeiter als "Onboarding gestartet" markieren
+  const updatedEmployee = await prisma.employee.update({
+    where: { id: employee.id },
+    data: {
+      isActive: true,
+      onboardingCompleted: false,
+      onboardingCompletedAt: null,
+      ...(employee.startDate ? {} : { startDate }),
+    },
+    include: {
+      user: { select: { id: true, email: true } },
+    },
+  });
+
+  return {
+    employee: updatedEmployee,
+    tutor: {
+      id: tutor.id,
+      firstName: tutor.firstName,
+      lastName: tutor.lastName,
+      userId: tutorUserId,
+    },
+    instances,
+  };
 }

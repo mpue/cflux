@@ -60,6 +60,20 @@ export const applicantService = {
     return response.data;
   },
 
+  // Bewerber zurücksetzen (Onboarding-Prozess neu startbar machen)
+  reset: async (id: string, status?: ApplicantStatus): Promise<{ message: string; applicant: Applicant }> => {
+    const response = await api.post(`/onboarding/applicants/${id}/reset`, status ? { status } : {});
+    return response.data;
+  },
+
+  // Bewerber löschen (optional inkl. verknüpftem Mitarbeiter)
+  delete: async (id: string, deleteEmployee = false): Promise<{ message: string }> => {
+    const response = await api.delete(`/onboarding/applicants/${id}`, {
+      params: deleteEmployee ? { deleteEmployee: true } : undefined,
+    });
+    return response.data;
+  },
+
   // Upload document
   uploadDocument: async (applicantId: string, file: File, documentType: string): Promise<ApplicantDocument> => {
     const formData = new FormData();
@@ -252,6 +266,33 @@ export const onboardingService = {
   // Mark employee as onboarded
   markAsOnboarded: async (employeeId: string): Promise<Employee> => {
     const response = await api.patch(`/onboarding/employees/${employeeId}/complete-onboarding`);
+    return response.data;
+  },
+
+  // Get checklist templates (for the onboarding wizard)
+  getChecklistTemplates: async (filters?: { type?: string; isActive?: boolean }): Promise<any[]> => {
+    const response = await api.get('/checklists/templates', { params: filters });
+    return response.data;
+  },
+
+  // Start a new onboarding (wizard): select/create employee, tutor and checklists
+  startOnboarding: async (data: {
+    employeeId?: string;
+    newEmployee?: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      position?: string;
+      department?: string;
+    };
+    tutorEmployeeId: string;
+    responsibleEmployeeIds?: string[];
+    templateIds: string[];
+    startDate?: string;
+    targetEndDate?: string;
+    notes?: string;
+  }): Promise<{ employee: Employee; tutor: any; instances: any[] }> => {
+    const response = await api.post('/onboarding/start', data);
     return response.data;
   },
 };

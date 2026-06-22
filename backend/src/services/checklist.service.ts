@@ -59,6 +59,7 @@ export interface CreateInstanceDto {
   templateId: string;
   userId: string;
   assignedToId?: string;
+  responsibleIds?: string[]; // Weitere Verantwortliche (zusätzlich zum Hauptverantwortlichen)
   startDate?: Date;
   targetEndDate?: Date;
   notes?: string;
@@ -69,6 +70,7 @@ export interface UpdateInstanceDto {
   status?: ChecklistStatus;
   targetEndDate?: Date;
   assignedToId?: string;
+  responsibleIds?: string[];
   notes?: string;
 }
 
@@ -158,6 +160,10 @@ class ChecklistService {
           orderBy: { order: 'asc' },
           include: {
             notifyUsers: { select: { id: true, firstName: true, lastName: true, email: true } },
+            attachments: {
+              select: { id: true, fileName: true, fileSize: true, mimeType: true, createdAt: true },
+              orderBy: { createdAt: 'asc' },
+            },
           },
         },
         instances: {
@@ -264,6 +270,50 @@ class ChecklistService {
     );
   }
 
+  // ==================== Item Attachments ====================
+
+  async addItemAttachment(data: {
+    itemId: string;
+    fileName: string;
+    filePath: string;
+    fileSize: number;
+    mimeType: string;
+    uploadedById?: string;
+  }) {
+    // Sicherstellen, dass der Checklisten-Punkt existiert
+    const item = await prisma.checklistItem.findUnique({ where: { id: data.itemId } });
+    if (!item) {
+      throw new Error('Checklisten-Punkt nicht gefunden');
+    }
+    return prisma.checklistItemAttachment.create({
+      data: {
+        itemId: data.itemId,
+        fileName: data.fileName,
+        filePath: data.filePath,
+        fileSize: data.fileSize,
+        mimeType: data.mimeType,
+        uploadedById: data.uploadedById,
+      },
+      select: { id: true, fileName: true, fileSize: true, mimeType: true, createdAt: true },
+    });
+  }
+
+  async getItemAttachments(itemId: string) {
+    return prisma.checklistItemAttachment.findMany({
+      where: { itemId },
+      select: { id: true, fileName: true, fileSize: true, mimeType: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async getAttachmentById(id: string) {
+    return prisma.checklistItemAttachment.findUnique({ where: { id } });
+  }
+
+  async deleteItemAttachment(id: string) {
+    return prisma.checklistItemAttachment.delete({ where: { id } });
+  }
+
   // ==================== Instances ====================
 
   async createInstance(data: CreateInstanceDto) {
@@ -277,12 +327,20 @@ class ChecklistService {
       throw new Error('Template not found');
     }
 
+    // Weitere Verantwortliche (ohne Hauptverantwortlichen-Duplikat)
+    const responsibleIds = (data.responsibleIds || []).filter(
+      (id) => id && id !== data.assignedToId
+    );
+
     // Create instance with completions for all items
     const instance = await prisma.checklistInstance.create({
       data: {
         templateId: data.templateId,
         userId: data.userId,
         assignedToId: data.assignedToId,
+        ...(responsibleIds.length
+          ? { responsibles: { connect: responsibleIds.map((id) => ({ id })) } }
+          : {}),
         startDate: data.startDate || new Date(),
         targetEndDate: data.targetEndDate,
         notes: data.notes,
@@ -315,6 +373,14 @@ class ChecklistService {
             email: true,
           },
         },
+        responsibles: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
         project: {
           select: {
             id: true,
@@ -338,52 +404,66 @@ class ChecklistService {
     if (data.targetEndDate) {
       const dueDate = new Date(data.targetEndDate);
       dueDate.setHours(0, 0, 0, 0);
-      const dueDateEnd = new Date(dueDate);
-      dueDateEnd.setHours(23, 59, 59, 999);
 
-      const executorId = data.assignedToId && data.assignedToId !== data.userId
-        ? data.assignedToId
-        : null;
+      // Alle Verantwortlichen (Haupt- + weitere), ohne den betroffenen Mitarbeiter
+      const executorIds = Array.from(
+        new Set([data.assignedToId, ...responsibleIds].filter((id): id is string => !!id))
+      ).filter((id) => id !== data.userId);
 
       await prisma.calendarEvent.create({
         data: {
           title: `Checkliste fällig: ${template.name}`,
           description: data.notes ? `Notizen: ${data.notes}` : undefined,
+          // All-Day-Event: Start und Ende auf denselben Tag setzen. Ein Ende um
+          // 23:59:59 würde bei abweichender Server-/Browser-Zeitzone auf den
+          // Folgetag rutschen und der Termin an zwei Tagen erscheinen.
           startDate: dueDate,
-          endDate: dueDateEnd,
+          endDate: dueDate,
           allDay: true,
           eventType: CalendarEventType.TASK,
           isPrivate: true,
           createdById: data.userId,
-          ...(executorId ? {
+          ...(executorIds.length ? {
             attendees: {
-              create: [{
-                userId: executorId,
+              create: executorIds.map((userId) => ({
+                userId,
                 status: CalendarAttendeeStatus.ACCEPTED,
-              }],
+              })),
             },
           } : {}),
         },
       });
 
       // Fetch user details for email invitations
-      const userIds = [data.userId, ...(executorId ? [executorId] : [])];
+      const userIds = [data.userId, ...executorIds];
       const users = await prisma.user.findMany({
         where: { id: { in: userIds } },
         select: { id: true, firstName: true, lastName: true, email: true },
       });
       const subjectUser = users.find((u) => u.id === data.userId);
-      const executor = executorId ? users.find((u) => u.id === executorId) : null;
+      const executors = executorIds
+        .map((id) => users.find((u) => u.id === id))
+        .filter((u): u is NonNullable<typeof u> => !!u);
 
       if (subjectUser) {
         const settings = await systemSettingsService.getSettings();
+        // Anhänge aller Checklisten-Punkte dieser Vorlage gebündelt mitsenden
+        const attachmentRecords = await prisma.checklistItemAttachment.findMany({
+          where: { item: { templateId: data.templateId } },
+          select: { fileName: true, filePath: true },
+        });
+        const itemAttachments = attachmentRecords.map((a) => ({
+          filename: a.fileName,
+          path: a.filePath,
+        }));
         emailService.sendChecklistInvitation({
           subjectUser,
-          executor: executor || null,
+          executors,
           checklistName: template.name,
           dueDate,
           notes: data.notes,
           companyName: settings.companyName || 'CFlux',
+          itemAttachments,
         }).catch((err) => console.error('Failed to send checklist invitation email:', err));
       }
     }
@@ -446,6 +526,14 @@ class ChecklistService {
             email: true,
           },
         },
+        responsibles: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
         project: {
           select: {
             id: true,
@@ -477,6 +565,14 @@ class ChecklistService {
           },
         },
         assignedTo: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        responsibles: {
           select: {
             id: true,
             firstName: true,
@@ -519,9 +615,15 @@ class ChecklistService {
   }
 
   async updateInstance(id: string, data: UpdateInstanceDto) {
+    const { responsibleIds, ...instanceData } = data;
     return prisma.checklistInstance.update({
       where: { id },
-      data,
+      data: {
+        ...instanceData,
+        ...(responsibleIds !== undefined
+          ? { responsibles: { set: responsibleIds.map((rid) => ({ id: rid })) } }
+          : {}),
+      },
       include: {
         template: true,
         user: {
@@ -533,6 +635,14 @@ class ChecklistService {
           },
         },
         assignedTo: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        responsibles: {
           select: {
             id: true,
             firstName: true,

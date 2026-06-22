@@ -102,6 +102,12 @@ export interface ChecklistInstance {
     lastName: string;
     email: string;
   };
+  responsibles?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  }[];
   notes?: string;
   projectId?: string;
   project?: {
@@ -191,6 +197,7 @@ export interface CreateInstanceDto {
   templateId: string;
   userId: string;
   assignedToId?: string;
+  responsibleIds?: string[];
   startDate?: string;
   targetEndDate?: string;
   notes?: string;
@@ -201,6 +208,7 @@ export interface UpdateInstanceDto {
   status?: ChecklistStatus;
   targetEndDate?: string;
   assignedToId?: string;
+  responsibleIds?: string[];
   notes?: string;
 }
 

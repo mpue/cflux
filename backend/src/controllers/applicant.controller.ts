@@ -111,6 +111,34 @@ export async function updateApplicantStatus(req: Request, res: Response) {
   }
 }
 
+export async function resetApplicant(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const { status } = req.body || {};
+    const applicant = await applicantService.resetApplicant(id, {
+      status: status as ApplicantStatus | undefined,
+    });
+    res.json({ message: 'Bewerber zurückgesetzt – Onboarding kann neu gestartet werden', applicant });
+  } catch (error: any) {
+    console.error('Error resetting applicant:', error);
+    res.status(500).json({ error: 'Failed to reset applicant', details: error.message });
+  }
+}
+
+export async function deleteApplicant(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    // Mitarbeiter mitlöschen, wenn ?deleteEmployee=true bzw. im Body übergeben
+    const deleteEmployee =
+      req.query.deleteEmployee === 'true' || req.body?.deleteEmployee === true;
+    const result = await applicantService.deleteApplicant(id, { deleteEmployee });
+    res.json({ message: 'Bewerber gelöscht', ...result });
+  } catch (error: any) {
+    console.error('Error deleting applicant:', error);
+    res.status(500).json({ error: 'Failed to delete applicant', details: error.message });
+  }
+}
+
 // ==================== DOCUMENTS ====================
 
 export async function uploadDocument(req: Request, res: Response) {
