@@ -12,3 +12,6 @@ postgres
 /playwright-report/
 /playwright/.cache/
 /test-results/
+
+# Stellenbeschreibungs-PDFs (lokale Quelldaten, nicht ins Repo)
+/jobs/

@@ -25,7 +25,8 @@
     "seed:news": "ts-node prisma/seedNews.ts",
     "seed:test-data": "ts-node scripts/generate-test-data.ts",
     "backup": "ts-node scripts/create-full-backup.ts",
-    "import:dlk": "ts-node scripts/import-dlk-articles.ts"
+    "import:dlk": "ts-node scripts/import-dlk-articles.ts",
+    "import:jobs": "ts-node scripts/import-jobs.ts"
   },
   "keywords": [
     "timetracking",
