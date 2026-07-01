@@ -87,6 +87,7 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
   const [checklistTargetDate, setChecklistTargetDate] = useState<string>('');
   const [checklistNotes, setChecklistNotes] = useState<string>('');
   const [checklistAssignedToId, setChecklistAssignedToId] = useState<string>('');
+  const [checklistResponsibleIds, setChecklistResponsibleIds] = useState<string[]>([]);
   const [employeeChecklists, setEmployeeChecklists] = useState<Record<string, ChecklistInstance[]>>({});
   const [expandedTab, setExpandedTab] = useState<Record<string, 'tasks' | 'checklists' | 'probation'>>({});
 
@@ -197,6 +198,7 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
     setChecklistTargetDate('');
     setChecklistNotes('');
     setChecklistAssignedToId('');
+    setChecklistResponsibleIds([]);
     setChecklistDialogOpen(true);
   };
 
@@ -291,6 +293,7 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
         templateId: selectedTemplateId,
         userId: emp.userId,
         assignedToId: checklistAssignedToId || undefined,
+        responsibleIds: checklistResponsibleIds.length ? checklistResponsibleIds : undefined,
         targetEndDate: checklistTargetDate ? new Date(checklistTargetDate).toISOString() : undefined,
         notes: checklistNotes || undefined,
       });
@@ -762,6 +765,20 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
                   {...params}
                   label="Zuständig – wer führt aus? (optional)"
                   helperText="Z.B. die HR-Person, die diese Checkliste abarbeitet"
+                />
+              )}
+            />
+            <Autocomplete
+              multiple
+              options={users.filter((u) => u.id !== checklistAssignedToId)}
+              getOptionLabel={(u) => `${u.firstName} ${u.lastName} (${u.email})`}
+              value={users.filter((u) => checklistResponsibleIds.includes(u.id))}
+              onChange={(_, newValue) => setChecklistResponsibleIds(newValue.map((u) => u.id))}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Weitere Verantwortliche (optional)"
+                  helperText="Pate/Tutor und weitere Personen, die den Onboarding-Prozess begleiten"
                 />
               )}
             />
