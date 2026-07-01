@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Typography, Grid, Card, CardContent, Tabs, Tab, Button } from '@mui/material';
-import { PersonAdd, Assignment, Build, School, Dashboard, Work, RocketLaunch } from '@mui/icons-material';
+import { Box, Typography, Grid, Card, CardContent, Tabs, Tab } from '@mui/material';
+import { PersonAdd, Assignment, Build, School, Dashboard, Work } from '@mui/icons-material';
 import ApplicantsTab from './ApplicantsTab';
 import OnboardingJobsSubTab from './OnboardingJobsSubTab';
 import OnboardingEquipmentSubTab from './OnboardingEquipmentSubTab';
@@ -174,17 +174,6 @@ const OnboardingTab: React.FC<OnboardingTabProps> = ({ onUpdate }) => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<RocketLaunch />}
-          onClick={() => setWizardOpen(true)}
-        >
-          Neues Onboarding starten
-        </Button>
-      </Box>
-
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={activeSubTab} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
           <Tab icon={<Assignment />} label="Dashboard" value="dashboard" />
