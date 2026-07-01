@@ -25,6 +25,7 @@ import {
   ApplicantStatus,
   DocumentStatus,
   OnboardingTaskStatus,
+  ProbationReview,
 } from '../types/onboarding';
 
 // ==================== APPLICANTS ====================
@@ -267,6 +268,37 @@ export const onboardingService = {
   markAsOnboarded: async (employeeId: string): Promise<Employee> => {
     const response = await api.patch(`/onboarding/employees/${employeeId}/complete-onboarding`);
     return response.data;
+  },
+
+  // ---- Probezeit-/Feedbackgespräche (Phase 6) ----
+
+  // Get probation reviews for an employee
+  getProbationReviews: async (employeeId: string): Promise<ProbationReview[]> => {
+    const response = await api.get(`/onboarding/employees/${employeeId}/probation-reviews`);
+    return response.data;
+  },
+
+  // (Re)generate the standard 30/60/90-day reviews
+  generateProbationReviews: async (employeeId: string): Promise<ProbationReview[]> => {
+    const response = await api.post(`/onboarding/employees/${employeeId}/probation-reviews/generate`);
+    return response.data;
+  },
+
+  // Create a single (custom) review
+  createProbationReview: async (data: { employeeId: string; type?: string; scheduledDate: string }): Promise<ProbationReview> => {
+    const response = await api.post('/onboarding/probation-reviews', data);
+    return response.data;
+  },
+
+  // Update / document a review
+  updateProbationReview: async (reviewId: string, data: Partial<ProbationReview>): Promise<ProbationReview> => {
+    const response = await api.patch(`/onboarding/probation-reviews/${reviewId}`, data);
+    return response.data;
+  },
+
+  // Delete a review
+  deleteProbationReview: async (reviewId: string): Promise<void> => {
+    await api.delete(`/onboarding/probation-reviews/${reviewId}`);
   },
 
   // Get checklist templates (for the onboarding wizard)

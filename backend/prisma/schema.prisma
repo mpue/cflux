@@ -166,6 +166,7 @@ model User {
   uploadedEmployeeDocuments EmployeeDocument[]
   assignedOnboardingTasks OnboardingTask[] @relation("AssignedOnboardingTasks")
   completedOnboardingTasks OnboardingTask[] @relation("CompletedOnboardingTasks")
+  conductedProbationReviews ProbationReview[] @relation("ConductedProbationReviews")
   trainingSessions TrainingSession[]
   equipmentAssignments EquipmentAssignment[]
   createdJobFunctions JobFunction[]
@@ -2817,6 +2818,28 @@ enum OnboardingTaskStatus {
   OVERDUE
 }
 
+// Probezeit-/Feedbackgespräche (PDF Phase 6: Gespräche nach 30/60/90 Tagen + Abschluss)
+enum ProbationReviewType {
+  DAY_30
+  DAY_60
+  DAY_90
+  FINAL
+  CUSTOM
+}
+
+enum ProbationReviewStatus {
+  SCHEDULED
+  COMPLETED
+  OVERDUE
+  CANCELLED
+}
+
+enum ProbationDecision {
+  CONTINUE          // Weiterbeschäftigung
+  EXTEND_PROBATION  // Probezeit verlängern
+  TERMINATE         // Beenden
+}
+
 enum EquipmentCondition {
   NEW
   GOOD
@@ -3013,6 +3036,7 @@ model Employee {
   applicant           Applicant?
   documents           EmployeeDocument[]
   tasks               OnboardingTask[]
+  probationReviews    ProbationReview[]
   equipmentAssignments EquipmentAssignment[]
   trainingCompletions TrainingCompletion[]
   
@@ -3098,6 +3122,45 @@ model OnboardingTask {
   @@index([status])
   @@index([dueDate])
   @@map("onboarding_tasks")
+}
+
+// Probezeit-/Feedbackgespräch eines Mitarbeitenden (PDF Phase 6, Kapitel 8.0)
+model ProbationReview {
+  id            String                @id @default(uuid())
+  employeeId    String
+
+  type          ProbationReviewType   @default(DAY_30)
+  status        ProbationReviewStatus @default(SCHEDULED)
+
+  scheduledDate DateTime
+  conductedDate DateTime?
+
+  conductedById String?               // Vorgesetzter / Hiring Manager, der das Gespräch führt
+  hrPresent     Boolean               @default(false)
+
+  // Strukturierte Bewertung (1-5): fachliche Leistung, Integration, Zusammenarbeit, Zielerreichung
+  ratingPerformance   Int?
+  ratingIntegration   Int?
+  ratingCollaboration Int?
+  ratingGoals         Int?
+
+  strengths        String?  @db.Text  // Stärken
+  developmentAreas String?  @db.Text  // Entwicklungsfelder / Schwächen
+  employeeFeedback String?  @db.Text  // Rückmeldung / Zufriedenheit des Mitarbeitenden
+  agreements       String?  @db.Text  // Vereinbarungen / nächste Schritte
+
+  decision      ProbationDecision?    // v.a. beim Abschlussgespräch
+
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  employee      Employee              @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  conductedBy   User?                 @relation("ConductedProbationReviews", fields: [conductedById], references: [id])
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("probation_reviews")
 }
 
 model OnboardingJob {

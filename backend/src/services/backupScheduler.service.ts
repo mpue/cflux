@@ -32,6 +32,7 @@ export const TABLE_MAP: Record<string, string> = {
   employeeDocuments: 'employeeDocument',
   onboardingTasks: 'onboardingTask',
   onboardingJobs: 'onboardingJob',
+  probationReviews: 'probationReview',
   jobFunctions: 'jobFunction',
   jobFunctionDocuments: 'jobFunctionDocument',
   customers: 'customer',

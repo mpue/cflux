@@ -15,6 +15,7 @@ import { userService } from '../../services/user.service';
 import api from '../../services/api';
 import { Employee, OnboardingTask, OnboardingTaskStatus, TaskFormData } from '../../types/onboarding';
 import { ChecklistTemplate, ChecklistInstance, ChecklistItemCompletion, ChecklistItemType } from '../../types/checklist';
+import ProbationReviews from './ProbationReviews';
 
 interface User {
   id: string;
@@ -87,7 +88,7 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
   const [checklistNotes, setChecklistNotes] = useState<string>('');
   const [checklistAssignedToId, setChecklistAssignedToId] = useState<string>('');
   const [employeeChecklists, setEmployeeChecklists] = useState<Record<string, ChecklistInstance[]>>({});
-  const [expandedTab, setExpandedTab] = useState<Record<string, 'tasks' | 'checklists'>>({});
+  const [expandedTab, setExpandedTab] = useState<Record<string, 'tasks' | 'checklists' | 'probation'>>({});
 
   // Checklist processing state
   const [processDialogOpen, setProcessDialogOpen] = useState(false);
@@ -444,6 +445,7 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
                           >
                             <Tab label="Aufgaben" value="tasks" sx={{ minHeight: 36, py: 0 }} />
                             <Tab label="Checklisten" value="checklists" sx={{ minHeight: 36, py: 0 }} />
+                            <Tab label="Probezeit" value="probation" sx={{ minHeight: 36, py: 0 }} />
                           </Tabs>
 
                           {(expandedTab[emp.id] || 'tasks') === 'tasks' && (
@@ -651,6 +653,10 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
                                 </Table>
                               )}
                             </>
+                          )}
+
+                          {expandedTab[emp.id] === 'probation' && (
+                            <ProbationReviews employeeId={emp.id} />
                           )}
                         </Box>
                       </Collapse>

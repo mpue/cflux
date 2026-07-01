@@ -1,4 +1,4 @@
-import { ApplicantStatus, DocumentStatus, OnboardingTaskStatus, OnboardingDocumentType } from '@prisma/client';
+import { ApplicantStatus, DocumentStatus, OnboardingTaskStatus, OnboardingDocumentType, ProbationReviewType, ProbationReviewStatus, ProbationDecision } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
@@ -115,6 +115,10 @@ export async function hireApplicant(data: {
   if (!existingEmployee) {
     await createDefaultOnboardingTasks(employee.id, data.startDate);
   }
+
+  // Probezeitgespräche (30/60/90 Tage) planen. Idempotent, daher auch bei
+  // bereits existierenden Mitarbeitern sicher aufrufbar.
+  await generateProbationReviews(employee.id, data.startDate);
 
   // Mitarbeiter inkl. verknüpftem Benutzerkonto zurückgeben
   return prisma.employee.findUnique({
@@ -769,4 +773,103 @@ export async function startOnboarding(data: {
     },
     instances,
   };
+}
+
+// ==================== PROBEZEIT-/FEEDBACKGESPRÄCHE ====================
+// PDF Phase 6 (Kapitel 8.0): strukturierte Gespräche nach 30/60/90 Tagen
+// sowie ein Abschlussgespräch mit Weiterbeschäftigungs-Entscheid.
+
+const PROBATION_OFFSETS: { type: ProbationReviewType; days: number }[] = [
+  { type: ProbationReviewType.DAY_30, days: 30 },
+  { type: ProbationReviewType.DAY_60, days: 60 },
+  { type: ProbationReviewType.DAY_90, days: 90 },
+];
+
+/**
+ * Legt die Standard-Probezeitgespräche (30/60/90 Tage ab Eintritt) für einen
+ * Mitarbeitenden an. Idempotent: bereits vorhandene Typen werden übersprungen,
+ * damit ein erneuter Aufruf keine Duplikate erzeugt.
+ */
+export async function generateProbationReviews(employeeId: string, startDate: Date) {
+  const existing = await prisma.probationReview.findMany({
+    where: { employeeId },
+    select: { type: true },
+  });
+  const existingTypes = new Set(existing.map(r => r.type));
+
+  const toCreate = PROBATION_OFFSETS.filter(o => !existingTypes.has(o.type)).map(o => ({
+    employeeId,
+    type: o.type,
+    scheduledDate: new Date(startDate.getTime() + o.days * 24 * 60 * 60 * 1000),
+  }));
+
+  if (toCreate.length === 0) return [];
+  await prisma.probationReview.createMany({ data: toCreate });
+  return prisma.probationReview.findMany({
+    where: { employeeId },
+    orderBy: { scheduledDate: 'asc' },
+  });
+}
+
+export async function getEmployeeProbationReviews(employeeId: string) {
+  return prisma.probationReview.findMany({
+    where: { employeeId },
+    include: {
+      conductedBy: { select: { id: true, firstName: true, lastName: true } },
+    },
+    orderBy: { scheduledDate: 'asc' },
+  });
+}
+
+export async function createProbationReview(data: {
+  employeeId: string;
+  type?: ProbationReviewType;
+  scheduledDate: Date;
+}) {
+  return prisma.probationReview.create({
+    data: {
+      employeeId: data.employeeId,
+      type: data.type ?? ProbationReviewType.CUSTOM,
+      scheduledDate: data.scheduledDate,
+    },
+  });
+}
+
+/**
+ * Dokumentiert / aktualisiert ein Gespräch. Wird der Status auf COMPLETED
+ * gesetzt und ist noch kein Durchführungsdatum gesetzt, wird es automatisch
+ * auf jetzt gesetzt.
+ */
+export async function updateProbationReview(
+  reviewId: string,
+  data: {
+    status?: ProbationReviewStatus;
+    scheduledDate?: Date;
+    conductedDate?: Date | null;
+    conductedById?: string | null;
+    hrPresent?: boolean;
+    ratingPerformance?: number | null;
+    ratingIntegration?: number | null;
+    ratingCollaboration?: number | null;
+    ratingGoals?: number | null;
+    strengths?: string | null;
+    developmentAreas?: string | null;
+    employeeFeedback?: string | null;
+    agreements?: string | null;
+    decision?: ProbationDecision | null;
+  }
+) {
+  const autoConducted =
+    data.status === ProbationReviewStatus.COMPLETED && data.conductedDate === undefined
+      ? { conductedDate: new Date() }
+      : {};
+
+  return prisma.probationReview.update({
+    where: { id: reviewId },
+    data: { ...data, ...autoConducted },
+  });
+}
+
+export async function deleteProbationReview(reviewId: string) {
+  return prisma.probationReview.delete({ where: { id: reviewId } });
 }

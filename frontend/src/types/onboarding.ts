@@ -243,6 +243,55 @@ export interface OnboardingProgress {
   tasks: OnboardingTask[];
 }
 
+// Probezeit-/Feedbackgespräche (Phase 6)
+export enum ProbationReviewType {
+  DAY_30 = 'DAY_30',
+  DAY_60 = 'DAY_60',
+  DAY_90 = 'DAY_90',
+  FINAL = 'FINAL',
+  CUSTOM = 'CUSTOM',
+}
+
+export enum ProbationReviewStatus {
+  SCHEDULED = 'SCHEDULED',
+  COMPLETED = 'COMPLETED',
+  OVERDUE = 'OVERDUE',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum ProbationDecision {
+  CONTINUE = 'CONTINUE',
+  EXTEND_PROBATION = 'EXTEND_PROBATION',
+  TERMINATE = 'TERMINATE',
+}
+
+export interface ProbationReview {
+  id: string;
+  employeeId: string;
+  type: ProbationReviewType;
+  status: ProbationReviewStatus;
+  scheduledDate: string;
+  conductedDate?: string;
+  conductedById?: string;
+  hrPresent: boolean;
+  ratingPerformance?: number;
+  ratingIntegration?: number;
+  ratingCollaboration?: number;
+  ratingGoals?: number;
+  strengths?: string;
+  developmentAreas?: string;
+  employeeFeedback?: string;
+  agreements?: string;
+  decision?: ProbationDecision;
+  createdAt: string;
+  updatedAt: string;
+  conductedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
 export interface OnboardingDashboardItem {
   employee: {
     id: string;

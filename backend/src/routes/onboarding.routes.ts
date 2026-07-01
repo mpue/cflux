@@ -388,4 +388,46 @@ router.get(
   onboardingController.getOnboardingDashboard
 );
 
+// ==================== PROBEZEIT-/FEEDBACKGESPRÄCHE ====================
+
+// Get probation reviews for an employee
+router.get(
+  '/employees/:id/probation-reviews',
+  authenticate,
+  requireModuleAccess('onboarding', 'canView'),
+  onboardingController.getEmployeeProbationReviews
+);
+
+// (Re)generate the standard 30/60/90-day reviews for an employee
+router.post(
+  '/employees/:id/probation-reviews/generate',
+  authenticate,
+  requireModuleAccess('onboarding', 'canCreate'),
+  onboardingController.generateProbationReviews
+);
+
+// Create a single (custom) probation review
+router.post(
+  '/probation-reviews',
+  authenticate,
+  requireModuleAccess('onboarding', 'canCreate'),
+  onboardingController.createProbationReview
+);
+
+// Update / document a probation review
+router.patch(
+  '/probation-reviews/:reviewId',
+  authenticate,
+  requireModuleAccess('onboarding', 'canEdit'),
+  onboardingController.updateProbationReview
+);
+
+// Delete a probation review
+router.delete(
+  '/probation-reviews/:reviewId',
+  authenticate,
+  requireModuleAccess('onboarding', 'canDelete'),
+  onboardingController.deleteProbationReview
+);
+
 export default router;

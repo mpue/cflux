@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import * as onboardingService from '../services/onboarding.service';
-import { DocumentStatus, OnboardingTaskStatus } from '@prisma/client';
+import { DocumentStatus, OnboardingTaskStatus, ProbationReviewType, ProbationReviewStatus, ProbationDecision } from '@prisma/client';
 
 function normalizeOptionalNumber(value: unknown) {
   if (value === undefined || value === null || value === '') {
@@ -350,5 +350,100 @@ export async function startOnboarding(req: Request, res: Response) {
   } catch (error: any) {
     console.error('Error starting onboarding:', error);
     res.status(400).json({ error: 'Failed to start onboarding', details: error.message });
+  }
+}
+
+// ==================== PROBEZEIT-/FEEDBACKGESPRÄCHE ====================
+
+export async function getEmployeeProbationReviews(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const reviews = await onboardingService.getEmployeeProbationReviews(id);
+    res.json(reviews);
+  } catch (error: any) {
+    console.error('Error fetching probation reviews:', error);
+    res.status(500).json({ error: 'Failed to fetch probation reviews', details: error.message });
+  }
+}
+
+export async function generateProbationReviews(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const employee = await onboardingService.getEmployeeById(id);
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+    const startDate = req.body.startDate
+      ? new Date(req.body.startDate)
+      : employee.startDate;
+    if (!startDate) {
+      return res.status(400).json({ error: 'Kein Eintrittsdatum vorhanden – Gespräche können nicht geplant werden' });
+    }
+    const reviews = await onboardingService.generateProbationReviews(id, new Date(startDate));
+    res.status(201).json(reviews);
+  } catch (error: any) {
+    console.error('Error generating probation reviews:', error);
+    res.status(500).json({ error: 'Failed to generate probation reviews', details: error.message });
+  }
+}
+
+export async function createProbationReview(req: Request, res: Response) {
+  try {
+    const review = await onboardingService.createProbationReview({
+      employeeId: req.body.employeeId,
+      type: req.body.type as ProbationReviewType | undefined,
+      scheduledDate: new Date(req.body.scheduledDate),
+    });
+    res.status(201).json(review);
+  } catch (error: any) {
+    console.error('Error creating probation review:', error);
+    res.status(500).json({ error: 'Failed to create probation review', details: error.message });
+  }
+}
+
+export async function updateProbationReview(req: Request, res: Response) {
+  try {
+    const { reviewId } = req.params;
+    const userId = (req as any).user?.id;
+    const b = req.body;
+
+    const review = await onboardingService.updateProbationReview(reviewId, {
+      status: b.status as ProbationReviewStatus | undefined,
+      scheduledDate: b.scheduledDate ? new Date(b.scheduledDate) : undefined,
+      conductedDate: b.conductedDate === undefined ? undefined : (b.conductedDate ? new Date(b.conductedDate) : null),
+      // Fällt kein Durchführender mit, wird der eingeloggte Nutzer eingetragen,
+      // sobald das Gespräch als durchgeführt markiert wird.
+      conductedById:
+        b.conductedById !== undefined
+          ? b.conductedById
+          : b.status === ProbationReviewStatus.COMPLETED
+          ? userId
+          : undefined,
+      hrPresent: b.hrPresent,
+      ratingPerformance: normalizeOptionalNumber(b.ratingPerformance),
+      ratingIntegration: normalizeOptionalNumber(b.ratingIntegration),
+      ratingCollaboration: normalizeOptionalNumber(b.ratingCollaboration),
+      ratingGoals: normalizeOptionalNumber(b.ratingGoals),
+      strengths: b.strengths,
+      developmentAreas: b.developmentAreas,
+      employeeFeedback: b.employeeFeedback,
+      agreements: b.agreements,
+      decision: b.decision as ProbationDecision | undefined,
+    });
+    res.json(review);
+  } catch (error: any) {
+    console.error('Error updating probation review:', error);
+    res.status(500).json({ error: 'Failed to update probation review', details: error.message });
+  }
+}
+
+export async function deleteProbationReview(req: Request, res: Response) {
+  try {
+    const { reviewId } = req.params;
+    await onboardingService.deleteProbationReview(reviewId);
+    res.json({ message: 'Probation review deleted' });
+  } catch (error: any) {
+    console.error('Error deleting probation review:', error);
+    res.status(500).json({ error: 'Failed to delete probation review', details: error.message });
   }
 }

@@ -36,6 +36,7 @@ const TABLE_MAP: Record<string, string> = {
   employeeDocuments: 'employeeDocument',
   onboardingTasks: 'onboardingTask',
   onboardingJobs: 'onboardingJob',
+  probationReviews: 'probationReview',
 
   // Job Functions
   jobFunctions: 'jobFunction',
@@ -424,6 +425,9 @@ export const restoreBackup = async (req: Request, res: Response) => {
 
     // Onboarding job postings (independent)
     await prisma.onboardingJob.deleteMany();
+
+    // Probation reviews (before Employee)
+    await prisma.probationReview.deleteMany();
 
     // Checklist item attachments (before ChecklistItem)
     await prisma.checklistItemAttachment.deleteMany();
@@ -976,6 +980,9 @@ export const restoreBackup = async (req: Request, res: Response) => {
 
     // ── Phase 37: Checklist item attachments ─────────────────
     restoredCount += await restoreTable('checklistItemAttachments', 'checklistItemAttachment', 'ChecklistItemAttachments');
+
+    // ── Phase 38: Probation reviews (depend on Employee + User) ─
+    restoredCount += await restoreTable('probationReviews', 'probationReview', 'ProbationReviews');
 
     // ── Restore uploaded files from ZIP ───────────────────
     let filesRestored = 0;
