@@ -15,7 +15,7 @@ if (!fs.existsSync(BACKUP_DIR)) {
 
 /**
  * Maps backup JSON key names → Prisma client accessor names.
- * Single source of truth for all backed-up tables (99 total).
+ * Single source of truth for all backed-up tables (107 total).
  */
 const TABLE_MAP: Record<string, string> = {
   // Auth & Organisation
@@ -35,6 +35,7 @@ const TABLE_MAP: Record<string, string> = {
   applicantNotes: 'applicantNote',
   employeeDocuments: 'employeeDocument',
   onboardingTasks: 'onboardingTask',
+  onboardingJobs: 'onboardingJob',
 
   // Job Functions
   jobFunctions: 'jobFunction',
@@ -170,10 +171,23 @@ const TABLE_MAP: Record<string, string> = {
   checklistItems: 'checklistItem',
   checklistInstances: 'checklistInstance',
   checklistItemCompletions: 'checklistItemCompletion',
+  checklistItemAttachments: 'checklistItemAttachment',
 
   // News
   newsSources: 'newsSource',
   newsItems: 'newsItem',
+
+  // Contacts
+  contactGroups: 'contactGroup',
+  contacts: 'contact',
+
+  // Tools
+  tools: 'tool',
+  toolAssignments: 'toolAssignment',
+
+  // Calendar
+  calendarEvents: 'calendarEvent',
+  calendarEventAttendees: 'calendarEventAttendee',
 };
 
 const TABLE_COUNT = Object.keys(TABLE_MAP).length;
@@ -395,6 +409,24 @@ export const restoreBackup = async (req: Request, res: Response) => {
     await prisma.user.updateMany({
       data: { jobFunctionId: null, supervisorId: null, userGroupId: null }
     });
+
+    // Calendar (children before parent, both before User)
+    await prisma.calendarEventAttendee.deleteMany();
+    await prisma.calendarEvent.deleteMany();
+
+    // Tools (assignments before tools, both before User)
+    await prisma.toolAssignment.deleteMany();
+    await prisma.tool.deleteMany();
+
+    // Contacts (before ContactGroup and before Employee)
+    await prisma.contact.deleteMany();
+    await prisma.contactGroup.deleteMany();
+
+    // Onboarding job postings (independent)
+    await prisma.onboardingJob.deleteMany();
+
+    // Checklist item attachments (before ChecklistItem)
+    await prisma.checklistItemAttachment.deleteMany();
 
     // Checklists
     await prisma.checklistItemCompletion.deleteMany();
@@ -926,6 +958,24 @@ export const restoreBackup = async (req: Request, res: Response) => {
     // ── Phase 32: News ───────────────────────────────────────
     restoredCount += await restoreTable('newsSources', 'newsSource', 'NewsSources');
     restoredCount += await restoreTable('newsItems', 'newsItem', 'NewsItems');
+
+    // ── Phase 33: Contacts ───────────────────────────────────
+    restoredCount += await restoreTable('contactGroups', 'contactGroup', 'ContactGroups');
+    restoredCount += await restoreTable('contacts', 'contact', 'Contacts');
+
+    // ── Phase 34: Onboarding job postings ────────────────────
+    restoredCount += await restoreTable('onboardingJobs', 'onboardingJob', 'OnboardingJobs');
+
+    // ── Phase 35: Tools ──────────────────────────────────────
+    restoredCount += await restoreTable('tools', 'tool', 'Tools');
+    restoredCount += await restoreTable('toolAssignments', 'toolAssignment', 'ToolAssignments');
+
+    // ── Phase 36: Calendar ───────────────────────────────────
+    restoredCount += await restoreTable('calendarEvents', 'calendarEvent', 'CalendarEvents');
+    restoredCount += await restoreTable('calendarEventAttendees', 'calendarEventAttendee', 'CalendarEventAttendees');
+
+    // ── Phase 37: Checklist item attachments ─────────────────
+    restoredCount += await restoreTable('checklistItemAttachments', 'checklistItemAttachment', 'ChecklistItemAttachments');
 
     // ── Restore uploaded files from ZIP ───────────────────
     let filesRestored = 0;

@@ -16,7 +16,7 @@ if (!fs.existsSync(BACKUP_DIR)) {
  * Same TABLE_MAP as in backup.controller.ts — kept in sync.
  * Maps backup JSON key names → Prisma client accessor names.
  */
-const TABLE_MAP: Record<string, string> = {
+export const TABLE_MAP: Record<string, string> = {
   systemSettings: 'systemSettings',
   departments: 'department',
   users: 'user',
@@ -31,6 +31,7 @@ const TABLE_MAP: Record<string, string> = {
   applicantNotes: 'applicantNote',
   employeeDocuments: 'employeeDocument',
   onboardingTasks: 'onboardingTask',
+  onboardingJobs: 'onboardingJob',
   jobFunctions: 'jobFunction',
   jobFunctionDocuments: 'jobFunctionDocument',
   customers: 'customer',
@@ -116,8 +117,15 @@ const TABLE_MAP: Record<string, string> = {
   checklistItems: 'checklistItem',
   checklistInstances: 'checklistInstance',
   checklistItemCompletions: 'checklistItemCompletion',
+  checklistItemAttachments: 'checklistItemAttachment',
   newsSources: 'newsSource',
   newsItems: 'newsItem',
+  contactGroups: 'contactGroup',
+  contacts: 'contact',
+  tools: 'tool',
+  toolAssignments: 'toolAssignment',
+  calendarEvents: 'calendarEvent',
+  calendarEventAttendees: 'calendarEventAttendee',
 };
 
 const TABLE_COUNT = Object.keys(TABLE_MAP).length;
@@ -125,15 +133,16 @@ const prismaModel = (accessor: string) => (prisma as any)[accessor];
 
 /**
  * Creates a full backup (database JSON + uploads ZIP).
- * Used by the scheduler — no Request/Response dependency.
+ * Used by the scheduler and the manual CLI script — no Request/Response dependency.
+ * `prefix` controls the filename ("auto_backup" for the scheduler, "backup" for manual runs).
  * Returns the ZIP filename on success.
  */
-async function createBackupFile(): Promise<string> {
+export async function createBackupFile(prefix: string = 'auto_backup'): Promise<string> {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const jsonFilename = `auto_backup_${timestamp}.json`;
+  const jsonFilename = `${prefix}_${timestamp}.json`;
   const jsonFilepath = path.join(BACKUP_DIR, jsonFilename);
 
-  console.log(`📦 [Auto-Backup] Creating backup of ${TABLE_COUNT} tables...`);
+  console.log(`📦 [Backup] Creating backup of ${TABLE_COUNT} tables...`);
 
   const data: Record<string, any[]> = {};
   const keys = Object.keys(TABLE_MAP);
@@ -174,7 +183,7 @@ async function createBackupFile(): Promise<string> {
   fs.writeFileSync(jsonFilepath, jsonContent, 'utf-8');
 
   // Create ZIP with JSON + uploads
-  const zipFilename = `auto_backup_${timestamp}.zip`;
+  const zipFilename = `${prefix}_${timestamp}.zip`;
   const zipFilepath = path.join(BACKUP_DIR, zipFilename);
   const zip = new AdmZip();
   zip.addFile('backup.json', Buffer.from(jsonContent, 'utf-8'));
@@ -198,7 +207,7 @@ async function createBackupFile(): Promise<string> {
   zip.writeZip(zipFilepath);
   fs.unlinkSync(jsonFilepath); // remove standalone JSON
 
-  console.log(`✅ [Auto-Backup] Created: ${zipFilename}`);
+  console.log(`✅ [Backup] Created: ${zipFilename}`);
   return zipFilename;
 }
 

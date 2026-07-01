@@ -1,184 +1,30 @@
-import { PrismaClient } from '@prisma/client';
-import * as fs from 'fs';
-import * as path from 'path';
+import { prisma } from '../src/lib/prisma';
+import { createBackupFile } from '../src/services/backupScheduler.service';
+import fs from 'fs';
+import path from 'path';
 
-const prisma = new PrismaClient();
-
-async function createFullBackup() {
+/**
+ * Manual full backup (CLI).
+ *
+ * Reuses the exact same backup logic as the automatic scheduler and the admin
+ * API, so a `npm run backup` produces a complete v3.0 ZIP (all tables + uploads)
+ * — there is a single source of truth (TABLE_MAP in backupScheduler.service.ts).
+ */
+async function main() {
   try {
     console.log('🔄 Erstelle vollständiges Backup...');
-    
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `backup_${timestamp}.json`;
-    
-    // Alle Daten laden
-    const [
-      users,
-      userGroups,
-      userGroupMemberships,
-      modules,
-      moduleAccess,
-      customers,
-      suppliers,
-      articleGroups,
-      articles,
-      projects,
-      locations,
-      projectAssignments,
-      timeEntries,
-      absenceRequests,
-      holidays,
-      overtimeBalances,
-      complianceViolations,
-      complianceSettings,
-      invoiceTemplates,
-      invoices,
-      invoiceItems,
-      reminders,
-      reminderSettings,
-      incidents,
-      incidentComments,
-      workflows,
-      workflowSteps,
-      invoiceTemplateWorkflows,
-      workflowInstances,
-      workflowInstanceSteps,
-      systemSettings,
-      documentNodes,
-      documentVersions,
-      documentNodeGroupPermissions
-    ] = await Promise.all([
-      prisma.user.findMany(),
-      prisma.userGroup.findMany(),
-      prisma.userGroupMembership.findMany(),
-      prisma.module.findMany(),
-      prisma.moduleAccess.findMany(),
-      prisma.customer.findMany(),
-      prisma.supplier.findMany(),
-      prisma.articleGroup.findMany(),
-      prisma.article.findMany(),
-      prisma.project.findMany(),
-      prisma.location.findMany(),
-      prisma.projectAssignment.findMany(),
-      prisma.timeEntry.findMany(),
-      prisma.absenceRequest.findMany(),
-      prisma.holiday.findMany(),
-      prisma.overtimeBalance.findMany(),
-      prisma.complianceViolation.findMany(),
-      prisma.complianceSettings.findMany(),
-      prisma.invoiceTemplate.findMany(),
-      prisma.invoice.findMany(),
-      prisma.invoiceItem.findMany(),
-      prisma.reminder.findMany(),
-      prisma.reminderSettings.findMany(),
-      prisma.incident.findMany(),
-      prisma.incidentComment.findMany(),
-      prisma.workflow.findMany(),
-      prisma.workflowStep.findMany(),
-      prisma.invoiceTemplateWorkflow.findMany(),
-      prisma.workflowInstance.findMany(),
-      prisma.workflowInstanceStep.findMany(),
-      prisma.systemSettings.findMany(),
-      prisma.documentNode.findMany(),
-      prisma.documentVersion.findMany(),
-      prisma.documentNodeGroupPermission.findMany()
-    ]);
 
-    const backup = {
-      version: '2.0',
-      timestamp: new Date().toISOString(),
-      schemaInfo: {
-        tablesCount: 34,
-        description: 'Complete database backup including all modules and intranet'
-      },
-      data: {
-        users,
-        userGroups,
-        userGroupMemberships,
-        modules,
-        moduleAccess,
-        customers,
-        suppliers,
-        articleGroups,
-        articles,
-        projects,
-        locations,
-        projectAssignments,
-        timeEntries,
-        absenceRequests,
-        holidays,
-        overtimeBalances,
-        complianceViolations,
-        complianceSettings,
-        invoiceTemplates,
-        invoices,
-        invoiceItems,
-        reminders,
-        reminderSettings,
-        incidents,
-        incidentComments,
-        workflows,
-        workflowSteps,
-        invoiceTemplateWorkflows,
-        workflowInstances,
-        workflowInstanceSteps,
-        systemSettings,
-        documentNodes,
-        documentVersions,
-        documentNodeGroupPermissions
-      },
-      statistics: {
-        usersCount: users.length,
-        userGroupsCount: userGroups.length,
-        customersCount: customers.length,
-        suppliersCount: suppliers.length,
-        articlesCount: articles.length,
-        projectsCount: projects.length,
-        locationsCount: locations.length,
-        timeEntriesCount: timeEntries.length,
-        absenceRequestsCount: absenceRequests.length,
-        invoicesCount: invoices.length,
-        incidentsCount: incidents.length,
-        workflowsCount: workflows.length,
-        documentNodesCount: documentNodes.length,
-        documentVersionsCount: documentVersions.length
-      }
-    };
+    const zipFilename = await createBackupFile('backup');
 
-    // Backup-Verzeichnis sicherstellen
-    const backupDir = path.join(__dirname, '../backups');
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
-    }
-
-    // Backup schreiben
-    const filepath = path.join(backupDir, filename);
-    fs.writeFileSync(filepath, JSON.stringify(backup, null, 2), 'utf-8');
-    
+    const backupDir = process.env.BACKUP_DIR || path.join(__dirname, '../backups');
+    const filepath = path.join(backupDir, zipFilename);
     const stats = fs.statSync(filepath);
-    
+
     console.log('✅ Backup erfolgreich erstellt!');
-    console.log('📄 Datei:', filename);
+    console.log('📄 Datei:', zipFilename);
     console.log('📊 Größe:', (stats.size / 1024 / 1024).toFixed(2), 'MB');
-    console.log('');
-    console.log('Statistiken:');
-    console.log('  - Benutzer:', users.length);
-    console.log('  - Benutzergruppen:', userGroups.length);
-    console.log('  - Module:', modules.length);
-    console.log('  - Kunden:', customers.length);
-    console.log('  - Lieferanten:', suppliers.length);
-    console.log('  - Artikel:', articles.length);
-    console.log('  - Projekte:', projects.length);
-    console.log('  - Standorte:', locations.length);
-    console.log('  - Intranet-Dokumente:', documentNodes.length);
-    console.log('  - Dokumentversionen:', documentVersions.length);
-    console.log('  - Dokumentberechtigungen:', documentNodeGroupPermissions.length);
-    console.log('  - Zeiteinträge:', timeEntries.length);
-    console.log('  - Abwesenheitsanträge:', absenceRequests.length);
-    console.log('  - Rechnungen:', invoices.length);
-    console.log('  - Vorfälle:', incidents.length);
-    console.log('  - Workflows:', workflows.length);
-    
+    console.log('   (Datenbank: alle Tabellen + hochgeladene Dateien)');
+
     await prisma.$disconnect();
   } catch (error) {
     console.error('❌ Fehler beim Backup:', error);
@@ -187,4 +33,4 @@ async function createFullBackup() {
   }
 }
 
-createFullBackup();
+main();
