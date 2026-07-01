@@ -3,11 +3,13 @@
 # cflux - Micro ERP and Swiss Compliant Time Tracking System
 ## Executive Summary für die Geschäftsleitung
 
-**Berichtsdatum:** 12. Juni 2026  
-**Version:** 1.6  
-**Status:** Production with Calendar, Contacts, EHS Dashboards & System-wide Dark Mode
+**Berichtsdatum:** 1. Juli 2026  
+**Version:** 1.7  
+**Status:** Production with Calendar, Contacts, EHS Dashboards, System-wide Dark Mode & strukturiertem Probezeit-Prozess
 
 > 📄 **Ergänzender Report:** Eine kompakte Übersicht nur der Änderungen seit Februar 2026 findet sich in [`executive_report_june_2026.md`](executive_report_june_2026.md).
+>
+> 📊 **Onboarding-Prozessabgleich:** Die Deckungsanalyse der cflux-Implementierung gegen den AQUIST-Sollprozess (6 Phasen) inkl. grafischer Übersicht ist im Abschnitt [„Onboarding-Prozessabgleich (AQUIST-Sollprozess)"](#-onboarding-prozessabgleich-aquist-sollprozess) zusammengefasst.
 
 ---
 
@@ -25,7 +27,7 @@
 - 📇 **Kontaktverwaltung** mit gruppenbasierter Sichtbarkeit und Mitarbeiter-Synchronisation (NEU Juni 2026)
 - 🏢 **Abteilungen & Organigramm** mit Vorgesetzten-Hierarchie und Cross-Department-Visualisierung (NEU Februar 2026)
 - 🏷️ **Story-Tags** pro Projekt für granulare Zeitbuchung und Reporting (NEU Februar 2026)
-- 👤 **Digitales Onboarding** für neue Mitarbeiter (NEU Januar 2026)
+- 👤 **Digitales Onboarding** für neue Mitarbeiter inkl. **Probezeitgespräche (30/60/90 Tage)** (NEU Januar 2026 / Probezeit Juli 2026)
 - 🎓 **E-Learning & Schulungsmanagement** mit Compliance-Integration und PDF-Upload (Dezember 2025 / Update Februar 2026)
 
 ---
@@ -589,6 +591,15 @@ Das Onboarding-Modul digitalisiert den gesamten Einstellungsprozess von der Bewe
   - NO_SHOW (Nicht erschienen)
 - **Zertifikats-Upload** nach erfolgreicher Teilnahme
 
+#### E) Probezeit- & Feedbackgespräche (NEU: Juli 2026)
+- **Automatische Terminplanung** der Gespräche nach 30, 60 und 90 Tagen ab Eintritt (idempotent bei Einstellung erzeugt)
+- **Strukturierte Bewertung** je Gespräch auf vier Achsen (1–5): fachliche Leistung, Integration ins Team, Zusammenarbeit, Zielerreichung
+- **Dokumentation** von Stärken, Entwicklungsfeldern, Rückmeldung des Mitarbeitenden und Vereinbarungen
+- **Weiterbeschäftigungs-Entscheid** (Weiterbeschäftigung / Probezeit verlängern / Beenden), inkl. optionalem Abschlussgespräch
+- **Statusverfolgung** (geplant / durchgeführt / überfällig / abgesagt) mit „HR anwesend"-Vermerk
+- Integriert als Tab **„Probezeit"** je Mitarbeitendem; Prisma-Modell `ProbationReview`, REST API unter `/api/onboarding/…/probation-reviews`
+- Setzt Phase 6 (Integration & Probezeit) des AQUIST-Sollprozesses um → siehe Abschnitt [„Onboarding-Prozessabgleich"](#-onboarding-prozessabgleich-aquist-sollprozess)
+
 **Admin-Dashboard Features:**
 - **Übersichtskarten** für schnellen Zugriff:
   - Bewerberverwaltung
@@ -932,10 +943,11 @@ Zentrale Kontaktverwaltung mit Kontaktgruppen, granularer Sichtbarkeitssteuerung
 -  Datenminimierung - nur erforderliche Daten werden gespeichert
 
 ### Backup & Recovery
-- Automatische tägliche Backups der Datenbank
+- Automatische tägliche Backups der Datenbank (konfigurierbar: täglich/wöchentlich/monatlich, Uhrzeit, Aufbewahrung)
+- **Vollständige Abdeckung:** Backup umfasst alle Datenbank-Tabellen (aktuell 110 Modelle) **und** sämtliche hochgeladenen Dateien (ZIP-Archiv) – manuelles, automatisches und CLI-Backup nutzen dieselbe Quelle (überprüft Juli 2026)
 - Konfigurierbare Backup-Rotation (Standard: 30 Tage)
-- Backup via Admin-UI
-- Restore-Funktion mit Point-in-Time Recovery
+- Backup via Admin-UI, automatischer Scheduler und `npm run backup`
+- Restore-Funktion inkl. Wiederherstellung der Datei-Uploads (FK-sichere Reihenfolge)
 - Backup-Historie (configurable retention)
 - Empfehlung: Externe Backup-Speicherung (Off-Site)
 
@@ -1018,6 +1030,69 @@ Zentrale Kontaktverwaltung mit Kontaktgruppen, granularer Sichtbarkeitssteuerung
 - Große Community und Support
 - Einfaches Deployment
 - Schema-First Database Design (keine Migrations-Fehler)
+
+---
+
+## 📊 Onboarding-Prozessabgleich (AQUIST-Sollprozess)
+
+> Deckungsanalyse der cflux-Implementierung gegen den AQUIST-Onboarding-Sollprozess (6 Phasen). Der vollständige Report mit grafischer Übersicht liegt als PDF vor: **`cflux_Onboarding_Deckungsreport_2026-07-01.pdf`**. Stand: 1. Juli 2026.
+
+**Gesamtdeckung: rund 72 %.** Der operative Kern (Phasen 2–6) ist gut bis sehr gut abgebildet – inklusive der im Sollprozess durchgängig referenzierten Onboarding-Checkliste CH-439114, die als Checklisten-Template hinterlegt ist. Schwächer ist die „Governance-Klammer" (Budgetfreigabe in Phase 1, RACI-Rollenmodell, KPI-Kapitel).
+
+**Deckung je Prozessphase:**
+
+```
+Phase 1 – Bedarf & Ausschreibung    ███████████░░░░░░░░░░   55 %
+Phase 2 – Bewerbungs-Prozess        ████████████████░░░░   80 %
+Phase 3 – Analyse & Entscheidung    ██████████████░░░░░░   70 %
+Phase 4 – Vertrag & Anstellung      █████████████░░░░░░░   65 %
+Phase 5 – Preboarding               █████████████████░░░   85 %
+Phase 6 – Integration & Probezeit   ████████████████░░░░   82 %   (75 % → 82 % durch Probezeit-Modul)
+
+Übergreifend (im Sollprozess prominent, im System bislang kaum):
+RACI-Rollenmodell                   ████░░░░░░░░░░░░░░░░░   20 %
+KPIs (Kapitel 9.0)                  ███░░░░░░░░░░░░░░░░░░   15 %
+```
+
+**Detail je Phase:**
+
+| Phase | Deckung | Vorhanden | Wesentliche Lücken |
+|---|---|---|---|
+| 1 Bedarf & Ausschreibung | 55 % | Job-CRUD, öffentliche Stellenbörse, Import | Keine Budgetfreigabe/Requisition, Anforderungsprofil nur Freitext, keine K.-o.-Kriterien |
+| 2 Bewerbungs-Prozess | 80 % | Formular, E-Mail-Verifikation, Bewerber-Portal, ATS-Status | Schlankes Datenmodell, keine Bestätigungs-Templates |
+| 3 Analyse & Entscheidung | 70 % | Interviews (Rating), Notizen, Status-Workflow | Kein Scoring, keine Shortlist-/Kanban-Ansicht |
+| 4 Vertrag & Anstellung | 65 % | Hire-Flow, Willkommens-Mail, Gehaltskonfiguration, Vertrag-Upload | Keine Vertragsvorlagen, keine E-Signatur, kein Offer-Letter |
+| 5 Preboarding | 85 % | Stammdaten, Equipment + Übergabeprotokoll, Checklisten, Pate | IT-Rollen nur als Aufgabe, keine autom. Hardware-Bestellung |
+| 6 Integration & Probezeit | 82 % | Dashboard, Aufgaben, Checklisten, Schulungen, **Probezeitgespräche** | NPS/Zufriedenheit fehlt |
+
+**Übergreifende Lücken:**
+- **RACI-Rollenmodell** – Der Sollprozess strukturiert alles über HR / Hiring Manager / IT / Finance; im System kennt die Nutzerrolle nur ADMIN / USER, Verantwortlichkeiten existieren nur als Freitext. Keine rollenbasierten Freigaben.
+- **KPIs (Kapitel 9.0)** – Der Sollprozess definiert 6 Kennzahlen; vorhanden sind nur Aufgaben-Fortschritt und Overdue-Zähler. Es fehlen Time-to-Productivity, Preboarding-Drop-out-Rate, Onboarding-Zufriedenheit, Zielerreichung Probezeit, Integrationsgrad und Fluktuation.
+
+**Empfohlene nächste Schritte:**
+
+| # | Maßnahme | Status |
+|---|---|---|
+| 1 | Rollenmodell erweitern (RACI) + rollenbasierte Freigaben | offen |
+| 2 | Budget-/Freigabe-Schritt in Phase 1 (Finance) | offen |
+| 3 | Probezeitgespräch-Modul (30/60/90 Tage) | ✅ umgesetzt (Juli 2026) |
+| 4 | Onboarding-KPI-Auswertung (Time-to-Hire, Drop-out-Rate u.a.) | offen |
+
+> *Die Prozentwerte sind eine gewichtete Einschätzung des Funktionsumfangs je Phase, keine gemessene Kennzahl.*
+
+---
+
+## Letzte Updates (Juli 2026)
+
+### 👤 Probezeit- & Feedbackgespräche (1. Juli 2026)
+- Neues Modul für strukturierte Probezeitgespräche nach 30/60/90 Tagen (automatisch ab Eintritt geplant)
+- Bewertung auf vier Achsen, Freitext-Dokumentation und Weiterbeschäftigungs-Entscheid; Tab „Probezeit" je Mitarbeitendem
+- Prisma-Modell `ProbationReview`, REST API unter `/api/onboarding/…/probation-reviews`
+- Schließt Phase 6 des AQUIST-Sollprozesses (Deckung 75 % → 82 %)
+
+### 💾 Backup-Vollständigkeit (1. Juli 2026)
+- 8 zuvor ungesicherte Tabellen ergänzt (u.a. `CalendarEvent`, `Contact`, `OnboardingJob`); alle 110 Modelle werden jetzt gesichert
+- Manuelles, automatisches und CLI-Backup nutzen dieselbe Tabellen-Definition (eine Quelle der Wahrheit); Restore-Reihenfolge FK-sicher ergänzt
 
 ---
 
@@ -1259,6 +1334,11 @@ Zentrale Kontaktverwaltung mit Kontaktgruppen, granularer Sichtbarkeitssteuerung
   - Bewerbermanagement mit Online-Portal
   - Strukturiertes Mitarbeiter-Onboarding
   - Equipment & Schulungsverwaltung
+  - Probezeit- & Feedbackgespräche 30/60/90 Tage (ERLEDIGT Juli 2026)
+- [ ] **Onboarding-Prozess: Governance-Lücken** (offen, siehe [Prozessabgleich](#-onboarding-prozessabgleich-aquist-sollprozess))
+  - RACI-Rollenmodell (HR/Hiring Manager/IT/Finance) + rollenbasierte Freigaben
+  - Budget-/Freigabe-Schritt in Phase 1 (Finance)
+  - Onboarding-KPI-Auswertung (Time-to-Hire, Drop-out-Rate, Probezeit-Zielerreichung)
 - [ ] **E-Learning Phase 2**
   - Certificate Templates & PDF-Generierung
   - ~~PDF-Upload für Lektionen~~ (ERLEDIGT Februar 2026)
