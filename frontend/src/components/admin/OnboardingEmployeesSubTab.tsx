@@ -12,8 +12,8 @@ import {
 } from '@mui/icons-material';
 import { onboardingService } from '../../services/onboardingService';
 import { userService } from '../../services/user.service';
-import api from '../../services/api';
-import { Employee, OnboardingTask, OnboardingTaskStatus, TaskFormData } from '../../types/onboarding';
+import api, { getBackendURL } from '../../services/api';
+import { Employee, OnboardingTask, OnboardingTaskStatus, TaskFormData, EmployeeDocument, ApplicantDocument, OnboardingDocumentType } from '../../types/onboarding';
 import { ChecklistTemplate, ChecklistInstance, ChecklistItemCompletion, ChecklistItemType } from '../../types/checklist';
 import ProbationReviews from './ProbationReviews';
 
@@ -58,6 +58,18 @@ const categoryLabels: Record<string, string> = {
   OTHER: 'Sonstiges',
 };
 
+const documentTypeLabels: Record<string, string> = {
+  CV: 'Lebenslauf',
+  CERTIFICATE: 'Zeugnis',
+  COVER_LETTER: 'Anschreiben',
+  CONTRACT: 'Arbeitsvertrag',
+  PRIVACY_POLICY: 'Datenschutzerklärung',
+  IT_GUIDELINES: 'IT-Richtlinien',
+  NDA: 'NDA',
+  CONFIDENTIALITY: 'Vertraulichkeit',
+  OTHER: 'Sonstiges',
+};
+
 interface OnboardingEmployeesSubTabProps {
   onUpdate?: () => void;
 }
@@ -88,8 +100,16 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
   const [checklistNotes, setChecklistNotes] = useState<string>('');
   const [checklistAssignedToId, setChecklistAssignedToId] = useState<string>('');
   const [checklistResponsibleIds, setChecklistResponsibleIds] = useState<string[]>([]);
+  // Dokumente
+  const [employeeDocs, setEmployeeDocs] = useState<Record<string, EmployeeDocument[]>>({});
+  const [applicantDocs, setApplicantDocs] = useState<Record<string, ApplicantDocument[]>>({});
+  const [docDialogOpen, setDocDialogOpen] = useState(false);
+  const [docEmployeeId, setDocEmployeeId] = useState<string>('');
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docType, setDocType] = useState<OnboardingDocumentType>(OnboardingDocumentType.OTHER);
+  const [docUploading, setDocUploading] = useState(false);
   const [employeeChecklists, setEmployeeChecklists] = useState<Record<string, ChecklistInstance[]>>({});
-  const [expandedTab, setExpandedTab] = useState<Record<string, 'tasks' | 'checklists' | 'probation'>>({});
+  const [expandedTab, setExpandedTab] = useState<Record<string, 'tasks' | 'checklists' | 'probation' | 'documents'>>({});
 
   // Checklist processing state
   const [processDialogOpen, setProcessDialogOpen] = useState(false);
@@ -141,6 +161,46 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
       console.error('Error loading checklists:', err);
     }
   };
+
+  const loadDocuments = async (employeeId: string) => {
+    try {
+      const emp: any = await onboardingService.getEmployeeById(employeeId);
+      setEmployeeDocs((prev) => ({ ...prev, [employeeId]: emp.documents || [] }));
+      setApplicantDocs((prev) => ({ ...prev, [employeeId]: emp.applicant?.documents || [] }));
+    } catch (err) {
+      console.error('Error loading documents:', err);
+    }
+  };
+
+  const openDocDialog = (employeeId: string) => {
+    setDocEmployeeId(employeeId);
+    setDocFile(null);
+    setDocType(OnboardingDocumentType.OTHER);
+    setDocDialogOpen(true);
+  };
+
+  const handleUploadDocument = async () => {
+    if (!docFile || !docEmployeeId) return;
+    setDocUploading(true);
+    try {
+      await onboardingService.uploadDocument(docEmployeeId, docFile, docType);
+      setDocDialogOpen(false);
+      await loadDocuments(docEmployeeId);
+    } catch (err: any) {
+      console.error('Error uploading document:', err);
+      setError(err?.response?.data?.error || 'Dokument konnte nicht hochgeladen werden');
+    } finally {
+      setDocUploading(false);
+    }
+  };
+
+  // Download-URL: Employee-Docs speichern den Originalnamen als fileName und den
+  // vollen Pfad als filePath -> statischer Link braucht den Basename von filePath.
+  const basename = (p: string) => p.split(/[\\/]/).pop() || p;
+  const employeeDocUrl = (doc: EmployeeDocument) =>
+    `${getBackendURL()}/uploads/employee-documents/${basename(doc.filePath)}`;
+  const applicantDocUrl = (doc: ApplicantDocument) =>
+    `${getBackendURL()}/uploads/applicant-documents/${doc.fileName}`;
 
   const toggleExpand = (employeeId: string, userId?: string) => {
     if (expandedEmployee === employeeId) {
@@ -443,12 +503,16 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
                         <Box sx={{ p: 2, bgcolor: 'action.hover' }}>
                           <Tabs
                             value={expandedTab[emp.id] || 'tasks'}
-                            onChange={(_, v) => setExpandedTab((prev) => ({ ...prev, [emp.id]: v }))}
+                            onChange={(_, v) => {
+                              setExpandedTab((prev) => ({ ...prev, [emp.id]: v }));
+                              if (v === 'documents' && !employeeDocs[emp.id]) loadDocuments(emp.id);
+                            }}
                             sx={{ mb: 2, minHeight: 36 }}
                           >
                             <Tab label="Aufgaben" value="tasks" sx={{ minHeight: 36, py: 0 }} />
                             <Tab label="Checklisten" value="checklists" sx={{ minHeight: 36, py: 0 }} />
                             <Tab label="Probezeit" value="probation" sx={{ minHeight: 36, py: 0 }} />
+                            <Tab label="Dokumente" value="documents" sx={{ minHeight: 36, py: 0 }} />
                           </Tabs>
 
                           {(expandedTab[emp.id] || 'tasks') === 'tasks' && (
@@ -661,6 +725,87 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
                           {expandedTab[emp.id] === 'probation' && (
                             <ProbationReviews employeeId={emp.id} />
                           )}
+
+                          {expandedTab[emp.id] === 'documents' && (
+                            <>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                <Typography variant="subtitle2">Begleitdokumente</Typography>
+                                <Button size="small" startIcon={<Add />} onClick={() => openDocDialog(emp.id)}>
+                                  Dokument hochladen
+                                </Button>
+                              </Box>
+                              {(!employeeDocs[emp.id] || employeeDocs[emp.id].length === 0) ? (
+                                <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+                                  Keine Begleitdokumente vorhanden.
+                                </Typography>
+                              ) : (
+                                <Table size="small" sx={{ mb: 2 }}>
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell>Typ</TableCell>
+                                      <TableCell>Dateiname</TableCell>
+                                      <TableCell>Status</TableCell>
+                                      <TableCell>Hochgeladen</TableCell>
+                                      <TableCell align="right">Aktion</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {employeeDocs[emp.id].map((doc) => (
+                                      <TableRow key={doc.id}>
+                                        <TableCell>
+                                          <Chip label={documentTypeLabels[doc.documentType] || doc.documentType} size="small" variant="outlined" />
+                                        </TableCell>
+                                        <TableCell>{doc.fileName}</TableCell>
+                                        <TableCell>{doc.status}</TableCell>
+                                        <TableCell>{new Date(doc.uploadedAt).toLocaleDateString('de-CH')}</TableCell>
+                                        <TableCell align="right">
+                                          <Button size="small" component="a" href={employeeDocUrl(doc)} target="_blank" rel="noopener noreferrer">
+                                            Öffnen
+                                          </Button>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              )}
+
+                              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                Bewerbungsunterlagen
+                              </Typography>
+                              {(!applicantDocs[emp.id] || applicantDocs[emp.id].length === 0) ? (
+                                <Typography variant="body2" color="textSecondary">
+                                  Keine Unterlagen aus dem Bewerbungsprozess vorhanden.
+                                </Typography>
+                              ) : (
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell>Typ</TableCell>
+                                      <TableCell>Dateiname</TableCell>
+                                      <TableCell>Hochgeladen</TableCell>
+                                      <TableCell align="right">Aktion</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {applicantDocs[emp.id].map((doc) => (
+                                      <TableRow key={doc.id}>
+                                        <TableCell>
+                                          <Chip label={documentTypeLabels[doc.documentType] || doc.documentType} size="small" variant="outlined" />
+                                        </TableCell>
+                                        <TableCell>{doc.fileName}</TableCell>
+                                        <TableCell>{new Date(doc.uploadedAt).toLocaleDateString('de-CH')}</TableCell>
+                                        <TableCell align="right">
+                                          <Button size="small" component="a" href={applicantDocUrl(doc)} target="_blank" rel="noopener noreferrer">
+                                            Öffnen
+                                          </Button>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              )}
+                            </>
+                          )}
                         </Box>
                       </Collapse>
                     </TableCell>
@@ -808,6 +953,42 @@ const OnboardingEmployeesSubTab: React.FC<OnboardingEmployeesSubTabProps> = ({ o
             disabled={!selectedTemplateId}
           >
             Zuweisen
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Upload Document Dialog */}
+      <Dialog open={docDialogOpen} onClose={() => setDocDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Begleitdokument hochladen</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <FormControl fullWidth>
+              <InputLabel>Dokumenttyp</InputLabel>
+              <Select
+                label="Dokumenttyp"
+                value={docType}
+                onChange={(e) => setDocType(e.target.value as OnboardingDocumentType)}
+              >
+                {Object.values(OnboardingDocumentType).map((t) => (
+                  <MenuItem key={t} value={t}>{documentTypeLabels[t] || t}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button variant="outlined" component="label">
+              {docFile ? docFile.name : 'Datei auswählen (PDF, DOCX, JPG, PNG)'}
+              <input
+                type="file"
+                hidden
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                onChange={(e) => setDocFile(e.target.files?.[0] || null)}
+              />
+            </Button>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDocDialogOpen(false)} disabled={docUploading}>Abbrechen</Button>
+          <Button variant="contained" onClick={handleUploadDocument} disabled={!docFile || docUploading}>
+            Hochladen
           </Button>
         </DialogActions>
       </Dialog>

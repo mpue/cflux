@@ -190,6 +190,9 @@ export async function getEmployeeById(employeeId: string) {
           id: true,
           appliedAt: true,
           position: true,
+          documents: {
+            orderBy: { uploadedAt: 'desc' },
+          },
         },
       },
       documents: {
