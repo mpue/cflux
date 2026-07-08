@@ -76,6 +76,7 @@ export const TABLE_MAP: Record<string, string> = {
   salaryConfigurations: 'salaryConfiguration',
   devices: 'device',
   deviceAssignments: 'deviceAssignment',
+  deviceSoftware: 'deviceSoftware',
   travelExpenses: 'travelExpense',
   messages: 'message',
   documentNodeTypeRegistries: 'documentNodeTypeRegistry',

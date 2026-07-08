@@ -10,7 +10,11 @@ import {
   assignDevice,
   returnDevice,
   exportDevices,
-  importDevices
+  importDevices,
+  getDeviceSoftware,
+  createDeviceSoftware,
+  updateDeviceSoftware,
+  deleteDeviceSoftware
 } from '../controllers/device.controller';
 
 const router = express.Router();
@@ -47,5 +51,11 @@ router.post('/:id/assign', authorize('ADMIN'), assignDevice);
 
 // Return device (unassign) (Admin only)
 router.post('/:id/return', authorize('ADMIN'), returnDevice);
+
+// Software / Lizenzen pro Gerät (Admin only)
+router.get('/:id/software', authorize('ADMIN'), getDeviceSoftware);
+router.post('/:id/software', authorize('ADMIN'), createDeviceSoftware);
+router.put('/:id/software/:softwareId', authorize('ADMIN'), updateDeviceSoftware);
+router.delete('/:id/software/:softwareId', authorize('ADMIN'), deleteDeviceSoftware);
 
 export default router;

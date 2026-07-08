@@ -15,6 +15,9 @@ export const getAllDevices = async (req: Request, res: Response) => {
             lastName: true,
             email: true
           }
+        },
+        software: {
+          orderBy: { name: 'asc' }
         }
       },
       orderBy: {
@@ -477,5 +480,154 @@ export const importDevices = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Import devices error:', error);
     res.status(500).json({ error: 'Failed to import devices' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────
+// Software / Lizenzen pro Gerät (Assetkatalog)
+// ─────────────────────────────────────────────────────────
+
+// Get all software/licenses for a device
+export const getDeviceSoftware = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const device = await prisma.device.findUnique({ where: { id } });
+    if (!device) {
+      return res.status(404).json({ error: 'Gerät nicht gefunden' });
+    }
+
+    const software = await prisma.deviceSoftware.findMany({
+      where: { deviceId: id },
+      orderBy: { name: 'asc' }
+    });
+
+    res.json(software);
+  } catch (error) {
+    console.error('Error fetching device software:', error);
+    res.status(500).json({ error: 'Fehler beim Laden der Software/Lizenzen' });
+  }
+};
+
+// Add a software/license entry to a device
+export const createDeviceSoftware = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      type,
+      vendor,
+      version,
+      licenseKey,
+      licenseType,
+      seats,
+      purchaseDate,
+      expiryDate,
+      cost,
+      notes
+    } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Name ist erforderlich' });
+    }
+
+    const device = await prisma.device.findUnique({ where: { id } });
+    if (!device) {
+      return res.status(404).json({ error: 'Gerät nicht gefunden' });
+    }
+
+    const entry = await prisma.deviceSoftware.create({
+      data: {
+        deviceId: id,
+        name,
+        type: type || null,
+        vendor: vendor || null,
+        version: version || null,
+        licenseKey: licenseKey || null,
+        licenseType: licenseType || null,
+        seats: seats !== undefined && seats !== null && seats !== '' ? Number(seats) : null,
+        purchaseDate: purchaseDate ? new Date(purchaseDate) : null,
+        expiryDate: expiryDate ? new Date(expiryDate) : null,
+        cost: cost !== undefined && cost !== null && cost !== '' ? Number(cost) : null,
+        notes: notes || null
+      }
+    });
+
+    res.status(201).json(entry);
+  } catch (error) {
+    console.error('Error creating device software:', error);
+    res.status(500).json({ error: 'Fehler beim Erstellen des Eintrags' });
+  }
+};
+
+// Update a software/license entry
+export const updateDeviceSoftware = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, softwareId } = req.params;
+    const {
+      name,
+      type,
+      vendor,
+      version,
+      licenseKey,
+      licenseType,
+      seats,
+      purchaseDate,
+      expiryDate,
+      cost,
+      notes
+    } = req.body;
+
+    const existing = await prisma.deviceSoftware.findFirst({
+      where: { id: softwareId, deviceId: id }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Eintrag nicht gefunden' });
+    }
+
+    const entry = await prisma.deviceSoftware.update({
+      where: { id: softwareId },
+      data: {
+        name: name !== undefined ? name : existing.name,
+        type: type !== undefined ? (type || null) : existing.type,
+        vendor: vendor !== undefined ? (vendor || null) : existing.vendor,
+        version: version !== undefined ? (version || null) : existing.version,
+        licenseKey: licenseKey !== undefined ? (licenseKey || null) : existing.licenseKey,
+        licenseType: licenseType !== undefined ? (licenseType || null) : existing.licenseType,
+        seats: seats !== undefined ? (seats !== null && seats !== '' ? Number(seats) : null) : existing.seats,
+        purchaseDate: purchaseDate !== undefined ? (purchaseDate ? new Date(purchaseDate) : null) : existing.purchaseDate,
+        expiryDate: expiryDate !== undefined ? (expiryDate ? new Date(expiryDate) : null) : existing.expiryDate,
+        cost: cost !== undefined ? (cost !== null && cost !== '' ? Number(cost) : null) : existing.cost,
+        notes: notes !== undefined ? (notes || null) : existing.notes
+      }
+    });
+
+    res.json(entry);
+  } catch (error) {
+    console.error('Error updating device software:', error);
+    res.status(500).json({ error: 'Fehler beim Aktualisieren des Eintrags' });
+  }
+};
+
+// Delete a software/license entry
+export const deleteDeviceSoftware = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, softwareId } = req.params;
+
+    const existing = await prisma.deviceSoftware.findFirst({
+      where: { id: softwareId, deviceId: id }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Eintrag nicht gefunden' });
+    }
+
+    await prisma.deviceSoftware.delete({ where: { id: softwareId } });
+
+    res.json({ message: 'Eintrag erfolgreich gelöscht' });
+  } catch (error) {
+    console.error('Error deleting device software:', error);
+    res.status(500).json({ error: 'Fehler beim Löschen des Eintrags' });
   }
 };

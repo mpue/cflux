@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useModules } from '../contexts/ModuleContext';
+import { useShortcuts, ShortcutItem } from '../contexts/ShortcutsContext';
 import { useTheme as useCustomTheme } from '../contexts/ThemeContext';
 import { getUnreadCount } from '../services/message.service';
 import {
@@ -39,7 +40,31 @@ import {
   School as SchoolIcon,
   ChecklistRtl as ChecklistIcon,
   CalendarMonth as CalendarIcon,
+  PushPin as PinIcon,
 } from '@mui/icons-material';
+
+const MODULE_ICONS: Record<string, React.ElementType> = {
+  calendar: CalendarIcon,
+  money: MoneyIcon,
+  incident: IncidentIcon,
+  ehs: EHSIcon,
+  intranet: IntranetIcon,
+  media: MediaIcon,
+  school: SchoolIcon,
+  checklist: ChecklistIcon,
+};
+
+const MORE_MODULES: ShortcutItem[] = [
+  { key: 'calendar', label: 'Kalender', route: '/calendar', icon: 'calendar' },
+  { key: 'travel_expenses', label: 'Reisekosten', route: '/travel-expenses', icon: 'money' },
+  { key: 'incidents', label: 'Incidents', route: '/incidents', icon: 'incident' },
+  { key: 'ehs', label: 'EHS Dashboard', route: '/ehs-dashboard', icon: 'ehs' },
+  { key: 'ehs', label: 'EHS Todos', route: '/ehs-todos', icon: 'ehs' },
+  { key: 'intranet', label: 'Dokumente', route: '/admin?tab=dokumente', icon: 'intranet' },
+  { key: 'media', label: 'Medien', route: '/media', icon: 'media' },
+  { key: 'elearning', label: 'E-Learning', route: '/elearning', icon: 'school' },
+  { key: 'checklists', label: 'Checklisten', route: '/checklists', icon: 'checklist' },
+];
 
 interface AppNavbarProps {
   title?: string;
@@ -129,6 +154,15 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
     navigate(path);
     handleMenuClose();
     handleMoreMenuClose();
+  };
+
+  // ---- Modul-Shortcuts (aus dem ShortcutsContext, persistiert im localStorage) ----
+  const { shortcuts, isPinned, openPinMenu } = useShortcuts();
+
+  // Rechtsklick auf einen Modul-Eintrag: "Mehr"-Menü schließen und Pin-Menü öffnen.
+  const openShortcutMenu = (e: React.MouseEvent, item: ShortcutItem) => {
+    handleMoreMenuClose();
+    openPinMenu(e, item);
   };
 
   const muiTheme = useTheme();
@@ -226,6 +260,31 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
           </Tooltip>
         )}
 
+        {/* Angeheftete Modul-Shortcuts */}
+        {shortcuts
+          .filter((s) => s.source === 'admin' || hasModuleAccess(s.key))
+          .map((s) => {
+            const Icon = MODULE_ICONS[s.icon];
+            return (
+              <Tooltip key={s.route} title={s.label}>
+                <IconButton
+                  color="inherit"
+                  onClick={() => navigateTo(s.route)}
+                  onContextMenu={(e) => openPinMenu(e, s)}
+                  size={isMobile ? 'small' : 'medium'}
+                >
+                  {Icon ? (
+                    <Icon fontSize={isMobile ? 'small' : 'medium'} />
+                  ) : (
+                    <Box component="span" sx={{ fontSize: isMobile ? '1rem' : '1.25rem', lineHeight: 1 }}>
+                      {s.icon}
+                    </Box>
+                  )}
+                </IconButton>
+              </Tooltip>
+            );
+          })}
+
         {/* More Menu */}
         <Tooltip title="Mehr">
           <IconButton color="inherit" onClick={handleMoreMenuOpen} size={isMobile ? 'small' : 'medium'}>
@@ -257,60 +316,20 @@ const AppNavbar: React.FC<AppNavbarProps> = ({
               PDF-Bericht
             </MenuItem>
           )}
-          {hasModuleAccess('calendar') && (
-            <MenuItem onClick={() => navigateTo('/calendar')}>
-              <CalendarIcon sx={{ mr: 1 }} />
-              Kalender
-            </MenuItem>
-          )}
-          {hasModuleAccess('travel_expenses') && (
-            <MenuItem onClick={() => navigateTo('/travel-expenses')}>
-              <MoneyIcon sx={{ mr: 1 }} />
-              Reisekosten
-            </MenuItem>
-          )}
-          {hasModuleAccess('incidents') && (
-            <MenuItem onClick={() => navigateTo('/incidents')}>
-              <IncidentIcon sx={{ mr: 1 }} />
-              Incidents
-            </MenuItem>
-          )}
-          {hasModuleAccess('ehs') && (
-            <MenuItem onClick={() => navigateTo('/ehs-dashboard')}>
-              <EHSIcon sx={{ mr: 1 }} />
-              EHS Dashboard
-            </MenuItem>
-          )}
-          {hasModuleAccess('ehs') && (
-            <MenuItem onClick={() => navigateTo('/ehs-todos')}>
-              <EHSIcon sx={{ mr: 1 }} />
-              EHS Todos
-            </MenuItem>
-          )}
-          {hasModuleAccess('intranet') && (
-            <MenuItem onClick={() => navigateTo('/admin?tab=dokumente')}>
-              <IntranetIcon sx={{ mr: 1 }} />
-              Dokumente
-            </MenuItem>
-          )}
-          {hasModuleAccess('media') && (
-            <MenuItem onClick={() => navigateTo('/media')}>
-              <MediaIcon sx={{ mr: 1 }} />
-              Medien
-            </MenuItem>
-          )}
-          {hasModuleAccess('elearning') && (
-            <MenuItem onClick={() => navigateTo('/elearning')}>
-              <SchoolIcon sx={{ mr: 1 }} />
-              E-Learning
-            </MenuItem>
-          )}
-          {hasModuleAccess('checklists') && (
-            <MenuItem onClick={() => navigateTo('/checklists')}>
-              <ChecklistIcon sx={{ mr: 1 }} />
-              Checklisten
-            </MenuItem>
-          )}
+          {MORE_MODULES.filter((m) => hasModuleAccess(m.key)).map((m) => {
+            const Icon = MODULE_ICONS[m.icon] || DashboardIcon;
+            return (
+              <MenuItem
+                key={m.route}
+                onClick={() => navigateTo(m.route)}
+                onContextMenu={(e) => openShortcutMenu(e, m)}
+              >
+                <Icon sx={{ mr: 1 }} />
+                {m.label}
+                {isPinned(m.route) && <PinIcon sx={{ ml: 'auto', pl: 1, fontSize: 16, opacity: 0.6 }} />}
+              </MenuItem>
+            );
+          })}
           {(user?.role === 'ADMIN' || hasAnyAdminModule()) && (
             <>
               <Divider />

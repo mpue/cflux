@@ -1551,10 +1551,37 @@ model Device {
   
   user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   assignments   DeviceAssignment[]
-  
+  software      DeviceSoftware[]
+
   @@index([userId])
   @@index([serialNumber])
   @@map("devices")
+}
+
+// Software- und Lizenzeintrag pro Gerät (Assetkatalog).
+// type unterscheidet z.B. "Software", "Lizenz", "Abo".
+model DeviceSoftware {
+  id            String    @id @default(uuid())
+  deviceId      String
+  name          String
+  type          String?   // "Software" | "Lizenz" | "Abo"
+  vendor        String?   // Hersteller / Anbieter
+  version       String?
+  licenseKey    String?   // Lizenzschlüssel
+  licenseType   String?   // z.B. Einzelplatz, Volumen, OEM, Abo
+  seats         Int?      // Anzahl Lizenzen / Plätze
+  purchaseDate  DateTime?
+  expiryDate    DateTime? // Ablauf / Gültig bis
+  cost          Decimal?  @db.Decimal(10, 2)
+  notes         String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  device        Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+  @@map("device_software")
 }
 
 model DeviceAssignment {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
-import { Device, deviceService } from '../../services/device.service';
+import { Device, DeviceSoftware, deviceService } from '../../services/device.service';
 import { User } from '../../types';
 
 interface DevicesTabProps {
@@ -32,7 +32,29 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
   const [categoryFilter, setCategoryFilter] = useState('');
   const [userFilter, setUserFilter] = useState('');
 
+  // Software / Lizenzen (Assetkatalog pro Gerät)
+  const [softwareModalDevice, setSoftwareModalDevice] = useState<Device | null>(null);
+  const [softwareList, setSoftwareList] = useState<DeviceSoftware[]>([]);
+  const [softwareLoading, setSoftwareLoading] = useState(false);
+  const [editingSoftware, setEditingSoftware] = useState<DeviceSoftware | null>(null);
+  const [showSoftwareForm, setShowSoftwareForm] = useState(false);
+  const emptySoftwareForm = {
+    name: '',
+    type: '',
+    vendor: '',
+    version: '',
+    licenseKey: '',
+    licenseType: '',
+    seats: '',
+    purchaseDate: '',
+    expiryDate: '',
+    cost: '',
+    notes: ''
+  };
+  const [softwareForm, setSoftwareForm] = useState(emptySoftwareForm);
+
   const categories = ['Laptop', 'Handy', 'Tablet', 'Monitor', 'SIM-Karte', 'PSA', 'Werkzeug', 'Sonstiges'];
+  const softwareTypes = ['Software', 'Lizenz', 'Abo'];
 
   const handleExportPDF = () => {
     try {
@@ -363,6 +385,134 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
     }
   };
 
+  // ── Software / Lizenzen ──────────────────────────────────
+  const loadSoftware = async (deviceId: string) => {
+    setSoftwareLoading(true);
+    try {
+      const list = await deviceService.getDeviceSoftware(deviceId);
+      setSoftwareList(list);
+    } catch (error) {
+      console.error('Error loading software:', error);
+      alert('Fehler beim Laden der Software/Lizenzen');
+    } finally {
+      setSoftwareLoading(false);
+    }
+  };
+
+  const handleOpenSoftware = async (device: Device) => {
+    setSoftwareModalDevice(device);
+    setShowSoftwareForm(false);
+    setEditingSoftware(null);
+    setSoftwareForm(emptySoftwareForm);
+    await loadSoftware(device.id);
+  };
+
+  const handleCloseSoftware = () => {
+    setSoftwareModalDevice(null);
+    setSoftwareList([]);
+    setShowSoftwareForm(false);
+    setEditingSoftware(null);
+    // Geräteliste aktualisieren, damit Badge-Zähler stimmt
+    onUpdate();
+  };
+
+  const handleNewSoftware = () => {
+    setEditingSoftware(null);
+    setSoftwareForm(emptySoftwareForm);
+    setShowSoftwareForm(true);
+  };
+
+  const handleEditSoftware = (sw: DeviceSoftware) => {
+    setEditingSoftware(sw);
+    setSoftwareForm({
+      name: sw.name || '',
+      type: sw.type || '',
+      vendor: sw.vendor || '',
+      version: sw.version || '',
+      licenseKey: sw.licenseKey || '',
+      licenseType: sw.licenseType || '',
+      seats: sw.seats != null ? String(sw.seats) : '',
+      purchaseDate: sw.purchaseDate ? sw.purchaseDate.split('T')[0] : '',
+      expiryDate: sw.expiryDate ? sw.expiryDate.split('T')[0] : '',
+      cost: sw.cost != null ? String(sw.cost) : '',
+      notes: sw.notes || ''
+    });
+    setShowSoftwareForm(true);
+  };
+
+  const handleSubmitSoftware = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!softwareModalDevice) return;
+
+    const payload = {
+      name: softwareForm.name,
+      type: softwareForm.type || undefined,
+      vendor: softwareForm.vendor || undefined,
+      version: softwareForm.version || undefined,
+      licenseKey: softwareForm.licenseKey || undefined,
+      licenseType: softwareForm.licenseType || undefined,
+      seats: softwareForm.seats !== '' ? Number(softwareForm.seats) : undefined,
+      purchaseDate: softwareForm.purchaseDate || undefined,
+      expiryDate: softwareForm.expiryDate || undefined,
+      cost: softwareForm.cost !== '' ? Number(softwareForm.cost) : undefined,
+      notes: softwareForm.notes || undefined
+    };
+
+    try {
+      if (editingSoftware) {
+        await deviceService.updateDeviceSoftware(softwareModalDevice.id, editingSoftware.id, payload);
+      } else {
+        await deviceService.createDeviceSoftware(softwareModalDevice.id, payload);
+      }
+      setShowSoftwareForm(false);
+      setEditingSoftware(null);
+      setSoftwareForm(emptySoftwareForm);
+      await loadSoftware(softwareModalDevice.id);
+    } catch (error: any) {
+      console.error('Error saving software:', error);
+      alert(error.response?.data?.error || 'Fehler beim Speichern');
+    }
+  };
+
+  const handleDeleteSoftware = async (sw: DeviceSoftware) => {
+    if (!softwareModalDevice) return;
+    if (!window.confirm(`"${sw.name}" wirklich löschen?`)) return;
+
+    try {
+      await deviceService.deleteDeviceSoftware(softwareModalDevice.id, sw.id);
+      await loadSoftware(softwareModalDevice.id);
+    } catch (error) {
+      console.error('Error deleting software:', error);
+      alert('Fehler beim Löschen');
+    }
+  };
+
+  // Ablauf-Status: 'expired' (rot) | 'soon' (gelb, < 30 Tage) | 'ok' | null
+  const getExpiryStatus = (expiryDate?: string): 'expired' | 'soon' | 'ok' | null => {
+    if (!expiryDate) return null;
+    const now = new Date();
+    const exp = new Date(expiryDate);
+    const days = Math.ceil((exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (days < 0) return 'expired';
+    if (days <= 30) return 'soon';
+    return 'ok';
+  };
+
+  const expiryColor = (status: ReturnType<typeof getExpiryStatus>) =>
+    status === 'expired' ? '#e74c3c' : status === 'soon' ? '#f39c12' : '#27ae60';
+
+  // Aggregierter Status der Software eines Geräts (für Badge am Button)
+  const deviceSoftwareBadge = (device: Device): { count: number; worst: 'expired' | 'soon' | null } => {
+    const list = device.software || [];
+    let worst: 'expired' | 'soon' | null = null;
+    for (const sw of list) {
+      const s = getExpiryStatus(sw.expiryDate);
+      if (s === 'expired') { worst = 'expired'; break; }
+      if (s === 'soon' && worst !== 'expired') worst = 'soon';
+    }
+    return { count: list.length, worst };
+  };
+
   const filteredDevices = devices.filter(device => {
     const matchesSearch = device.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       device.serialNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -625,6 +775,38 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
                   <div className="action-buttons">
                     <button
                       className="btn btn-sm btn-secondary"
+                      onClick={() => handleOpenSoftware(device)}
+                      title="Software & Lizenzen"
+                      style={{ position: 'relative' }}
+                    >
+                      💿
+                      {(() => {
+                        const badge = deviceSoftwareBadge(device);
+                        if (badge.count === 0) return null;
+                        return (
+                          <span
+                            style={{
+                              position: 'absolute',
+                              top: '-6px',
+                              right: '-6px',
+                              minWidth: '16px',
+                              height: '16px',
+                              padding: '0 4px',
+                              borderRadius: '8px',
+                              fontSize: '10px',
+                              lineHeight: '16px',
+                              fontWeight: 700,
+                              color: '#fff',
+                              background: badge.worst === 'expired' ? '#e74c3c' : badge.worst === 'soon' ? '#f39c12' : '#3498db'
+                            }}
+                          >
+                            {badge.count}
+                          </span>
+                        );
+                      })()}
+                    </button>
+                    <button
+                      className="btn btn-sm btn-secondary"
                       onClick={() => handleOpenModal(device)}
                       title="Bearbeiten"
                     >
@@ -834,15 +1016,221 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
                 <button type="button" className="btn btn-secondary" onClick={handleCancelAssign}>
                   Abbrechen
                 </button>
-                <button 
-                  type="button" 
-                  className="btn btn-primary" 
+                <button
+                  type="button"
+                  className="btn btn-primary"
                   onClick={handleConfirmAssign}
                   disabled={!selectedUserId}
                 >
                   Zuweisen
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {softwareModalDevice && (
+        <div className="modal-overlay" onClick={handleCloseSoftware}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', width: '95%', padding: '0' }}>
+            <div className="modal-header">
+              <h3>💿 Software & Lizenzen – {softwareModalDevice.name}</h3>
+              <button className="modal-close" onClick={handleCloseSoftware}>×</button>
+            </div>
+
+            <div style={{ padding: '24px' }}>
+              {!showSoftwareForm && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <span style={{ color: '#666', fontSize: '14px' }}>
+                    {softwareLoading ? 'Lädt…' : `${softwareList.length} Eintrag/Einträge`}
+                  </span>
+                  <button className="btn btn-sm btn-primary" onClick={handleNewSoftware}>
+                    + Eintrag hinzufügen
+                  </button>
+                </div>
+              )}
+
+              {showSoftwareForm ? (
+                <form onSubmit={handleSubmitSoftware}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    <div className="form-group">
+                      <label>Name *</label>
+                      <input
+                        type="text"
+                        value={softwareForm.name}
+                        onChange={(e) => setSoftwareForm({ ...softwareForm, name: e.target.value })}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Typ</label>
+                      <select
+                        value={softwareForm.type}
+                        onChange={(e) => setSoftwareForm({ ...softwareForm, type: e.target.value })}
+                      >
+                        <option value="">Bitte wählen</option>
+                        {softwareTypes.map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Hersteller / Anbieter</label>
+                      <input
+                        type="text"
+                        value={softwareForm.vendor}
+                        onChange={(e) => setSoftwareForm({ ...softwareForm, vendor: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Version</label>
+                      <input
+                        type="text"
+                        value={softwareForm.version}
+                        onChange={(e) => setSoftwareForm({ ...softwareForm, version: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Lizenzschlüssel</label>
+                      <input
+                        type="text"
+                        value={softwareForm.licenseKey}
+                        onChange={(e) => setSoftwareForm({ ...softwareForm, licenseKey: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Lizenztyp</label>
+                      <input
+                        type="text"
+                        placeholder="z.B. Einzelplatz, Volumen, OEM, Abo"
+                        value={softwareForm.licenseType}
+                        onChange={(e) => setSoftwareForm({ ...softwareForm, licenseType: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Anzahl Plätze (Seats)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={softwareForm.seats}
+                        onChange={(e) => setSoftwareForm({ ...softwareForm, seats: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Kosten (CHF)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={softwareForm.cost}
+                        onChange={(e) => setSoftwareForm({ ...softwareForm, cost: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Kaufdatum</label>
+                      <input
+                        type="date"
+                        value={softwareForm.purchaseDate}
+                        onChange={(e) => setSoftwareForm({ ...softwareForm, purchaseDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Ablauf / Gültig bis</label>
+                      <input
+                        type="date"
+                        value={softwareForm.expiryDate}
+                        onChange={(e) => setSoftwareForm({ ...softwareForm, expiryDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <label>Notizen</label>
+                      <textarea
+                        value={softwareForm.notes}
+                        onChange={(e) => setSoftwareForm({ ...softwareForm, notes: e.target.value })}
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                  <div className="modal-actions">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => { setShowSoftwareForm(false); setEditingSoftware(null); }}
+                    >
+                      Abbrechen
+                    </button>
+                    <button type="submit" className="btn btn-primary">
+                      {editingSoftware ? 'Aktualisieren' : 'Hinzufügen'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Typ</th>
+                      <th>Hersteller</th>
+                      <th>Version</th>
+                      <th>Lizenzschlüssel</th>
+                      <th>Plätze</th>
+                      <th>Gültig bis</th>
+                      <th>Aktionen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {softwareList.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} style={{ textAlign: 'center', padding: '1.5rem', color: '#999' }}>
+                          {softwareLoading ? 'Lädt…' : 'Keine Software oder Lizenzen erfasst'}
+                        </td>
+                      </tr>
+                    ) : (
+                      softwareList.map(sw => {
+                        const status = getExpiryStatus(sw.expiryDate);
+                        return (
+                          <tr key={sw.id}>
+                            <td><strong>{sw.name}</strong></td>
+                            <td>{sw.type || '-'}</td>
+                            <td>{sw.vendor || '-'}</td>
+                            <td>{sw.version || '-'}</td>
+                            <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>{sw.licenseKey || '-'}</td>
+                            <td>{sw.seats != null ? sw.seats : '-'}</td>
+                            <td>
+                              {sw.expiryDate ? (
+                                <span style={{ color: expiryColor(status), fontWeight: status === 'ok' ? 400 : 600 }}>
+                                  {new Date(sw.expiryDate).toLocaleDateString('de-CH')}
+                                  {status === 'expired' && ' ⚠'}
+                                  {status === 'soon' && ' ⏳'}
+                                </span>
+                              ) : '-'}
+                            </td>
+                            <td>
+                              <div className="action-buttons">
+                                <button
+                                  className="btn btn-sm btn-secondary"
+                                  onClick={() => handleEditSoftware(sw)}
+                                  title="Bearbeiten"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  className="btn btn-sm btn-danger"
+                                  onClick={() => handleDeleteSoftware(sw)}
+                                  title="Löschen"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import logo from '../assets/logo.png';
 import { useModules } from '../contexts/ModuleContext';
+import { useShortcuts } from '../contexts/ShortcutsContext';
 import AppNavbar from '../components/AppNavbar';
 import { userService } from '../services/user.service';
 import { projectService } from '../services/project.service';
@@ -520,6 +521,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'users'}
                       onClick={() => changeTab('users')}
+                      tabId="users"
                       label="👥 Benutzer"
                     />
                   )}
@@ -527,6 +529,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'userGroups'}
                       onClick={() => changeTab('userGroups')}
+                      tabId="userGroups"
                       label="👨‍👩‍👧‍👦 Gruppen"
                     />
                   )}
@@ -534,6 +537,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'locations'}
                       onClick={() => changeTab('locations')}
+                      tabId="locations"
                       label="📍 Standorte"
                     />
                   )}
@@ -541,6 +545,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'orgChart'}
                       onClick={() => changeTab('orgChart')}
+                      tabId="orgChart"
                       label="🏗️ Organigramm"
                     />
                   )}
@@ -570,6 +575,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'timeEntries'}
                       onClick={() => changeTab('timeEntries')}
+                      tabId="timeEntries"
                       label="⏱️ Zeiteinträge"
                     />
                   )}
@@ -577,6 +583,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'absences'}
                       onClick={() => changeTab('absences')}
+                      tabId="absences"
                       label="🏖️ Abwesenheiten"
                     />
                   )}
@@ -584,6 +591,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'vacationPlanner'}
                       onClick={() => changeTab('vacationPlanner')}
+                      tabId="vacationPlanner"
                       label="🗓️ Urlaubsplaner"
                     />
                   )}
@@ -591,6 +599,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'holidays'}
                       onClick={() => changeTab('holidays')}
+                      tabId="holidays"
                       label="🎄 Feiertage"
                     />
                   )}
@@ -620,6 +629,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'invoices'}
                       onClick={() => changeTab('invoices')}
+                      tabId="invoices"
                       label="📄 Rechnungen"
                     />
                   )}
@@ -627,6 +637,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'invoiceTemplates'}
                       onClick={() => changeTab('invoiceTemplates')}
+                      tabId="invoiceTemplates"
                       label="📋 Vorlagen"
                     />
                   )}
@@ -634,6 +645,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'reminders'}
                       onClick={() => changeTab('reminders')}
+                      tabId="reminders"
                       label="💰 Mahnwesen"
                     />
                   )}
@@ -641,6 +653,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'travelExpenses'}
                       onClick={() => changeTab('travelExpenses')}
+                      tabId="travelExpenses"
                       label="✈️ Reisekosten"
                     />
                   )}
@@ -648,6 +661,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'payroll'}
                       onClick={() => changeTab('payroll')}
+                      tabId="payroll"
                       label="💵 Lohnabrechnung"
                     />
                   )}
@@ -655,6 +669,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'zeitmodelle'}
                       onClick={() => changeTab('zeitmodelle')}
+                      tabId="zeitmodelle"
                       label="🕒 Zeitmodelle"
                     />
                   )}
@@ -684,6 +699,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'customers'}
                       onClick={() => changeTab('customers')}
+                      tabId="customers"
                       label="🤝 Kunden"
                     />
                   )}
@@ -691,6 +707,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'suppliers'}
                       onClick={() => changeTab('suppliers')}
+                      tabId="suppliers"
                       label="🚚 Lieferanten"
                     />
                   )}
@@ -698,6 +715,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'departments'}
                       onClick={() => changeTab('departments')}
+                      tabId="departments"
                       label="🏢 Abteilungen"
                     />
                   )}
@@ -705,6 +723,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'orders'}
                       onClick={() => changeTab('orders')}
+                      tabId="orders"
                       label="📦 Bestellungen"
                     />
                   )}
@@ -712,6 +731,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'articleGroups'}
                       onClick={() => changeTab('articleGroups')}
+                      tabId="articleGroups"
                       label="📦 Artikelgruppen"
                     />
                   )}
@@ -719,6 +739,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'articles'}
                       onClick={() => changeTab('articles')}
+                      tabId="articles"
                       label="🏷️ Artikel"
                     />
                   )}
@@ -726,6 +747,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'devices'}
                       onClick={() => changeTab('devices')}
+                      tabId="devices"
                       label="💻 Geräte"
                     />
                   )}
@@ -733,6 +755,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'contacts'}
                       onClick={() => changeTab('contacts')}
+                      tabId="contacts"
                       label="📇 Kontakte"
                     />
                   )}
@@ -740,6 +763,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'werkzeuge'}
                       onClick={() => changeTab('werkzeuge')}
+                      tabId="werkzeuge"
                       label="🔧 Werkzeuge"
                     />
                   )}
@@ -747,6 +771,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'costCenters'}
                       onClick={() => changeTab('costCenters')}
+                      tabId="costCenters"
                       label="💰 Kostenstellen"
                     />
                   )}
@@ -754,6 +779,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'inventory'}
                       onClick={() => changeTab('inventory')}
+                      tabId="inventory"
                       label="📦 Lagerbestand"
                     />
                   )}
@@ -783,6 +809,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'projects'}
                       onClick={() => changeTab('projects')}
+                      tabId="projects"
                       label="📁 Projekte"
                     />
                   )}
@@ -790,6 +817,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'projectBudget'}
                       onClick={() => changeTab('projectBudget')}
+                      tabId="projectBudget"
                       label="💼 Projekt-Budget"
                     />
                   )}
@@ -797,6 +825,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'projectReports'}
                       onClick={() => changeTab('projectReports')}
+                      tabId="projectReports"
                       label="📊 Projekt-Reports"
                     />
                   )}
@@ -804,6 +833,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'projectPlanning'}
                       onClick={() => changeTab('projectPlanning')}
+                      tabId="projectPlanning"
                       label="📅 Projektplanung"
                     />
                   )}
@@ -833,6 +863,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'reports'}
                       onClick={() => changeTab('reports')}
+                      tabId="reports"
                       label="📊 Analytics"
                     />
                   )}
@@ -840,6 +871,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'timeBookings'}
                       onClick={() => changeTab('timeBookings')}
+                      tabId="timeBookings"
                       label="📋 Stunden (Alle)"
                     />
                   )}
@@ -847,6 +879,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'userTimeBookings'}
                       onClick={() => changeTab('userTimeBookings')}
+                      tabId="userTimeBookings"
                       label="👤 Stunden (User)"
                     />
                   )}
@@ -854,6 +887,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'businessReport'}
                       onClick={() => changeTab('businessReport')}
+                      tabId="businessReport"
                       label="📈 Geschäftsbericht"
                     />
                   )}
@@ -861,6 +895,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'compliance'}
                       onClick={() => changeTab('compliance')}
+                      tabId="compliance"
                       label="🇨🇭 Compliance"
                     />
                   )}
@@ -890,6 +925,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'workflows'}
                       onClick={() => changeTab('workflows')}
+                      tabId="workflows"
                       label="🔄 Workflows"
                     />
                   )}
@@ -897,6 +933,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'workflowActions'}
                       onClick={() => changeTab('workflowActions')}
+                      tabId="workflowActions"
                       label="⚡ Workflow Actions"
                     />
                   )}
@@ -904,12 +941,14 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'systemLogs'}
                       onClick={() => changeTab('systemLogs')}
+                      tabId="systemLogs"
                       label="📋 System Logs"
                     />
                   )}
                   {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Module')) && (
                     <TabButton                      active={activeTab === 'modules'}
                       onClick={() => changeTab('modules')}
+                      tabId="modules"
                       label="🧩 Module"
                     />
                   )}
@@ -917,6 +956,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'modulePermissions'}
                       onClick={() => changeTab('modulePermissions')}
+                      tabId="modulePermissions"
                       label="🔐 Berechtigungen"
                     />
                   )}
@@ -924,6 +964,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'settings'}
                       onClick={() => changeTab('settings')}
+                      tabId="settings"
                       label="⚙️ Einstellungen"
                     />
                   )}
@@ -931,6 +972,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'elearning'}
                       onClick={() => changeTab('elearning')}
+                      tabId="elearning"
                       label="🎓 E-Learning"
                     />
                   )}
@@ -938,6 +980,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'onboarding'}
                       onClick={() => changeTab('onboarding')}
+                      tabId="onboarding"
                       label="👤 Onboarding"
                     />
                   )}
@@ -945,6 +988,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'onboardingEmployees'}
                       onClick={() => changeTab('onboardingEmployees')}
+                      tabId="onboardingEmployees"
                       label="👥 Mitarbeiterliste"
                     />
                   )}
@@ -952,6 +996,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'jobFunctions'}
                       onClick={() => changeTab('jobFunctions')}
+                      tabId="jobFunctions"
                       label="💼 Funktionen"
                     />
                   )}
@@ -959,6 +1004,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'checklists'}
                       onClick={() => changeTab('checklists')}
+                      tabId="checklists"
                       label="✅ Checklisten"
                     />
                   )}
@@ -966,6 +1012,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'news'}
                       onClick={() => changeTab('news')}
+                      tabId="news"
                       label="📰 News"
                     />
                   )}
@@ -973,6 +1020,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'dokumente'}
                       onClick={() => changeTab('dokumente')}
+                      tabId="dokumente"
                       label="📄 Dokumente"
                     />
                   )}
@@ -980,6 +1028,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'backup'}
                       onClick={() => changeTab('backup')}
+                      tabId="backup"
                       label="💾 Backup"
                     />
                   )}
@@ -987,6 +1036,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'hilfsmittel'}
                       onClick={() => changeTab('hilfsmittel')}
+                      tabId="hilfsmittel"
                       label="🛠️ Hilfsmittel"
                     />
                   )}
@@ -994,6 +1044,7 @@ const AdminDashboard: React.FC = () => {
                     <TabButton
                       active={activeTab === 'informationen'}
                       onClick={() => changeTab('informationen')}
+                      tabId="informationen"
                       label="ℹ️ Informationen"
                     />
                   )}
@@ -1074,17 +1125,39 @@ const AdminDashboard: React.FC = () => {
   );
 };
 
-const TabButton: React.FC<{ active: boolean; onClick: () => void; label: string }> = ({
+const TabButton: React.FC<{ active: boolean; onClick: () => void; label: string; tabId?: string }> = ({
   active,
   onClick,
   label,
-}) => (
-  <button
-    onClick={onClick}
-    className={`tab-button ${active ? 'active' : ''}`}
-  >
-    {label}
-  </button>
-);
+  tabId,
+}) => {
+  const { openPinMenu } = useShortcuts();
+  // Rechtsklick: diesen Navigations-Eintrag als Shortcut oben anheften.
+  // Das Emoji am Labelanfang wird als Shortcut-Icon verwendet.
+  const handleContextMenu = tabId
+    ? (e: React.MouseEvent) => {
+        const trimmed = label.trim();
+        const sp = trimmed.indexOf(' ');
+        const emoji = sp > 0 ? trimmed.slice(0, sp) : '';
+        const name = sp > 0 ? trimmed.slice(sp + 1) : trimmed;
+        openPinMenu(e, {
+          key: tabId,
+          label: name || trimmed,
+          route: `/admin?tab=${tabId}`,
+          icon: emoji || '⚙️',
+          source: 'admin',
+        });
+      }
+    : undefined;
+  return (
+    <button
+      onClick={onClick}
+      onContextMenu={handleContextMenu}
+      className={`tab-button ${active ? 'active' : ''}`}
+    >
+      {label}
+    </button>
+  );
+};
 
 export default AdminDashboard;

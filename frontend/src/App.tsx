@@ -2,6 +2,7 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ModuleProvider, useModules } from './contexts/ModuleContext';
+import { ShortcutsProvider } from './contexts/ShortcutsContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { CurrencyProvider } from './contexts/CurrencyContext';
 import { WorkflowMessageProvider } from './contexts/WorkflowMessageContext';
@@ -98,6 +99,7 @@ function App() {
         <WorkflowMessageProvider>
         <CurrencyProvider>
         <ModuleProvider>
+          <ShortcutsProvider>
           <Router>
             <Routes>
               {/* Public Routes */}
@@ -463,6 +465,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Router>
+          </ShortcutsProvider>
       </ModuleProvider>
         </CurrencyProvider>
         </WorkflowMessageProvider>

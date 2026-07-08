@@ -18,6 +18,25 @@ export interface Device {
     lastName: string;
     email: string;
   };
+  software?: DeviceSoftware[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeviceSoftware {
+  id: string;
+  deviceId: string;
+  name: string;
+  type?: string;
+  vendor?: string;
+  version?: string;
+  licenseKey?: string;
+  licenseType?: string;
+  seats?: number | null;
+  purchaseDate?: string;
+  expiryDate?: string;
+  cost?: string | number | null;
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -87,6 +106,26 @@ class DeviceService {
   async importDevices(devices: Partial<Device>[]): Promise<{ message: string; results: { success: number; failed: number; errors: string[] } }> {
     const response = await api.post('/devices/import/json', devices);
     return response.data;
+  }
+
+  // Software / Lizenzen pro Gerät
+  async getDeviceSoftware(deviceId: string): Promise<DeviceSoftware[]> {
+    const response = await api.get(`/devices/${deviceId}/software`);
+    return response.data;
+  }
+
+  async createDeviceSoftware(deviceId: string, software: Partial<DeviceSoftware>): Promise<DeviceSoftware> {
+    const response = await api.post(`/devices/${deviceId}/software`, software);
+    return response.data;
+  }
+
+  async updateDeviceSoftware(deviceId: string, softwareId: string, software: Partial<DeviceSoftware>): Promise<DeviceSoftware> {
+    const response = await api.put(`/devices/${deviceId}/software/${softwareId}`, software);
+    return response.data;
+  }
+
+  async deleteDeviceSoftware(deviceId: string, softwareId: string): Promise<void> {
+    await api.delete(`/devices/${deviceId}/software/${softwareId}`);
   }
 }
 
