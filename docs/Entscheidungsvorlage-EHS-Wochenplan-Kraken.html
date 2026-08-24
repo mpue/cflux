@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entscheidungsvorlage EHS-Wochenplan Kraken</title>
+<style>
+  :root {
+    --navy: #1E2761;
+    --teal: #028090;
+    --amber: #E9713A;
+    --ink: #1c1f26;
+    --muted: #5c6470;
+    --line: #d9dee7;
+    --panel: #f3f6fa;
+    --panel-amber: #fdf3ee;
+    --bg: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --navy: #93a6ea;
+      --teal: #4fc3cf;
+      --amber: #f0996f;
+      --ink: #e6e8ec;
+      --muted: #a2aab8;
+      --line: #333947;
+      --panel: #1b1f28;
+      --panel-amber: #2a2019;
+      --bg: #12151b;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 17px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 3rem 1.4rem 5rem; }
+
+  .kicker {
+    font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--teal); font-weight: 700; margin-bottom: .6rem;
+  }
+  h1 {
+    font-size: clamp(1.6rem, 4.2vw, 2.15rem); line-height: 1.2;
+    color: var(--navy); margin: 0 0 1.4rem; letter-spacing: -.01em;
+  }
+  h2 {
+    font-size: 1.18rem; color: var(--navy); margin: 2.8rem 0 .7rem;
+    padding-bottom: .35rem; border-bottom: 1px solid var(--line);
+  }
+  p { margin: 0 0 .85rem; }
+  ul, ol { margin: 0 0 1rem; padding-left: 1.35rem; }
+  li { margin-bottom: .5rem; }
+  li::marker { color: var(--teal); }
+
+  .meta {
+    border-top: 3px solid var(--navy); padding-top: .9rem;
+    font-size: .87rem; color: var(--muted); margin-bottom: 2rem;
+  }
+  .meta dl { display: grid; grid-template-columns: 7.5rem 1fr; gap: .3rem 1rem; margin: 0; }
+  .meta dt { color: var(--muted); }
+  .meta dd { margin: 0; color: var(--ink); }
+  @media (max-width: 34rem) {
+    .meta dl { grid-template-columns: 1fr; gap: 0 0; }
+    .meta dt { margin-top: .55rem; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+  }
+
+  .box {
+    background: var(--panel); border-left: 4px solid var(--navy);
+    padding: 1.1rem 1.25rem; margin: 1.4rem 0; border-radius: 0 6px 6px 0;
+  }
+  .box.amber { border-left-color: var(--amber); background: var(--panel-amber); }
+  .box > :last-child { margin-bottom: 0; }
+  .box .lead { font-size: 1.03rem; }
+
+  .tablewrap { overflow-x: auto; margin: .3rem 0 1.4rem; }
+  table { border-collapse: collapse; width: 100%; font-size: .93rem; min-width: 30rem; }
+  th {
+    text-align: left; background: var(--navy); color: #fff; font-weight: 600;
+    padding: .55rem .7rem; font-size: .82rem; letter-spacing: .02em;
+  }
+  @media (prefers-color-scheme: dark) { th { color: #10131a; } }
+  td { padding: .6rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:nth-child(even) td { background: var(--panel); }
+  td:first-child { width: 34%; font-weight: 600; }
+
+  .phase { margin-bottom: .75rem; }
+  .phase b { color: var(--teal); }
+
+  .questions { counter-reset: q; list-style: none; padding-left: 0; }
+  .questions li {
+    counter-increment: q; position: relative; padding-left: 2.4rem; margin-bottom: .7rem;
+  }
+  .questions li::before {
+    content: counter(q); position: absolute; left: 0; top: .05rem;
+    width: 1.65rem; height: 1.65rem; border-radius: 50%;
+    background: var(--teal); color: #fff; font-size: .85rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  @media (prefers-color-scheme: dark) { .questions li::before { color: #10131a; } }
+
+  .foot {
+    margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--line);
+    font-size: .82rem; color: var(--muted);
+  }
+
+  @media print {
+    @page { size: A4; margin: 18mm 16mm; }
+    body { font-size: 10.5pt; background: #fff; color: #000; }
+    .wrap { max-width: none; padding: 0; }
+    h2 { break-after: avoid; }
+    tr, .box, .phase { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="kicker">Entscheidungsvorlage &middot; technische Einschätzung</div>
+<h1>EHS-Wochenplan Kraken: cflux-Modul oder bestehende Agent-Lösung?</h1>
+
+<div class="meta">
+<dl>
+  <dt>An</dt><dd>Radovan Radojevic, EHS-Manager AQUIST Schweiz GmbH</dd>
+  <dt>Von</dt><dd>Matthias Pueski (cflux)</dd>
+  <dt>Datum</dt><dd>20.08.2026</dd>
+  <dt>Bezug</dt><dd>Spezifikation „EHS-Wochenplan Kraken als cflux-Modul“, V0.9 vom 19.08.2026</dd>
+  <dt>Zweck</dt><dd>Grundlage für die Entscheidung, ob und in welchem Umfang umgesetzt wird. Die Entscheidung liegt bei dir.</dd>
+</dl>
+</div>
+
+<div class="box">
+<p class="lead"><strong>Kurzfassung.</strong> Die Spezifikation ist technisch umsetzbar; rund die Hälfte davon steht in cflux bereits als nutzbarer Baustein. Die bestehende Lösung aus Tabelle, Apps Script und Agent ist aber kein schlechterer Vorgänger, sondern in einem Punkt klar überlegen: sie sitzt dort, wo die Daten entstehen. Ich empfehle deshalb <strong>keinen vollständigen Port, sondern eine Arbeitsteilung</strong> entlang der Naht, die in der Spezifikation ohnehin schon liegt: Aufnahme und Vorverarbeitung (§3) bleiben bei der bestehenden Lösung, Datenhaltung, Rechenregeln und Nachweis (§4, §5, §9) gehen nach cflux.</p>
+</div>
+
+<h2>1. Ausgangslage</h2>
+<p>Die heutige Lösung — 20-Blatt-Tabelle, Apps Script (<em>cbcEingangLauf</em>, <em>waechter</em>), Gmail- und Drive-Anbindung, Tageslauf — funktioniert und liefert wöchentlich ein Ergebnis. Die Spezifikation V0.9 beschreibt denselben Prozess als cflux-Modul. Bevor Aufwand entsteht, sollte geklärt sein, welches Problem der Umbau lösen soll. Aus der Spezifikation selbst geht das eindeutig hervor: <em>„jede Woche dieselbe Regel, dieselbe Zahl, bis zur Quelle rückverfolgbar, personenunabhängig“</em>. Genau daran entscheidet sich die Frage.</p>
+
+<h2>2. Was die bestehende Lösung strukturell besser kann</h2>
+<ul>
+<li><strong>Nähe zur Datenquelle.</strong> Gmail-Postfach, Drive-Ordner und Kalender sind ohne Integrationsaufwand erreichbar. Das sind exakt die drei Punkte, an denen cflux heute nichts mitbringt.</li>
+<li><strong>Änderungsgeschwindigkeit.</strong> Eine Regel anzupassen kostet Minuten, nicht ein Release.</li>
+<li><strong>Sie läuft.</strong> Eingangsverarbeitung, Ordnerüberwachung und Entwurfserzeugung sind erprobt. Ein Port würde diese Stärke nicht verbessern, sondern zunächst zerstören.</li>
+</ul>
+
+<h2>3. Wo sie an Grenzen stösst</h2>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Anforderung</th><th>Grenze der heutigen Lösung</th></tr></thead>
+<tbody>
+<tr><td>Reproduzierbare Zahl (§5, §9)</td><td>2 829 Formeln über 20 Blätter sind kein Regelwerk, sondern ein gewachsener Zustand. Eine eingefügte Zeile verschiebt Bezüge lautlos; die Zahl der Vorwoche ist danach nicht mehr reproduzierbar.</td></tr>
+<tr><td>Nummernkreise (§6)</td><td>Gefordert ist eine atomare, serverseitige Vergabe. Ein Zählerblatt kann das nicht garantieren — bei parallelen Einträgen entstehen Dubletten oder Lücken.</td></tr>
+<tr><td>Feste Definitionen (§5.5)</td><td>Ein Sprachmodell ist konstruktionsbedingt nicht deterministisch. Dass die Near-Miss-Definition ausdrücklich fixiert, versioniert und mit Gültig-ab-Datum versehen werden soll, ist die Reaktion darauf.</td></tr>
+<tr><td>Audit-Nachweis (§8.4)</td><td>Eine Tabelle zeigt eine Formel, aber nicht die Kette Zahl → Regel-ID → Quelldatensatz. Bei Suva oder Lonza ist das der Unterschied zwischen „hier steht 91 %“ und „so ist 91 % entstanden“.</td></tr>
+<tr><td>Personendaten (§2, §9)</td><td>Aufenthaltstitel und Zwischenfallberichte über Ordnerfreigaben zu schützen ist nicht rollenbasiert. Der V04-Index führt das selbst als offenen Punkt.</td></tr>
+<tr><td>Personenunabhängigkeit</td><td>Das Setup ist an zwei Personen gebunden. Fallen sie aus, fällt der Prozess aus.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>4. Was cflux heute schon mitbringt</h2>
+<p>Geprüft am aktuellen Stand des Systems, nicht geschätzt:</p>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Spezifikation</th><th>Vorhandener Baustein</th></tr></thead>
+<tbody>
+<tr><td>§4.3 Actionlist (Findings)</td><td>EHS-Todos mit Status, Frist, Projekt- und Zwischenfallbezug. Es fehlen Bereich, Wirksamkeitsprüfung, Quellenverweis.</td></tr>
+<tr><td>§4.4 Zwischenfälle</td><td>Vollständiges Vorfallmodul inkl. Kategorie „Beinahe-Unfall“, Anhängen und PDF-Bericht.</td></tr>
+<tr><td>§8.2 Dashboard / KPI</td><td>EHS-Dashboard mit Monatsdaten, Closing Rate und Safety Award bereits angelegt.</td></tr>
+<tr><td>§4.7 Toolbox / Unterweisungen</td><td>Schulungskatalog mit Terminen, Teilnahme und Wiederholungslogik.</td></tr>
+<tr><td>§4.1 Qualifikationsmatrix</td><td>Personal- und Dokumentenmodell, Ablauf- und Frühwarnlogik als erprobtes Muster vorhanden.</td></tr>
+<tr><td>§4.8 Arbeitsscheine, §7.4 Ablage, QS 110800001–009</td><td>Dokumentenbaum mit Versionierung, Freigabestatus, Anhängen und Berechtigung je Knoten.</td></tr>
+<tr><td>§2 Rollen</td><td>Modul- und Gruppenberechtigungen inkl. Verwaltungsoberfläche.</td></tr>
+<tr><td>§7.1/7.2 Tages- und Wochenlauf</td><td>Zeitgesteuerte Hintergrundläufe sind etabliertes Muster (Backup, Geräteabgleich).</td></tr>
+<tr><td>§8.4 / §10 Ausgaben im Lonza-Design</td><td>PDF-Erzeugung vorhanden.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>5. Was in cflux fehlt</h2>
+<ol>
+<li><strong>Mail-Eingang.</strong> cflux versendet nur, es holt nicht ab. Das CBC-Postfach anzubinden ist ein vollständig neuer Baustein.</li>
+<li><strong>Verarbeitung der CBC-Datei.</strong> Ein Parser für das Anhangsformat ist nicht vorhanden. <strong>Vorher zu klären:</strong> §3 nennt „.xls Anhang, gescannte Liste“. Ist der Anhang tatsächlich ein Scan, braucht es Texterkennung — und dann ist „deterministisch“ nicht mehr haltbar, mit keinem Werkzeug.</li>
+<li><strong>Regelregistry und Nachweiskette.</strong> Regel-ID, Version, Gültig-ab-Datum und Quellenverweis je Zahl gibt es noch nicht. Baubar, aber es ist der eigentliche Kern des Auftrags.</li>
+<li><strong>Baustellenpersonal.</strong> Fremdfirmenpersonal sind keine cflux-Mitarbeiter; Batch-Nr., Firma und Aufenthaltstitel brauchen ein eigenes, zugriffsbeschränktes Modell.</li>
+<li><strong>Drive- und Kalenderanbindung.</strong> Hier würde ich Drive nicht spiegeln, sondern die Ablage nach cflux verlagern — sonst gibt es zwei Wahrheiten und der Ablage-Nachweis aus §7.4 ist nicht führbar.</li>
+</ol>
+
+<h2>6. Empfehlung: Arbeitsteilung statt Ablösung</h2>
+<div class="box">
+<p><strong>§3 bleibt, wo es ist. §4, §5 und §9 gehen nach cflux.</strong></p>
+<p>Apps Script bleibt Sammler und Vorverarbeiter — Mail abholen, Anhang lesen, Ordner überwachen, Entwürfe erzeugen — und übergibt das Ergebnis über eine schmale Schnittstelle an cflux. cflux übernimmt, was ein führendes System leisten muss: Zwischenfälle, Konsequenzen, Safety Awards, Actionlist, Qualifikationsmatrix, Nummernkreise, Regelwerk, KPI-Berechnung, Audit-Export und Rollen.</p>
+<p>Damit entfallen die drei teuersten Lücken aus Abschnitt 5 als cflux-Baustelle, und die Governance aus §9 bleibt unverändert: der Agent bereitet zu, cflux hält fest, der Mensch entscheidet.</p>
+</div>
+
+<h2>7. Entscheidungskriterien</h2>
+<p>Die Frage ist nicht „Tabelle oder cflux“, sondern: braucht dieser Prozess ein führendes System? Drei Prüffragen:</p>
+<ol class="questions">
+<li>Muss eine Zahl in achtzehn Monaten gegenüber Suva oder Lonza rekonstruierbar sein?</li>
+<li>Muss der Prozess funktionieren, wenn du und Ioana nicht mehr daran arbeitet?</li>
+<li>Ist das ein Werkzeug für Kraken oder ein Bestandteil des AQUIST-Angebots für weitere Projekte?</li>
+</ol>
+<p><strong>Bei zwei von drei Mal „ja“</strong> ist der Aufwand gerechtfertigt. Bei Kraken-only, überschaubarer Restlaufzeit und moderatem Auditdruck ist er wirtschaftlich schwer zu begründen — dann wäre der bessere Weg, die bestehende Lösung zu härten: Formelblatt entrümpeln, Zählervergabe zentralisieren, Near-Miss-Definition fixieren.</p>
+
+<h2>8. Vorgeschlagener Zuschnitt, falls umgesetzt wird</h2>
+<div class="phase"><b>Phase 1 — tragfähiger Kern.</b> Datenmodell §4, Nummernkreise, KPI-Berechnung mit Regel-IDs, Audit-Export, Dashboard. Rohdaten zunächst per Upload oder Formular. Damit sind die Akzeptanzkriterien aus §12 bis auf den automatischen Import erfüllbar.</div>
+<div class="phase"><b>Phase 2 — Import und Wochenlauf.</b> CBC-Übernahme mit Firmen-Alias-Mapping und Override-Tabelle (projektbezogen konfigurierbar, nicht auf Kraken fest verdrahtet), Ordnerüberwachung, Entwurfserzeugung ohne Versand.</div>
+<div class="phase"><b>Phase 3 — Anbindungen.</b> Mail, Drive, Kalender, bei Bedarf Texterkennung; Munixo und RealView, sobald dort eine Schnittstelle existiert.</div>
+
+<h2>9. Grösstes Risiko — und der nächste Schritt</h2>
+<div class="box amber">
+<p>Das Akzeptanzkriterium aus §12 — „liefert denselben Wert wie V04, Abweichung 0“ — ist erst einlösbar, wenn die Formeln des Blatts „Berechnung“ extrahiert und die historischen CBC-Listen für das Alias-Mapping verfügbar sind. Ohne diese Vorarbeit wird aus einem umrissenen Modul ein Rekonstruktionsprojekt mit offenem Ende.</p>
+<p><strong>Vorschlag als nächster Schritt, unabhängig von der Grundsatzentscheidung:</strong> das Blatt „Berechnung“ exportieren und die Formeln auswerten. Lässt sich daraus eine überschaubare Zahl klarer Regeln ableiten, ist der Rest Handwerk. Lässt es sich nicht, ist die Aufgabe zunächst keine Softwarefrage, sondern die fachliche Klärung der Rechenregeln — und die ist in jedem Zielsystem nötig. Aufwand: rund ein Tag.</p>
+</div>
+
+<h2>10. Unabhängig davon zu klären</h2>
+<ul>
+<li>Format des CBC-Anhangs: maschinenlesbare Tabelle oder Scan (§3).</li>
+<li>Near-Miss-Definition wörtlich aus dem Lonza EHS Handbook (§5.5).</li>
+<li>Führende Quelle des Kickoff-Trackers: V04 oder V01 (§4.9, §11).</li>
+<li>Bestätigung der Projektwert-Overrides — aktuell AQUIST, Lonza, Etavis (§5.1).</li>
+<li>Zugriffsregelung für Personendaten vor breiterer Sichtbarkeit (§2).</li>
+<li>Nachlauf für den Migrationsrückstand KW20–KW33 (§11).</li>
+</ul>
+
+<div class="foot">
+Technische Einschätzung auf Basis der Spezifikation V0.9 und des aktuellen cflux-Standes. Aufwands- und Phasenangaben sind Grössenordnungen, keine Festpreise. Kein Versand und keine Weitergabe erfolgt ohne Freigabe. — Business use only.
+</div>
+
+</div>
+</body>
+</html>

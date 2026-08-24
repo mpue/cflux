@@ -1,0 +1,290 @@
+2026-07-08 790035d Software catalog for devices
+2026-07-02 bf4f11e Onboarding: Dokumente-Tab je Mitarbeiter (Begleit- + Bewerbungsunterlagen)
+2026-07-01 e9aaec1 Onboarding: Weitere Verantwortliche im Checklisten-Zuweisungs-Dialog
+2026-07-01 9700d79 Onboarding: Button "Neues Onboarding starten" entfernt
+2026-07-01 a6b47a8 docs: Executive Summary auf Stand Juli 2026
+2026-07-01 6dcb394 Onboarding: Probezeitgespraech-Modul (30/60/90 Tage)
+2026-07-01 fc20a6c Onboarding: Jobs-Import-Skripte, Stellendaten und Praesentation
+2026-07-01 6e7cc48 Backup: alle 109 Tabellen sichern (8 fehlende ergänzt)
+2026-06-22 b6dc2e0 Incident-PDF: Download-Buttons ergänzt
+2026-06-22 3239ed2 Incident-PDF: leere Folgeseiten entfernt
+2026-06-22 096b105 Incident Management: PDF-Export (Einzelbericht + Gesamtbericht)
+2026-06-22 847bb07 Onboarding: Bewerber einstellen robuster, Willkommens-Mail, Reset/Löschen
+2026-06-09 2190127 Calendar and UI overhaul for dark mode
+2026-06-01 937c250 Dark mode improvements
+2026-05-22 0a9b61a Dark mode for Dashboard and Docs
+2026-05-18 9eb43c8 Added new dahboard items
+2026-05-11 01568d3 EHS KPI Widget
+2026-04-21 d8b8406 Wrong UTC Time conversion
+2026-04-21 1d3d887 Added incident:comment trigger
+2026-04-20 82bc487 Removed Auto clock out
+2026-04-15 11bef46 Project filtering
+2026-04-14 72f7bb3 Incident numbering
+2026-04-14 9570f70 Incident attachments
+2026-04-13 9af4aee Condition node
+2026-04-02 05880af message dialog fix
+2026-04-02 00a76ca onboarding
+2026-04-02 29d4625 Added onboarding check
+2026-03-31 5057a7e Workflow changed
+2026-03-31 e591362 UX impoved for Incident management
+2026-03-30 39ec0ab improved docs
+2026-03-30 e71dad1 added goternberg for documents
+2026-03-30 cc3048c Pause logic modified
+2026-03-27 4f696bd Added more backend tests
+2026-03-27 614a8b5 Fixed merge messup
+2026-02-24 537d850 Updated doku
+2026-02-23 5d2554d Project stories
+2026-03-27 29ed5b2 merge
+2026-03-26 eed6c72 Timetracking fixes
+2026-03-26 3260226 extended tests
+2026-03-25 2b4a9df Backend refactoring and tests
+2026-03-25 0750190 Added missing triggers
+2026-03-24 642f972 Fixed incidents
+2026-03-24 9b30454 Fixed incidents
+2026-03-18 32935ae Completed onboarding
+2026-03-18 9cc48dd Fixed project/story pre-allocation
+2026-03-18 214f392 Login Throttle
+2026-03-17 0c1d35f Stats
+2026-03-17 d7504dc tools and utilities
+2026-03-16 0c7b940 timetracking fixes
+2026-03-14 c342177 Timetracking fix
+2026-03-14 44c593b User Sorting
+2026-03-11 4afb547 Allowing partial time bookins
+2026-03-11 cdc23d4 Fixed pause mode
+2026-03-11 26cb1d5 timetracking fixes
+2026-03-11 bd3572c user changeable time widget
+2026-03-11 88b7063 Absence visibility
+2026-03-10 51de105 Moved Intranet nodes to Admin Panel
+2026-03-10 e897794 Added missing tests
+2026-03-09 6e2b861 Backup and docs
+2026-03-06 b208f52 Added time comparison
+2026-03-06 3a43f8a Stories
+2026-03-04 791da5f Added manual time entry
+2026-03-04 9896a13 Updated backup
+2026-03-01 8c2eb83 timetracking
+2026-02-24 356c960 Updated doku
+2026-02-23 7dbb1ae Project stories
+2026-02-23 b3eb322 fixed PDF upload in lessons
+2026-02-23 2ac3de5 fixed budget
+2026-02-18 242c4a0 minor fixes
+2026-02-22 96e5a34 backup
+2026-02-15 c9dd0ab updated backup and restore
+2026-02-14 b879c69 improved invoices
+2026-02-14 41dd54d improved invoices
+2026-02-14 1fe8075 Updated documentation
+2026-02-14 6159404 User Avatars
+2026-02-14 a272076 Weather widget ans location tab
+2026-02-12 c16cea9 Added departments and orgchart
+2026-02-09 23a4e0e added system logs
+2026-02-09 b284b82 removed vacatinDays from user
+2026-02-08 3a5e248 Project caclulation
+2026-02-08 8596846 Fixed project assignment
+2026-02-08 760d80d onboarding
+2026-02-04 c0fcd6e Added new filter to suppliers
+2026-02-04 42efba0 Improved devices tab
+2026-02-04 7f34197 Workflow fixes
+2026-02-03 b8fdbc3 supplier export
+2026-02-03 a9de714 supplier
+2026-02-03 f53622b Merge branch 'ehs' of https://github.com/mpue/cflux into ehs
+2026-02-03 166c96c Supplier import/export
+2026-02-03 1e01f6d suppliers
+2026-02-03 1af5924 Sync of time entries
+2026-02-02 cd7d02b Styling
+2026-02-01 88439a9 New Widget
+2026-01-30 7f12895 Extended tests
+2026-01-29 6e8767c Gantt
+2026-01-29 50f1c91 several changes
+2026-01-29 0bc445f i hate git
+2026-01-29 d60e426 Added missing triggers
+2026-01-29 acbab78 Added document links
+2026-01-29 a9f8a72 Functions and document matrix
+2026-01-29 6ee3dbd maoping documents to functions
+2026-01-29 a89e331 Added JobFunctions
+2026-01-29 725ac23 carousel
+2026-01-28 e2fb92e Web
+2026-01-28 9bf0387 Migration of Time entries
+2026-01-28 6a0fb87 User Object refactoring
+2026-01-28 c433687 User Object refactoring
+2026-01-27 ad829a2 Moveable nodes and PDF Export
+2026-01-27 b95a81b removed coverage
+2026-01-27 055a9d3 Add coverage folder to .gitignore and remove from tracking
+2026-01-26 84b4357 Completed Testszuite frontend
+2026-01-26 69bef63 fix: Use relative URLs for uploads to work with SSL reverse proxy
+2026-01-26 544cc08 fix: Rewrite seedActions.ts without external dependencies for Docker build
+2026-01-26 6f1600d docker stuff
+2026-01-26 b093c69 fix: Move seedModules.ts to scripts/ for Docker build
+2026-01-26 799f0d4 docker folder
+2026-01-25 609900a Filter
+2026-01-25 61a5688 layout
+2026-01-25 21a496c Applcants and password reset
+2026-01-25 b0041b8 enabled  passwort reset via link
+2026-01-25 058e2bb docs
+2026-01-24 079dfab Onboarding
+2026-01-24 cfd3c5d minor fixes
+2026-01-23 31d61f0 Fixed certificat download
+2026-01-23 eaa444a Refinement Courses
+2026-01-23 50d2ffe Image upload in course editor
+2026-01-23 ee678bb Course thumbnails
+2026-01-22 8f41b62 IMproved ELearning
+2026-01-22 a81d9a0 added elearning
+2026-01-21 11d3166 Document clearance
+2026-01-21 f01ecbb Added basic project managemenb
+2026-01-21 16eb356 Reminders
+2026-01-20 c093939 added offer funtionality
+2026-01-20 dc93b54 Timemodel tests
+2026-01-20 b2b2fa4 package
+2026-01-20 3f758de packacke
+2026-01-20 86a3015 articles
+2026-01-19 578d589 Dashboard Widgets
+2026-01-19 2b24e7a added projects widget
+2026-01-19 183347e added clock widget
+2026-01-19 b1dec22 Configurable Dashboard
+2026-01-19 d0292b6 Added dashboard widgets
+2026-01-16 6b3bab1 Merge branch 'ehs' of https://github.com/mpue/cflux into ehs
+2026-01-16 78fb856 Approvals
+2026-01-16 f49ea0b Fixed message workflow node
+2026-01-15 622ee76 docs
+2026-01-15 64995fc Image Gallery for Docs
+2026-01-15 e366749 Fixed LogoUpload again!!
+2026-01-15 ad19fdf Fixed intranet search again
+2026-01-15 66ed499 fixec budget calculation
+2026-01-15 39a97ba Updated project reporting
+2026-01-14 ea59dc4 Standalone
+2026-01-14 35fa52a demo
+2026-01-13 592b3cc Project Reporting
+2026-01-13 177de8d Styles
+2026-01-13 ad07ddf Fixed device test
+2026-01-13 8f67943 inventory
+2026-01-13 6bbda62 Added cost centers
+2026-01-12 ca0f33b Styling dashboard
+2026-01-11 68c88e5 Fixed orders and attachments
+2026-01-11 6126075 Restoring routes
+2026-01-11 1dc1319 Network
+2026-01-10 79cfe87 Fix mixed content error - replace hardcoded localhost URLs with dynamic backend URL
+2026-01-10 4b8bd00 Update docs to reflect schema-first approach
+2026-01-10 2d92fcd Switch from migrations to schema-first approach with db push
+2026-01-10 a4d06e3 Logging
+2026-01-08 1eb6031 Todo List
+2026-01-08 d31c345 Todo List
+2026-01-08 50479cf Logp Template pos
+2026-01-08 028fef8 logo
+2026-01-08 e2f4623 Rights Management
+2026-01-07 b4065a0 access
+2026-01-07 73acb3d EHS migration correct
+2026-01-07 5c3615f EHS board styling
+2026-01-07 274a0ae ehs dashboard
+2026-01-07 a0883e0 Integration
+2026-01-07 a0835dc orders
+2026-01-06 c472ebd admin user list and tests
+2026-01-06 bd26969 Fixed incident user groups
+2026-01-06 b3e07c1 Attachments
+2026-01-06 f471e1a Attachments
+2026-01-05 4bba493 Access rules
+2026-01-04 e33ec45 Merge branch intranet
+2026-01-04 cef648a Media Page
+2026-01-03 92312ed API usage
+2026-01-03 a1a7c83 Editor
+2026-01-03 4876b63 Holidays
+2026-01-03 75268bf Editor height
+2026-01-02 fe905ca Modern titlebar
+2026-01-02 9a7d504 Intranet editor
+2026-01-02 e851713 Intranet editor
+2026-01-02 5a66ac1 Intranet
+2026-01-01 ec78827 documentation
+2026-01-01 f949bf6 Finalized frontend tests
+2026-01-01 01b0f38 Tests
+2026-01-01 e37f511 Tests
+2026-01-01 2d51fe3 Tests
+2026-01-01 8e547be Salary
+2026-01-01 0361c17 Dashboard layout
+2026-01-01 693ee70 addedd messaging
+2025-12-31 a75595a fixed routes
+2025-12-31 351cd4b network access
+2025-12-30 406a231 layout
+2025-12-30 6009187 Docs
+2025-12-30 64f854f M1
+2025-12-30 0cd7fee Devices
+2025-12-30 38b1e4b added more reports
+2025-12-30 f57dcc7 Fixed user rights
+2025-12-29 09ca4a5 Personal
+2025-12-29 7f46647 Salary
+2025-12-29 7f69bbb Backup
+2025-12-29 96a9059 Modals with escape
+2025-12-29 500509c User groups
+2025-12-28 b370e9c docs
+2025-12-28 83ae884 Email Workflow
+2025-12-27 f06539c Fixed endpoint
+2025-12-27 62eb267 Fixed endpoint
+2025-12-27 c821313 cors
+2025-12-27 556e461 cors
+2025-12-26 43721b3 Autosetup
+2025-12-25 ca52290 Workflows
+2025-12-25 9543b51 fixed article groups
+2025-12-24 07c8268 Icons
+2025-12-24 fcecda4 Layout
+2025-12-24 7ef8076 Layout
+2025-12-24 f3f90fe Fixing restricted Modules
+2025-12-24 6192dd6 Added restricted Modules
+2025-12-24 c9e3f82 Added restricted Modules
+2025-12-24 12415fa Minor fixes
+2025-12-24 91b412d Minor fixes
+2025-12-24 cfd2c0d Incidents und Styling
+2025-12-24 7883c8e Incidents
+2025-12-23 49ee5a3 Dark mode
+2025-12-22 22d6396 Access
+2025-12-22 5f3afdf improved Templateeditor
+2025-12-22 fd9c589 Updated tests
+2025-12-22 678056f refactoring
+2025-12-22 b7e3250 Fixed invoices
+2025-12-22 8afe10a using templates
+2025-12-22 e236a39 Invoice template
+2025-12-21 14a3ece Invoices
+2025-12-21 bc28989 Articles and groups
+2025-12-21 e7463bb Suppliers
+2025-12-21 925f17c Clients
+2025-12-18 0035cd8 Compliance
+2025-12-18 12fc70b Compliance
+2025-12-17 e6ffacb Suisse compliance
+2025-12-17 fee0e92 Vacation Planner
+2025-12-17 4bb75dc Vacation Planner
+2025-12-17 f15136b added tests
+2025-12-17 4c4ede4 added location
+2025-12-15 5c912de env
+2025-12-15 db277c6 cors
+2025-12-15 1aac0bc package.json
+2025-12-15 7e776ac package.json
+2025-12-15 10f76f5 dummy data
+2025-12-15 d38d2d6 user management
+2025-12-15 e29b1d8 init
+
+----------------------------------------------
+
+2026-03-09 1600856 FlusRun Editor
+2026-03-08 b1e8304 Added codeeditor
+2026-03-07 084cb1f Added shell
+2026-03-07 ed86f43 added fluxi
+2026-03-07 b0ed6c5 Icon persietence
+2026-03-07 7e6e500 Added some games
+2026-03-07 4ab34a6 Desktop
+2026-02-01 eeb5c0e Login and colors
+2026-02-01 d59e02e baseic desktop
+2026-01-27 f7ff57d File Explorer
+2026-01-26 a3fc5c5 usergroups
+2026-01-26 c81187c usergroups
+2026-01-26 3ee87e7 working
+2026-01-26 a1a967f first commit
+
+---------------------------------------------
+
+2026-03-12 78f5e4e security
+2026-03-12 90cdfd0 logo
+2026-03-12 8af6414 logo
+2026-03-12 def755f logo
+2026-03-12 cb0e2aa defaultspass
+2026-03-12 49fbba7 defaultpass
+2026-03-12 e4ffeb0 port change
+2026-03-12 9ee21e8 minor fixes
+2026-03-12 5314dcb webpack
+2026-03-12 985fd04 JWT fix
+2026-03-12 b1664b7 first commit
+2026-03-12 7518902 first commit
