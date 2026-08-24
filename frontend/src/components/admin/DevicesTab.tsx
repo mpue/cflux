@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
-import { Device, DeviceSoftware, deviceService } from '../../services/device.service';
+import { Device, DeviceSoftware, DeviceUpdate, DeviceVulnerability, deviceService } from '../../services/device.service';
 import { User } from '../../types';
 
 interface DevicesTabProps {
@@ -34,8 +34,13 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
 
   // Software / Lizenzen (Assetkatalog pro Gerät)
   const [softwareModalDevice, setSoftwareModalDevice] = useState<Device | null>(null);
+  const [assetTab, setAssetTab] = useState<'software' | 'updates' | 'vulnerabilities'>('software');
   const [softwareList, setSoftwareList] = useState<DeviceSoftware[]>([]);
   const [softwareLoading, setSoftwareLoading] = useState(false);
+  const [deviceUpdates, setDeviceUpdates] = useState<DeviceUpdate[]>([]);
+  const [updatesLoading, setUpdatesLoading] = useState(false);
+  const [deviceVulns, setDeviceVulns] = useState<DeviceVulnerability[]>([]);
+  const [vulnsLoading, setVulnsLoading] = useState(false);
   const [editingSoftware, setEditingSoftware] = useState<DeviceSoftware | null>(null);
   const [showSoftwareForm, setShowSoftwareForm] = useState(false);
   const emptySoftwareForm = {
@@ -53,101 +58,220 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
   };
   const [softwareForm, setSoftwareForm] = useState(emptySoftwareForm);
 
+  // Action1-Synchronisation
+  const [action1Syncing, setAction1Syncing] = useState(false);
+  const [deploying, setDeploying] = useState(false);
+
   const categories = ['Laptop', 'Handy', 'Tablet', 'Monitor', 'SIM-Karte', 'PSA', 'Werkzeug', 'Sonstiges'];
-  const softwareTypes = ['Software', 'Lizenz', 'Abo'];
+  const softwareTypes = ['Software', 'Betriebssystem', 'Lizenz', 'Abo'];
 
   const handleExportPDF = () => {
     try {
-      const doc = new jsPDF();
+      // Querformat (Landscape) für breitere Tabelle
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 14;
-      let yPosition = margin;
 
-      // Titel
-      doc.setFontSize(18);
-      doc.text('Geräteliste', margin, yPosition);
-      yPosition += 10;
+      // Farbpalette (an App-Design angelehnt)
+      const brand: [number, number, number] = [33, 150, 243];
+      const brandDark: [number, number, number] = [21, 101, 192];
+      const zebra: [number, number, number] = [244, 248, 252];
+      const textDark: [number, number, number] = [33, 43, 54];
+      const textMuted: [number, number, number] = [110, 120, 130];
+      const lineColor: [number, number, number] = [224, 230, 236];
 
-      // Datum und Filter-Info
-      doc.setFontSize(10);
-      doc.text(`Erstellt am: ${new Date().toLocaleDateString('de-CH')} ${new Date().toLocaleTimeString('de-CH')}`, margin, yPosition);
-      yPosition += 5;
-      
-      if (searchTerm || categoryFilter || userFilter) {
-        doc.text('Filter aktiv:', margin, yPosition);
-        yPosition += 5;
-        if (searchTerm) {
-          doc.text(`  Suche: ${searchTerm}`, margin, yPosition);
-          yPosition += 4;
-        }
-        if (categoryFilter) {
-          doc.text(`  Kategorie: ${categoryFilter}`, margin, yPosition);
-          yPosition += 4;
-        }
-        if (userFilter) {
-          const user = users.find(u => u.id === userFilter);
-          doc.text(`  Benutzer: ${user ? `${user.firstName} ${user.lastName}` : 'Nicht zugewiesen'}`, margin, yPosition);
-          yPosition += 4;
-        }
+      const now = new Date();
+      const dateStr = `${now.toLocaleDateString('de-CH')} ${now.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' })}`;
+
+      // Spaltendefinition (Summe = Inhaltsbreite)
+      const contentWidth = pageWidth - 2 * margin;
+      const columns: { key: string; label: string; w: number; align?: 'left' | 'center' }[] = [
+        { key: 'name', label: 'Name', w: 52 },
+        { key: 'category', label: 'Kategorie', w: 32 },
+        { key: 'manufacturer', label: 'Hersteller', w: 38 },
+        { key: 'model', label: 'Modell', w: 40 },
+        { key: 'serialNumber', label: 'Seriennummer', w: 45 },
+        { key: 'owner', label: 'Besitzer', w: 40 },
+        { key: 'status', label: 'Status', w: 22, align: 'center' },
+      ];
+      // Restbreite proportional auf 'name' und 'model' verteilen
+      const defined = columns.reduce((s, c) => s + c.w, 0);
+      const extra = contentWidth - defined;
+      if (extra > 0) {
+        columns[0].w += extra * 0.5;
+        columns[3].w += extra * 0.5;
       }
 
-      doc.text(`Anzahl Geräte: ${filteredDevices.length}`, margin, yPosition);
-      yPosition += 10;
+      const headerBandH = 26;
+      const rowH = 8;
+      const padX = 3;
 
-      // Tabellen-Header
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      const colWidths = [50, 30, 40, 35, 35];
-      const headers = ['Name', 'Kategorie', 'Seriennummer', 'Hersteller', 'Besitzer'];
-      let xPos = margin;
-      
-      headers.forEach((header, i) => {
-        doc.text(header, xPos, yPosition);
-        xPos += colWidths[i];
-      });
-      
-      yPosition += 2;
-      doc.line(margin, yPosition, pageWidth - margin, yPosition);
-      yPosition += 5;
+      const truncate = (text: string, colW: number, fontSize: number) => {
+        const maxWidth = colW - 2 * padX;
+        if (doc.getStringUnitWidth(text) * fontSize * 0.3528 <= maxWidth) return text;
+        let t = text;
+        while (t.length > 1 && doc.getStringUnitWidth(t + '…') * fontSize * 0.3528 > maxWidth) {
+          t = t.slice(0, -1);
+        }
+        return t + '…';
+      };
 
-      // Tabellen-Daten
+      // ---- Kopfband ----
+      const drawHeaderBand = () => {
+        doc.setFillColor(...brand);
+        doc.rect(0, 0, pageWidth, headerBandH, 'F');
+        // Akzentstreifen
+        doc.setFillColor(...brandDark);
+        doc.rect(0, headerBandH, pageWidth, 1.4, 'F');
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.text('Geräteliste', margin, 15);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        // Meta rechtsbündig
+        const rightX = pageWidth - margin;
+        doc.text(`Erstellt: ${dateStr}`, rightX, 11, { align: 'right' });
+        doc.text(`Anzahl Geräte: ${filteredDevices.length}`, rightX, 17, { align: 'right' });
+      };
+
+      // ---- Tabellenkopf ----
+      const drawTableHeader = (y: number) => {
+        doc.setFillColor(...brandDark);
+        doc.rect(margin, y, contentWidth, rowH, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        let x = margin;
+        columns.forEach((c) => {
+          const tx = c.align === 'center' ? x + c.w / 2 : x + padX;
+          doc.text(c.label, tx, y + rowH - 2.6, { align: c.align === 'center' ? 'center' : 'left' });
+          x += c.w;
+        });
+        return y + rowH;
+      };
+
+      drawHeaderBand();
+
+      // Aktive Filter als "Chips"
+      let yPosition = headerBandH + 8;
+      const activeFilters: string[] = [];
+      if (searchTerm) activeFilters.push(`Suche: ${searchTerm}`);
+      if (categoryFilter) activeFilters.push(`Kategorie: ${categoryFilter}`);
+      if (userFilter) {
+        const user = users.find((u) => u.id === userFilter);
+        activeFilters.push(`Benutzer: ${user ? `${user.firstName} ${user.lastName}` : 'Nicht zugewiesen'}`);
+      }
+      if (activeFilters.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(...textMuted);
+        doc.text('Aktive Filter:', margin, yPosition);
+        let chipX = margin + doc.getStringUnitWidth('Aktive Filter:') * 8 * 0.3528 + 4;
+        doc.setFont('helvetica', 'normal');
+        activeFilters.forEach((f) => {
+          const w = doc.getStringUnitWidth(f) * 8 * 0.3528 + 6;
+          if (chipX + w > pageWidth - margin) {
+            chipX = margin;
+            yPosition += 7;
+          }
+          doc.setFillColor(232, 240, 250);
+          doc.roundedRect(chipX, yPosition - 4, w, 6, 1.5, 1.5, 'F');
+          doc.setTextColor(...brandDark);
+          doc.text(f, chipX + 3, yPosition);
+          chipX += w + 4;
+        });
+        yPosition += 8;
+      }
+
+      // ---- Tabelle ----
+      yPosition = drawTableHeader(yPosition);
+
       doc.setFont('helvetica', 'normal');
-      filteredDevices.forEach((device) => {
-        // Neue Seite wenn nötig
-        if (yPosition > pageHeight - 20) {
+      doc.setFontSize(8.5);
+
+      filteredDevices.forEach((device, idx) => {
+        // Seitenumbruch
+        if (yPosition > pageHeight - 16) {
           doc.addPage();
-          yPosition = margin;
+          drawHeaderBand();
+          yPosition = drawTableHeader(headerBandH + 8);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8.5);
         }
 
-        xPos = margin;
-        const rowData = [
-          device.name.substring(0, 25),
-          device.category || '-',
-          device.serialNumber?.substring(0, 20) || '-',
-          device.manufacturer?.substring(0, 18) || '-',
-          device.user ? `${device.user.firstName} ${device.user.lastName}`.substring(0, 18) : '-'
-        ];
+        // Zebra-Hintergrund
+        if (idx % 2 === 1) {
+          doc.setFillColor(...zebra);
+          doc.rect(margin, yPosition, contentWidth, rowH, 'F');
+        }
 
-        rowData.forEach((data, i) => {
-          doc.text(data, xPos, yPosition);
-          xPos += colWidths[i];
+        const values: Record<string, string> = {
+          name: device.name || '-',
+          category: device.category || '-',
+          manufacturer: device.manufacturer || '-',
+          model: device.model || '-',
+          serialNumber: device.serialNumber || '-',
+          owner: device.user ? `${device.user.firstName} ${device.user.lastName}` : '–',
+        };
+
+        let x = margin;
+        const textY = yPosition + rowH - 2.8;
+        columns.forEach((c) => {
+          if (c.key === 'status') {
+            // Status-Badge
+            const active = device.isActive;
+            const label = active ? 'Aktiv' : 'Inaktiv';
+            doc.setFontSize(7.5);
+            const bw = 16;
+            const bx = x + (c.w - bw) / 2;
+            const by = yPosition + (rowH - 5) / 2;
+            if (active) doc.setFillColor(46, 160, 67);
+            else doc.setFillColor(180, 186, 193);
+            doc.roundedRect(bx, by, bw, 5, 2.5, 2.5, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont('helvetica', 'bold');
+            doc.text(label, x + c.w / 2, by + 3.5, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.5);
+          } else {
+            const isName = c.key === 'name';
+            doc.setTextColor(...(isName ? textDark : textMuted));
+            if (isName) doc.setFont('helvetica', 'bold');
+            doc.text(truncate(values[c.key], c.w, 8.5), x + padX, textY);
+            if (isName) doc.setFont('helvetica', 'normal');
+          }
+          x += c.w;
         });
 
-        yPosition += 6;
+        // dünne Trennlinie unter der Zeile
+        doc.setDrawColor(...lineColor);
+        doc.setLineWidth(0.1);
+        doc.line(margin, yPosition + rowH, margin + contentWidth, yPosition + rowH);
+
+        yPosition += rowH;
       });
 
-      // Fußzeile
+      // Rahmen um die gesamte Tabelle (optisch sauberer Abschluss)
+      doc.setDrawColor(...lineColor);
+      doc.setLineWidth(0.2);
+
+      // ---- Fußzeile auf allen Seiten ----
       const totalPages = doc.internal.pages.length - 1;
       for (let i = 1; i <= totalPages; i++) {
         doc.setPage(i);
+        doc.setDrawColor(...lineColor);
+        doc.setLineWidth(0.2);
+        doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
         doc.setFontSize(8);
-        doc.text(
-          `Seite ${i} von ${totalPages}`,
-          pageWidth / 2,
-          pageHeight - 10,
-          { align: 'center' }
-        );
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...textMuted);
+        doc.text('cflux · Geräteverwaltung', margin, pageHeight - 7);
+        doc.text(`Seite ${i} von ${totalPages}`, pageWidth - margin, pageHeight - 7, { align: 'right' });
+        doc.text(dateStr, pageWidth / 2, pageHeight - 7, { align: 'center' });
       }
 
       // Speichern
@@ -399,17 +523,84 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
     }
   };
 
-  const handleOpenSoftware = async (device: Device) => {
+  const handleDeployUpdates = async (device: Device) => {
+    const count = deviceUpdates.length;
+    const list = deviceUpdates.slice(0, 15).map(u => `• ${u.title}`).join('\n');
+    const confirmMsg =
+      `${count} fehlende Update(s) auf „${device.name}" über Action1 ausrollen?\n\n` +
+      `${list}${count > 15 ? `\n… und ${count - 15} weitere` : ''}\n\n` +
+      `⚠️ Die Updates werden real auf dem Gerät installiert.\n` +
+      `Kein automatischer Neustart (auto_reboot = no).`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setDeploying(true);
+    try {
+      const result = await deviceService.deployDeviceUpdates(device.id, false);
+      alert(
+        `Deployment angelegt: „${result.policyName}"\n` +
+        `${result.packages.length} Paket(e) werden auf „${device.name}" installiert.\n\n` +
+        `Der Rollout läuft in Action1; der Status ist dort einsehbar. Kein automatischer Neustart.`
+      );
+    } catch (error: any) {
+      console.error('Deploy error:', error);
+      alert(error.response?.data?.error || 'Fehler beim Ausrollen der Updates');
+    } finally {
+      setDeploying(false);
+    }
+  };
+
+  const loadUpdates = async (deviceId: string) => {
+    setUpdatesLoading(true);
+    try {
+      setDeviceUpdates(await deviceService.getDeviceUpdates(deviceId));
+    } catch (error) {
+      console.error('Error loading updates:', error);
+      alert('Fehler beim Laden der Updates');
+    } finally {
+      setUpdatesLoading(false);
+    }
+  };
+
+  const loadVulns = async (deviceId: string) => {
+    setVulnsLoading(true);
+    try {
+      setDeviceVulns(await deviceService.getDeviceVulnerabilities(deviceId));
+    } catch (error) {
+      console.error('Error loading vulnerabilities:', error);
+      alert('Fehler beim Laden der Schwachstellen');
+    } finally {
+      setVulnsLoading(false);
+    }
+  };
+
+  const handleOpenSoftware = async (device: Device, tab: 'software' | 'updates' | 'vulnerabilities' = 'software') => {
     setSoftwareModalDevice(device);
+    setAssetTab(tab);
     setShowSoftwareForm(false);
     setEditingSoftware(null);
     setSoftwareForm(emptySoftwareForm);
-    await loadSoftware(device.id);
+    setDeviceUpdates([]);
+    setDeviceVulns([]);
+    if (tab === 'software') await loadSoftware(device.id);
+    else if (tab === 'updates') await loadUpdates(device.id);
+    else await loadVulns(device.id);
+  };
+
+  const handleSelectAssetTab = async (tab: 'software' | 'updates' | 'vulnerabilities') => {
+    setAssetTab(tab);
+    setShowSoftwareForm(false);
+    if (!softwareModalDevice) return;
+    if (tab === 'software' && softwareList.length === 0) await loadSoftware(softwareModalDevice.id);
+    else if (tab === 'updates' && deviceUpdates.length === 0) await loadUpdates(softwareModalDevice.id);
+    else if (tab === 'vulnerabilities' && deviceVulns.length === 0) await loadVulns(softwareModalDevice.id);
   };
 
   const handleCloseSoftware = () => {
     setSoftwareModalDevice(null);
     setSoftwareList([]);
+    setDeviceUpdates([]);
+    setDeviceVulns([]);
+    setAssetTab('software');
     setShowSoftwareForm(false);
     setEditingSoftware(null);
     // Geräteliste aktualisieren, damit Badge-Zähler stimmt
@@ -487,6 +678,95 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
     }
   };
 
+  // ── Action1-Synchronisation ──────────────────────────────
+  const describeSyncError = (error: any): string => {
+    if (error?.response) {
+      // Backend hat geantwortet
+      return error.response.data?.error
+        || `Server-Fehler (HTTP ${error.response.status} ${error.response.statusText || ''})`;
+    }
+    if (error?.request) {
+      // Anfrage gesendet, aber keine Antwort erhalten
+      return 'Keine Antwort vom Server – möglicher Timeout oder Backend-Absturz während des Syncs. ' +
+        'Bitte die Backend-Konsole prüfen (dort steht der genaue Fehler).';
+    }
+    return error?.message || 'Fehler bei der Action1-Synchronisation';
+  };
+
+  const handleAction1SyncAll = async () => {
+    if (!window.confirm('Software aller Geräte jetzt aus Action1 synchronisieren?\n\nDer Sync läuft im Hintergrund; das Ergebnis wird angezeigt, sobald er fertig ist.')) return;
+    setAction1Syncing(true);
+    try {
+      const start = await deviceService.startAction1Sync();
+      if (start.alreadyRunning) {
+        // Läuft bereits – wir hängen uns einfach an den laufenden Job an
+        console.log('Action1-Sync läuft bereits, warte auf Ergebnis…');
+      }
+
+      // Status pollen, bis der Hintergrund-Job fertig ist (max. ~20 Min)
+      const maxAttempts = 400; // 400 × 3s
+      let status = start.status;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        status = await deviceService.getAction1SyncStatus();
+        if (!status.running) break;
+      }
+
+      if (status.running) {
+        alert('Der Sync läuft noch. Bitte später erneut prüfen (er läuft im Hintergrund weiter).');
+      } else if (status.error) {
+        alert('Action1-Synchronisation fehlgeschlagen:\n\n' + status.error);
+      } else if (status.summary) {
+        const summary = status.summary;
+        const skippedNames = summary.results.filter(r => !r.matched).map(r => r.deviceName);
+        alert(
+          `Action1-Synchronisation abgeschlossen:\n\n` +
+          `Geräte zugeordnet: ${summary.devicesMatched}/${summary.devicesTotal}\n` +
+          (summary.devicesCreated > 0 ? `Neu angelegte Geräte: ${summary.devicesCreated}\n` : '') +
+          (summary.serialsUpdated > 0 ? `Seriennummern übernommen: ${summary.serialsUpdated}\n` : '') +
+          `Software hinzugefügt: ${summary.added}\n` +
+          `Aktualisiert: ${summary.updated}\n` +
+          `Entfernt: ${summary.removed}\n` +
+          `Fehlende Updates: ${summary.updatesTotal}\n` +
+          `Schwachstellen (CVEs): ${summary.vulnsTotal}` +
+          (skippedNames.length > 0
+            ? `\n\nNicht zugeordnet (${skippedNames.length}):\n${skippedNames.slice(0, 20).join(', ')}${skippedNames.length > 20 ? '…' : ''}`
+            : '')
+        );
+      }
+      onUpdate();
+    } catch (error: any) {
+      console.error('Action1 sync error:', error);
+      alert(describeSyncError(error));
+    } finally {
+      setAction1Syncing(false);
+    }
+  };
+
+  const handleAction1SyncDevice = async (device: Device) => {
+    setAction1Syncing(true);
+    try {
+      const result = await deviceService.syncDeviceFromAction1(device.id);
+      if (!result.matched) {
+        alert(result.error || 'Kein passender Action1-Endpoint gefunden');
+      } else {
+        alert(
+          `Synchronisation für "${result.deviceName}":\n` +
+          `Hinzugefügt: ${result.added}, Aktualisiert: ${result.updated}, Entfernt: ${result.removed}`
+        );
+      }
+      if (softwareModalDevice && softwareModalDevice.id === device.id) {
+        await loadSoftware(device.id);
+      }
+      onUpdate();
+    } catch (error: any) {
+      console.error('Action1 device sync error:', error);
+      alert(describeSyncError(error));
+    } finally {
+      setAction1Syncing(false);
+    }
+  };
+
   // Ablauf-Status: 'expired' (rot) | 'soon' (gelb, < 30 Tage) | 'ok' | null
   const getExpiryStatus = (expiryDate?: string): 'expired' | 'soon' | 'ok' | null => {
     if (!expiryDate) return null;
@@ -509,6 +789,63 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
       const s = getExpiryStatus(sw.expiryDate);
       if (s === 'expired') { worst = 'expired'; break; }
       if (s === 'soon' && worst !== 'expired') worst = 'soon';
+    }
+    return { count: list.length, worst };
+  };
+
+  // CVE-Schweregrad → Farbe / Rang
+  const scoreColor = (score?: string | null): string => {
+    const s = (score || '').toLowerCase();
+    if (s === 'critical') return '#e74c3c';
+    if (s === 'high') return '#e67e22';
+    if (s === 'medium') return '#f39c12';
+    if (s === 'low') return '#3498db';
+    return '#7f8c8d';
+  };
+  const scoreLabel = (score?: string | null): string => {
+    const s = (score || '').toLowerCase();
+    if (s === 'critical') return 'Kritisch';
+    if (s === 'high') return 'Hoch';
+    if (s === 'medium') return 'Mittel';
+    if (s === 'low') return 'Niedrig';
+    return score || '-';
+  };
+
+  // Verbindungsanzeige (Action1): 🟢 verbunden, ⚪ getrennt
+  const connectionDot = (device: Device) => {
+    if (!device.action1Status) return null;
+    const connected = device.action1Status.toLowerCase() === 'connected';
+    const seen = device.action1LastSeen ? new Date(device.action1LastSeen).toLocaleString('de-CH') : '–';
+    const title =
+      `Action1: ${connected ? 'Verbunden' : 'Getrennt'}` +
+      `\nZuletzt gesehen: ${seen}` +
+      (device.action1IpAddress ? `\nIP: ${device.action1IpAddress}` : '') +
+      `\n(Stand: letzter Sync)`;
+    return (
+      <span
+        title={title}
+        style={{
+          display: 'inline-block', width: '9px', height: '9px', borderRadius: '50%',
+          marginRight: '6px', verticalAlign: 'middle',
+          background: connected ? '#27ae60' : '#bbb',
+          boxShadow: connected ? '0 0 0 2px rgba(39,174,96,0.2)' : 'none'
+        }}
+      />
+    );
+  };
+
+  // Badge: Anzahl offener Updates
+  const deviceUpdatesBadge = (device: Device): number => (device.updates || []).length;
+
+  // Badge: CVE-Anzahl + schlimmster Schweregrad
+  const deviceVulnsBadge = (device: Device): { count: number; worst: string | null } => {
+    const list = device.vulnerabilities || [];
+    const rank: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+    let worst: string | null = null;
+    let worstRank = 0;
+    for (const v of list) {
+      const r = rank[(v.score || '').toLowerCase()] || 0;
+      if (r > worstRank) { worstRank = r; worst = v.score || null; }
     }
     return { count: list.length, worst };
   };
@@ -551,6 +888,14 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
             title="Geräte aus JSON importieren"
           >
             📤 Import
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={handleAction1SyncAll}
+            disabled={action1Syncing}
+            title="Installierte Software aller Geräte aus Action1 synchronisieren"
+          >
+            {action1Syncing ? '⏳ Sync…' : '🔄 Action1-Sync'}
           </button>
           <button
             className="btn btn-primary"
@@ -681,7 +1026,7 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
                       style={{ width: '100%', padding: '4px', border: '1px solid #3498db' }}
                     />
                   ) : (
-                    <strong>{device.name}</strong>
+                    <span>{connectionDot(device)}<strong>{device.name}</strong></span>
                   )}
                 </td>
                 <td onDoubleClick={() => handleCellDoubleClick(device, 'category')}>
@@ -805,6 +1150,44 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
                         );
                       })()}
                     </button>
+                    {(() => {
+                      const upd = deviceUpdatesBadge(device);
+                      if (upd === 0) return null;
+                      return (
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => handleOpenSoftware(device, 'updates')}
+                          title={`${upd} fehlende Updates`}
+                          style={{ position: 'relative' }}
+                        >
+                          🩹
+                          <span style={{
+                            position: 'absolute', top: '-6px', right: '-6px', minWidth: '16px', height: '16px',
+                            padding: '0 4px', borderRadius: '8px', fontSize: '10px', lineHeight: '16px',
+                            fontWeight: 700, color: '#fff', background: '#e67e22'
+                          }}>{upd}</span>
+                        </button>
+                      );
+                    })()}
+                    {(() => {
+                      const vuln = deviceVulnsBadge(device);
+                      if (vuln.count === 0) return null;
+                      return (
+                        <button
+                          className="btn btn-sm btn-secondary"
+                          onClick={() => handleOpenSoftware(device, 'vulnerabilities')}
+                          title={`${vuln.count} Schwachstellen (CVEs)`}
+                          style={{ position: 'relative' }}
+                        >
+                          🛡️
+                          <span style={{
+                            position: 'absolute', top: '-6px', right: '-6px', minWidth: '16px', height: '16px',
+                            padding: '0 4px', borderRadius: '8px', fontSize: '10px', lineHeight: '16px',
+                            fontWeight: 700, color: '#fff', background: scoreColor(vuln.worst)
+                          }}>{vuln.count}</span>
+                        </button>
+                      );
+                    })()}
                     <button
                       className="btn btn-sm btn-secondary"
                       onClick={() => handleOpenModal(device)}
@@ -1034,19 +1417,52 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
         <div className="modal-overlay" onClick={handleCloseSoftware}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', width: '95%', padding: '0' }}>
             <div className="modal-header">
-              <h3>💿 Software & Lizenzen – {softwareModalDevice.name}</h3>
+              <h3>🖥️ Assetkatalog – {softwareModalDevice.name}</h3>
               <button className="modal-close" onClick={handleCloseSoftware}>×</button>
             </div>
 
+            <div style={{ display: 'flex', gap: '4px', padding: '0 24px', borderBottom: '1px solid var(--border-color, #dee2e6)' }}>
+              {([
+                { key: 'software', label: `💿 Software (${softwareModalDevice.software?.length ?? 0})` },
+                { key: 'updates', label: `🩹 Updates (${softwareModalDevice.updates?.length ?? 0})` },
+                { key: 'vulnerabilities', label: `🛡️ CVEs (${softwareModalDevice.vulnerabilities?.length ?? 0})` }
+              ] as const).map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => handleSelectAssetTab(t.key)}
+                  style={{
+                    padding: '10px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '14px',
+                    borderBottom: assetTab === t.key ? '2px solid #3498db' : '2px solid transparent',
+                    fontWeight: assetTab === t.key ? 700 : 400,
+                    color: assetTab === t.key ? '#3498db' : 'var(--text-primary, #333)'
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
             <div style={{ padding: '24px' }}>
+              {assetTab === 'software' && (
+              <>
               {!showSoftwareForm && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <span style={{ color: '#666', fontSize: '14px' }}>
                     {softwareLoading ? 'Lädt…' : `${softwareList.length} Eintrag/Einträge`}
                   </span>
-                  <button className="btn btn-sm btn-primary" onClick={handleNewSoftware}>
-                    + Eintrag hinzufügen
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => handleAction1SyncDevice(softwareModalDevice)}
+                      disabled={action1Syncing}
+                      title="Installierte Software dieses Geräts aus Action1 synchronisieren"
+                    >
+                      {action1Syncing ? '⏳ Sync…' : '🔄 Action1-Sync'}
+                    </button>
+                    <button className="btn btn-sm btn-primary" onClick={handleNewSoftware}>
+                      + Eintrag hinzufügen
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1170,6 +1586,7 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
                   <thead>
                     <tr>
                       <th>Name</th>
+                      <th>Quelle</th>
                       <th>Typ</th>
                       <th>Hersteller</th>
                       <th>Version</th>
@@ -1182,7 +1599,7 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
                   <tbody>
                     {softwareList.length === 0 ? (
                       <tr>
-                        <td colSpan={8} style={{ textAlign: 'center', padding: '1.5rem', color: '#999' }}>
+                        <td colSpan={9} style={{ textAlign: 'center', padding: '1.5rem', color: '#999' }}>
                           {softwareLoading ? 'Lädt…' : 'Keine Software oder Lizenzen erfasst'}
                         </td>
                       </tr>
@@ -1192,6 +1609,20 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
                         return (
                           <tr key={sw.id}>
                             <td><strong>{sw.name}</strong></td>
+                            <td>
+                              {sw.source === 'action1' ? (
+                                <span
+                                  title={sw.lastSyncedAt ? `Zuletzt synchronisiert: ${new Date(sw.lastSyncedAt).toLocaleString('de-CH')}` : 'Aus Action1 synchronisiert'}
+                                  style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '4px', background: '#e8f4fd', color: '#2980b9', whiteSpace: 'nowrap' }}
+                                >
+                                  🔄 Action1
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '4px', background: '#eee', color: '#666', whiteSpace: 'nowrap' }}>
+                                  ✋ manuell
+                                </span>
+                              )}
+                            </td>
                             <td>{sw.type || '-'}</td>
                             <td>{sw.vendor || '-'}</td>
                             <td>{sw.version || '-'}</td>
@@ -1230,6 +1661,130 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
                     )}
                   </tbody>
                 </table>
+              )}
+              </>
+              )}
+
+              {assetTab === 'updates' && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <span style={{ color: '#666', fontSize: '14px' }}>
+                      {updatesLoading ? 'Lädt…' : `${deviceUpdates.length} fehlende Updates`}
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {deviceUpdates.length > 0 && (
+                        <button
+                          className="btn btn-sm btn-warning"
+                          onClick={() => handleDeployUpdates(softwareModalDevice)}
+                          disabled={deploying}
+                          title="Diese Updates über Action1 auf dem Gerät installieren (kein Auto-Reboot)"
+                        >
+                          {deploying ? '⏳ Rollout…' : '🚀 Updates ausrollen'}
+                        </button>
+                      )}
+                      <button
+                        className="btn btn-sm btn-secondary"
+                        onClick={() => handleAction1SyncDevice(softwareModalDevice)}
+                        disabled={action1Syncing}
+                        title="Gerät aus Action1 synchronisieren (Updates werden beim Gesamt-Sync aktualisiert)"
+                      >
+                        {action1Syncing ? '⏳ Sync…' : '🔄 Action1-Sync'}
+                      </button>
+                    </div>
+                  </div>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Titel</th>
+                        <th>KB</th>
+                        <th>Schweregrad</th>
+                        <th>Kategorie</th>
+                        <th>Veröffentlicht</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {deviceUpdates.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} style={{ textAlign: 'center', padding: '1.5rem', color: '#999' }}>
+                            {updatesLoading ? 'Lädt…' : 'Keine fehlenden Updates (oder Update-Sync nicht aktiviert)'}
+                          </td>
+                        </tr>
+                      ) : (
+                        deviceUpdates.map(u => (
+                          <tr key={u.id}>
+                            <td><strong>{u.title}</strong></td>
+                            <td>{u.kb || '-'}</td>
+                            <td>{u.severity || '-'}</td>
+                            <td>{u.category || '-'}</td>
+                            <td>{u.releaseDate ? new Date(u.releaseDate).toLocaleDateString('de-CH') : '-'}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </>
+              )}
+
+              {assetTab === 'vulnerabilities' && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <span style={{ color: '#666', fontSize: '14px' }}>
+                      {vulnsLoading ? 'Lädt…' : `${deviceVulns.length} Schwachstellen`}
+                    </span>
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => handleAction1SyncDevice(softwareModalDevice)}
+                      disabled={action1Syncing}
+                      title="Gerät aus Action1 synchronisieren (CVEs werden beim Gesamt-Sync aktualisiert)"
+                    >
+                      {action1Syncing ? '⏳ Sync…' : '🔄 Action1-Sync'}
+                    </button>
+                  </div>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>CVE</th>
+                        <th>Bezeichnung</th>
+                        <th>Schweregrad</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {deviceVulns.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} style={{ textAlign: 'center', padding: '1.5rem', color: '#999' }}>
+                            {vulnsLoading ? 'Lädt…' : 'Keine Schwachstellen (oder CVE-Sync nicht aktiviert)'}
+                          </td>
+                        </tr>
+                      ) : (
+                        deviceVulns.map(v => (
+                          <tr key={v.id}>
+                            <td>
+                              <a
+                                href={`https://nvd.nist.gov/vuln/detail/${v.cveId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ fontFamily: 'monospace' }}
+                              >
+                                {v.cveId}
+                              </a>
+                            </td>
+                            <td>{v.name || '-'}</td>
+                            <td>
+                              <span style={{
+                                fontSize: '11px', padding: '2px 8px', borderRadius: '4px',
+                                color: '#fff', background: scoreColor(v.score), whiteSpace: 'nowrap'
+                              }}>
+                                {scoreLabel(v.score)}
+                              </span>
+                            </td>
+                            <td>{v.remediationStatus || '-'}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </>
               )}
             </div>
           </div>

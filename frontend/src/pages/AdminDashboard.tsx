@@ -43,6 +43,7 @@ import {
   InvoicesTab,
   RemindersTab,
   DevicesTab,
+  SoftwareReportTab,
   ContactsTab,
   TravelExpensesTab,
   OrdersTab,
@@ -78,7 +79,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'onboardingEmployees' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel' | 'informationen' | 'contacts';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'softwareReport' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'onboardingEmployees' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel' | 'informationen' | 'contacts';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -180,6 +181,7 @@ const AdminDashboard: React.FC = () => {
       reports: 'Berichte',
       compliance: 'Compliance',
       devices: 'Geräte',
+      softwareReport: 'Software',
       inventory: 'Inventar',
       workflows: 'Workflows',
       settings: 'Einstellungen',
@@ -751,6 +753,14 @@ const AdminDashboard: React.FC = () => {
                       label="💻 Geräte"
                     />
                   )}
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Software')) && (
+                    <TabButton
+                      active={activeTab === 'softwareReport'}
+                      onClick={() => changeTab('softwareReport')}
+                      tabId="softwareReport"
+                      label="📦 Software"
+                    />
+                  )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('contacts')) && (groupCheck.showAll || matchesSearch('Kontakte')) && (
                     <TabButton
                       active={activeTab === 'contacts'}
@@ -1062,6 +1072,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'projects' && <ProjectsTab projects={projects} onUpdate={loadData} />}
             {activeTab === 'locations' && <LocationsTab locations={locations} onUpdate={loadData} />}
             {activeTab === 'devices' && <DevicesTab devices={devices} users={users} onUpdate={loadData} />}
+            {activeTab === 'softwareReport' && <SoftwareReportTab />}
             {activeTab === 'contacts' && <ContactsTab contacts={contacts} contactGroups={contactGroups} userGroups={userGroups} onUpdate={loadData} />}
             {activeTab === 'werkzeuge' && <WerkzeugeTab tools={tools} users={users} onUpdate={loadData} />}
             {activeTab === 'travelExpenses' && <TravelExpensesTab expenses={travelExpenses} users={users} onUpdate={loadData} />}

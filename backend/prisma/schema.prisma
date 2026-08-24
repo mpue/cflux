@@ -1400,10 +1400,25 @@ model SystemSettings {
   // Time Rounding
   timeRoundingMode      String    @default("round")   // none, round, ceil, floor
   timeRoundingThreshold Int       @default(30)         // Sekunden-Schwelle für "round" Modus (0-59)
-  
+
+  // Action1-Integration (Software-Inventarisierung)
+  action1Enabled        Boolean   @default(false)
+  action1Region         String?   // NorthAmerica | NA-2 | Europe | Australia
+  action1ClientId       String?
+  action1ClientSecret   String?
+  action1OrgId          String?   // Action1 Organization ID
+  action1AutoSync       Boolean   @default(false)     // geplanter Auto-Sync aktiv
+  action1SyncInterval   String    @default("daily")   // daily, weekly
+  action1SyncTime       String    @default("03:00")   // HH:mm
+  action1AutoCreateDevices Boolean @default(false)    // unbekannte Endpoints als Geräte anlegen
+  action1SyncUpdates    Boolean   @default(false)     // fehlende Updates mitsynchronisieren
+  action1SyncVulnerabilities Boolean @default(false)  // Schwachstellen/CVEs mitsynchronisieren
+  action1VulnSeverity   String    @default("Critical,High") // zu synchronisierende CVE-Schweregrade (kommagetrennt)
+  action1LastSyncAt     DateTime?
+
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
-  
+
   @@map("system_settings")
 }
 
@@ -1552,14 +1567,24 @@ model Device {
   user          User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   assignments   DeviceAssignment[]
   software      DeviceSoftware[]
+  updates       DeviceUpdate[]
+  vulnerabilities DeviceVulnerability[]
+
+  // Action1-Integration: verknüpfter Endpoint (managed endpoint id)
+  action1EndpointId String?
+  action1Status     String?   // "Connected" | "Disconnected" (Stand: letzter Sync)
+  action1LastSeen   DateTime?
+  action1IpAddress  String?
 
   @@index([userId])
   @@index([serialNumber])
+  @@index([action1EndpointId])
   @@map("devices")
 }
 
 // Software- und Lizenzeintrag pro Gerät (Assetkatalog).
 // type unterscheidet z.B. "Software", "Lizenz", "Abo".
+// source unterscheidet manuell gepflegte von automatisch synchronisierten Einträgen.
 model DeviceSoftware {
   id            String    @id @default(uuid())
   deviceId      String
@@ -1575,13 +1600,60 @@ model DeviceSoftware {
   cost          Decimal?  @db.Decimal(10, 2)
   notes         String?
 
+  // Herkunft & Sync
+  source        String    @default("manual") // "manual" | "action1"
+  externalId    String?   // Referenz auf Action1-App (für Upsert bei Re-Sync)
+  lastSyncedAt  DateTime?
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   device        Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@index([deviceId])
+  @@index([deviceId, source])
   @@map("device_software")
+}
+
+// Fehlendes Update/Patch pro Gerät (aus Action1). Rein synchronisiert.
+model DeviceUpdate {
+  id            String    @id @default(uuid())
+  deviceId      String
+  externalId    String?   // Action1-Update-Kennung (für Upsert)
+  title         String
+  kb            String?   // KB-Nummer
+  severity      String?   // z.B. Critical, Important, Moderate
+  category      String?   // z.B. Security Update, Feature Update
+  releaseDate   DateTime?
+  lastSyncedAt  DateTime?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  device        Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+  @@map("device_updates")
+}
+
+// Schwachstelle/CVE pro Gerät (aus Action1). Rein synchronisiert.
+model DeviceVulnerability {
+  id                String    @id @default(uuid())
+  deviceId          String
+  cveId             String
+  name              String?
+  score             String?   // Critical, High, Medium, Low
+  remediationStatus String?   // z.B. Overdue, Due_soon, Control_applied
+  lastSyncedAt      DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  device            Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+  @@index([deviceId, cveId])
+  @@map("device_vulnerabilities")
 }
 
 model DeviceAssignment {

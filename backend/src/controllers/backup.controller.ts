@@ -105,6 +105,8 @@ const TABLE_MAP: Record<string, string> = {
   devices: 'device',
   deviceAssignments: 'deviceAssignment',
   deviceSoftware: 'deviceSoftware',
+  deviceUpdates: 'deviceUpdate',
+  deviceVulnerabilities: 'deviceVulnerability',
 
   // Travel
   travelExpenses: 'travelExpense',
@@ -534,6 +536,8 @@ export const restoreBackup = async (req: Request, res: Response) => {
     await prisma.payrollEntry.deleteMany();
     await prisma.payrollPeriod.deleteMany();
     await prisma.salaryConfiguration.deleteMany();
+    await prisma.deviceVulnerability.deleteMany();
+    await prisma.deviceUpdate.deleteMany();
     await prisma.deviceSoftware.deleteMany();
     await prisma.deviceAssignment.deleteMany();
     await prisma.device.deleteMany();
@@ -895,6 +899,8 @@ export const restoreBackup = async (req: Request, res: Response) => {
     restoredCount += await restoreTable('devices', 'device', 'Devices');
     restoredCount += await restoreTable('deviceAssignments', 'deviceAssignment', 'DeviceAssignments');
     restoredCount += await restoreTable('deviceSoftware', 'deviceSoftware', 'DeviceSoftware');
+    restoredCount += await restoreTable('deviceUpdates', 'deviceUpdate', 'DeviceUpdates');
+    restoredCount += await restoreTable('deviceVulnerabilities', 'deviceVulnerability', 'DeviceVulnerabilities');
 
     // ── Phase 25: Travel ─────────────────────────────────────
     restoredCount += await restoreTable('travelExpenses', 'travelExpense', 'TravelExpenses');

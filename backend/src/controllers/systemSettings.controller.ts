@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { systemSettingsService } from '../services/systemSettings.service';
 import { backupScheduler } from '../services/backupScheduler.service';
+import { action1Scheduler } from '../services/action1Scheduler.service';
 import { invalidateTimeRoundingCache } from '../utils/timeRounding';
 
 export const getSystemSettings = async (req: Request, res: Response) => {
@@ -35,6 +36,18 @@ export const updateSystemSettings = async (req: Request, res: Response) => {
     ) {
       backupScheduler.reschedule().catch(err => {
         console.error('Failed to reschedule backup:', err);
+      });
+    }
+
+    // Reschedule Action1 auto-sync if related settings changed
+    if (
+      req.body.action1Enabled !== undefined ||
+      req.body.action1AutoSync !== undefined ||
+      req.body.action1SyncInterval !== undefined ||
+      req.body.action1SyncTime !== undefined
+    ) {
+      action1Scheduler.reschedule().catch(err => {
+        console.error('Failed to reschedule Action1 sync:', err);
       });
     }
 

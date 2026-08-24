@@ -12,6 +12,10 @@ export interface Device {
   notes?: string;
   isActive: boolean;
   userId?: string;
+  action1EndpointId?: string;
+  action1Status?: string;
+  action1LastSeen?: string;
+  action1IpAddress?: string;
   user?: {
     id: string;
     firstName: string;
@@ -19,6 +23,34 @@ export interface Device {
     email: string;
   };
   software?: DeviceSoftware[];
+  updates?: { id: string; severity?: string | null }[];
+  vulnerabilities?: { id: string; score?: string | null }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeviceUpdate {
+  id: string;
+  deviceId: string;
+  externalId?: string;
+  title: string;
+  kb?: string;
+  severity?: string;
+  category?: string;
+  releaseDate?: string;
+  lastSyncedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DeviceVulnerability {
+  id: string;
+  deviceId: string;
+  cveId: string;
+  name?: string;
+  score?: string;
+  remediationStatus?: string;
+  lastSyncedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,8 +69,43 @@ export interface DeviceSoftware {
   expiryDate?: string;
   cost?: string | number | null;
   notes?: string;
+  source: 'manual' | 'action1';
+  externalId?: string;
+  lastSyncedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Action1SyncResult {
+  deviceId: string;
+  deviceName: string;
+  matched: boolean;
+  added: number;
+  updated: number;
+  removed: number;
+  error?: string;
+}
+
+export interface Action1SyncSummary {
+  devicesTotal: number;
+  devicesMatched: number;
+  devicesSkipped: number;
+  devicesCreated: number;
+  serialsUpdated: number;
+  added: number;
+  updated: number;
+  removed: number;
+  updatesTotal: number;
+  vulnsTotal: number;
+  results: Action1SyncResult[];
+}
+
+export interface Action1SyncStatus {
+  running: boolean;
+  startedAt: string | null;
+  finishedAt: string | null;
+  summary: Action1SyncSummary | null;
+  error: string | null;
 }
 
 export interface DeviceAssignment {
@@ -55,6 +122,22 @@ export interface DeviceAssignment {
     lastName: string;
     email: string;
   };
+}
+
+export interface SoftwareReportRow {
+  name: string;
+  vendor: string | null;
+  type: string | null;
+  deviceCount: number;
+  versions: string[];
+}
+
+export interface SoftwareInstallation {
+  deviceId: string;
+  deviceName: string;
+  category: string | null;
+  version: string | null;
+  status: string | null;
 }
 
 class DeviceService {
@@ -126,6 +209,56 @@ class DeviceService {
 
   async deleteDeviceSoftware(deviceId: string, softwareId: string): Promise<void> {
     await api.delete(`/devices/${deviceId}/software/${softwareId}`);
+  }
+
+  async getDeviceUpdates(deviceId: string): Promise<DeviceUpdate[]> {
+    const response = await api.get(`/devices/${deviceId}/updates`);
+    return response.data;
+  }
+
+  async getDeviceVulnerabilities(deviceId: string): Promise<DeviceVulnerability[]> {
+    const response = await api.get(`/devices/${deviceId}/vulnerabilities`);
+    return response.data;
+  }
+
+  async getSoftwareReport(): Promise<SoftwareReportRow[]> {
+    const response = await api.get('/devices/software/report');
+    return response.data;
+  }
+
+  async getSoftwareInstallations(name: string): Promise<SoftwareInstallation[]> {
+    const response = await api.get('/devices/software/report/installations', { params: { name } });
+    return response.data;
+  }
+
+  async deployDeviceUpdates(deviceId: string, autoReboot = false): Promise<{
+    policyId: string | null;
+    policyName: string;
+    packages: Array<{ title: string; packageId: string | null; version: string | null }>;
+  }> {
+    const response = await api.post(`/devices/${deviceId}/updates/deploy`, { autoReboot });
+    return response.data;
+  }
+
+  // Action1-Integration
+  async testAction1Connection(): Promise<{ ok: boolean; endpoints: number; message: string }> {
+    const response = await api.get('/devices/action1/test');
+    return response.data;
+  }
+
+  async startAction1Sync(): Promise<{ started: boolean; alreadyRunning: boolean; status: Action1SyncStatus }> {
+    const response = await api.post('/devices/action1/sync');
+    return response.data;
+  }
+
+  async getAction1SyncStatus(): Promise<Action1SyncStatus> {
+    const response = await api.get('/devices/action1/sync/status');
+    return response.data;
+  }
+
+  async syncDeviceFromAction1(deviceId: string): Promise<Action1SyncResult> {
+    const response = await api.post(`/devices/${deviceId}/action1/sync`);
+    return response.data;
   }
 }
 

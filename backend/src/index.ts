@@ -60,6 +60,7 @@ import calendarRoutes from './routes/calendar.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { authenticate } from './middleware/auth';
 import { backupScheduler } from './services/backupScheduler.service';
+import { action1Scheduler } from './services/action1Scheduler.service';
 import { prisma } from './lib/prisma';
 
 dotenv.config();
@@ -256,5 +257,10 @@ app.listen(PORT, () => {
   // Start automatic backup scheduler
   backupScheduler.start().catch(err => {
     console.error('Failed to start backup scheduler:', err);
+  });
+
+  // Start Action1 auto-sync scheduler
+  action1Scheduler.start().catch(err => {
+    console.error('Failed to start Action1 sync scheduler:', err);
   });
 });

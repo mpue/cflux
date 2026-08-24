@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
+import * as action1 from '../services/action1.service';
 
 
 // Get all devices
@@ -18,6 +19,12 @@ export const getAllDevices = async (req: Request, res: Response) => {
         },
         software: {
           orderBy: { name: 'asc' }
+        },
+        updates: {
+          select: { id: true, severity: true }
+        },
+        vulnerabilities: {
+          select: { id: true, score: true }
         }
       },
       orderBy: {
@@ -629,5 +636,153 @@ export const deleteDeviceSoftware = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Error deleting device software:', error);
     res.status(500).json({ error: 'Fehler beim Löschen des Eintrags' });
+  }
+};
+
+// ─────────────────────────────────────────────────────────
+// Action1-Integration (automatische Software-Inventarisierung)
+// ─────────────────────────────────────────────────────────
+
+// Verbindung testen
+export const testAction1Connection = async (_req: AuthRequest, res: Response) => {
+  try {
+    const result = await action1.testConnection();
+    res.json(result);
+  } catch (error: any) {
+    console.error('Action1 test connection error:', error?.response?.data || error?.message);
+    res.status(400).json({ error: error?.message || 'Verbindung zu Action1 fehlgeschlagen' });
+  }
+};
+
+// Alle Geräte synchronisieren – startet einen Hintergrund-Job (verhindert 504-Timeouts)
+export const syncAllDevicesFromAction1 = async (_req: AuthRequest, res: Response) => {
+  try {
+    const { started, alreadyRunning } = action1.startBackgroundSync();
+    res.status(202).json({
+      started,
+      alreadyRunning,
+      status: action1.getSyncStatus()
+    });
+  } catch (error: any) {
+    console.error('Action1 sync-all start error:', error?.message);
+    res.status(400).json({ error: error?.message || 'Action1-Synchronisation konnte nicht gestartet werden' });
+  }
+};
+
+// Status des Hintergrund-Sync-Jobs abfragen
+export const getAction1SyncStatus = async (_req: AuthRequest, res: Response) => {
+  res.json(action1.getSyncStatus());
+};
+
+// Software-Asset-Report: aggregiert alle Software über alle Geräte
+export const getSoftwareReport = async (_req: AuthRequest, res: Response) => {
+  try {
+    const rows = await prisma.$queryRaw<Array<{
+      name: string;
+      vendor: string | null;
+      type: string | null;
+      deviceCount: number;
+      versions: string[];
+    }>>`
+      SELECT
+        s.name,
+        (ARRAY_AGG(DISTINCT s.vendor) FILTER (WHERE s.vendor IS NOT NULL))[1] AS vendor,
+        (ARRAY_AGG(DISTINCT s.type)   FILTER (WHERE s.type   IS NOT NULL))[1] AS type,
+        COUNT(DISTINCT s."deviceId")::int AS "deviceCount",
+        COALESCE(ARRAY_AGG(DISTINCT s.version) FILTER (WHERE s.version IS NOT NULL), '{}') AS versions
+      FROM device_software s
+      GROUP BY s.name
+      ORDER BY COUNT(DISTINCT s."deviceId") DESC, s.name ASC
+    `;
+    res.json(rows);
+  } catch (error) {
+    console.error('Error building software report:', error);
+    res.status(500).json({ error: 'Fehler beim Erstellen des Software-Reports' });
+  }
+};
+
+// Drill-down: welche Geräte haben eine bestimmte Software
+export const getSoftwareInstallations = async (req: AuthRequest, res: Response) => {
+  try {
+    const name = String(req.query.name || '');
+    if (!name) return res.status(400).json({ error: 'Software-Name erforderlich' });
+
+    const rows = await prisma.$queryRaw<Array<{
+      deviceId: string;
+      deviceName: string;
+      category: string | null;
+      version: string | null;
+      status: string | null;
+    }>>`
+      SELECT
+        d.id AS "deviceId",
+        d.name AS "deviceName",
+        d.category,
+        s.version,
+        d."action1Status" AS status
+      FROM device_software s
+      JOIN devices d ON d.id = s."deviceId"
+      WHERE s.name = ${name}
+      ORDER BY d.name ASC
+    `;
+    res.json(rows);
+  } catch (error) {
+    console.error('Error fetching software installations:', error);
+    res.status(500).json({ error: 'Fehler beim Laden der Installationen' });
+  }
+};
+
+// Fehlende Updates eines Geräts über Action1 ausrollen (installiert real!)
+export const deployDeviceUpdates = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const autoReboot = req.body?.autoReboot === true;
+    const result = await action1.deployDeviceUpdates(id, autoReboot);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Action1 deploy error:', error?.response?.data || error?.message);
+    res.status(400).json({ error: error?.message || 'Update-Deployment fehlgeschlagen' });
+  }
+};
+
+// Fehlende Updates eines Geräts
+export const getDeviceUpdates = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = await prisma.deviceUpdate.findMany({
+      where: { deviceId: id },
+      orderBy: [{ severity: 'asc' }, { title: 'asc' }]
+    });
+    res.json(updates);
+  } catch (error) {
+    console.error('Error fetching device updates:', error);
+    res.status(500).json({ error: 'Fehler beim Laden der Updates' });
+  }
+};
+
+// Schwachstellen/CVEs eines Geräts
+export const getDeviceVulnerabilities = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const vulns = await prisma.deviceVulnerability.findMany({
+      where: { deviceId: id },
+      orderBy: { cveId: 'desc' }
+    });
+    res.json(vulns);
+  } catch (error) {
+    console.error('Error fetching device vulnerabilities:', error);
+    res.status(500).json({ error: 'Fehler beim Laden der Schwachstellen' });
+  }
+};
+
+// Einzelnes Gerät synchronisieren
+export const syncDeviceFromAction1 = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await action1.syncDevice(id);
+    res.json(result);
+  } catch (error: any) {
+    console.error('Action1 sync-device error:', error?.response?.data || error?.message);
+    res.status(400).json({ error: error?.message || 'Action1-Synchronisation fehlgeschlagen' });
   }
 };

@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { systemSettingsService, SystemSettings } from '../../services/systemSettings.service';
+import { deviceService } from '../../services/device.service';
 import './SystemSettingsTab.css';
 
 const SystemSettingsTab: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeSection, setActiveSection] = useState<'company' | 'system' | 'backup' | 'email' | 'invoice' | 'features' | 'maps' | 'timetracking'>('company');
+  const [activeSection, setActiveSection] = useState<'company' | 'system' | 'backup' | 'email' | 'invoice' | 'features' | 'maps' | 'timetracking' | 'action1'>('company');
   const [testEmailRecipient, setTestEmailRecipient] = useState('');
   const [testingEmail, setTestingEmail] = useState(false);
+  const [testingAction1, setTestingAction1] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -88,6 +90,21 @@ const SystemSettingsTab: React.FC = () => {
     }
   };
 
+  const handleTestAction1 = async () => {
+    if (!settings) return;
+    setTestingAction1(true);
+    try {
+      // Erst speichern, damit das Backend die aktuellen Zugangsdaten verwendet
+      await systemSettingsService.updateSettings(settings);
+      const result = await deviceService.testAction1Connection();
+      alert('✅ ' + result.message);
+    } catch (error: any) {
+      alert('❌ ' + (error.response?.data?.error || error.message || 'Verbindung fehlgeschlagen'));
+    } finally {
+      setTestingAction1(false);
+    }
+  };
+
   const handleChange = (field: keyof SystemSettings, value: any) => {
     if (!settings) return;
     setSettings({ ...settings, [field]: value });
@@ -158,6 +175,12 @@ const SystemSettingsTab: React.FC = () => {
           onClick={() => setActiveSection('timetracking')}
         >
           ⏱️ Zeiterfassung
+        </button>
+        <button
+          className={`nav-btn ${activeSection === 'action1' ? 'active' : ''}`}
+          onClick={() => setActiveSection('action1')}
+        >
+          🔄 Action1
         </button>
       </div>
 
@@ -716,6 +739,214 @@ const SystemSettingsTab: React.FC = () => {
                   src={`https://www.google.com/maps/embed/v1/place?key=${settings.googleMapsApiKey}&q=Zürich,Schweiz`}
                 />
               </div>
+            )}
+          </div>
+        )}
+
+        {activeSection === 'action1' && (
+          <div className="settings-section">
+            <h3>🔄 Action1-Integration</h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              Synchronisiert die auf den Geräten installierte Software automatisch aus Action1 in den
+              Assetkatalog (Geräteverwaltung → 💿). Manuell erfasste Einträge (Lizenzschlüssel, Kosten,
+              Ablaufdaten) bleiben dabei erhalten. Zugangsdaten erstellen Sie in Action1 unter{' '}
+              <em>Configuration → Users &amp; API Credentials</em>.
+            </p>
+
+            <div className="form-group">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={settings.action1Enabled || false}
+                  onChange={(e) => handleChange('action1Enabled', e.target.checked)}
+                  style={{ marginRight: '8px' }}
+                />
+                Action1-Integration aktivieren
+              </label>
+            </div>
+
+            {settings.action1Enabled && (
+              <>
+                <div className="form-group">
+                  <label>Region</label>
+                  <select
+                    value={settings.action1Region || ''}
+                    onChange={(e) => handleChange('action1Region', e.target.value)}
+                  >
+                    <option value="">Bitte wählen</option>
+                    <option value="Europe">Europa (app.eu.action1.com)</option>
+                    <option value="NorthAmerica">Nordamerika (app.action1.com)</option>
+                    <option value="NA-2">Nordamerika 2 (app.na-2.action1.com)</option>
+                    <option value="Australia">Australien (app.au.action1.com)</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Organization ID</label>
+                  <input
+                    type="text"
+                    value={settings.action1OrgId || ''}
+                    onChange={(e) => handleChange('action1OrgId', e.target.value)}
+                    placeholder="Action1 Organization ID"
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Client ID</label>
+                  <input
+                    type="text"
+                    value={settings.action1ClientId || ''}
+                    onChange={(e) => handleChange('action1ClientId', e.target.value)}
+                    placeholder="API Client ID"
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Client Secret</label>
+                  <input
+                    type="password"
+                    value={settings.action1ClientSecret || ''}
+                    onChange={(e) => handleChange('action1ClientSecret', e.target.value)}
+                    placeholder="API Client Secret"
+                    autoComplete="off"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <button
+                    className="btn-secondary"
+                    onClick={handleTestAction1}
+                    disabled={testingAction1}
+                    type="button"
+                  >
+                    {testingAction1 ? 'Teste Verbindung…' : '🔌 Verbindung testen'}
+                  </button>
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                    Speichert die Einstellungen und prüft die Verbindung zu Action1.
+                  </small>
+                </div>
+
+                <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid var(--border-color)' }} />
+
+                <div className="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={settings.action1AutoCreateDevices || false}
+                      onChange={(e) => handleChange('action1AutoCreateDevices', e.target.checked)}
+                      style={{ marginRight: '8px' }}
+                    />
+                    Unbekannte Endpoints automatisch als Geräte anlegen
+                  </label>
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                    Action1-Endpoints ohne passendes cflux-Gerät werden beim Sync neu angelegt
+                    (Name = Hostname, Seriennummer/Hersteller/Modell aus Action1) und anschließend inventarisiert.
+                  </small>
+                </div>
+
+                <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid var(--border-color)' }} />
+
+                <div className="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={settings.action1SyncUpdates || false}
+                      onChange={(e) => handleChange('action1SyncUpdates', e.target.checked)}
+                      style={{ marginRight: '8px' }}
+                    />
+                    Fehlende Updates/Patches mitsynchronisieren
+                  </label>
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={settings.action1SyncVulnerabilities || false}
+                      onChange={(e) => handleChange('action1SyncVulnerabilities', e.target.checked)}
+                      style={{ marginRight: '8px' }}
+                    />
+                    Schwachstellen (CVEs) mitsynchronisieren
+                  </label>
+                </div>
+
+                {settings.action1SyncVulnerabilities && (
+                  <div className="form-group" style={{ paddingLeft: '24px' }}>
+                    <label>Zu synchronisierende Schweregrade</label>
+                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '4px' }}>
+                      {['Critical', 'High', 'Medium', 'Low'].map(sev => {
+                        const current = (settings.action1VulnSeverity || 'Critical,High')
+                          .split(',').map(s => s.trim()).filter(Boolean);
+                        const checked = current.includes(sev);
+                        return (
+                          <label key={sev} style={{ fontWeight: 'normal' }}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                const set = new Set(current);
+                                if (e.target.checked) set.add(sev); else set.delete(sev);
+                                const ordered = ['Critical', 'High', 'Medium', 'Low'].filter(s => set.has(s));
+                                handleChange('action1VulnSeverity', ordered.join(','));
+                              }}
+                              style={{ marginRight: '6px' }}
+                            />
+                            {sev === 'Critical' ? 'Kritisch' : sev === 'High' ? 'Hoch' : sev === 'Medium' ? 'Mittel' : 'Niedrig'}
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <small style={{ color: 'var(--text-secondary)', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                      Mehr Schweregrade = mehr API-Abrufe und längerer Sync. Empfehlung: Kritisch + Hoch.
+                    </small>
+                  </div>
+                )}
+
+                <hr style={{ margin: '20px 0', border: 'none', borderTop: '1px solid var(--border-color)' }} />
+
+                <div className="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={settings.action1AutoSync || false}
+                      onChange={(e) => handleChange('action1AutoSync', e.target.checked)}
+                      style={{ marginRight: '8px' }}
+                    />
+                    Geplanten Auto-Sync aktivieren
+                  </label>
+                </div>
+
+                {settings.action1AutoSync && (
+                  <div style={{ display: 'flex', gap: '15px' }}>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Intervall</label>
+                      <select
+                        value={settings.action1SyncInterval || 'daily'}
+                        onChange={(e) => handleChange('action1SyncInterval', e.target.value)}
+                      >
+                        <option value="daily">Täglich</option>
+                        <option value="weekly">Wöchentlich</option>
+                      </select>
+                    </div>
+                    <div className="form-group" style={{ flex: 1 }}>
+                      <label>Uhrzeit</label>
+                      <input
+                        type="time"
+                        value={settings.action1SyncTime || '03:00'}
+                        onChange={(e) => handleChange('action1SyncTime', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {settings.action1LastSyncAt && (
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '12px', display: 'block', marginTop: '8px' }}>
+                    Letzte Synchronisation: {new Date(settings.action1LastSyncAt).toLocaleString('de-CH')}
+                  </small>
+                )}
+              </>
             )}
           </div>
         )}

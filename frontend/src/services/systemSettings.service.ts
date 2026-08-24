@@ -55,6 +55,21 @@ export interface SystemSettings {
   timeRoundingMode: string;
   timeRoundingThreshold: number;
 
+  // Action1-Integration
+  action1Enabled?: boolean;
+  action1Region?: string;
+  action1ClientId?: string;
+  action1ClientSecret?: string;
+  action1OrgId?: string;
+  action1AutoSync?: boolean;
+  action1SyncInterval?: string;
+  action1SyncTime?: string;
+  action1AutoCreateDevices?: boolean;
+  action1SyncUpdates?: boolean;
+  action1SyncVulnerabilities?: boolean;
+  action1VulnSeverity?: string;
+  action1LastSyncAt?: string;
+
   createdAt: string;
   updatedAt: string;
 }

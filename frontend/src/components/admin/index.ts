@@ -20,6 +20,7 @@ export { default as InvoicesTab } from './InvoicesTab';
 export { default as SalaryConfigDialog } from './SalaryConfigDialog';
 export { default as UserPayrollHistory } from './UserPayrollHistory';
 export { DevicesTab } from './DevicesTab';
+export { SoftwareReportTab } from './SoftwareReportTab';
 export { ContactsTab } from './ContactsTab';
 export { TravelExpensesTab } from './TravelExpensesTab';
 export { OrdersTab } from './OrdersTab';
