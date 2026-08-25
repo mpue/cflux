@@ -5,6 +5,7 @@ import { userService } from '../../services/user.service';
 import { getAllCustomers } from '../../services/customerService';
 import { storyService } from '../../services/story.service';
 import { BaseModal } from '../common/BaseModal';
+import LogoUpload from '../LogoUpload';
 import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface ProjectsTabProps {
@@ -176,6 +177,13 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({ projects, onUpdate }) 
   );
 };
 
+/** Fallback-Palette des Berichts-Layouts. */
+const DEFAULT_BRANDING = {
+  primaryColor: '#634329',
+  secondaryColor: '#EFE0D3',
+  accentColor: '#FFF7E0',
+};
+
 const ProjectModal: React.FC<{
   project: Project | null;
   onClose: () => void;
@@ -196,6 +204,10 @@ const ProjectModal: React.FC<{
     sollArbeitszeit: project?.sollArbeitszeit?.toString() || '',
     cuttingAktiv: project?.cuttingAktiv ?? true,
     cuttingTolerance: project?.cuttingTolerance?.toString() || '0',
+    logoUrl: project?.logoUrl || '',
+    primaryColor: project?.primaryColor || DEFAULT_BRANDING.primaryColor,
+    secondaryColor: project?.secondaryColor || DEFAULT_BRANDING.secondaryColor,
+    accentColor: project?.accentColor || DEFAULT_BRANDING.accentColor,
   });
 
   useEffect(() => {
@@ -365,6 +377,64 @@ const ProjectModal: React.FC<{
               </label>
             </div>
           </div>
+
+          <h3 style={{ marginTop: '20px', marginBottom: '12px', fontSize: '16px', borderBottom: '1px solid #eee', paddingBottom: '8px' }}>Branding (Logo &amp; Farben)</h3>
+          <p style={{ color: '#666', fontSize: '12px', marginTop: 0, marginBottom: '12px' }}>
+            Logo und Farben werden im Modul „Berichte“ für PDF- und HTML-Export verwendet.
+          </p>
+
+          <div className="form-group">
+            <label>Projektlogo</label>
+            <LogoUpload
+              currentLogo={formData.logoUrl || undefined}
+              onLogoChange={(logoUrl) => setFormData({ ...formData, logoUrl })}
+              onLogoRemove={() => setFormData({ ...formData, logoUrl: '' })}
+            />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+            <div className="form-group">
+              <label>Hauptfarbe</label>
+              <input
+                type="color"
+                value={formData.primaryColor}
+                onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
+                style={{ height: '38px', padding: '2px' }}
+              />
+              <small style={{ color: '#666', fontSize: '12px' }}>Kopfzeilen, Linien</small>
+            </div>
+
+            <div className="form-group">
+              <label>Sekundärfarbe</label>
+              <input
+                type="color"
+                value={formData.secondaryColor}
+                onChange={(e) => setFormData({ ...formData, secondaryColor: e.target.value })}
+                style={{ height: '38px', padding: '2px' }}
+              />
+              <small style={{ color: '#666', fontSize: '12px' }}>Beschriftungsfelder</small>
+            </div>
+
+            <div className="form-group">
+              <label>Akzentfarbe</label>
+              <input
+                type="color"
+                value={formData.accentColor}
+                onChange={(e) => setFormData({ ...formData, accentColor: e.target.value })}
+                style={{ height: '38px', padding: '2px' }}
+              />
+              <small style={{ color: '#666', fontSize: '12px' }}>Wertefelder</small>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ marginBottom: '12px' }}
+            onClick={() => setFormData({ ...formData, ...DEFAULT_BRANDING })}
+          >
+            Farben zurücksetzen
+          </button>
 
           <div className="modal-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>

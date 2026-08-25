@@ -15,7 +15,7 @@ if (!fs.existsSync(BACKUP_DIR)) {
 
 /**
  * Maps backup JSON key names → Prisma client accessor names.
- * Single source of truth for all backed-up tables (107 total).
+ * Single source of truth for all backed-up tables (114 total).
  */
 const TABLE_MAP: Record<string, string> = {
   // Auth & Organisation
@@ -192,6 +192,12 @@ const TABLE_MAP: Record<string, string> = {
   // Calendar
   calendarEvents: 'calendarEvent',
   calendarEventAttendees: 'calendarEventAttendee',
+
+  // Berichte
+  reports: 'report',
+  reportAreas: 'reportArea',
+  reportPhotos: 'reportPhoto',
+  reportFindings: 'reportFinding',
 };
 
 const TABLE_COUNT = Object.keys(TABLE_MAP).length;
@@ -552,6 +558,12 @@ export const restoreBackup = async (req: Request, res: Response) => {
     await prisma.absenceRequest.deleteMany();
     await prisma.projectTimeAllocation.deleteMany();
     await prisma.timeEntry.deleteMany();
+
+    // Berichte (depend on Project)
+    await prisma.reportFinding.deleteMany();
+    await prisma.reportPhoto.deleteMany();
+    await prisma.reportArea.deleteMany();
+    await prisma.report.deleteMany();
 
     // Stories (depends on Project, referenced by TimeEntry)
     await prisma.story.deleteMany();
@@ -992,6 +1004,12 @@ export const restoreBackup = async (req: Request, res: Response) => {
 
     // ── Phase 38: Probation reviews (depend on Employee + User) ─
     restoredCount += await restoreTable('probationReviews', 'probationReview', 'ProbationReviews');
+
+    // ── Phase 39: Berichte (depend on Project + User) ────────
+    restoredCount += await restoreTable('reports', 'report', 'Reports');
+    restoredCount += await restoreTable('reportAreas', 'reportArea', 'ReportAreas');
+    restoredCount += await restoreTable('reportPhotos', 'reportPhoto', 'ReportPhotos');
+    restoredCount += await restoreTable('reportFindings', 'reportFinding', 'ReportFindings');
 
     // ── Restore uploaded files from ZIP ───────────────────
     let filesRestored = 0;

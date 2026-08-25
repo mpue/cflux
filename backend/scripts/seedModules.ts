@@ -345,6 +345,14 @@ async function seedModules() {
       route: '/contacts',
       sortOrder: 40,
     },
+    {
+      name: 'Rundgangsberichte',
+      key: 'berichte',
+      description: 'Toolbox-Rundgang / Tagesprotokolle je Projekt',
+      icon: 'assignment',
+      route: '/berichte',
+      sortOrder: 41,
+    },
   ];
 
   for (const module of modules) {

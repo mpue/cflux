@@ -54,6 +54,8 @@ import JobDetailPage from './pages/JobDetailPage';
 import UserProfile from './pages/UserProfile';
 import JobFunctionsPage from './pages/JobFunctionsPage';
 import ChecklistsPage from './pages/ChecklistsPage';
+import BerichtePage from './pages/BerichtePage';
+import ProtectedModuleRoute from './components/ProtectedModuleRoute';
 import ChecklistInstanceDetailPage from './pages/ChecklistInstanceDetailPage';
 import ChecklistTemplateFormPage from './pages/ChecklistTemplateFormPage';
 import ChecklistInstanceFormPage from './pages/ChecklistInstanceFormPage';
@@ -181,6 +183,16 @@ function App() {
               element={
                 <PrivateRoute>
                   <IncidentManagement />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/berichte"
+              element={
+                <PrivateRoute>
+                  <ProtectedModuleRoute moduleKey="berichte">
+                    <BerichtePage />
+                  </ProtectedModuleRoute>
                 </PrivateRoute>
               }
             />

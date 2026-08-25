@@ -130,6 +130,10 @@ export const TABLE_MAP: Record<string, string> = {
   toolAssignments: 'toolAssignment',
   calendarEvents: 'calendarEvent',
   calendarEventAttendees: 'calendarEventAttendee',
+  reports: 'report',
+  reportAreas: 'reportArea',
+  reportPhotos: 'reportPhoto',
+  reportFindings: 'reportFinding',
 };
 
 const TABLE_COUNT = Object.keys(TABLE_MAP).length;

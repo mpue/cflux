@@ -122,6 +122,12 @@ export interface Project {
   cuttingAktiv?: boolean;     // Cutting aktiviert
   cuttingTolerance?: number;  // Toleranz in Minuten
 
+  // Branding (Logo und Farben, u.a. für den Berichts-Export)
+  logoUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+
   startDate?: string;
   endDate?: string;
   progress?: number;

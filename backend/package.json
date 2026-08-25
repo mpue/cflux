@@ -23,6 +23,7 @@
     "seed:devices": "ts-node prisma/seedDevices.ts",
     "seed:actions": "ts-node scripts/seedActions.ts",
     "seed:news": "ts-node prisma/seedNews.ts",
+    "seed:berichte": "ts-node prisma/seedBerichteModule.ts",
     "seed:test-data": "ts-node scripts/generate-test-data.ts",
     "backup": "ts-node scripts/create-full-backup.ts",
     "import:dlk": "ts-node scripts/import-dlk-articles.ts",

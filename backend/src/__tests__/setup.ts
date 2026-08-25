@@ -186,6 +186,10 @@ jest.mock('@prisma/client', () => {
     payrollPeriod: crudMock(),
     salaryConfiguration: crudMock(),
     deviceAssignment: crudMock(),
+    report: crudMock(),
+    reportArea: crudMock(),
+    reportFinding: crudMock(),
+    reportPhoto: crudMock(),
     device: crudMock(),
     inventoryMovement: crudMock(),
     inventoryItem: crudMock(),
@@ -209,6 +213,10 @@ jest.mock('@prisma/client', () => {
     ActionTriggerTiming: {
       BEFORE: 'BEFORE',
       AFTER: 'AFTER',
+    },
+    ReportStatus: {
+      DRAFT: 'DRAFT',
+      COMPLETED: 'COMPLETED',
     },
     InvoiceStatus: {
       DRAFT: 'DRAFT',

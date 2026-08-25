@@ -39,6 +39,7 @@ import {
   HealthAndSafety as EHSIcon,
   School as SchoolIcon,
   ChecklistRtl as ChecklistIcon,
+  Assignment as ReportIcon,
   CalendarMonth as CalendarIcon,
   PushPin as PinIcon,
 } from '@mui/icons-material';
@@ -52,6 +53,7 @@ const MODULE_ICONS: Record<string, React.ElementType> = {
   media: MediaIcon,
   school: SchoolIcon,
   checklist: ChecklistIcon,
+  report: ReportIcon,
 };
 
 const MORE_MODULES: ShortcutItem[] = [
@@ -64,6 +66,7 @@ const MORE_MODULES: ShortcutItem[] = [
   { key: 'media', label: 'Medien', route: '/media', icon: 'media' },
   { key: 'elearning', label: 'E-Learning', route: '/elearning', icon: 'school' },
   { key: 'checklists', label: 'Checklisten', route: '/checklists', icon: 'checklist' },
+  { key: 'berichte', label: 'Rundgangsberichte', route: '/berichte', icon: 'report' },
 ];
 
 interface AppNavbarProps {

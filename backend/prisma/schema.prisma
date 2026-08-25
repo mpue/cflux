@@ -191,6 +191,10 @@ model User {
   assignedTools    Tool[]             @relation("ToolAssignedTo")
   toolAssignments  ToolAssignment[]   @relation("ToolAssignments")
   
+  // Berichte
+  createdReports       Report[]      @relation("ReportCreatedBy")
+  uploadedReportPhotos ReportPhoto[] @relation("ReportPhotoUploader")
+  
   // Kalender
   createdCalendarEvents CalendarEvent[]        @relation("CalendarEventCreator")
   calendarAttendees     CalendarEventAttendee[] @relation("CalendarEventAttendees")
@@ -438,6 +442,12 @@ model Project {
   cuttingAktiv     Boolean @default(true)  // Cutting aktiviert
   cuttingTolerance Int     @default(0)     // Toleranz in Minuten
 
+  // Branding (wird u.a. im Berichts-Export verwendet)
+  logoUrl        String?   // Pfad zum Projektlogo, z.B. "/uploads/<uuid>.png"
+  primaryColor   String?   // Hauptfarbe, z.B. "#634329"
+  secondaryColor String?   // Flaechenfarbe fuer Kopfzeilen/Labels
+  accentColor    String?   // Akzentfarbe fuer Hervorhebungen
+
   startDate   DateTime?    // Geplantes Startdatum für Gantt-Chart
   endDate     DateTime?    // Geplantes Enddatum für Gantt-Chart
   progress    Int          @default(0) // Fortschritt in Prozent (0-100)
@@ -456,6 +466,7 @@ model Project {
   tasks       ProjectTask[]
   checklistInstances ChecklistInstance[]
   stories     Story[]
+  reports     Report[]
 
   @@map("projects")
 }
@@ -3891,4 +3902,97 @@ model CalendarEventAttendee {
   @@index([eventId])
   @@index([userId])
   @@map("calendar_event_attendees")
+}
+
+// ==================== Berichte (Toolbox-Rundgang / Tagesprotokoll) ====================
+// Jeder Bericht gehoert zu genau einem Projekt. Der Zugriff wird ueber die
+// ProjectAssignment-Zuordnung des Benutzers geregelt (siehe middleware/projectAccess.ts).
+
+enum ReportStatus {
+  DRAFT
+  COMPLETED
+}
+
+model Report {
+  id                    String       @id @default(uuid())
+  projectId             String
+  weekday               String // "Mo" | "Di" | "Mi" | "Do" | "Fr"
+  date                  DateTime // Datum des Rundgangs
+  referent              String? // Referent / CM
+  rundgangDurchgefuehrt String? // "Ja" | "Nein" | null
+  weitereTeilnehmer     String?
+  status                ReportStatus @default(DRAFT)
+  createdById           String?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User?           @relation("ReportCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  areas     ReportArea[]
+  findings  ReportFinding[]
+  photos    ReportPhoto[]
+
+  @@index([projectId])
+  @@index([date])
+  @@index([createdById])
+  @@map("reports")
+}
+
+// Kontrollierter Bereich im Rundgang, Status: i.O. / Abweichung / nicht geprueft
+model ReportArea {
+  id        String @id @default(uuid())
+  reportId  String
+  name      String
+  status    String @default("")
+  sortOrder Int    @default(0)
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@index([reportId])
+  @@map("report_areas")
+}
+
+// Einzelne Feststellung inkl. Massnahme und optionalem Beweisfoto
+model ReportFinding {
+  id              String    @id @default(uuid())
+  reportId        String
+  position        Int       @default(0)
+  feststellung    String?
+  bereich         String?
+  klassifizierung String?
+  ampel           String? // "Gruen" | "Gelb" | "Rot"
+  stopp           String?
+  massnahme       String?
+  verantwortlich  String?
+  termin          DateTime?
+  status          String? // "Offen" | "In Bearbeitung" | "Erledigt"
+  erledigtAm      DateTime?
+  enablon         String?
+  photoId         String?
+
+  report Report       @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  photo  ReportPhoto? @relation(fields: [photoId], references: [id], onDelete: SetNull)
+
+  @@index([reportId])
+  @@index([photoId])
+  @@map("report_findings")
+}
+
+model ReportPhoto {
+  id           String   @id @default(uuid())
+  reportId     String
+  filename     String // Dateiname auf der Platte (uploads/report-photos/<reportId>/)
+  originalName String
+  mimeType     String?
+  fileSize     Int?
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  report     Report          @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  uploadedBy User?           @relation("ReportPhotoUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  findings   ReportFinding[]
+
+  @@index([reportId])
+  @@index([uploadedById])
+  @@map("report_photos")
 }

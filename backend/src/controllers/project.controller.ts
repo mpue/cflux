@@ -53,7 +53,7 @@ export const getMyProjects = async (req: AuthRequest, res: Response) => {
 
 export const createProject = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description, status, customerId, defaultHourlyRate, sollBeginn, sollEnde, sollPauseDauer, sollArbeitszeit, cuttingAktiv, cuttingTolerance } = req.body;
+    const { name, description, status, customerId, defaultHourlyRate, sollBeginn, sollEnde, sollPauseDauer, sollArbeitszeit, cuttingAktiv, cuttingTolerance, logoUrl, primaryColor, secondaryColor, accentColor } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Project name is required' });
@@ -72,6 +72,10 @@ export const createProject = async (req: AuthRequest, res: Response) => {
         sollArbeitszeit: sollArbeitszeit !== undefined && sollArbeitszeit !== '' ? parseFloat(sollArbeitszeit.toString()) : null,
         cuttingAktiv: cuttingAktiv !== undefined ? cuttingAktiv : true,
         cuttingTolerance: cuttingTolerance !== undefined && cuttingTolerance !== '' ? parseFloat(cuttingTolerance.toString()) : 0,
+        logoUrl: logoUrl || null,
+        primaryColor: primaryColor || null,
+        secondaryColor: secondaryColor || null,
+        accentColor: accentColor || null,
       }
     });
 
@@ -85,7 +89,7 @@ export const createProject = async (req: AuthRequest, res: Response) => {
 export const updateProject = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, isActive, status, customerId, defaultHourlyRate, startDate, endDate, progress, sollBeginn, sollEnde, sollPauseDauer, sollArbeitszeit, cuttingAktiv, cuttingTolerance } = req.body;
+    const { name, description, isActive, status, customerId, defaultHourlyRate, startDate, endDate, progress, sollBeginn, sollEnde, sollPauseDauer, sollArbeitszeit, cuttingAktiv, cuttingTolerance, logoUrl, primaryColor, secondaryColor, accentColor } = req.body;
 
     const updateData: any = {};
     
@@ -104,6 +108,11 @@ export const updateProject = async (req: AuthRequest, res: Response) => {
     if (sollArbeitszeit !== undefined) updateData.sollArbeitszeit = sollArbeitszeit !== '' ? parseFloat(sollArbeitszeit.toString()) : null;
     if (cuttingAktiv !== undefined) updateData.cuttingAktiv = cuttingAktiv;
     if (cuttingTolerance !== undefined) updateData.cuttingTolerance = cuttingTolerance !== '' ? parseFloat(cuttingTolerance.toString()) : 0;
+    // Branding (Logo und Farben, u.a. fuer den Berichts-Export)
+    if (logoUrl !== undefined) updateData.logoUrl = logoUrl || null;
+    if (primaryColor !== undefined) updateData.primaryColor = primaryColor || null;
+    if (secondaryColor !== undefined) updateData.secondaryColor = secondaryColor || null;
+    if (accentColor !== undefined) updateData.accentColor = accentColor || null;
 
     const project = await prisma.project.update({
       where: { id },
