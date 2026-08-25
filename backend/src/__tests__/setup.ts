@@ -186,6 +186,7 @@ jest.mock('@prisma/client', () => {
     payrollPeriod: crudMock(),
     salaryConfiguration: crudMock(),
     deviceAssignment: crudMock(),
+    apiKey: crudMock(),
     report: crudMock(),
     reportArea: crudMock(),
     reportFinding: crudMock(),

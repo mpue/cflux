@@ -57,6 +57,7 @@ import departmentRoutes from './routes/department.routes';
 import storyRoutes from './routes/story.routes';
 import werkzeugeRoutes from './routes/werkzeuge.routes';
 import calendarRoutes from './routes/calendar.routes';
+import apiKeyRoutes from './routes/apiKey.routes';
 import berichtRoutes from './routes/bericht.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { authenticate } from './middleware/auth';
@@ -154,6 +155,7 @@ app.use('/api/departments', departmentRoutes);
 app.use('/api/stories', storyRoutes);
 app.use('/api/werkzeuge', werkzeugeRoutes);
 app.use('/api/calendar', calendarRoutes);
+app.use('/api/api-keys', apiKeyRoutes);
 app.use('/api/berichte', berichtRoutes);
 
 // Version endpoint
