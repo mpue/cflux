@@ -5,6 +5,7 @@ import { UserDetailModal } from '../UserDetailModal';
 import PDFReportModal from '../PDFReportModal';
 import SalaryConfigDialog from './SalaryConfigDialog';
 import UserPayrollHistory from './UserPayrollHistory';
+import { OneTimePasswordDialog } from './OneTimePasswordDialog';
 
 const UserCreateModal: React.FC<{
   onClose: () => void;
@@ -156,6 +157,7 @@ const UserCreateModal: React.FC<{
 
 export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ users, onUpdate }) => {
   const [showModal, setShowModal] = useState(false);
+  const [otpUser, setOtpUser] = useState<User | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [pdfReportUser, setPdfReportUser] = useState<User | null>(null);
@@ -376,6 +378,14 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
                   Bearbeiten
                 </button>
                 <button
+                  className="btn btn-secondary"
+                  style={{ marginRight: '5px', padding: '5px 10px', fontSize: '12px' }}
+                  title="Neues Einmal-Passwort erzeugen und per E-Mail senden"
+                  onClick={() => setOtpUser(user)}
+                >
+                  🔑 Einmal-Passwort
+                </button>
+                <button
                   className="btn btn-success"
                   style={{ marginRight: '5px', padding: '5px 10px', fontSize: '12px' }}
                   onClick={() => setPdfReportUser(user)}
@@ -526,6 +536,14 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
                 Bearbeiten
               </button>
               <button
+                className="btn btn-secondary btn-small"
+                style={{ fontSize: '12px' }}
+                title="Neues Einmal-Passwort erzeugen und per E-Mail senden"
+                onClick={() => setOtpUser(user)}
+              >
+                🔑 Passwort
+              </button>
+              <button
                 className="btn btn-success btn-small"
                 style={{ fontSize: '12px' }}
                 onClick={() => setPdfReportUser(user)}
@@ -588,6 +606,14 @@ export const UsersTab: React.FC<{ users: User[]; onUpdate: () => void }> = ({ us
             setShowCreateModal(false);
             onUpdate();
           }}
+        />
+      )}
+
+      {otpUser && (
+        <OneTimePasswordDialog
+          user={otpUser}
+          onClose={() => setOtpUser(null)}
+          onDone={onUpdate}
         />
       )}
 

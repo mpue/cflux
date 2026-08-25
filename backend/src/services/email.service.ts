@@ -253,6 +253,106 @@ Ihr ${companyName} Team
     });
   }
 
+  /**
+   * Mail an einen bestehenden Benutzer, dessen Passwort ein Administrator
+   * zurueckgesetzt hat. Abgrenzung zu sendWelcomeEmail: dort geht es um einen
+   * neu eingerichteten Zugang, hier um einen bestehenden.
+   */
+  async sendOneTimePasswordEmail(options: {
+    email: string;
+    firstName: string;
+    tempPassword: string;
+    issuedBy?: string;
+  }): Promise<boolean> {
+    const settings = await systemSettingsService.getSettings();
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const loginUrl = `${frontendUrl}/#/login`;
+    const companyName = settings.companyName || 'CFlux';
+    const issuedByLine = options.issuedBy
+      ? `<p>Zurückgesetzt von: ${options.issuedBy}</p>`
+      : '';
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .button { display: inline-block; background: linear-gradient(to right, #10b981, #0ea5e9); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; }
+          .credentials { background: white; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb; }
+          .credentials td { padding: 6px 8px; }
+          .warning { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 12px; margin: 20px 0; border-radius: 4px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1 style="margin: 0;">Ihr Passwort wurde zurückgesetzt</h1>
+          </div>
+          <div class="content">
+            <p>Hallo ${options.firstName},</p>
+            <p>für Ihren Zugang zu ${companyName} wurde ein neues Einmal-Passwort vergeben. Das bisherige Passwort ist damit ungültig.</p>
+            <div class="credentials">
+              <table>
+                <tr><td style="font-weight:bold;width:140px">Benutzername</td><td style="font-family:monospace">${options.email}</td></tr>
+                <tr><td style="font-weight:bold">Einmal-Passwort</td><td style="font-family:monospace">${options.tempPassword}</td></tr>
+              </table>
+            </div>
+            <div style="text-align: center;">
+              <a href="${loginUrl}" class="button">Jetzt anmelden</a>
+            </div>
+            <p>Oder kopieren Sie diesen Link in Ihren Browser:</p>
+            <p style="word-break: break-all; background: white; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 14px;">
+              ${loginUrl}
+            </p>
+            <div class="warning">
+              <strong>🔒 Wichtig:</strong><br>
+              Beim nächsten Login müssen Sie dieses Passwort durch ein eigenes ersetzen.
+              Falls Sie diese Zurücksetzung nicht erwartet haben, melden Sie sich bitte umgehend bei Ihrem Administrator.
+            </div>
+            ${issuedByLine}
+          </div>
+          <div class="footer">
+            <p>Diese E-Mail wurde automatisch generiert. Bitte antworten Sie nicht darauf.</p>
+            <p>&copy; ${new Date().getFullYear()} ${companyName}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+Hallo ${options.firstName},
+
+für Ihren Zugang zu ${companyName} wurde ein neues Einmal-Passwort vergeben.
+Das bisherige Passwort ist damit ungültig.
+
+  Benutzername: ${options.email}
+  Einmal-Passwort: ${options.tempPassword}
+
+Anmelden unter:
+${loginUrl}
+
+WICHTIG: Beim nächsten Login müssen Sie dieses Passwort durch ein eigenes ersetzen.
+Falls Sie diese Zurücksetzung nicht erwartet haben, melden Sie sich bitte umgehend
+bei Ihrem Administrator.
+
+Mit freundlichen Grüßen,
+Ihr ${companyName} Team
+    `.trim();
+
+    return this.sendEmail({
+      to: options.email,
+      subject: `${companyName} – Ihr neues Einmal-Passwort`,
+      html,
+      text,
+    });
+  }
+
   async sendChecklistInvitation(options: {
     subjectUser: { email: string; firstName: string; lastName: string };
     executors?: Array<{ email: string; firstName: string; lastName: string }> | null;

@@ -1,6 +1,14 @@
 import api from './api';
 import { User } from '../types';
 
+export interface OneTimePasswordResult {
+  password: string;
+  email: string;
+  emailSent: boolean;
+  emailError?: string;
+  user: { id: string; firstName: string; lastName: string };
+}
+
 export const userService = {
   getAllUsers: async (): Promise<User[]> => {
     const response = await api.get('/users/list'); // Use new endpoint for basic user list
@@ -38,6 +46,16 @@ export const userService = {
 
   deleteUser: async (id: string): Promise<void> => {
     await api.delete(`/users/${id}`);
+  },
+
+  /**
+   * Erzeugt ein Einmal-Passwort, setzt es beim Benutzer und stellt es per
+   * E-Mail zu. Das Klartext-Passwort kommt zurück, damit es der Administrator
+   * weitergeben kann, falls der Mailversand nicht klappt.
+   */
+  sendOneTimePassword: async (id: string): Promise<OneTimePasswordResult> => {
+    const response = await api.post(`/users/${id}/one-time-password`);
+    return response.data;
   },
 
   exportUsers: async (): Promise<void> => {

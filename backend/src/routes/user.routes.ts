@@ -49,6 +49,7 @@ router.get('/:id', authorize('ADMIN'), userController.getUserById);
 router.get('/:id/subordinates', authorize('ADMIN'), userController.getSubordinates);
 router.post('/:id/avatar', authorize('ADMIN'), avatarUpload.single('avatar'), userController.uploadAvatar);
 router.delete('/:id/avatar', authorize('ADMIN'), userController.deleteAvatar);
+router.post('/:id/one-time-password', authorize('ADMIN'), userController.sendOneTimePassword);
 router.put('/:id', authorize('ADMIN'), userController.updateUser);
 router.delete('/:id', authorize('ADMIN'), userController.deleteUser);
 

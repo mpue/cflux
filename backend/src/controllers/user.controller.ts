@@ -6,6 +6,8 @@ import { actionService } from '../services/action.service';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
+import { emailService } from '../services/email.service';
+import { generateOneTimePassword } from '../utils/password';
 
 
 export const getCurrentUser = async (req: AuthRequest, res: Response) => {
@@ -1147,5 +1149,119 @@ export const deleteAvatar = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Avatar delete error:', error);
     res.status(500).json({ error: 'Fehler beim Löschen des Avatars' });
+  }
+};
+
+/**
+ * Setzt das Passwort eines bestehenden Benutzers auf ein neu erzeugtes
+ * Einmal-Passwort und stellt es zu.
+ *
+ * Zustellung per E-Mail — nur so erreicht das Passwort jemanden, der sich noch
+ * nicht anmelden kann. Zusaetzlich wird eine interne Systemnachricht angelegt,
+ * damit der Vorgang im System nachvollziehbar ist; sie enthaelt bewusst KEIN
+ * Passwort, weil sie ohnehin erst nach dem Login lesbar waere.
+ */
+export const sendOneTimePassword = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const admin = req.user!;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        isActive: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'Benutzer nicht gefunden' });
+    }
+
+    if (!user.isActive) {
+      return res.status(400).json({
+        error: 'Benutzer ist deaktiviert — bitte zuerst aktivieren',
+      });
+    }
+
+    const password = generateOneTimePassword();
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        password: await bcrypt.hash(password, 10),
+        requiresPasswordChange: true,
+        // Ein offener Link aus "Passwort vergessen" darf nach der Zuruecksetzung
+        // nicht weiter gueltig sein.
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+
+    const issuedBy = `${admin.email}`;
+
+    let emailSent = false;
+    let emailError: string | undefined;
+
+    try {
+      emailSent = await emailService.sendOneTimePasswordEmail({
+        email: user.email,
+        firstName: user.firstName,
+        tempPassword: password,
+        issuedBy,
+      });
+    } catch (error: any) {
+      emailError = error?.message || 'Unbekannter Fehler beim Mailversand';
+      console.error('One-time password email failed:', error);
+    }
+
+    // Beleg im Postfach — ohne Passwort
+    try {
+      await prisma.message.create({
+        data: {
+          senderId: admin.id,
+          receiverId: user.id,
+          type: 'SYSTEM',
+          priority: 'high',
+          subject: 'Ihr Passwort wurde zurückgesetzt',
+          body:
+            `Hallo ${user.firstName},\n\n` +
+            'für Ihren Zugang wurde ein neues Einmal-Passwort vergeben. ' +
+            'Das bisherige Passwort ist damit ungültig.\n\n' +
+            (emailSent
+              ? `Das neue Passwort wurde an ${user.email} gesendet.\n\n`
+              : 'Das neue Passwort wurde Ihnen von Ihrem Administrator direkt mitgeteilt.\n\n') +
+            'Beim nächsten Login müssen Sie dieses Passwort durch ein eigenes ersetzen.\n\n' +
+            'Falls Sie diese Zurücksetzung nicht erwartet haben, melden Sie sich bitte ' +
+            'umgehend bei Ihrem Administrator.',
+        },
+      });
+    } catch (error) {
+      // Der Beleg ist zweitrangig — das Passwort ist bereits gesetzt und
+      // versendet, ein Fehler hier darf den Vorgang nicht scheitern lassen.
+      console.error('One-time password system message failed:', error);
+    }
+
+    console.log(
+      `[SECURITY] ${admin.email} hat ein Einmal-Passwort für ${user.email} erzeugt (Mail: ${emailSent ? 'versendet' : 'fehlgeschlagen'})`
+    );
+
+    res.json({
+      password,
+      email: user.email,
+      emailSent,
+      emailError,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+    });
+  } catch (error) {
+    console.error('Send one-time password error:', error);
+    res.status(500).json({ error: 'Einmal-Passwort konnte nicht erzeugt werden' });
   }
 };
