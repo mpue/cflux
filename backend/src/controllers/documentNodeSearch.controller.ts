@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { hasNodeAccess } from '../services/documentAccess.service';
 import { AuthRequest } from '../middleware/auth';
 import { checkModulePermission } from '../services/module.service';
 
@@ -30,31 +31,6 @@ interface SearchResult {
 /**
  * Helper function to check if user has access to a specific node
  */
-async function hasNodeAccess(userId: string, nodeId: string): Promise<boolean> {
-  const userGroups = await prisma.userGroupMembership.findMany({
-    where: {
-      userId,
-      userGroup: { isActive: true }
-    },
-    select: {
-      userGroupId: true
-    }
-  });
-
-  const userGroupIds = userGroups.map(ug => ug.userGroupId);
-
-  const nodePermissions = await prisma.documentNodeGroupPermission.findMany({
-    where: { documentNodeId: nodeId }
-  });
-
-  // If no permissions are set, allow access
-  if (nodePermissions.length === 0) {
-    return true;
-  }
-
-  return nodePermissions.some(perm => userGroupIds.includes(perm.userGroupId));
-}
-
 /**
  * Get breadcrumb path for a node
  */

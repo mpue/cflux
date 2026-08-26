@@ -2,6 +2,10 @@ import { Response } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { checkModulePermission } from '../services/module.service';
+import {
+  hasAttachmentAccess,
+  hasNodeAccess,
+} from '../services/documentAccess.service';
 import { generatePdfPreview, generateThumbnail, isPdf } from '../services/gotenberg.service';
 import fs from 'fs';
 import path from 'path';
@@ -54,6 +58,13 @@ export const getNodeAttachments = async (req: AuthRequest, res: Response) => {
     const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
+    }
+
+    // Anhaenge sind so schutzwuerdig wie das Dokument, an dem sie haengen.
+    // Ohne diese Pruefung liesse sich jede Datei ueber ihre ID abholen.
+    const hasAccess = await hasNodeAccess(userId, nodeId, 'READ');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to access this document' });
     }
 
     // Check if node exists
@@ -449,6 +460,13 @@ export const downloadAttachment = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
 
+    // Anhaenge sind so schutzwuerdig wie das Dokument, an dem sie haengen.
+    // Ohne diese Pruefung liesse sich jede Datei ueber ihre ID abholen.
+    const hasAccess = await hasAttachmentAccess(userId, attachmentId, 'READ');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to access this attachment' });
+    }
+
     // Get attachment
     const attachment = await prisma.documentNodeAttachment.findFirst({
       where: {
@@ -488,6 +506,13 @@ export const downloadAttachmentPdf = async (req: AuthRequest, res: Response) => 
     const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
+    }
+
+    // Anhaenge sind so schutzwuerdig wie das Dokument, an dem sie haengen.
+    // Ohne diese Pruefung liesse sich jede Datei ueber ihre ID abholen.
+    const hasAccess = await hasAttachmentAccess(userId, attachmentId, 'READ');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to access this attachment' });
     }
 
     const attachment = await prisma.documentNodeAttachment.findFirst({
