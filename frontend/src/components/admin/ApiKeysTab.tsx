@@ -7,6 +7,7 @@ import {
   ApiKey,
   ApiKeyStatus,
   AvailableScope,
+  ClientPackage,
   CreatedApiKey,
   apiKeyService,
   getApiKeyStatus,
@@ -91,6 +92,8 @@ export const ApiKeysTab: React.FC = () => {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [availableScopes, setAvailableScopes] = useState<AvailableScope[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [clientPackage, setClientPackage] = useState<ClientPackage>({ available: false });
+  const [downloading, setDownloading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -108,12 +111,16 @@ export const ApiKeysTab: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [keyList, scopeList] = await Promise.all([
+      const [keyList, scopeList, pkg] = await Promise.all([
         apiKeyService.getApiKeys(),
         apiKeyService.getAvailableScopes(),
+        // Fehlt das Paket, bleibt es beim Vorgabewert und die Oberflaeche
+        // blendet den Knopf aus, statt einen toten Link anzubieten.
+        apiKeyService.getClientPackage().catch(() => ({ available: false }) as ClientPackage),
       ]);
       setKeys(keyList);
       setAvailableScopes(scopeList);
+      setClientPackage(pkg);
 
       if (isAdmin) {
         setUsers(await userService.getAllUsersAdmin());
@@ -248,6 +255,19 @@ export const ApiKeysTab: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleClientDownload = async () => {
+    if (!clientPackage.available) return;
+
+    setDownloading(true);
+    try {
+      await apiKeyService.downloadClientPackage(clientPackage.filename);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Das Client-Paket konnte nicht geladen werden');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const scopeSummary = (key: ApiKey) => {
     if (key.scopes.includes('*')) {
       return <span style={{ fontWeight: 600 }}>Alle Module</span>;
@@ -275,6 +295,20 @@ export const ApiKeysTab: React.FC = () => {
     );
   };
 
+  /** Der Download-Knopf — im Tab und noch einmal direkt nach dem Anlegen. */
+  const clientDownloadButton = (variant: 'primary' | 'secondary') =>
+    clientPackage.available ? (
+      <button
+        type="button"
+        className={`btn btn-${variant}`}
+        onClick={handleClientDownload}
+        disabled={downloading}
+        style={{ whiteSpace: 'nowrap' }}
+      >
+        {downloading ? 'Wird geladen …' : '⬇ Windows-Paket'}
+      </button>
+    ) : null;
+
   return (
     <div>
       <div
@@ -298,6 +332,33 @@ export const ApiKeysTab: React.FC = () => {
           + Neuer Schlüssel
         </button>
       </div>
+
+      {clientPackage.available && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '16px',
+            background: '#f0f9ff',
+            border: '1px solid #bae6fd',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            fontSize: '14px',
+          }}
+        >
+          <div style={{ color: '#075985' }}>
+            <strong>Client für Claude Desktop (Windows)</strong>
+            <div style={{ marginTop: '2px', color: '#0369a1' }}>
+              Version {clientPackage.version} · {(clientPackage.size / 1024 / 1024).toFixed(0)} MB ·
+              gebaut am {new Date(clientPackage.builtAt).toLocaleDateString('de-DE')} — enthält
+              alles Nötige, es muss nichts installiert werden.
+            </div>
+          </div>
+          {clientDownloadButton('primary')}
+        </div>
+      )}
 
       {error && (
         <div
@@ -643,6 +704,30 @@ export const ApiKeysTab: React.FC = () => {
 {`X-API-Key: ${createdKey.key}
 Authorization: Bearer ${createdKey.key}`}
           </pre>
+
+          {clientPackage.available && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                marginTop: '16px',
+                padding: '12px 16px',
+                background: '#f0f9ff',
+                border: '1px solid #bae6fd',
+                borderRadius: '8px',
+                fontSize: '14px',
+                color: '#075985',
+              }}
+            >
+              <span>
+                Für Claude Desktop unter Windows gibt es den fertigen Client — entpacken,
+                Schlüssel eintragen, fertig.
+              </span>
+              {clientDownloadButton('secondary')}
+            </div>
+          )}
 
           <div className="modal-actions">
             <button type="button" className="btn btn-primary" onClick={() => setCreatedKey(null)}>

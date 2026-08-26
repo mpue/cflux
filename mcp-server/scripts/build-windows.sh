@@ -129,9 +129,26 @@ BUNDLE_VERSION="$(node "$HERE/build/cflux-mcp.mjs" --version | awk '{print $2}')
 [ "$BUNDLE_VERSION" = "$PKG_VERSION" ] || fail \
   "Das gebuendelte Skript meldet Version $BUNDLE_VERSION statt $PKG_VERSION."
 
+# ── 6. Im Backend bereitstellen ──────────────────────────────────────────────
+# Von dort bietet das Admin-Panel es unter System → API-Schlüssel an. Aeltere
+# Versionen werden entfernt, damit nicht versehentlich eine alte ausgeliefert
+# wird — das Backend nimmt sonst zwar die neueste, aber halb aufgeraeumt ist
+# schlechter als ganz.
+
+BACKEND_DOWNLOADS="$HERE/../backend/downloads"
+if [ -d "$BACKEND_DOWNLOADS" ]; then
+  step "Im Backend bereitstellen"
+  rm -f "$BACKEND_DOWNLOADS"/cflux-mcp-*-windows.zip
+  cp "$ZIP" "$BACKEND_DOWNLOADS/"
+  SERVED="  Im Admin-Panel unter System → API-Schlüssel steht es jetzt bereit."
+else
+  SERVED="  Hinweis: $BACKEND_DOWNLOADS gibt es nicht — nicht im Backend bereitgestellt."
+fi
+
 echo
 echo "✓ Fertig: $ZIP  ($(du -h "$ZIP" | cut -f1))"
 echo
-echo "  Auf das Netzlaufwerk legen. Die Kollegen entpacken nach C:\\cflux-mcp"
-echo "  und folgen der LIESMICH.txt."
+echo "$SERVED"
+echo "  Alternativ aufs Netzlaufwerk legen; die Kollegen entpacken nach"
+echo "  C:\\cflux-mcp und folgen der LIESMICH.txt."
 echo

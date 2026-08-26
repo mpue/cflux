@@ -165,6 +165,22 @@ curl -X POST https://cflux.example/api/customers \
   -d '{"name":"Beispiel AG"}'
 ```
 
+## Client-Paket
+
+`GET /api/api-keys/client` meldet, ob ein fertig gebautes MCP-Client-Paket
+bereitliegt; `GET /api/api-keys/client/download` liefert es aus. Beide hängen
+am api-keys-Router und damit hinter `denyApiKey` — den Client bekommt nur, wer
+sich wirklich angemeldet hat. Ein Schlüssel soll sich nicht selbst den Client
+herunterladen können.
+
+Das Backend baut nichts: es liefert aus, was in `backend/downloads/` liegt
+(überschreibbar per `CLIENT_DOWNLOAD_DIR`). Erzeugt wird das Paket mit
+`npm run package:windows` im Ordner `mcp-server`; das Skript legt es dort ab.
+Liegen mehrere Versionen, gewinnt die zuletzt gebaute. Fehlt das Paket, meldet
+die Info-Route `{ "available": false }` und die Oberfläche blendet den Knopf aus.
+
+Siehe [`../mcp-server/README.md`](../mcp-server/README.md).
+
 ## Datenmodell
 
 `ApiKey` in `backend/prisma/schema.prisma`, Tabelle `api_keys`. Beim Löschen

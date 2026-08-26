@@ -57,6 +57,18 @@ export interface UpdateApiKeyInput {
   expiresAt?: string | null;
 }
 
+/** Das fertig gebaute MCP-Client-Paket, sofern eines bereitliegt. */
+export type ClientPackage =
+  | { available: false }
+  | {
+      available: true;
+      platform: 'windows';
+      filename: string;
+      version: string;
+      size: number;
+      builtAt: string;
+    };
+
 export const apiKeyService = {
   getApiKeys: async (): Promise<ApiKey[]> => {
     const response = await api.get('/api-keys');
@@ -67,6 +79,28 @@ export const apiKeyService = {
   getAvailableScopes: async (): Promise<AvailableScope[]> => {
     const response = await api.get('/api-keys/scopes');
     return response.data;
+  },
+
+  getClientPackage: async (): Promise<ClientPackage> => {
+    const response = await api.get('/api-keys/client');
+    return response.data;
+  },
+
+  /**
+   * Lädt das Client-Paket über den Blob-Weg, damit der Authorization-Header
+   * mitgeht — ein einfacher Link könnte ihn nicht setzen.
+   */
+  downloadClientPackage: async (filename: string): Promise<void> => {
+    const response = await api.get('/api-keys/client/download', { responseType: 'blob' });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   },
 
   createApiKey: async (input: CreateApiKeyInput): Promise<CreatedApiKey> => {
