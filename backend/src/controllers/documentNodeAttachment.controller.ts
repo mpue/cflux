@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 import { checkModulePermission } from '../services/module.service';
 import {
   hasAttachmentAccess,
+  hasAttachmentVersionAccess,
   hasNodeAccess,
 } from '../services/documentAccess.service';
 import { generatePdfPreview, generateThumbnail, isPdf } from '../services/gotenberg.service';
@@ -14,39 +15,6 @@ import path from 'path';
 /**
  * Check if user has write access to a specific document node
  */
-async function hasNodeWriteAccess(userId: string, nodeId: string): Promise<boolean> {
-  // Get user's groups
-  const userGroups = await prisma.userGroupMembership.findMany({
-    where: {
-      userId,
-      userGroup: { isActive: true }
-    },
-    select: {
-      userGroupId: true
-    }
-  });
-
-  const userGroupIds = userGroups.map(ug => ug.userGroupId);
-
-  // Get node permissions
-  const nodePermissions = await prisma.documentNodeGroupPermission.findMany({
-    where: { documentNodeId: nodeId }
-  });
-
-  // If no permissions are set, allow access
-  if (nodePermissions.length === 0) {
-    return true;
-  }
-
-  // Check if user's groups have WRITE or ADMIN permission
-  const hasAccess = nodePermissions.some(
-    (perm) => userGroupIds.includes(perm.userGroupId) && 
-    (perm.permissionLevel === 'WRITE' || perm.permissionLevel === 'ADMIN')
-  );
-
-  return hasAccess;
-}
-
 /**
  * Get all attachments for a document node
  */
@@ -135,7 +103,7 @@ export const uploadAttachment = async (req: AuthRequest, res: Response) => {
     }
 
     // Check node-specific write access
-    const hasAccess = await hasNodeWriteAccess(userId, nodeId);
+    const hasAccess = await hasNodeAccess(userId, nodeId, 'WRITE');
     if (!hasAccess) {
       // Delete uploaded file if no access
       fs.unlinkSync(file.path);
@@ -279,7 +247,7 @@ export const updateAttachment = async (req: AuthRequest, res: Response) => {
     }
 
     // Check node-specific write access
-    const hasAccess = await hasNodeWriteAccess(userId, existingAttachment.documentNodeId);
+    const hasAccess = await hasNodeAccess(userId, existingAttachment.documentNodeId, 'WRITE');
     if (!hasAccess) {
       fs.unlinkSync(file.path);
       return res.status(403).json({ error: 'No permission to modify this document' });
@@ -425,7 +393,7 @@ export const deleteAttachment = async (req: AuthRequest, res: Response) => {
     }
 
     // Check node-specific write access
-    const hasAccess = await hasNodeWriteAccess(userId, attachment.documentNodeId);
+    const hasAccess = await hasNodeAccess(userId, attachment.documentNodeId, 'WRITE');
     if (!hasAccess) {
       return res.status(403).json({ error: 'No permission to modify this document' });
     }
@@ -574,6 +542,12 @@ export const getAttachmentVersions = async (req: AuthRequest, res: Response) => 
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
 
+    // Auch hier zaehlt das Gruppenrecht des Dokuments, an dem der Anhang haengt.
+    const hasAccess = await hasAttachmentAccess(userId, attachmentId, 'READ');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to access this attachment' });
+    }
+
     // Check if attachment exists
     const attachment = await prisma.documentNodeAttachment.findUnique({
       where: { id: attachmentId }
@@ -621,6 +595,12 @@ export const downloadAttachmentVersion = async (req: AuthRequest, res: Response)
     const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
+    }
+
+    // Auch hier zaehlt das Gruppenrecht des Dokuments, an dem der Anhang haengt.
+    const hasAccess = await hasAttachmentVersionAccess(userId, versionId, 'READ');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to access this attachment' });
     }
 
     // Get version
@@ -682,7 +662,7 @@ export const updateAttachmentMetadata = async (req: AuthRequest, res: Response) 
     }
 
     // Check node-specific write access
-    const hasAccess = await hasNodeWriteAccess(userId, attachment.documentNodeId);
+    const hasAccess = await hasNodeAccess(userId, attachment.documentNodeId, 'WRITE');
     if (!hasAccess) {
       return res.status(403).json({ error: 'No permission to modify this document' });
     }
@@ -733,6 +713,12 @@ export const getAttachmentThumbnail = async (req: AuthRequest, res: Response) =>
     const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
+    }
+
+    // Auch hier zaehlt das Gruppenrecht des Dokuments, an dem der Anhang haengt.
+    const hasAccess = await hasAttachmentAccess(userId, attachmentId, 'READ');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to access this attachment' });
     }
 
     const attachment = await prisma.documentNodeAttachment.findFirst({

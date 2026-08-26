@@ -112,6 +112,22 @@ export const hasAttachmentAccess = async (
   return hasNodeAccess(userId, attachment.documentNodeId, required);
 };
 
+/** Prueft ueber eine Anhangsversion hinweg das zugehoerige Dokument. */
+export const hasAttachmentVersionAccess = async (
+  userId: string,
+  versionId: string,
+  required: DocumentPermissionLevel = 'READ'
+): Promise<boolean> => {
+  const version = await prisma.documentNodeAttachmentVersion.findUnique({
+    where: { id: versionId },
+    select: { attachmentId: true },
+  });
+
+  if (!version) return true;
+
+  return hasAttachmentAccess(userId, version.attachmentId, required);
+};
+
 export interface AccessFilter {
   /** Darf der User diesen Knoten auf der verlangten Stufe? */
   canAccess(nodeId: string, required?: DocumentPermissionLevel): boolean;
