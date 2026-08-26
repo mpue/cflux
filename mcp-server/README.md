@@ -91,6 +91,8 @@ bzw. `%APPDATA%\Claude\` (Windows). Danach Claude Desktop neu starten.
 
 ## Werkzeuge
 
+**Rundgangsberichte** — Scope `berichte:read`
+
 | Werkzeug | Zweck |
 |---|---|
 | `cflux_list_berichte` | Berichte auflisten, optional nach Projektname gefiltert |
@@ -98,10 +100,21 @@ bzw. `%APPDATA%\Claude\` (Windows). Danach Claude Desktop neu starten.
 | `cflux_list_bericht_projekte` | Projekte, für die Berichte sichtbar sind |
 | `cflux_export_bericht_pdf` | Fertiges PDF herunterladen und lokal ablegen |
 
-Alle vier sind lesend und brauchen den Scope `berichte:read`.
+**Vorfälle** — Scope `incidents:read`
 
-Der PDF-Export gibt einen **Dateipfad** zurück, nicht die Datei selbst — ein
-Bericht wiegt schnell mehrere hundert Kilobyte, und die gehören nicht ins
+| Werkzeug | Zweck |
+|---|---|
+| `cflux_list_incidents` | Vorfälle auflisten; Filter nach Status, Priorität, Jahr, Projekt, EHS |
+| `cflux_get_incident` | Ein Vorfall vollständig, inkl. Kommentaren und EHS-Feldern |
+| `cflux_incident_statistics` | Zählwerte: gesamt, offen, in Bearbeitung, gelöst, kritisch, hoch |
+| `cflux_export_incident_pdf` | Vorfallbericht als PDF |
+
+Alle Werkzeuge sind lesend. Ein Schlüssel braucht nur die Scopes der Module,
+die tatsächlich gebraucht werden — fehlt einer, melden die betroffenen
+Werkzeuge das im Klartext, der Rest funktioniert weiter.
+
+Die PDF-Exporte geben einen **Dateipfad** zurück, nicht die Datei selbst — ein
+Export wiegt schnell mehrere hundert Kilobyte, und die gehören nicht ins
 Kontextfenster.
 
 ## Beispiele
@@ -110,7 +123,11 @@ Kontextfenster.
 
 > Zeig mir die Feststellungen aus dem Bericht vom 25. August.
 
-> Lade mir den Novartis-Bericht als PDF herunter.
+> Welche Vorfälle sind noch offen und hoch priorisiert?
+
+> Gib mir alle EHS-relevanten Vorfälle aus diesem Jahr mit den Massnahmen.
+
+> Wie viele Vorfälle sind aktuell in Bearbeitung?
 
 ## Wenn etwas nicht geht
 
@@ -124,6 +141,15 @@ Kontextfenster.
 
 Startet der Server gar nicht, steht der Grund im MCP-Log des Clients — bei
 fehlender Konfiguration nennt er die beiden erwarteten Variablen beim Namen.
+
+## Ein Modul ergänzen
+
+1. Eine Datei unter `src/tools/` anlegen, die eine `register…Tools(server, client)`
+   exportiert. `src/tools/shared.ts` bringt `guard`, `asJson` und `savePdf` mit.
+2. In `src/index.ts` registrieren und in `MODULES` eintragen — Letzteres nimmt
+   das Modul in den Selbsttest auf.
+3. Der Modul-Scope muss serverseitig freigegeben sein, siehe
+   `PUBLIC_API_ROUTES` in [`../docs/PUBLIC_API.md`](../docs/PUBLIC_API.md).
 
 ## Sicherheit
 
