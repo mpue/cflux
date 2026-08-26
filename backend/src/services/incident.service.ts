@@ -20,6 +20,18 @@ export interface CreateIncidentDto {
   ehsSeverity?: string;
   incidentDate?: Date;
   location?: string;
+  // Verletzungs- und Arbeitskontext. Bis August 2026 nahm nur updateIncident
+  // diese Felder entgegen — ein vollstaendiger EHS-Vorfall liess sich damit
+  // nicht in einem Zug melden, was ueber die Public API auffiel.
+  lostWorkDays?: number;
+  medicalTreatment?: boolean;
+  hospitalRequired?: boolean;
+  workersOnDay?: number;
+  hoursWorkedDay?: number;
+  // Massnahmen
+  correctiveActions?: string;
+  preventiveActions?: string;
+  notes?: string;
 }
 
 export interface UpdateIncidentDto {
@@ -87,6 +99,14 @@ export const incidentService = {
         ehsSeverity: (data.ehsSeverity || undefined) as any,
         incidentDate: data.incidentDate || (data.isEHSRelevant ? new Date() : undefined),
         location: data.location || undefined,
+        lostWorkDays: data.lostWorkDays ?? undefined,
+        medicalTreatment: data.medicalTreatment ?? false,
+        hospitalRequired: data.hospitalRequired ?? false,
+        workersOnDay: data.workersOnDay ?? undefined,
+        hoursWorkedDay: data.hoursWorkedDay ?? undefined,
+        correctiveActions: data.correctiveActions || undefined,
+        preventiveActions: data.preventiveActions || undefined,
+        notes: data.notes || undefined,
       },
       include: {
         reportedBy: {

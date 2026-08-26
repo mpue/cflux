@@ -6,6 +6,8 @@ Damit kannst du Claude nach Daten aus cflux fragen:
   - Rundgangsberichte: auflisten, Feststellungen ansehen, PDF holen
   - Vorfaelle: auflisten und filtern, Details und Massnahmen ansehen,
     Kennzahlen abfragen, PDF holen
+  - Vorfaelle melden - nur wenn dein Schluessel das ausdruecklich darf,
+    siehe Schritt 2
 
 Du brauchst dafuer nichts zu installieren. Kein Node, kein npm, keine
 Adminrechte. Alles Noetige liegt in diesem Ordner.
@@ -36,6 +38,19 @@ Ausfuellen:
 
 Du brauchst nur die Module, die du wirklich verwendest. Fehlt eines, sagen
 die betroffenen Werkzeuge das im Klartext - der Rest funktioniert weiter.
+
+
+Wenn du Vorfaelle auch MELDEN koennen sollst:
+
+    Nur-Lesen     Haken ENTFERNEN
+    Module        bei "Vorfaelle" auf  Schreiben  stellen
+
+Beides ist noetig - der Nur-Lesen-Haken blockt das Anlegen auch dann, wenn
+das Modul auf Schreiben steht. Lass den Haken gesetzt, wenn du nur lesen
+willst: ein Schluessel, der nichts veraendern kann, ist der sicherere.
+
+Angelegte Vorfaelle erscheinen unter deinem Namen und starten im Status
+"Offen".
 
 Auf "Schluessel erzeugen" klicken.
 
@@ -82,6 +97,8 @@ Frag Claude einfach:
     Zeig mir die Feststellungen aus dem Bericht vom 25. August.
     Welche Vorfaelle sind noch offen und hoch priorisiert?
     Wie viele Vorfaelle sind aktuell in Bearbeitung?
+    Melde einen Beinahe-Unfall in Halle 3: jemand ist auf einer nassen
+      Geruststufe abgerutscht, konnte sich festhalten, kein Ausfall.
     Lade mir den Novartis-Bericht als PDF herunter.
 
 

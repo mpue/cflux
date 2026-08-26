@@ -50,11 +50,32 @@ const describeFailure = async (res: Response, path: string): Promise<string> => 
         return `${path} ist nicht Teil der Public API und nur mit einem echten Login erreichbar.`;
       }
       if (body?.error === 'API key is read-only') {
-        return 'Der Schlüssel ist als Nur-Lesen angelegt und darf nichts verändern.';
+        return (
+          'Der Schlüssel ist als Nur-Lesen angelegt und darf nichts verändern. ' +
+          'Zum Anlegen braucht es einen Schlüssel ohne dieses Kennzeichen — in cflux ' +
+          'unter System → API-Schlüssel beim Schlüssel auf "Bearbeiten".'
+        );
+      }
+      if (typeof detail === 'string' && detail.includes(':write')) {
+        return (
+          `Zugriff verweigert: ${detail}. ` +
+          'Der Scope lässt sich in cflux beim Schlüssel unter "Bearbeiten" auf "Schreiben" setzen.'
+        );
+      }
+      // Die Modulrechte des Benutzers selbst, unabhaengig vom Schluessel.
+      if (body?.error?.startsWith?.('No permission to')) {
+        return (
+          `${body.error}. Der Schlüssel handelt im Namen eines Benutzers, dem in cflux ` +
+          'das Schreibrecht für dieses Modul fehlt — ein Schlüssel kann nie mehr als dieser Benutzer.'
+        );
       }
       return detail
         ? `Zugriff verweigert: ${detail}`
         : `Zugriff auf ${path} verweigert.`;
+    case 400:
+      return detail
+        ? `cflux hat die Angaben abgelehnt: ${detail}`
+        : `cflux hat die Angaben zu ${path} abgelehnt.`;
     case 404:
       return `Nicht gefunden: ${path}`;
     default:
@@ -77,10 +98,10 @@ export class CfluxClient {
     return { 'X-API-Key': this.config.apiKey, Accept: 'application/json' };
   }
 
-  private async request(path: string): Promise<Response> {
+  private async request(path: string, init?: RequestInit): Promise<Response> {
     let res: Response;
     try {
-      res = await fetch(this.url(path), { headers: this.headers() });
+      res = await fetch(this.url(path), { ...init, headers: { ...this.headers(), ...init?.headers } });
     } catch (error: any) {
       throw new CfluxError(
         `cflux ist unter ${this.config.baseUrl} nicht erreichbar: ${error?.message ?? error}`
@@ -96,6 +117,24 @@ export class CfluxClient {
 
   async getJson<T = unknown>(path: string): Promise<T> {
     const res = await this.request(path);
+    return (await res.json()) as T;
+  }
+
+  /**
+   * Legt etwas an. Undefinierte Werte fliegen raus, damit ein nicht gesetztes
+   * Feld nicht als ausdrueckliches null beim Server ankommt.
+   */
+  async postJson<T = unknown>(path: string, body: Record<string, unknown>): Promise<T> {
+    const payload = Object.fromEntries(
+      Object.entries(body).filter(([, value]) => value !== undefined)
+    );
+
+    const res = await this.request(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
     return (await res.json()) as T;
   }
 

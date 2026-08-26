@@ -6,10 +6,10 @@ import { asJson, guard, savePdf } from './shared.js';
 /**
  * Vorfaelle (Incidents), inklusive der EHS-Felder.
  *
- * Alles lesend — schreibende Werkzeuge waeren ein eigener Schritt und wuerden
- * einen Schluessel ohne Nur-Lesen voraussetzen.
- *
- * Braucht den Scope incidents:read.
+ * Lesen braucht incidents:read. Das Anlegen braucht incidents:write UND einen
+ * Schluessel ohne Nur-Lesen — das Kennzeichen blockt POST unabhaengig von den
+ * Scopes. Wer nur liest, merkt vom Anlege-Werkzeug nichts weiter, als dass es
+ * beim Aufruf sagt, was fehlt.
  */
 
 const STATUS = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'] as const;
@@ -29,6 +29,12 @@ const PRIORITY_LABEL: Record<string, string> = {
   HIGH: 'Hoch',
   CRITICAL: 'Kritisch',
 };
+
+const EHS_CATEGORY = [
+  'UNSAFE_CONDITION', 'UNSAFE_BEHAVIOR', 'NEAR_MISS', 'FIRST_AID', 'RECORDABLE',
+  'LTI', 'FATALITY', 'PROPERTY_DAMAGE', 'ENVIRONMENT', 'SAFETY_OBSERVATION',
+] as const;
+const EHS_SEVERITY = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
 
 const EHS_CATEGORY_LABEL: Record<string, string> = {
   UNSAFE_CONDITION: 'Unsicherer Zustand',
@@ -197,6 +203,98 @@ export const registerIncidentTools = (server: McpServer, client: CfluxClient) =>
             groesse: a.fileSize ?? null,
           })),
         });
+      })
+  );
+
+  server.registerTool(
+    'cflux_create_incident',
+    {
+      title: 'Vorfall melden',
+      description:
+        'Legt einen neuen Vorfall an. Titel und Beschreibung sind Pflicht, alles andere ' +
+        'optional. Der Vorfall wird im Namen des Benutzers gemeldet, zu dem der Schlüssel ' +
+        'gehört, und startet immer im Status "Offen".\n\n' +
+        'Für einen EHS-Vorfall (Arbeitssicherheit, Gesundheit, Umwelt) ehsRelevant auf true ' +
+        'setzen und mindestens ehsKategorie angeben; die Felder zu Verletzung und ' +
+        'Arbeitskontext ergeben nur dann Sinn.\n\n' +
+        'Braucht den Scope incidents:write und einen Schlüssel, der nicht auf Nur-Lesen steht.',
+      inputSchema: {
+        titel: z.string().min(1).describe('Kurze Überschrift, z.B. "Beinahe-Unfall Gerüst Halle 3".'),
+        beschreibung: z.string().min(1).describe('Was ist passiert? Ruhig ausführlich.'),
+        prioritaet: z
+          .enum(PRIORITY)
+          .optional()
+          .describe('Vorgabe ist MEDIUM, wenn nichts angegeben wird.'),
+        kategorie: z.string().optional().describe('Freitext, z.B. "IT", "EHS", "Facility".'),
+        betroffenesSystem: z.string().optional().describe('Betroffenes System oder Bereich.'),
+        ort: z.string().optional().describe('Wo ist es passiert.'),
+        projektId: z
+          .string()
+          .optional()
+          .describe('Zugeordnetes Projekt. Bestimmt auch die Vorfallnummer.'),
+        vorfallDatum: z
+          .string()
+          .optional()
+          .describe('Tatsächliches Vorfalldatum als ISO-Datum (JJJJ-MM-TT), falls abweichend von heute.'),
+        faellig: z.string().optional().describe('Frist für die Erledigung als ISO-Datum (JJJJ-MM-TT).'),
+        schlagworte: z.array(z.string()).optional().describe('Freie Schlagworte.'),
+
+        ehsRelevant: z
+          .boolean()
+          .optional()
+          .describe('Auf true setzen, wenn es ein Vorfall der Arbeitssicherheit, Gesundheit oder Umwelt ist.'),
+        ehsKategorie: z
+          .enum(EHS_CATEGORY)
+          .optional()
+          .describe('Art des EHS-Vorfalls, z.B. NEAR_MISS für einen Beinahe-Unfall oder LTI bei Ausfallzeit.'),
+        ehsSchweregrad: z.enum(EHS_SEVERITY).optional().describe('Schweregrad des EHS-Vorfalls.'),
+        ausfalltage: z.number().int().min(0).optional().describe('Anzahl verlorener Arbeitstage.'),
+        medizinischeBehandlung: z.boolean().optional().describe('War eine medizinische Behandlung nötig?'),
+        krankenhaus: z.boolean().optional().describe('War ein Krankenhausaufenthalt nötig?'),
+        arbeiterAmTag: z.number().int().min(0).optional().describe('Anzahl Arbeiter am Tag des Vorfalls.'),
+        stundenAmTag: z.number().min(0).optional().describe('Gearbeitete Stunden am Tag des Vorfalls.'),
+
+        korrekturmassnahmen: z.string().optional().describe('Was wurde unmittelbar getan.'),
+        praeventivmassnahmen: z.string().optional().describe('Was verhindert eine Wiederholung.'),
+        notizen: z.string().optional().describe('Interne Bemerkungen.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async (input) =>
+      guard(async () => {
+        // Ein Datum ohne Uhrzeit wuerde je nach Zeitzone auf den Vortag rutschen;
+        // deshalb ausdruecklich auf Mitternacht UTC festlegen.
+        const isoDate = (value?: string) =>
+          value ? new Date(`${value.slice(0, 10)}T00:00:00.000Z`).toISOString() : undefined;
+
+        const angelegt = await client.postJson<any>('/incidents', {
+          title: input.titel,
+          description: input.beschreibung,
+          priority: input.prioritaet,
+          category: input.kategorie,
+          affectedSystem: input.betroffenesSystem,
+          location: input.ort,
+          projectId: input.projektId,
+          incidentDate: isoDate(input.vorfallDatum),
+          dueDate: isoDate(input.faellig),
+          tags: input.schlagworte,
+          isEHSRelevant: input.ehsRelevant,
+          ehsCategory: input.ehsKategorie,
+          ehsSeverity: input.ehsSchweregrad,
+          lostWorkDays: input.ausfalltage,
+          medicalTreatment: input.medizinischeBehandlung,
+          hospitalRequired: input.krankenhaus,
+          workersOnDay: input.arbeiterAmTag,
+          hoursWorkedDay: input.stundenAmTag,
+          correctiveActions: input.korrekturmassnahmen,
+          preventiveActions: input.praeventivmassnahmen,
+          notes: input.notizen,
+        });
+
+        return (
+          `Vorfall angelegt: ${angelegt.incidentNumber ?? angelegt.id}\n\n` +
+          asJson(summarize(angelegt))
+        );
       })
   );
 

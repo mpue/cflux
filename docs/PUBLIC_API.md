@@ -165,6 +165,30 @@ curl -X POST https://cflux.example/api/customers \
   -d '{"name":"Beispiel AG"}'
 ```
 
+## Schreiben
+
+Ein schreibender Aufruf braucht **beides**: den `:write`-Scope für das Modul und
+einen Schlüssel, bei dem **Nur-Lesen nicht gesetzt** ist. Das Kennzeichen wird
+vor den Scopes geprüft und blockt `POST`, `PUT`, `PATCH` und `DELETE`
+unabhängig davon — es ist der Notausschalter, nicht die Feineinstellung.
+
+Danach greift weiterhin die dritte Schranke: die Modulrechte des Benutzers, in
+dessen Namen der Schlüssel handelt. Fehlt dem das Schreibrecht, antwortet der
+Controller mit `No permission to …` — ein Schlüssel kann nie mehr als sein
+Benutzer.
+
+Angelegte Datensätze tragen diesen Benutzer als Urheber. Ein Vorfall über die
+Public API erscheint also unter dessen Namen, mit Status `OPEN`.
+
+### Anlegen von Vorfällen
+
+`POST /api/incidents` nimmt seit August 2026 auch die EHS-Detailfelder und die
+Massnahmen entgegen (`lostWorkDays`, `medicalTreatment`, `hospitalRequired`,
+`workersOnDay`, `hoursWorkedDay`, `correctiveActions`, `preventiveActions`,
+`notes`). Vorher kannte nur `PUT` sie, wodurch ein vollständiger EHS-Vorfall
+sich nicht in einem Zug melden liess — die Angaben verschwanden kommentarlos.
+`status` bleibt bewusst aussen vor: ein neuer Vorfall ist immer `OPEN`.
+
 ## Client-Paket
 
 `GET /api/api-keys/client` meldet, ob ein fertig gebautes MCP-Client-Paket
