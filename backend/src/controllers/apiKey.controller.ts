@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../types/auth';
 import { apiKeyService } from '../services/apiKey.service';
 import { moduleService } from '../services/module.service';
+import { publicApiScopeModules } from '../middleware/apiScope';
 import { prisma } from '../lib/prisma';
 
 /** Felder, die nach aussen gehen duerfen — keyHash bleibt immer intern. */
@@ -23,10 +24,13 @@ const PUBLIC_FIELDS = {
 
 const isAdmin = (req: AuthRequest) => req.user?.role === 'ADMIN';
 
-/** Prueft Scope-Strings gegen die tatsaechlich vorhandenen Module. */
+/**
+ * Prueft Scope-Strings gegen die Module, die ueber die Public API ueberhaupt
+ * erreichbar sind. Ein Scope auf ein nicht freigegebenes Modul waere wirkungslos
+ * und wuerde nur vortaeuschen, der Schluessel koenne dort etwas.
+ */
 const validateScopes = async (scopes: string[]): Promise<string | null> => {
-  const modules = await moduleService.getAllModules(true);
-  const validKeys = new Set(modules.map((m: { key: string }) => m.key));
+  const validKeys = new Set(publicApiScopeModules());
 
   for (const scope of scopes) {
     if (scope === '*') continue;
@@ -39,22 +43,26 @@ const validateScopes = async (scopes: string[]): Promise<string | null> => {
       return `Invalid scope permission: "${scope}" (expected "read" or "write")`;
     }
     if (!validKeys.has(moduleKey)) {
-      return `Unknown module in scope: "${scope}"`;
+      return `Module is not available via the public API: "${scope}"`;
     }
   }
 
   return null;
 };
 
+/** Die vergebbaren Scopes — nur Module, die per Public API erreichbar sind. */
 export const getAvailableScopes = async (req: AuthRequest, res: Response) => {
   try {
     const modules = await moduleService.getAllModules(true);
+    const names = new Map(
+      modules.map((m: { key: string; name: string }) => [m.key, m.name] as const)
+    );
 
     res.json(
-      modules.map((m: { key: string; name: string }) => ({
-        module: m.key,
-        name: m.name,
-        scopes: [`${m.key}:read`, `${m.key}:write`],
+      publicApiScopeModules().map((key) => ({
+        module: key,
+        name: names.get(key) ?? key,
+        scopes: [`${key}:read`, `${key}:write`],
       }))
     );
   } catch (error: any) {

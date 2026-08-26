@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { UserRole } from '@prisma/client';
 import { AuthRequest } from '../types/auth';
 import { apiKeyService, isApiKeyToken } from '../services/apiKey.service';
+import { checkApiKeyAccess } from './apiScope';
 
 export { AuthRequest };
 
@@ -38,6 +39,23 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
 
       if (apiKey.readOnly && WRITE_METHODS.includes(req.method)) {
         return res.status(403).json({ error: 'API key is read-only' });
+      }
+
+      // Deny-by-default: die Freigabe haengt am Pfad, nicht daran, ob die
+      // Route zufaellig requireModuleAccess benutzt. Siehe apiScope.ts.
+      const access = checkApiKeyAccess(req.originalUrl || req.url, req.method, apiKey.scopes);
+
+      if (!access.allowed) {
+        if (access.reason === 'not-public') {
+          return res.status(403).json({
+            error: 'Not available via the public API',
+            message: 'This endpoint requires an interactive login.',
+          });
+        }
+        return res.status(403).json({
+          error: 'Access denied',
+          message: `API key is missing scope: ${access.requiredScope}`,
+        });
       }
 
       req.user = {
