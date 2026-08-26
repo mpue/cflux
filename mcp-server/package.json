@@ -1,0 +1,28 @@
+{
+  "name": "cflux-mcp",
+  "version": "1.0.0",
+  "description": "MCP-Server fuer die cflux Public API",
+  "type": "module",
+  "bin": {
+    "cflux-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=build/cflux-mcp.mjs --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\"",
+    "package:windows": "bash scripts/build-windows.sh",
+    "selftest": "node dist/index.js --selftest",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.6.0"
+  }
+}

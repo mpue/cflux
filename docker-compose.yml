@@ -53,6 +53,9 @@ services:
       - ./backend/prisma:/app/prisma
       - backend_uploads:/app/uploads
       - backend_backups:/app/backups
+      # Fertig gebautes MCP-Client-Paket. Wird ausserhalb erzeugt
+      # (mcp-server: npm run package:windows) und im Admin-Panel angeboten.
+      - ./backend/downloads:/app/downloads
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:3001/api/system-settings/public || exit 1"]
       interval: 10s

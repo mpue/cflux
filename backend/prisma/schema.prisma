@@ -143,6 +143,8 @@ model User {
   assignedEHSTodos EHSTodo[] @relation("EHSTodoAssignedTo")
   createdEHSTodos EHSTodo[] @relation("EHSTodoCreatedBy")
   actionLogs      ActionLog[] @relation("ActionLogUser")
+  apiKeys         ApiKey[] @relation("ApiKeyOwner")
+  createdApiKeys  ApiKey[] @relation("ApiKeyCreator")
   managedCostCenters CostCenter[] @relation("CostCenterManager")
   inventoryMovements InventoryMovement[] @relation("InventoryMovements")
   createdProjectBudgets ProjectBudget[] @relation("ProjectBudgetCreatedBy")
@@ -3902,6 +3904,34 @@ model CalendarEventAttendee {
   @@index([eventId])
   @@index([userId])
   @@map("calendar_event_attendees")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Public API — API-Schluessel fuer externe Integrationen
+// ─────────────────────────────────────────────────────────────
+
+model ApiKey {
+  id          String    @id @default(uuid())
+  name        String // Sprechender Name, z.B. "Claude Connector"
+  keyPrefix   String // Sichtbarer Teil fuer die Anzeige, z.B. "cflux_a1b2c3d4"
+  keyHash     String    @unique // SHA-256 des vollstaendigen Schluessels
+  userId      String // Der Schluessel handelt im Namen dieses Users
+  scopes      String[]  @default([]) // Modul-Scopes, z.B. ["devices:read", "incidents:write"]
+  readOnly    Boolean   @default(true) // Blockt schreibende HTTP-Methoden
+  isActive    Boolean   @default(true)
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user      User  @relation("ApiKeyOwner", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("ApiKeyCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([keyPrefix])
+  @@map("api_keys")
 }
 
 // ==================== Berichte (Toolbox-Rundgang / Tagesprotokoll) ====================

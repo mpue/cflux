@@ -20,6 +20,7 @@ export const TABLE_MAP: Record<string, string> = {
   systemSettings: 'systemSettings',
   departments: 'department',
   users: 'user',
+  apiKeys: 'apiKey',
   userGroups: 'userGroup',
   userGroupMemberships: 'userGroupMembership',
   modules: 'module',

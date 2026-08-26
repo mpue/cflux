@@ -788,7 +788,8 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
     for (const sw of list) {
       const s = getExpiryStatus(sw.expiryDate);
       if (s === 'expired') { worst = 'expired'; break; }
-      if (s === 'soon' && worst !== 'expired') worst = 'soon';
+      // Kein Test auf 'expired' noetig — dieser Fall bricht die Schleife oben ab.
+      if (s === 'soon') worst = 'soon';
     }
     return { count: list.length, worst };
   };

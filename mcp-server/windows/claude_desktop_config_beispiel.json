@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "cflux": {
+      "command": "C:\\cflux-mcp\\node.exe",
+      "args": ["C:\\cflux-mcp\\cflux-mcp.mjs"],
+      "env": {
+        "CFLUX_BASE_URL": "https://cflux.example",
+        "CFLUX_API_KEY": "cflux_HIER_DEN_EIGENEN_SCHLUESSEL_EINTRAGEN"
+      }
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../types/auth';
 import { moduleService } from '../services/module.service';
+import { scopesAllow } from '../services/apiKey.service';
 import { UserRole } from '@prisma/client';
 
 /**
@@ -16,6 +17,20 @@ export const requireModuleAccess = (
     try {
       if (!req.user) {
         return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // API-Schluessel: die Scopes gelten zusaetzlich und auch fuer Admins.
+      // Diese Pruefung muss vor dem Admin-Bypass stehen, sonst haette ein
+      // Schluessel eines Admins automatisch Zugriff auf alle Module.
+      if (req.apiKey) {
+        const requiredScope = permission === 'canView' ? 'read' : 'write';
+
+        if (!scopesAllow(req.apiKey.scopes, moduleKey, requiredScope)) {
+          return res.status(403).json({
+            error: 'Access denied',
+            message: `API key is missing scope: ${moduleKey}:${requiredScope}`
+          });
+        }
       }
 
       // Admins have access to all modules

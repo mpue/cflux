@@ -22,6 +22,7 @@ const TABLE_MAP: Record<string, string> = {
   systemSettings: 'systemSettings',
   departments: 'department',
   users: 'user',
+  apiKeys: 'apiKey',
   userGroups: 'userGroup',
   userGroupMemberships: 'userGroupMembership',
   modules: 'module',
@@ -604,6 +605,7 @@ export const restoreBackup = async (req: Request, res: Response) => {
     // Auth & Module
     await prisma.moduleAccess.deleteMany();
     await prisma.module.deleteMany();
+    await prisma.apiKey.deleteMany();
     await prisma.userGroupMembership.deleteMany();
     await prisma.userGroup.deleteMany();
     await prisma.systemSettings.deleteMany();
@@ -752,6 +754,7 @@ export const restoreBackup = async (req: Request, res: Response) => {
 
     // ── Phase 4: UserGroupMemberships, Modules, ModuleAccess ─
     restoredCount += await restoreTable('userGroupMemberships', 'userGroupMembership', 'UserGroupMemberships');
+    restoredCount += await restoreTable('apiKeys', 'apiKey', 'ApiKeys');
     restoredCount += await restoreTable('modules', 'module', 'Modules');
     restoredCount += await restoreTable('moduleAccess', 'moduleAccess', 'ModuleAccess');
 
