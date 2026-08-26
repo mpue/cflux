@@ -68,6 +68,13 @@ const parseScopes = (scopes: string[]): Pick<KeyFormState, 'wildcard' | 'access'
 /** Für <input type="date"> — leer, wenn kein Ablauf gesetzt ist. */
 const toDateInput = (iso: string | null): string => (iso ? iso.slice(0, 10) : '');
 
+/**
+ * Ankreuzfelder brauchen ihre natürliche Breite: die globale Regel
+ * `.form-group input { width: 100% }` zieht sonst auch Checkbox und Radio
+ * über die ganze Zeile und schiebt die Beschriftung an den rechten Rand.
+ */
+const CHOICE_INPUT: React.CSSProperties = { width: 'auto', flex: '0 0 auto', margin: 0 };
+
 const STATUS_LABEL: Record<ApiKeyStatus, { text: string; color: string }> = {
   active: { text: '● Aktiv', color: '#16a34a' },
   revoked: { text: '● Widerrufen', color: '#dc2626' },
@@ -443,6 +450,7 @@ export const ApiKeysTab: React.FC = () => {
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
+                  style={CHOICE_INPUT}
                   checked={form.readOnly}
                   onChange={(e) => setForm({ ...form, readOnly: e.target.checked })}
                 />
@@ -459,6 +467,7 @@ export const ApiKeysTab: React.FC = () => {
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
+                    style={CHOICE_INPUT}
                     checked={form.wildcard}
                     onChange={(e) => setForm({ ...form, wildcard: e.target.checked })}
                   />
@@ -512,6 +521,7 @@ export const ApiKeysTab: React.FC = () => {
                               <td key={access} style={{ textAlign: 'center' }}>
                                 <input
                                   type="radio"
+                                  style={CHOICE_INPUT}
                                   name={`access-${scope.module}`}
                                   checked={current === access}
                                   // Bei einem Nur-Lesen-Schlüssel wäre ein write-Scope
