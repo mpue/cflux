@@ -35,6 +35,7 @@ import {
   TimeEntriesTab,
   ReportsTab,
   BackupTab,
+  ApiKeysTab,
   HolidaysTab,
   ComplianceTab,
   ArticleGroupsTab,
@@ -79,7 +80,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'softwareReport' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'onboardingEmployees' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel' | 'informationen' | 'contacts';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'softwareReport' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'onboardingEmployees' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel' | 'informationen' | 'contacts' | 'apiKeys';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -212,7 +213,8 @@ const AdminDashboard: React.FC = () => {
       werkzeuge: 'Werkzeuge',
       hilfsmittel: 'Hilfsmittel',
       informationen: 'Informationen',
-      contacts: 'Kontakte'
+      contacts: 'Kontakte',
+      apiKeys: 'API-Schlüssel'
     };
     return titles[tab] || tab;
   };
@@ -1042,6 +1044,14 @@ const AdminDashboard: React.FC = () => {
                       label="💾 Backup"
                     />
                   )}
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('API-Schlüssel')) && (
+                    <TabButton
+                      active={activeTab === 'apiKeys'}
+                      onClick={() => changeTab('apiKeys')}
+                      tabId="apiKeys"
+                      label="🔌 API-Schlüssel"
+                    />
+                  )}
                   {(user?.role === 'ADMIN' || hasModuleAccess('hilfsmittel')) && (groupCheck.showAll || matchesSearch('Hilfsmittel')) && (
                     <TabButton
                       active={activeTab === 'hilfsmittel'}
@@ -1104,6 +1114,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'userTimeBookings' && <UserTimeBookingsReport />}
             {activeTab === 'businessReport' && <BusinessReportTab />}
             {activeTab === 'backup' && <BackupTab />}
+            {activeTab === 'apiKeys' && <ApiKeysTab />}
             {activeTab === 'vacationPlanner' && <VacationPlanner />}
             {activeTab === 'holidays' && <HolidaysTab />}
             {activeTab === 'compliance' && (
