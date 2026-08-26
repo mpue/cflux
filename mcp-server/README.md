@@ -6,7 +6,29 @@ Rundgangsberichte in Claude Desktop und Claude Code verfügbar.
 Jeder benutzt **seinen eigenen** API-Schlüssel. Der Server hat keine eigenen
 Rechte — er kann genau das, was der Schlüssel erlaubt, und nicht mehr.
 
-## Einrichtung
+## Verteilung an Kollegen (Windows)
+
+Für Kollegen ohne Node ist das fertige ZIP gedacht. Es enthält `node.exe`,
+den gebündelten Server, eine `LIESMICH.txt` in ganzen Sätzen, eine
+Beispiel-Konfiguration und `test.cmd` für den Selbsttest.
+
+```bash
+./scripts/build-windows.sh
+```
+
+Ergebnis: `dist-win/cflux-mcp-windows.zip`. Auf das Netzlaufwerk legen —
+die Kollegen entpacken es nach `C:\cflux-mcp` und folgen der `LIESMICH.txt`.
+Kein Node, kein npm, keine Adminrechte.
+
+Das `node.exe` wird einmal von nodejs.org geholt und unter `.node-cache/`
+abgelegt; weitere Bauläufe benutzen es von dort. Andere Version:
+`NODE_VERSION=v22.20.0 ./scripts/build-windows.sh`.
+
+**Jeder Kollege legt sich einen eigenen Schlüssel an.** Ein geteilter
+Schlüssel macht unmöglich, nachzuvollziehen wer was abgerufen hat, und
+lässt sich bei einem verlorenen Gerät nicht sperren, ohne alle zu treffen.
+
+## Einrichtung aus dem Quelltext (Entwickler)
 
 ### 1. Schlüssel holen
 

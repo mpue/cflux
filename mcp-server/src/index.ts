@@ -6,6 +6,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { CfluxClient, CfluxError, configFromEnv } from './cflux.js';
+import { VERSION } from './version.js';
 
 /**
  * MCP-Server fuer cflux.
@@ -34,12 +35,19 @@ const loadClient = (): CfluxClient => {
   }
 };
 
+// Vor dem Aufbau des Clients: --version muss auch ohne Konfiguration
+// antworten, sonst kann ein Kollege nicht melden, welchen Stand er hat.
+if (process.argv.includes('--version')) {
+  process.stdout.write(`cflux-mcp ${VERSION}\n`);
+  process.exit(0);
+}
+
 const client = loadClient();
 
 /** Wohin PDF-Exporte geschrieben werden. */
 const downloadDir = resolve(process.env.CFLUX_DOWNLOAD_DIR ?? join(tmpdir(), 'cflux'));
 
-const server = new McpServer({ name: 'cflux', version: '1.0.0' });
+const server = new McpServer({ name: 'cflux', version: VERSION });
 
 /** Reicht Fehler als lesbaren Text zurueck, statt den Aufruf hart scheitern zu lassen. */
 const guard = async (fn: () => Promise<string>) => {
@@ -210,6 +218,50 @@ server.registerTool(
       return `PDF gespeichert: ${target} (${kb} KB)`;
     })
 );
+
+/**
+ * Selbsttest fuer den Aufruf ausserhalb von Claude.
+ *
+ * Ein Kollege, bei dem etwas nicht geht, soll nicht in MCP-Logs suchen muessen:
+ * einmal test.cmd doppelklicken sagt, ob Verbindung, Schluessel und Scope
+ * stimmen — und was zu tun ist, wenn nicht.
+ */
+const selftest = async (): Promise<number> => {
+  const out = (s: string) => process.stdout.write(s + '\n');
+
+  out('');
+  out(`cflux-mcp ${VERSION} — Selbsttest`);
+  out('═══════════════════════════════');
+  out(`Server:    ${process.env.CFLUX_BASE_URL}`);
+  out(`Schlüssel: ${(process.env.CFLUX_API_KEY ?? '').slice(0, 14)}…`);
+  out('');
+
+  try {
+    const projekte = await client.getJson<any[]>('/berichte/projects');
+    const berichte = await client.getJson<any[]>('/berichte');
+
+    out('✓ Verbindung steht');
+    out('✓ Schlüssel wird akzeptiert');
+    out(`✓ Zugriff auf Rundgangsberichte: ${projekte.length} Projekte, ${berichte.length} Berichte`);
+    out('');
+    out('Alles in Ordnung. Der Eintrag in Claude Desktop kann so bleiben.');
+    out('');
+    return 0;
+  } catch (error: any) {
+    out('✗ Fehlgeschlagen');
+    out('');
+    out(`  ${error?.message ?? error}`);
+    out('');
+    out('Bitte die beiden Werte in claude_desktop_config.json prüfen und');
+    out('im Zweifel in cflux unter System → API-Schlüssel nachsehen.');
+    out('');
+    return 1;
+  }
+};
+
+if (process.argv.includes('--selftest')) {
+  process.exit(await selftest());
+}
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

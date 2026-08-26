@@ -1,0 +1,122 @@
+cflux in Claude Desktop
+=======================
+
+Damit kannst du Claude nach den Rundgangsberichten aus cflux fragen -
+auflisten, Feststellungen ansehen, PDF herunterladen.
+
+Du brauchst dafuer nichts zu installieren. Kein Node, kein npm, keine
+Adminrechte. Alles Noetige liegt in diesem Ordner.
+
+
+SCHRITT 1 - Ordner ablegen
+--------------------------
+
+Diesen Ordner nach C:\cflux-mcp kopieren.
+
+Ein anderer Ort geht auch, dann muessen in Schritt 3 die Pfade angepasst
+werden. Am einfachsten ist es, C:\cflux-mcp zu nehmen.
+
+
+SCHRITT 2 - Eigenen Schluessel holen
+------------------------------------
+
+In cflux anmelden und dort aufrufen:
+
+    Administration  ->  System  ->  API-Schluessel  ->  + Neuer Schluessel
+
+Ausfuellen:
+
+    Name          etwas Sprechendes, z.B. "Claude Desktop - Notebook Meier"
+    Nur-Lesen     angehakt lassen
+    Module        bei "Rundgangsberichte" auf  Lesen  stellen
+
+Auf "Schluessel erzeugen" klicken.
+
+WICHTIG: Der Schluessel wird nur ein einziges Mal angezeigt. Kopiere ihn
+sofort. Wer ihn verliert, kann ihn nirgends nachschlagen und muss einen
+neuen erzeugen.
+
+Benutze deinen eigenen Schluessel. Nicht den einer Kollegin oder eines
+Kollegen weiterverwenden - sonst ist nicht mehr nachvollziehbar, wer was
+abgerufen hat, und ein einzelner Schluessel laesst sich nicht mehr
+gefahrlos sperren.
+
+
+SCHRITT 3 - In Claude Desktop eintragen
+---------------------------------------
+
+Windows-Taste + R druecken, das hier eingeben und Enter:
+
+    %APPDATA%\Claude
+
+Die Datei  claude_desktop_config.json  mit dem Editor oeffnen.
+Gibt es sie noch nicht, eine neue Datei mit diesem Namen anlegen.
+
+Den Inhalt aus  claude_desktop_config_beispiel.json  (liegt hier daneben)
+hineinkopieren und die beiden markierten Werte ersetzen:
+
+    CFLUX_BASE_URL    die Adresse eurer cflux-Installation
+    CFLUX_API_KEY     der Schluessel aus Schritt 2
+
+Hat die Datei schon einen Abschnitt "mcpServers", dann nur den Teil ab
+"cflux": dort einfuegen - nicht die ganze Datei ersetzen.
+
+Speichern. Danach Claude Desktop komplett beenden und neu starten.
+Beenden heisst wirklich beenden: rechte Maustaste auf das Symbol unten
+rechts neben der Uhr, dann "Quit".
+
+
+SCHRITT 4 - Ausprobieren
+------------------------
+
+Frag Claude einfach:
+
+    Welche Rundgangsberichte gibt es fuer Novartis?
+    Zeig mir die Feststellungen aus dem Bericht vom 25. August.
+    Lade mir den Novartis-Bericht als PDF herunter.
+
+
+WENN ETWAS NICHT GEHT
+=====================
+
+Starte  test.cmd  in diesem Ordner. Vorher darin die beiden Zeilen mit
+CFLUX_BASE_URL und CFLUX_API_KEY ausfuellen. Der Test sagt genau, woran
+es liegt.
+
+Haeufige Faelle:
+
+  "Der API-Schluessel wurde abgelehnt"
+      Der Schluessel stimmt nicht, wurde widerrufen oder ist abgelaufen.
+      In cflux unter System -> API-Schluessel nachsehen.
+
+  "cflux ist unter ... nicht erreichbar"
+      CFLUX_BASE_URL stimmt nicht, oder du bist nicht im Firmennetz
+      bzw. nicht im VPN.
+
+  "API key is missing scope: berichte:read"
+      Beim Schluessel fehlt die Freigabe fuer Rundgangsberichte.
+      In cflux beim Schluessel auf "Bearbeiten" und dort setzen.
+
+  Claude zeigt die cflux-Werkzeuge gar nicht an
+      Claude Desktop war nicht wirklich beendet, oder in der
+      claude_desktop_config.json ist ein Komma oder eine Klammer zu viel
+      bzw. zu wenig. Die Datei muss gueltiges JSON sein.
+
+
+WAS KANN DAS - UND WAS NICHT
+============================
+
+Der Schluessel ist nur lesend und nur fuer Rundgangsberichte freigegeben.
+Damit kann Claude ueber diesen Weg:
+
+  - nichts aendern, nichts loeschen
+  - keine Benutzer, keine Loehne, keine Rechnungen sehen
+  - kein Backup ziehen
+
+Auch dann nicht, wenn du in cflux selbst Administrator bist. Die Public
+API gibt nur frei, was ausdruecklich freigegeben ist.
+
+Der Schluessel steht im Klartext in der Konfigurationsdatei - so wie ein
+gespeichertes Passwort im Browser. Geht dein Geraet verloren, melde dich,
+dann wird genau dieser eine Schluessel gesperrt. Alle anderen laufen
+weiter.
