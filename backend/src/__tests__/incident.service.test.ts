@@ -11,9 +11,17 @@ jest.mock('../lib/prisma', () => ({
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      // generateIncidentNumber zaehlt die Vorfaelle des Projekts; ohne diesen
+      // Mock scheitert jeder createIncident-Test schon vor der eigentlichen Pruefung.
+      count: jest.fn().mockResolvedValue(0),
     },
     incidentComment: {
       create: jest.fn(),
+    },
+    // Bei einem Vorfall mit Projektbezug schlaegt generateIncidentNumber dort
+    // das Kuerzel fuer die Vorfallnummer nach.
+    project: {
+      findUnique: jest.fn().mockResolvedValue({ name: 'Testprojekt' }),
     },
   },
 }));
@@ -193,6 +201,67 @@ describe('Incident Service', () => {
       expect(result.tags).toBe(JSON.stringify(['urgent', 'security']));
     });
   });
+
+    it('uebernimmt die EHS-Detailfelder und Massnahmen', async () => {
+      // Bis August 2026 nahm nur updateIncident diese Felder entgegen. Ueber die
+      // Public API fiel auf, dass ein vollstaendiger EHS-Vorfall sich damit nicht
+      // in einem Zug melden liess — die Angaben verschwanden kommentarlos.
+      (prisma.incident.create as jest.Mock).mockResolvedValue({ id: 'inc-ehs' });
+
+      await incidentService.createIncident({
+        title: 'Beinahe-Unfall Geruest',
+        description: 'Auf nasser Stufe abgerutscht.',
+        reportedById: 'user-1',
+        isEHSRelevant: true,
+        ehsCategory: 'NEAR_MISS',
+        ehsSeverity: 'MEDIUM',
+        lostWorkDays: 3,
+        medicalTreatment: true,
+        hospitalRequired: true,
+        workersOnDay: 24,
+        hoursWorkedDay: 8.5,
+        correctiveActions: 'Antirutschbelag angebracht.',
+        preventiveActions: 'Woechentliche Kontrolle aufgenommen.',
+        notes: 'Sicherheitsfachkraft informiert.',
+      });
+
+      expect(prisma.incident.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            lostWorkDays: 3,
+            medicalTreatment: true,
+            hospitalRequired: true,
+            workersOnDay: 24,
+            hoursWorkedDay: 8.5,
+            correctiveActions: 'Antirutschbelag angebracht.',
+            preventiveActions: 'Woechentliche Kontrolle aufgenommen.',
+            notes: 'Sicherheitsfachkraft informiert.',
+          }),
+        })
+      );
+    });
+
+    it('setzt die Ja-Nein-Felder auf false statt undefined, wenn nichts angegeben ist', async () => {
+      // Sonst stuenden sie in der Datenbank auf null und liessen sich nicht von
+      // "nicht erhoben" unterscheiden.
+      (prisma.incident.create as jest.Mock).mockResolvedValue({ id: 'inc-min' });
+
+      await incidentService.createIncident({
+        title: 'Drucker defekt',
+        description: 'Papierstau.',
+        reportedById: 'user-1',
+      });
+
+      expect(prisma.incident.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            medicalTreatment: false,
+            hospitalRequired: false,
+            lostWorkDays: undefined,
+          }),
+        })
+      );
+    });
 
   describe('getAllIncidents', () => {
     it('should return all incidents without filters', async () => {
