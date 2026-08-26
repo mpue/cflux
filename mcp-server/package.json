@@ -1,0 +1,20 @@
+{
+  "name": "cflux-mcp",
+  "version": "1.0.0",
+  "description": "MCP-Server fuer die cflux Public API",
+  "type": "module",
+  "bin": { "cflux-mcp": "dist/index.js" },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "typescript": "^5.6.0"
+  }
+}
