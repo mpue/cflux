@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../lib/prisma';
+import { checkModulePermission } from '../services/module.service';
+import { hasNodeAccess } from '../services/documentAccess.service';
 import axios from 'axios';
 import FormData from 'form-data';
 
@@ -110,6 +112,19 @@ export const exportDocumentToPDF = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const userId = req.user!.id;
+
+    // Dieser Endpunkt hat bis August 2026 gar nichts geprueft — weder das
+    // Modulrecht noch die Gruppen. Wer die ID kannte, bekam das Dokument als
+    // PDF, auch wenn es ihm sonst verwehrt war.
+    const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
+    if (!hasReadPermission) {
+      return res.status(403).json({ error: 'No permission to read intranet documents' });
+    }
+
+    const hasAccess = await hasNodeAccess(userId, id, 'READ');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to access this document' });
+    }
 
     // Get the document
     const document = await prisma.documentNode.findFirst({

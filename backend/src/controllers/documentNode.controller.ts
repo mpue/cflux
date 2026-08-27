@@ -3,67 +3,11 @@ import { prisma } from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth';
 import { checkModulePermission } from '../services/module.service';
 import { actionService } from '../services/action.service';
+import {
+  createAccessFilter,
+  hasNodeAccess,
+} from '../services/documentAccess.service';
 
-
-/**
- * Helper function to check if a user has access to a specific node based on group permissions
- * If no group permissions are set, access is granted to all users with INTRANET permission
- */
-async function hasNodeAccess(userId: string, nodeId: string, requiredLevel: 'READ' | 'WRITE' | 'ADMIN' = 'READ'): Promise<boolean> {
-  // Get user's groups
-  const userGroups = await prisma.userGroupMembership.findMany({
-    where: {
-      userId,
-      userGroup: { isActive: true }
-    },
-    select: {
-      userGroupId: true
-    }
-  });
-
-  const userGroupIds = userGroups.map(ug => ug.userGroupId);
-
-  // Get node permissions
-  const nodePermissions = await prisma.documentNodeGroupPermission.findMany({
-    where: { documentNodeId: nodeId }
-  });
-
-  // If no permissions are set, allow access (open access)
-  if (nodePermissions.length === 0) {
-    return true;
-  }
-
-  // Check if user's groups have the required permission level
-  const permissionLevelRanks = { READ: 1, WRITE: 2, ADMIN: 3 };
-  const requiredRank = permissionLevelRanks[requiredLevel];
-
-  for (const perm of nodePermissions) {
-    if (userGroupIds.includes(perm.userGroupId)) {
-      const permRank = permissionLevelRanks[perm.permissionLevel];
-      if (permRank >= requiredRank) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
-/**
- * Filter nodes based on user's group permissions
- */
-async function filterNodesByAccess(nodes: any[], userId: string): Promise<any[]> {
-  const filteredNodes = [];
-  
-  for (const node of nodes) {
-    const hasAccess = await hasNodeAccess(userId, node.id, 'READ');
-    if (hasAccess) {
-      filteredNodes.push(node);
-    }
-  }
-  
-  return filteredNodes;
-}
 
 /**
  * Get the complete document tree structure
@@ -121,8 +65,9 @@ export const getDocumentTree = async (req: AuthRequest, res: Response) => {
       orderBy: { order: 'asc' }
     });
 
-    // Filter nodes based on group permissions
-    const filteredNodes = await filterNodesByAccess(nodes, userId);
+    // Rechte einmal laden, dann im Speicher filtern.
+    const access = await createAccessFilter(userId);
+    const filteredNodes = nodes.filter((node) => access.canAccess(node.id));
 
     // Build tree structure with filtered nodes
     const buildTree = (parentId: string | null): any[] => {
@@ -280,6 +225,13 @@ export const getBreadcrumb = async (req: AuthRequest, res: Response) => {
     const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
+    }
+
+    // Das Gruppenrecht des Dokuments gilt auch hier — sonst liesse sich ueber
+    // diesen Weg lesen, was ueber /:id gesperrt ist.
+    const hasAccess = await hasNodeAccess(userId, id, 'READ');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to access this document' });
     }
 
     const breadcrumb: any[] = [];
@@ -706,6 +658,13 @@ export const getVersionHistory = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
     }
 
+    // Das Gruppenrecht des Dokuments gilt auch hier — sonst liesse sich ueber
+    // diesen Weg lesen, was ueber /:id gesperrt ist.
+    const hasAccess = await hasNodeAccess(userId, id, 'READ');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to access this document' });
+    }
+
     const node = await prisma.documentNode.findFirst({
       where: {
         id,
@@ -751,6 +710,13 @@ export const getVersionContent = async (req: AuthRequest, res: Response) => {
     const hasReadPermission = await checkModulePermission(userId, 'intranet', 'READ');
     if (!hasReadPermission) {
       return res.status(403).json({ error: 'No permission to read intranet documents' });
+    }
+
+    // Das Gruppenrecht des Dokuments gilt auch hier — sonst liesse sich ueber
+    // diesen Weg lesen, was ueber /:id gesperrt ist.
+    const hasAccess = await hasNodeAccess(userId, id, 'READ');
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'No permission to access this document' });
     }
 
     const version = await prisma.documentVersion.findFirst({
