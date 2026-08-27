@@ -5,6 +5,7 @@ import { CfluxClient, configFromEnv } from './cflux.js';
 import { VERSION } from './version.js';
 import { registerBerichtTools } from './tools/berichte.js';
 import { registerIncidentTools } from './tools/incidents.js';
+import { registerIntranetTools } from './tools/intranet.js';
 
 /**
  * MCP-Server fuer cflux.
@@ -49,11 +50,13 @@ const server = new McpServer({ name: 'cflux', version: VERSION });
 
 registerBerichtTools(server, client);
 registerIncidentTools(server, client);
+registerIntranetTools(server, client);
 
 /** Was der Selbsttest prueft — je Modul ein Endpunkt und der noetige Scope. */
 const MODULES = [
   { name: 'Rundgangsberichte', scope: 'berichte:read', probe: '/berichte' },
   { name: 'Vorfälle', scope: 'incidents:read', probe: '/incidents' },
+  { name: 'Intranet-Dokumente', scope: 'intranet:read', probe: '/intranet/tree' },
 ];
 
 /**

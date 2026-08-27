@@ -62,11 +62,20 @@ const describeFailure = async (res: Response, path: string): Promise<string> => 
           'Der Scope lässt sich in cflux beim Schlüssel unter "Bearbeiten" auf "Schreiben" setzen.'
         );
       }
+      // Zugriff auf einen einzelnen Datensatz, nicht auf das Modul: bei
+      // Intranet-Dokumenten entscheiden darueber die Gruppenrechte.
+      if (typeof body?.error === 'string' && /^No permission to access this/.test(body.error)) {
+        return (
+          'Kein Zugriff auf diesen Eintrag. Der Benutzer, zu dem der Schlüssel gehört, ist in ' +
+          'keiner Gruppe, die ihn freigibt — bei Intranet-Dokumenten zählt dabei auch das Recht ' +
+          'auf dem Ordner darüber.'
+        );
+      }
       // Die Modulrechte des Benutzers selbst, unabhaengig vom Schluessel.
       if (body?.error?.startsWith?.('No permission to')) {
         return (
           `${body.error}. Der Schlüssel handelt im Namen eines Benutzers, dem in cflux ` +
-          'das Schreibrecht für dieses Modul fehlt — ein Schlüssel kann nie mehr als dieser Benutzer.'
+          'das Recht für dieses Modul fehlt — ein Schlüssel kann nie mehr als dieser Benutzer.'
         );
       }
       return detail

@@ -71,6 +71,7 @@ benutzen beide diese Quelle, damit niemand einen Scope setzt, der ins Leere grei
 | `/api/departments` | `departments` |
 | `/api/devices` | `devices` |
 | `/api/incidents` | `incidents` |
+| `/api/intranet`, `/api/document-nodes` | `intranet` |
 | `/api/inventory` | `inventory` |
 | `/api/invoices`, `/api/invoice-templates` | `invoices` |
 | `/api/locations` | `locations` |
@@ -89,9 +90,9 @@ benutzen beide diese Quelle, damit niemand einen Scope setzt, der ins Leere grei
 Alles andere ist für Schlüssel gesperrt und braucht einen echten Login,
 insbesondere: `auth`, `api-keys`, `users`, `user-groups`, `modules`, `backup`,
 `system-settings`, `payroll`, `workflows`, `actions`, `uploads`, `media`,
-`messages`, `intranet`, `document-nodes`, `compliance`, `applicants`,
-`onboarding`, `job-functions`, `elearning`, `equipment-training`, `stories`,
-`dashboard-layout`, `system-stats`.
+`messages`, `compliance`, `applicants`, `onboarding`, `job-functions`,
+`elearning`, `equipment-training`, `stories`, `dashboard-layout`,
+`system-stats`.
 
 Pfade treffen nur auf Segmentgrenzen. `/api/project-tasks` wird deshalb nicht
 versehentlich als `/api/projects` behandelt.
@@ -164,6 +165,20 @@ curl -X POST https://cflux.example/api/customers \
   -H 'Content-Type: application/json' \
   -d '{"name":"Beispiel AG"}'
 ```
+
+### Intranet und Benutzergruppen
+
+Beim Intranet kommt eine vierte Schranke dazu: die Gruppenrechte am Dokument.
+Sie werden serverseitig für den Benutzer ausgewertet, zu dem der Schlüssel
+gehört — ein Schlüssel sieht also genau das, was diese Person im Browser sähe.
+Dafür ist auf der API-Seite nichts zu tun.
+
+Ein Recht auf einem Ordner gilt für alles darin: die Prüfung läuft den Pfad
+hoch zum nächsten Vorfahren mit gesetzten Rechten. Sind nirgends im Pfad welche
+gesetzt, ist der Knoten offen. Details in `services/documentAccess.service.ts`.
+
+Das gilt auch für die Suche — ein gesperrtes Dokument taucht dort nicht als
+Treffer auf, weder mit Titel noch mit Textausschnitt.
 
 ## Schreiben
 
