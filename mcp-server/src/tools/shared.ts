@@ -27,12 +27,12 @@ export const guard = async (fn: () => Promise<string>) => {
 };
 
 /**
- * Laedt ein PDF und legt es lokal ab.
+ * Laedt eine Datei und legt sie lokal ab.
  *
- * Zurueck kommt der Pfad, nicht die Datei: ein Export wiegt schnell mehrere
- * hundert Kilobyte und gehoert nicht ins Kontextfenster.
+ * Zurueck kommt der Pfad, nicht die Datei: ein Export oder ein Anhang wiegt
+ * schnell mehrere hundert Kilobyte und gehoert nicht ins Kontextfenster.
  */
-export const savePdf = async (
+export const saveFile = async (
   client: CfluxClient,
   path: string,
   fallbackName: string
@@ -49,5 +49,8 @@ export const savePdf = async (
   const target = join(downloadDir, safeName);
   writeFileSync(target, bytes);
 
-  return `PDF gespeichert: ${target} (${Math.round(bytes.length / 1024)} KB)`;
+  return `Gespeichert: ${target} (${Math.round(bytes.length / 1024)} KB)`;
 };
+
+/** Nur ein sprechender Name fuer die PDF-Aufrufer. */
+export const savePdf = saveFile;

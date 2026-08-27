@@ -12,10 +12,9 @@ import { ScopePermission, scopesAllow } from '../services/apiKey.service';
  * Bewusst NICHT freigegeben und damit nur mit echtem Login erreichbar:
  * /api/auth, /api/api-keys, /api/users, /api/user-groups, /api/modules,
  * /api/backup, /api/system-settings, /api/payroll, /api/workflows, /api/actions,
- * /api/uploads, /api/media, /api/messages, /api/intranet, /api/document-nodes,
- * /api/compliance, /api/applicants, /api/onboarding, /api/job-functions,
- * /api/elearning, /api/equipment-training, /api/stories, /api/dashboard-layout,
- * /api/system-stats.
+ * /api/uploads, /api/media, /api/messages, /api/compliance, /api/applicants,
+ * /api/onboarding, /api/job-functions, /api/elearning, /api/equipment-training,
+ * /api/stories, /api/dashboard-layout, /api/system-stats.
  */
 
 /**
@@ -36,6 +35,10 @@ export const PUBLIC_API_ROUTES: Record<string, string> = {
   '/api/departments': 'departments',
   '/api/devices': 'devices',
   '/api/incidents': 'incidents',
+  // Beide Mounts gehoeren zum Intranet-Modul: /api/intranet traegt Baum und
+  // Dokumente, /api/document-nodes die Anhaenge und die Suche.
+  '/api/document-nodes': 'intranet',
+  '/api/intranet': 'intranet',
   '/api/inventory': 'inventory',
   '/api/invoice-templates': 'invoices',
   '/api/invoices': 'invoices',

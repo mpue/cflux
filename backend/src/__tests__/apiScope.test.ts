@@ -23,6 +23,13 @@ describe('resolvePublicApiModule', () => {
     expect(resolvePublicApiModule('/api/customers?search=a%2Fb')).toBe('customers');
   });
 
+  it('ordnet beide Intranet-Mounts demselben Modul zu', () => {
+    // /api/document-nodes traegt Anhaenge und Suche, /api/intranet den Baum —
+    // fachlich ist beides dasselbe Modul.
+    expect(resolvePublicApiModule('/api/intranet/tree')).toBe('intranet');
+    expect(resolvePublicApiModule('/api/document-nodes/attachments/x/download')).toBe('intranet');
+  });
+
   it('trifft nur auf Segmentgrenzen', () => {
     // Sonst wuerde /api/project-tasks als /api/projects durchgehen.
     expect(resolvePublicApiModule('/api/project-tasks')).toBe('projects');
@@ -53,6 +60,7 @@ describe('checkApiKeyAccess — gesperrte Endpunkte', () => {
     '/api/modules',
     '/api/workflows',
     '/api/uploads',
+    '/api/media',
     '/api/system-stats',
   ];
 

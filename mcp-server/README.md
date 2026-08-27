@@ -1,7 +1,8 @@
 # cflux-mcp
 
 MCP-Server für die cflux Public API. Läuft lokal auf dem Rechner und macht
-Rundgangsberichte und Vorfälle in Claude Desktop und Claude Code verfügbar.
+Rundgangsberichte, Vorfälle und Intranet-Dokumente in Claude Desktop und
+Claude Code verfügbar.
 
 Jeder benutzt **seinen eigenen** API-Schlüssel. Der Server hat keine eigenen
 Rechte — er kann genau das, was der Schlüssel erlaubt, und nicht mehr.
@@ -117,6 +118,20 @@ bzw. `%APPDATA%\Claude\` (Windows). Danach Claude Desktop neu starten.
 | `cflux_incident_statistics` | Zählwerte: gesamt, offen, in Bearbeitung, gelöst, kritisch, hoch |
 | `cflux_export_incident_pdf` | Vorfallbericht als PDF |
 
+**Intranet-Dokumente** — Scope `intranet:read`
+
+| Werkzeug | Zweck |
+|---|---|
+| `cflux_list_documents` | Dokumentenbaum mit Pfaden; Filter nach Text, nur Ordner |
+| `cflux_get_document` | Ein Dokument mit Inhalt als lesbarem Text, plus Anhänge |
+| `cflux_search_intranet` | Volltextsuche über Dokumente, Anhänge und Versionen |
+| `cflux_download_attachment` | Anhang herunterladen und lokal ablegen |
+
+Was hier sichtbar ist, entscheidet cflux anhand der **Benutzergruppen** — und
+zwar für den Benutzer, zu dem der Schlüssel gehört. Ein Recht auf einem Ordner
+gilt für alles darin. Der MCP-Server filtert nichts nach; Gesperrtes bekommt er
+gar nicht erst zu sehen, auch nicht über die Suche.
+
 **Vorfall melden** — Scope `incidents:write`, Schlüssel **ohne** Nur-Lesen
 
 | Werkzeug | Zweck |
@@ -153,6 +168,12 @@ Kontextfenster.
 > Melde einen Beinahe-Unfall: Mitarbeiter ist heute in Halle 3 auf einer nassen
 > Gerüststufe abgerutscht, konnte sich festhalten, kein Ausfall. Antirutschbelag
 > ist schon angebracht.
+
+> Was steht im Intranet zur PSA gegen Absturz?
+
+> Zeig mir alle Ordner im Intranet.
+
+> Fasse das Dokument "Arbeitssicherheit" zusammen.
 
 ## Wenn etwas nicht geht
 

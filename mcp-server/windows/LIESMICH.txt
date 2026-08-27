@@ -8,6 +8,7 @@ Damit kannst du Claude nach Daten aus cflux fragen:
     Kennzahlen abfragen, PDF holen
   - Vorfaelle melden - nur wenn dein Schluessel das ausdruecklich darf,
     siehe Schritt 2
+  - Intranet: Dokumente finden, lesen, durchsuchen, Anhaenge holen
 
 Du brauchst dafuer nichts zu installieren. Kein Node, kein npm, keine
 Adminrechte. Alles Noetige liegt in diesem Ordner.
@@ -35,6 +36,7 @@ Ausfuellen:
     Nur-Lesen     angehakt lassen
     Module        bei "Rundgangsberichte" auf  Lesen  stellen
                   bei "Vorfaelle" ebenfalls auf  Lesen  stellen
+                  bei "Intranet" ebenfalls auf  Lesen  stellen
 
 Du brauchst nur die Module, die du wirklich verwendest. Fehlt eines, sagen
 die betroffenen Werkzeuge das im Klartext - der Rest funktioniert weiter.
@@ -97,6 +99,7 @@ Frag Claude einfach:
     Zeig mir die Feststellungen aus dem Bericht vom 25. August.
     Welche Vorfaelle sind noch offen und hoch priorisiert?
     Wie viele Vorfaelle sind aktuell in Bearbeitung?
+    Was steht im Intranet zur PSA gegen Absturz?
     Melde einen Beinahe-Unfall in Halle 3: jemand ist auf einer nassen
       Geruststufe abgerutscht, konnte sich festhalten, kein Ausfall.
     Lade mir den Novartis-Bericht als PDF herunter.
@@ -131,6 +134,10 @@ Haeufige Faelle:
 
 WAS KANN DAS - UND WAS NICHT
 ============================
+
+Beim Intranet gilt zusaetzlich: du siehst genau die Dokumente, die du auch
+im Browser sehen wuerdest. Die Rechte deiner Benutzergruppen gelten hier
+genauso, und ein Recht auf einem Ordner gilt fuer alles darin.
 
 Der Schluessel ist nur lesend und nur fuer die Module freigegeben, die du
 angehakt hast. Damit kann Claude ueber diesen Weg:
