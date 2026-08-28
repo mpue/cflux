@@ -6,7 +6,8 @@ import { asJson, guard, saveFile } from './shared.js';
 /**
  * Intranet-Dokumente.
  *
- * Alles lesend, Scope intranet:read.
+ * Lesen braucht intranet:read, Anlegen intranet:write UND einen Schluessel
+ * ohne Nur-Lesen.
  *
  * Was ein Schluessel hier sieht, entscheidet cflux — die Gruppenrechte werden
  * serverseitig ausgewertet und zwar fuer den Benutzer, zu dem der Schluessel
@@ -239,6 +240,69 @@ export const registerIntranetTools = (server: McpServer, client: CfluxClient) =>
             ausschnitt: typeof r.snippet === 'string' ? htmlToText(r.snippet) : null,
           })),
         });
+      })
+  );
+
+  server.registerTool(
+    'cflux_create_document',
+    {
+      title: 'Intranet-Dokument anlegen',
+      description:
+        'Legt ein neues Dokument oder einen Ordner im Intranet an. Neue Dokumente starten ' +
+        'immer als Entwurf und müssen in cflux freigegeben werden, bevor sie veröffentlicht ' +
+        'sind — dieses Werkzeug veröffentlicht nichts.\n\n' +
+        'Ohne Angabe eines Ordners landet der Eintrag auf der obersten Ebene. Wird ein Ordner ' +
+        'angegeben, muss der Benutzer dort schreiben dürfen; die Gruppenrechte des Ordners ' +
+        'gelten anschliessend auch für das neue Dokument.\n\n' +
+        'Braucht den Scope intranet:write und einen Schlüssel, der nicht auf Nur-Lesen steht.',
+      inputSchema: {
+        titel: z.string().min(1).describe('Titel des Dokuments oder Ordners.'),
+        inhalt: z
+          .string()
+          .optional()
+          .describe(
+            'Der Text des Dokuments. Einfaches HTML ist erlaubt (<p>, <h2>, <ul>, <strong>). ' +
+              'Wird nichts angegeben, entsteht ein leeres Dokument. Bei einem Ordner ohne Bedeutung.'
+          ),
+        ordnerId: z
+          .string()
+          .optional()
+          .describe(
+            'ID des Ordners, in den es soll — aus cflux_list_documents mit nurOrdner. ' +
+              'Ohne Angabe auf oberster Ebene.'
+          ),
+        alsOrdner: z
+          .boolean()
+          .optional()
+          .describe('true legt einen Ordner an statt eines Dokuments. Vorgabe ist Dokument.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async ({ titel, inhalt, ordnerId, alsOrdner }) =>
+      guard(async () => {
+        const angelegt = await client.postJson<any>('/intranet', {
+          title: titel,
+          type: alsOrdner ? 'FOLDER' : 'DOCUMENT',
+          parentId: ordnerId,
+          content: alsOrdner ? '' : (inhalt ?? ''),
+        });
+
+        const was = alsOrdner ? 'Ordner' : 'Dokument';
+
+        return (
+          `${was} angelegt: ${angelegt.title}\n\n` +
+          asJson({
+            id: angelegt.id,
+            titel: angelegt.title,
+            typ: was,
+            status: angelegt.approvalStatus ?? null,
+            ordnerId: angelegt.parentId ?? null,
+          }) +
+          (alsOrdner
+            ? ''
+            : '\n\nDer Eintrag ist ein Entwurf. Zum Veröffentlichen in cflux unter ' +
+              'Intranet freigeben.')
+        );
       })
   );
 

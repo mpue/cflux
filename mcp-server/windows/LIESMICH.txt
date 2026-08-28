@@ -9,6 +9,7 @@ Damit kannst du Claude nach Daten aus cflux fragen:
   - Vorfaelle melden - nur wenn dein Schluessel das ausdruecklich darf,
     siehe Schritt 2
   - Intranet: Dokumente finden, lesen, durchsuchen, Anhaenge holen
+  - Intranet-Dokumente anlegen - nur wenn dein Schluessel das darf
 
 Du brauchst dafuer nichts zu installieren. Kein Node, kein npm, keine
 Adminrechte. Alles Noetige liegt in diesem Ordner.
@@ -46,13 +47,18 @@ Wenn du Vorfaelle auch MELDEN koennen sollst:
 
     Nur-Lesen     Haken ENTFERNEN
     Module        bei "Vorfaelle" auf  Schreiben  stellen
+                  bzw. bei "Intranet" auf  Schreiben  stellen
 
 Beides ist noetig - der Nur-Lesen-Haken blockt das Anlegen auch dann, wenn
 das Modul auf Schreiben steht. Lass den Haken gesetzt, wenn du nur lesen
 willst: ein Schluessel, der nichts veraendern kann, ist der sicherere.
 
 Angelegte Vorfaelle erscheinen unter deinem Namen und starten im Status
-"Offen".
+"Offen". Angelegte Dokumente sind zunaechst Entwuerfe und muessen in cflux
+freigegeben werden.
+
+In einen geschuetzten Ordner kannst du nur schreiben, wenn du dort auch
+schreiben darfst.
 
 Auf "Schluessel erzeugen" klicken.
 

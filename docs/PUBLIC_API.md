@@ -195,6 +195,22 @@ Benutzer.
 Angelegte Datensätze tragen diesen Benutzer als Urheber. Ein Vorfall über die
 Public API erscheint also unter dessen Namen, mit Status `OPEN`.
 
+### Anlegen und Verschieben im Intranet
+
+`POST /api/intranet` verlangt seit August 2026 das Schreibrecht am Zielordner,
+nicht mehr nur das Modulrecht — sonst könnte jeder mit dem Modul Inhalte in
+fremden Bereichen ablegen. Ein so angelegtes Dokument ist sofort durch die
+Rechte seines Ordners geschützt; es muss nichts gesetzt werden.
+
+`POST /api/intranet/:id/move` verlangt das Schreibrecht an **beiden** Enden.
+Die Quelle ist dabei die wichtigere Hälfte: ohne sie liesse sich ein geschütztes
+Dokument aus seinem Ordner herausziehen und verlöre dabei den geerbten Schutz —
+die Vererbung wäre mit einem Handgriff ausgehebelt.
+
+Umgekehrt gilt: wer am Ordner schreiben darf, darf ein Dokument auch
+herausschieben und damit entschützen. Das ist Absicht, entspricht dem
+Schreibrecht und ist im Browser genauso.
+
 ### Anlegen von Vorfällen
 
 `POST /api/incidents` nimmt seit August 2026 auch die EHS-Detailfelder und die
