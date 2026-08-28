@@ -44,8 +44,9 @@ In cflux unter **System → 🔌 API-Schlüssel** einen neuen Schlüssel anlegen
 - **Module**: die benötigten auf **Lesen** stellen, z.B. *Rundgangsberichte*
   und *Vorfälle*
 
-Wer Vorfälle auch **melden** soll, braucht zusätzlich den Haken bei Nur-Lesen
-**entfernt** und *Vorfälle* auf **Schreiben**. Beides ist nötig.
+Wer Vorfälle **melden** oder Dokumente **anlegen** soll, braucht zusätzlich den
+Haken bei Nur-Lesen **entfernt** und das betreffende Modul auf **Schreiben**.
+Beides ist nötig.
 
 Der Schlüssel wird **genau einmal** angezeigt. Wer ihn nicht sofort sichert,
 braucht einen neuen — nachschlagen geht nicht.
@@ -132,22 +133,29 @@ zwar für den Benutzer, zu dem der Schlüssel gehört. Ein Recht auf einem Ordne
 gilt für alles darin. Der MCP-Server filtert nichts nach; Gesperrtes bekommt er
 gar nicht erst zu sehen, auch nicht über die Suche.
 
-**Vorfall melden** — Scope `incidents:write`, Schlüssel **ohne** Nur-Lesen
+**Schreibend** — Scope `<modul>:write`, Schlüssel **ohne** Nur-Lesen
 
 | Werkzeug | Zweck |
 |---|---|
 | `cflux_create_incident` | Vorfall anlegen, inkl. aller EHS-Felder und Massnahmen |
+| `cflux_create_document` | Intranet-Dokument oder Ordner anlegen |
 
-Der Vorfall wird im Namen des Benutzers gemeldet, zu dem der Schlüssel gehört,
-und startet immer im Status „Offen". Das Nur-Lesen-Kennzeichen blockt das
-Anlegen unabhängig von den Scopes — beides muss stimmen.
+Beides entsteht im Namen des Benutzers, zu dem der Schlüssel gehört: ein
+Vorfall startet im Status „Offen", ein Dokument als **Entwurf** — veröffentlicht
+wird in cflux.
+
+Das Nur-Lesen-Kennzeichen blockt das Anlegen unabhängig von den Scopes; beides
+muss stimmen. Wer in einen geschützten Ordner schreiben will, braucht dort
+zusätzlich das Schreibrecht. Danach gelten dessen Gruppenrechte auch für das
+neue Dokument, ohne dass etwas gesetzt werden müsste.
 
 Ein Schlüssel braucht nur die Scopes der Module, die tatsächlich gebraucht
 werden. Fehlt einer, melden die betroffenen Werkzeuge das im Klartext und
 sagen, was einzustellen ist; der Rest funktioniert weiter.
 
-**Vorgabe bleibt Nur-Lesen.** Ein Schreibrecht bekommt nur, wer Vorfälle
-tatsächlich melden soll — für alle anderen ändert sich nichts.
+**Vorgabe bleibt Nur-Lesen.** Ein Schreibrecht bekommt nur, wer es wirklich
+braucht, und nur für das Modul, um das es geht — für alle anderen ändert sich
+nichts.
 
 Die PDF-Exporte geben einen **Dateipfad** zurück, nicht die Datei selbst — ein
 Export wiegt schnell mehrere hundert Kilobyte, und die gehören nicht ins
@@ -174,6 +182,9 @@ Kontextfenster.
 > Zeig mir alle Ordner im Intranet.
 
 > Fasse das Dokument "Arbeitssicherheit" zusammen.
+
+> Leg im Intranet eine Checkliste für den Aussendienst an: Fahrzeug prüfen,
+> Muster einpacken, Termine bestätigen.
 
 ## Wenn etwas nicht geht
 

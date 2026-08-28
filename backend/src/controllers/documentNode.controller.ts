@@ -292,6 +292,16 @@ export const createDocumentNode = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Invalid type. Must be FOLDER or DOCUMENT' });
     }
 
+    // In einen geschuetzten Ordner darf nur hineinlegen, wer dort auch
+    // schreiben darf. Sonst koennte jeder mit dem Modulrecht Inhalte in
+    // fremden Bereichen ablegen.
+    if (parentId) {
+      const mayWriteToParent = await hasNodeAccess(userId, parentId, 'WRITE');
+      if (!mayWriteToParent) {
+        return res.status(403).json({ error: 'No permission to access this folder' });
+      }
+    }
+
     // Calculate order if not provided
     let nodeOrder = order;
     if (nodeOrder === undefined) {
@@ -567,6 +577,23 @@ export const moveDocumentNode = async (req: AuthRequest, res: Response) => {
 
     if (!node) {
       return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Verschieben braucht das Schreibrecht an beiden Enden.
+    //
+    // Die Quelle ist dabei die wichtigere Haelfte: ohne sie liesse sich ein
+    // geschuetztes Dokument aus seinem Ordner herausziehen und verloere dabei
+    // den geerbten Schutz — die Vererbung waere mit einem Handgriff ausgehebelt.
+    const mayMoveSource = await hasNodeAccess(userId, id, 'WRITE');
+    if (!mayMoveSource) {
+      return res.status(403).json({ error: 'No permission to access this document' });
+    }
+
+    if (newParentId) {
+      const mayWriteToTarget = await hasNodeAccess(userId, newParentId, 'WRITE');
+      if (!mayWriteToTarget) {
+        return res.status(403).json({ error: 'No permission to access this folder' });
+      }
     }
 
     // Check if newParentId exists (if provided)
