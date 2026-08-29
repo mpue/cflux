@@ -1,13 +1,29 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CfluxClient } from '../cflux.js';
-import { asJson, guard, saveFile } from './shared.js';
+import { asJson, guard, readLocalFile, saveFile } from './shared.js';
 
 /**
  * Intranet-Dokumente.
  *
- * Lesen braucht intranet:read, Anlegen intranet:write UND einen Schluessel
- * ohne Nur-Lesen.
+ * Lesen braucht intranet:read, alles Veraendernde intranet:write UND einen
+ * Schluessel ohne Nur-Lesen.
+ *
+ * Der Freigabelauf eines Dokuments:
+ *
+ *   Entwurf --einreichen--> zur Prüfung --freigeben--> freigegeben --veröffentlichen--> sichtbar
+ *      ▲                          |
+ *      |                          +--ablehnen--> abgelehnt
+ *      |                                              |
+ *      +---------- zurück in den Entwurf -------------+
+ *
+ * Aus "abgelehnt" fuehrt kein Weg direkt zurueck ins Einreichen — erst
+ * cflux_reopen_document macht wieder einen Entwurf daraus.
+ *
+ * Einreichen und Zurueckholen brauchen WRITE auf dem Dokument, Freigeben,
+ * Ablehnen und Veroeffentlichen die Stufe ADMIN. Solange auf keinem Ordner
+ * Rechte gesetzt sind, hat jeder mit dem Modul auch ADMIN — der Freigabelauf
+ * wird also erst dann zur echten Kontrolle, wenn Gruppenrechte vergeben sind.
  *
  * Was ein Schluessel hier sieht, entscheidet cflux — die Gruppenrechte werden
  * serverseitig ausgewertet und zwar fuer den Benutzer, zu dem der Schluessel
@@ -50,6 +66,18 @@ const htmlToText = (html: string): string =>
     .replace(/ *\n */g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+
+/** Die Bezeichnungen, die auch die Oberflaeche benutzt. */
+const STATUS_LABEL: Record<string, string> = {
+  DRAFT: 'Entwurf',
+  PENDING_REVIEW: 'Zur Prüfung eingereicht',
+  APPROVED: 'Freigegeben',
+  REJECTED: 'Abgelehnt',
+  PUBLISHED: 'Veröffentlicht',
+};
+
+const statusLabel = (value: string | null | undefined) =>
+  value ? (STATUS_LABEL[value] ?? value) : null;
 
 const day = (iso: string | null | undefined) =>
   typeof iso === 'string' ? iso.slice(0, 10) : null;
@@ -169,7 +197,7 @@ export const registerIntranetTools = (server: McpServer, client: CfluxClient) =>
           id: doc.id,
           titel: doc.title,
           typ: doc.type === 'FOLDER' ? 'Ordner' : 'Dokument',
-          status: doc.approvalStatus ?? null,
+          status: statusLabel(doc.approvalStatus),
           angelegtVon: person(doc.createdBy),
           geaendertVon: person(doc.updatedBy),
           geaendert: day(doc.updatedAt),
@@ -295,13 +323,207 @@ export const registerIntranetTools = (server: McpServer, client: CfluxClient) =>
             id: angelegt.id,
             titel: angelegt.title,
             typ: was,
-            status: angelegt.approvalStatus ?? null,
+            status: statusLabel(angelegt.approvalStatus),
             ordnerId: angelegt.parentId ?? null,
           }) +
           (alsOrdner
             ? ''
             : '\n\nDer Eintrag ist ein Entwurf. Zum Veröffentlichen in cflux unter ' +
               'Intranet freigeben.')
+        );
+      })
+  );
+
+  server.registerTool(
+    'cflux_upload_attachment',
+    {
+      title: 'Datei an ein Dokument hängen',
+      description:
+        'Lädt eine Datei vom eigenen Rechner hoch und hängt sie an ein Intranet-Dokument. ' +
+        'Der Pfad muss auf diesem Rechner liegen und vollständig angegeben sein. ' +
+        'Höchstens 100 MB. cflux erzeugt aus Office-Dateien und Bildern automatisch eine ' +
+        'PDF-Vorschau.\n\n' +
+        'Der Benutzer muss auf dem Dokument schreiben dürfen — bei einem geschützten Ordner ' +
+        'entscheidet dessen Gruppenrecht. Braucht den Scope intranet:write und einen ' +
+        'Schlüssel ohne Nur-Lesen.',
+      inputSchema: {
+        dokumentId: z.string().describe('ID des Dokuments, an das die Datei soll.'),
+        dateipfad: z
+          .string()
+          .describe('Vollständiger Pfad der Datei auf diesem Rechner, z.B. C:\\Berichte\\Messung.pdf'),
+        beschreibung: z.string().optional().describe('Optionale Erläuterung zum Anhang.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async ({ dokumentId, dateipfad, beschreibung }) =>
+      guard(async () => {
+        const datei = readLocalFile(dateipfad);
+
+        const angehaengt = await client.postFile<any>(
+          `/intranet/${encodeURIComponent(dokumentId)}/attachments`,
+          datei,
+          beschreibung ? { description: beschreibung } : {}
+        );
+
+        const kb = Math.round(datei.bytes.length / 1024);
+        return (
+          `Anhang hochgeladen: ${datei.filename} (${kb} KB)\n\n` +
+          asJson({
+            id: angehaengt.id,
+            name: angehaengt.originalFilename ?? datei.filename,
+            typ: datei.contentType,
+            version: angehaengt.version ?? null,
+            dokumentId: angehaengt.documentNodeId ?? dokumentId,
+          })
+        );
+      })
+  );
+
+  server.registerTool(
+    'cflux_submit_document',
+    {
+      title: 'Dokument zur Freigabe einreichen',
+      description:
+        'Reicht einen Entwurf zur Prüfung ein und weist ihn einer Person zur Freigabe zu. ' +
+        'Nur Entwürfe lassen sich einreichen. Danach steht das Dokument auf "Zur Prüfung ' +
+        'eingereicht" und kann nur noch von einem Freigebenden weiterbewegt werden.\n\n' +
+        'Braucht Schreibrecht auf dem Dokument, den Scope intranet:write und einen Schlüssel ' +
+        'ohne Nur-Lesen.',
+      inputSchema: {
+        id: z.string().describe('ID des Dokuments.'),
+        freigebenderBenutzerId: z
+          .string()
+          .optional()
+          .describe('Wem die Freigabe zugewiesen wird. Ohne Angabe bleibt sie unzugewiesen.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async ({ id, freigebenderBenutzerId }) =>
+      guard(async () => {
+        const doc = await client.postJson<any>(
+          `/intranet/${encodeURIComponent(id)}/submit`,
+          freigebenderBenutzerId ? { approverUserId: freigebenderBenutzerId } : {}
+        );
+
+        return `"${doc.title}" ist eingereicht — Status: ${statusLabel(doc.approvalStatus)}.`;
+      })
+  );
+
+  server.registerTool(
+    'cflux_review_document',
+    {
+      title: 'Dokument freigeben oder ablehnen',
+      description:
+        'Entscheidet über ein eingereichtes Dokument. Freigeben setzt es auf "Freigegeben" — ' +
+        'sichtbar wird es erst mit cflux_publish_document. Ablehnen setzt es auf "Abgelehnt"; ' +
+        'die Begründung sieht, wer es eingereicht hat.\n\n' +
+        'Beides geht nur bei Dokumenten, die zur Prüfung eingereicht sind, und verlangt die ' +
+        'Rechtestufe ADMIN auf dem Dokument. Braucht den Scope intranet:write und einen ' +
+        'Schlüssel ohne Nur-Lesen.',
+      inputSchema: {
+        id: z.string().describe('ID des Dokuments.'),
+        entscheidung: z
+          .enum(['freigeben', 'ablehnen'])
+          .describe('Was mit dem Dokument geschehen soll.'),
+        begruendung: z
+          .string()
+          .optional()
+          .describe('Grund der Ablehnung. Beim Ablehnen erwartet, beim Freigeben ohne Wirkung.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async ({ id, entscheidung, begruendung }) =>
+      guard(async () => {
+        if (entscheidung === 'ablehnen' && !begruendung?.trim()) {
+          // Eine Ablehnung ohne Grund hilft niemandem weiter.
+          return 'Zum Ablehnen bitte eine Begründung angeben — sie ist das Einzige, woran sich der Verfasser orientieren kann.';
+        }
+
+        const pfad = entscheidung === 'freigeben' ? 'approve' : 'reject';
+        const doc = await client.postJson<any>(
+          `/intranet/${encodeURIComponent(id)}/${pfad}`,
+          entscheidung === 'ablehnen' ? { reason: begruendung } : {}
+        );
+
+        return entscheidung === 'freigeben'
+          ? `"${doc.title}" ist freigegeben. Zum Sichtbarmachen noch cflux_publish_document aufrufen.`
+          : `"${doc.title}" wurde abgelehnt.`;
+      })
+  );
+
+  server.registerTool(
+    'cflux_reopen_document',
+    {
+      title: 'Dokument zurück in den Entwurf',
+      description:
+        'Holt ein abgelehntes oder eingereichtes Dokument zurück in den Entwurf, damit es ' +
+        'überarbeitet werden kann. Ohne diesen Schritt lässt sich ein abgelehntes Dokument ' +
+        'nicht erneut einreichen.\n\n' +
+        'Braucht Schreibrecht auf dem Dokument, den Scope intranet:write und einen Schlüssel ' +
+        'ohne Nur-Lesen.',
+      inputSchema: {
+        id: z.string().describe('ID des Dokuments.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async ({ id }) =>
+      guard(async () => {
+        const doc = await client.postJson<any>(
+          `/intranet/${encodeURIComponent(id)}/return-to-draft`,
+          {}
+        );
+        return `"${doc.title}" ist wieder ein Entwurf und kann überarbeitet werden.`;
+      })
+  );
+
+  server.registerTool(
+    'cflux_publish_document',
+    {
+      title: 'Dokument veröffentlichen',
+      description:
+        'Veröffentlicht ein freigegebenes Dokument — erst damit ist es im Intranet sichtbar. ' +
+        'Geht nur bei Dokumenten im Status "Freigegeben" und verlangt die Rechtestufe ADMIN. ' +
+        'Braucht den Scope intranet:write und einen Schlüssel ohne Nur-Lesen.',
+      inputSchema: {
+        id: z.string().describe('ID des Dokuments.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async ({ id }) =>
+      guard(async () => {
+        const doc = await client.postJson<any>(`/intranet/${encodeURIComponent(id)}/publish`, {});
+        return `"${doc.title}" ist veröffentlicht.`;
+      })
+  );
+
+  server.registerTool(
+    'cflux_list_pending_approvals',
+    {
+      title: 'Eigene offene Freigaben',
+      description:
+        'Listet die Dokumente, die dem Benutzer des Schlüssels zur Freigabe zugewiesen sind ' +
+        'und noch auf eine Entscheidung warten — älteste zuerst. Dokumente, die jemand ' +
+        'anderem zugewiesen sind, erscheinen nicht. Braucht den Scope intranet:read.',
+      inputSchema: {},
+      annotations: { readOnlyHint: true },
+    },
+    async () =>
+      guard(async () => {
+        const offen = await client.getJson<any[]>('/intranet/pending-approvals');
+
+        if (!offen.length) {
+          return 'Dir ist gerade nichts zur Freigabe zugewiesen.';
+        }
+
+        return asJson(
+          offen.map((e: any) => ({
+            id: e.document?.id ?? e.id,
+            titel: e.document?.title ?? e.title,
+            status: statusLabel(e.document?.approvalStatus),
+            eingereichtVon: person(e.document?.createdBy ?? e.createdBy),
+            // Der Zeitpunkt steckt im workflowInstance-Teil der Antwort.
+            eingereichtAm: day(e.workflowInstance?.createdAt),
+          }))
         );
       })
   );

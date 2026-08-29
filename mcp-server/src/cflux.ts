@@ -64,11 +64,15 @@ const describeFailure = async (res: Response, path: string): Promise<string> => 
       }
       // Zugriff auf einen einzelnen Datensatz, nicht auf das Modul: bei
       // Intranet-Dokumenten entscheiden darueber die Gruppenrechte.
-      if (typeof body?.error === 'string' && /^No permission to access this/.test(body.error)) {
+      if (
+        typeof body?.error === 'string' &&
+        /^No permission to (access|approve|reject|publish|modify) this/.test(body.error)
+      ) {
         return (
           'Kein Zugriff auf diesen Eintrag. Der Benutzer, zu dem der Schlüssel gehört, ist in ' +
-          'keiner Gruppe, die ihn freigibt — bei Intranet-Dokumenten zählt dabei auch das Recht ' +
-          'auf dem Ordner darüber.'
+          'keiner Gruppe mit ausreichender Rechtestufe — bei Intranet-Dokumenten zählt dabei ' +
+          'auch das Recht auf dem Ordner darüber. Freigeben, Ablehnen und Veröffentlichen ' +
+          'verlangen die Stufe ADMIN, Ändern die Stufe WRITE.'
         );
       }
       // Die Modulrechte des Benutzers selbst, unabhaengig vom Schluessel.
@@ -144,6 +148,32 @@ export class CfluxClient {
       body: JSON.stringify(payload),
     });
 
+    return (await res.json()) as T;
+  }
+
+  /**
+   * Schickt eine Datei als multipart/form-data.
+   *
+   * Der Content-Type wird bewusst nicht selbst gesetzt: fetch ergaenzt beim
+   * Uebergeben eines FormData die noetige boundary, und ein handgesetzter
+   * Header wuerde sie ueberschreiben.
+   */
+  async postFile<T = unknown>(
+    path: string,
+    file: { bytes: Uint8Array; filename: string; contentType: string },
+    fields: Record<string, string> = {}
+  ): Promise<T> {
+    const form = new FormData();
+    form.append(
+      'file',
+      new Blob([file.bytes as unknown as BlobPart], { type: file.contentType }),
+      file.filename
+    );
+    for (const [key, value] of Object.entries(fields)) {
+      form.append(key, value);
+    }
+
+    const res = await this.request(path, { method: 'POST', body: form });
     return (await res.json()) as T;
   }
 

@@ -220,6 +220,28 @@ Massnahmen entgegen (`lostWorkDays`, `medicalTreatment`, `hospitalRequired`,
 sich nicht in einem Zug melden liess — die Angaben verschwanden kommentarlos.
 `status` bleibt bewusst aussen vor: ein neuer Vorfall ist immer `OPEN`.
 
+### Freigabelauf für Dokumente
+
+Ein Intranet-Dokument durchläuft `DRAFT → PENDING_REVIEW → APPROVED → PUBLISHED`,
+mit `REJECTED` als Seitenast. Einreichen und Zurückholen verlangen die Stufe
+`WRITE` auf dem Dokument, Freigeben, Ablehnen und Veröffentlichen die Stufe
+`ADMIN`. Aus `REJECTED` führt kein direkter Weg zurück ins Einreichen — erst
+`POST /:id/return-to-draft`.
+
+`GET /:id/pending-approvals` liefert nur, was dem aufrufenden Benutzer über
+`assignedApproverId` zugewiesen ist.
+
+**Solange auf keinem Knoten Gruppenrechte gesetzt sind, erfüllt jeder mit dem
+Modulrecht auch `ADMIN`** — die Prüfung läuft bis zur Wurzel, findet nichts und
+lässt durch. Der Freigabelauf wird also erst zur Kontrolle, wenn Gruppenrechte
+vergeben sind.
+
+### Anhänge
+
+`POST /api/intranet/:nodeId/attachments` nimmt `multipart/form-data` mit dem
+Feld `file` und optional `description`, höchstens 100 MB. cflux erzeugt über
+Gotenberg eine PDF-Vorschau; dafür muss der Content-Type stimmen.
+
 ## Client-Paket
 
 `GET /api/api-keys/client` meldet, ob ein fertig gebautes MCP-Client-Paket
