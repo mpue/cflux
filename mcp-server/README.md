@@ -135,14 +135,36 @@ gar nicht erst zu sehen, auch nicht über die Suche.
 
 **Schreibend** — Scope `<modul>:write`, Schlüssel **ohne** Nur-Lesen
 
-| Werkzeug | Zweck |
-|---|---|
-| `cflux_create_incident` | Vorfall anlegen, inkl. aller EHS-Felder und Massnahmen |
-| `cflux_create_document` | Intranet-Dokument oder Ordner anlegen |
+| Werkzeug | Zweck | Nötige Stufe |
+|---|---|---|
+| `cflux_create_incident` | Vorfall anlegen, inkl. aller EHS-Felder und Massnahmen | — |
+| `cflux_create_document` | Intranet-Dokument oder Ordner anlegen | WRITE auf dem Zielordner |
+| `cflux_upload_attachment` | Datei vom eigenen Rechner anhängen, max. 100 MB | WRITE |
+| `cflux_submit_document` | Entwurf zur Freigabe einreichen | WRITE |
+| `cflux_reopen_document` | Abgelehntes zurück in den Entwurf | WRITE |
+| `cflux_review_document` | freigeben oder ablehnen | **ADMIN** |
+| `cflux_publish_document` | veröffentlichen, erst dann sichtbar | **ADMIN** |
 
-Beides entsteht im Namen des Benutzers, zu dem der Schlüssel gehört: ein
-Vorfall startet im Status „Offen", ein Dokument als **Entwurf** — veröffentlicht
-wird in cflux.
+Alles entsteht im Namen des Benutzers, zu dem der Schlüssel gehört: ein
+Vorfall startet im Status „Offen", ein Dokument als **Entwurf**.
+
+### Der Freigabelauf
+
+```
+Entwurf ──einreichen──▶ Zur Prüfung ──freigeben──▶ Freigegeben ──veröffentlichen──▶ Sichtbar
+   ▲                         │
+   │                         └──ablehnen──▶ Abgelehnt
+   └──── zurück in den Entwurf ─────────────────┘
+```
+
+Aus „Abgelehnt" führt kein Weg direkt zurück ins Einreichen — erst
+`cflux_reopen_document` macht wieder einen Entwurf daraus. Eine Ablehnung ohne
+Begründung wird abgewiesen; sie ist das Einzige, woran sich der Verfasser
+orientieren kann.
+
+**Solange nirgends Gruppenrechte gesetzt sind, hat jeder mit dem Intranet-Modul
+auch die Stufe ADMIN.** Der Freigabelauf wird erst dann zur echten Kontrolle,
+wenn mindestens eine Gruppe mit `ADMIN` auf den relevanten Ordnern steht.
 
 Das Nur-Lesen-Kennzeichen blockt das Anlegen unabhängig von den Scopes; beides
 muss stimmen. Wer in einen geschützten Ordner schreiben will, braucht dort
@@ -157,9 +179,10 @@ sagen, was einzustellen ist; der Rest funktioniert weiter.
 braucht, und nur für das Modul, um das es geht — für alle anderen ändert sich
 nichts.
 
-Die PDF-Exporte geben einen **Dateipfad** zurück, nicht die Datei selbst — ein
-Export wiegt schnell mehrere hundert Kilobyte, und die gehören nicht ins
-Kontextfenster.
+Die PDF-Exporte und Anhang-Downloads geben einen **Dateipfad** zurück, nicht die
+Datei selbst — beides wiegt schnell mehrere hundert Kilobyte, und die gehören
+nicht ins Kontextfenster. Umgekehrt liest `cflux_upload_attachment` eine Datei
+vom Rechner des Kollegen; der Pfad muss vollständig angegeben werden.
 
 ## Beispiele
 
@@ -182,6 +205,13 @@ Kontextfenster.
 > Zeig mir alle Ordner im Intranet.
 
 > Fasse das Dokument "Arbeitssicherheit" zusammen.
+
+> Leg im Handbuch ein Dokument zum Lärmschutz an und häng
+> C:\Messungen\Halle3.pdf dran.
+
+> Was liegt mir zur Freigabe vor?
+
+> Gib das Lärmschutz-Dokument frei und veröffentliche es.
 
 > Leg im Intranet eine Checkliste für den Aussendienst an: Fahrzeug prüfen,
 > Muster einpacken, Termine bestätigen.
