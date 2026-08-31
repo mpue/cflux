@@ -166,6 +166,22 @@ curl -X POST https://cflux.example/api/customers \
   -d '{"name":"Beispiel AG"}'
 ```
 
+### Geräte und die Rolle ADMIN
+
+`/api/devices` ist zwar freigegeben, aber die Routen dahinter verlangen fast
+durchgehend `authorize('ADMIN')` — also die **Rolle**, nicht ein Modulrecht.
+Für einen API-Schlüssel heisst das: `devices:read` allein reicht nicht, der
+Benutzer hinter dem Schlüssel muss zusätzlich Administrator sein. Sonst kommt
+ein `403 {"error":"Forbidden"}`.
+
+Einzige Ausnahme ist `GET /api/devices/user/:userId`; sie kommt ohne die Rolle
+aus. Das ist die Route, über die ein Kollege ohne Adminrechte die Geräte eines
+Mitarbeiters abfragen kann.
+
+Diese Asymmetrie ist eine Eigenschaft des Gerätemoduls und keine der Public
+API — sie gilt im Browser genauso. Wer sie ändern will, ändert
+`routes/device.routes.ts`, nicht die Allowlist.
+
 ### Intranet und Benutzergruppen
 
 Beim Intranet kommt eine vierte Schranke dazu: die Gruppenrechte am Dokument.

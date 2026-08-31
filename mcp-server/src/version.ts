@@ -6,4 +6,4 @@
  * Dateinamen des ZIP und im Selbsttest, damit bei einer Rueckfrage klar ist,
  * welcher Stand bei wem liegt.
  */
-export const VERSION = '1.5.0';
+export const VERSION = '1.6.0';

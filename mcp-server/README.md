@@ -1,8 +1,8 @@
 # cflux-mcp
 
 MCP-Server für die cflux Public API. Läuft lokal auf dem Rechner und macht
-Rundgangsberichte, Vorfälle und Intranet-Dokumente in Claude Desktop und
-Claude Code verfügbar.
+Rundgangsberichte, Vorfälle, Intranet-Dokumente und das Geräteregister in
+Claude Desktop und Claude Code verfügbar.
 
 Jeder benutzt **seinen eigenen** API-Schlüssel. Der Server hat keine eigenen
 Rechte — er kann genau das, was der Schlüssel erlaubt, und nicht mehr.
@@ -133,6 +133,25 @@ zwar für den Benutzer, zu dem der Schlüssel gehört. Ein Recht auf einem Ordne
 gilt für alles darin. Der MCP-Server filtert nichts nach; Gesperrtes bekommt er
 gar nicht erst zu sehen, auch nicht über die Suche.
 
+**Geräte** — Scope `devices:read`
+
+| Werkzeug | Zweck |
+|---|---|
+| `cflux_list_devices` | Geräteregister auflisten; Filter nach Text, Kategorie, Mitarbeiter, unzugewiesen, ausgemustert |
+| `cflux_get_device` | Ein Gerät vollständig, mit installierter Software und den Schwachstellen aus Action1 |
+| `cflux_software_report` | Software über alle Geräte aggregiert — wie oft installiert, welche Versionen |
+| `cflux_list_user_devices` | Die Geräte eines bestimmten Mitarbeiters |
+
+Dieses Modul hat eine Besonderheit: cflux schützt die Geräte-Endpunkte mit der
+**Rolle ADMIN**, nicht bloss mit einem Modulrecht. Der Scope `devices:read`
+allein genügt also nicht — wer in cflux kein Administrator ist, bekommt bei den
+ersten drei Werkzeugen eine Absage und kann nur `cflux_list_user_devices`
+benutzen. Das ist kein Fehler im Schlüssel; der Selbsttest weist es
+entsprechend als Hinweis und nicht als Defekt aus.
+
+**Lizenzschlüssel gibt dieser Server nicht heraus.** Sie stehen im Register,
+gehören aber nicht in einen Chatverlauf — wer sie braucht, sieht sie in cflux.
+
 **Schreibend** — Scope `<modul>:write`, Schlüssel **ohne** Nur-Lesen
 
 | Werkzeug | Zweck | Nötige Stufe |
@@ -215,6 +234,14 @@ vom Rechner des Kollegen; der Pfad muss vollständig angegeben werden.
 
 > Leg im Intranet eine Checkliste für den Aussendienst an: Fahrzeug prüfen,
 > Muster einpacken, Termine bestätigen.
+
+> Welche Laptops sind gerade niemandem zugewiesen?
+
+> Welche Geräte hat Nina Normal, und laufen die noch in der Garantie?
+
+> Auf wie vielen Geräten läuft Microsoft 365, und in welchen Versionen?
+
+> Welche Schwachstellen sind auf dem ThinkPad offen?
 
 ## Wenn etwas nicht geht
 

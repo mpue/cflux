@@ -13,6 +13,10 @@ Damit kannst du Claude nach Daten aus cflux fragen:
     Freigabe einreichen; Freigeben und Veroeffentlichen nur, wenn deine
     Gruppe das darf
   - Intranet-Dokumente anlegen - nur wenn dein Schluessel das darf
+  - Geraete: Laptops, Handys, Werkzeug und PSA nachschlagen, samt
+    installierter Software und offenen Schwachstellen - fuer das ganze
+    Register brauchst du in cflux allerdings Adminrechte, ohne sie
+    siehst du nur die Geraete eines Mitarbeiters
 
 Du brauchst dafuer nichts zu installieren. Kein Node, kein npm, keine
 Adminrechte. Alles Noetige liegt in diesem Ordner.
@@ -41,6 +45,7 @@ Ausfuellen:
     Module        bei "Rundgangsberichte" auf  Lesen  stellen
                   bei "Vorfaelle" ebenfalls auf  Lesen  stellen
                   bei "Intranet" ebenfalls auf  Lesen  stellen
+                  bei "Geraete" ebenfalls auf  Lesen  stellen
 
 Du brauchst nur die Module, die du wirklich verwendest. Fehlt eines, sagen
 die betroffenen Werkzeuge das im Klartext - der Rest funktioniert weiter.
@@ -113,6 +118,8 @@ Frag Claude einfach:
     Melde einen Beinahe-Unfall in Halle 3: jemand ist auf einer nassen
       Geruststufe abgerutscht, konnte sich festhalten, kein Ausfall.
     Lade mir den Novartis-Bericht als PDF herunter.
+    Welche Laptops sind gerade niemandem zugewiesen?
+    Auf wie vielen Geraeten laeuft Microsoft 365?
 
 
 WENN ETWAS NICHT GEHT
@@ -136,6 +143,12 @@ Haeufige Faelle:
       Beim Schluessel fehlt die Freigabe fuer dieses Modul.
       In cflux beim Schluessel auf "Bearbeiten" und dort setzen.
 
+  "verlangt zusaetzlich ... die Rolle ADMIN"
+      Betrifft nur die Geraete. Mit dem Schluessel ist alles in Ordnung -
+      das Geraeteregister ist in cflux den Administratoren vorbehalten.
+      Ohne Adminrechte bleibt die Abfrage der Geraete eines einzelnen
+      Mitarbeiters. Wer mehr braucht, wendet sich an die IT.
+
   Claude zeigt die cflux-Werkzeuge gar nicht an
       Claude Desktop war nicht wirklich beendet, oder in der
       claude_desktop_config.json ist ein Komma oder eine Klammer zu viel
@@ -148,6 +161,10 @@ WAS KANN DAS - UND WAS NICHT
 Beim Intranet gilt zusaetzlich: du siehst genau die Dokumente, die du auch
 im Browser sehen wuerdest. Die Rechte deiner Benutzergruppen gelten hier
 genauso, und ein Recht auf einem Ordner gilt fuer alles darin.
+
+Bei den Geraeten gibt Claude keine Lizenzschluessel heraus. Sie stehen im
+Register, gehoeren aber nicht in einen Chatverlauf - wer einen braucht,
+sieht ihn in cflux.
 
 Der Schluessel ist nur lesend und nur fuer die Module freigegeben, die du
 angehakt hast. Damit kann Claude ueber diesen Weg:
