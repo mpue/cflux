@@ -12,11 +12,20 @@ export interface CfluxConfig {
   apiKey: string;
 }
 
+/**
+ * Warum ein Zugriff scheiterte — fuer Aufrufer, die daraus etwas ableiten
+ * muessen. Die 403-Faelle sehen von aussen alle gleich aus, meinen aber sehr
+ * Verschiedenes; wer darauf reagiert, soll das nicht am deutschen Satz
+ * festmachen muessen.
+ */
+export type CfluxReason = 'missing-scope' | 'needs-admin';
+
 /** Fehler mit einer Erklaerung, mit der ein Mensch etwas anfangen kann. */
 export class CfluxError extends Error {
   constructor(
     message: string,
-    readonly status?: number
+    readonly status?: number,
+    readonly reason?: CfluxReason
   ) {
     super(message);
     this.name = 'CfluxError';
@@ -28,7 +37,10 @@ export class CfluxError extends Error {
  * Die API unterscheidet bewusst zwischen "Modul nicht freigegeben",
  * "Scope fehlt" und "nur lesend" — diese Unterscheidung geht sonst verloren.
  */
-const describeFailure = async (res: Response, path: string): Promise<string> => {
+const describeFailure = async (
+  res: Response,
+  path: string
+): Promise<{ message: string; reason?: CfluxReason }> => {
   let body: any = null;
   try {
     body = await res.json();
@@ -37,29 +49,37 @@ const describeFailure = async (res: Response, path: string): Promise<string> => 
   }
 
   const detail = body?.message || body?.error;
+  const sagt = (message: string, reason?: CfluxReason) => ({ message, reason });
 
   switch (res.status) {
     case 401:
-      return (
+      return sagt(
         'Der API-Schlüssel wurde abgelehnt. Er ist unbekannt, widerrufen oder abgelaufen — ' +
-        'oder der Benutzer, in dessen Namen er handelt, ist deaktiviert. ' +
-        'Bitte in cflux unter System → API-Schlüssel prüfen.'
+          'oder der Benutzer, in dessen Namen er handelt, ist deaktiviert. ' +
+          'Bitte in cflux unter System → API-Schlüssel prüfen.'
       );
+
     case 403:
       if (body?.error === 'Not available via the public API') {
-        return `${path} ist nicht Teil der Public API und nur mit einem echten Login erreichbar.`;
-      }
-      if (body?.error === 'API key is read-only') {
-        return (
-          'Der Schlüssel ist als Nur-Lesen angelegt und darf nichts verändern. ' +
-          'Zum Anlegen braucht es einen Schlüssel ohne dieses Kennzeichen — in cflux ' +
-          'unter System → API-Schlüssel beim Schlüssel auf "Bearbeiten".'
+        return sagt(
+          `${path} ist nicht Teil der Public API und nur mit einem echten Login erreichbar.`
         );
       }
-      if (typeof detail === 'string' && detail.includes(':write')) {
-        return (
-          `Zugriff verweigert: ${detail}. ` +
-          'Der Scope lässt sich in cflux beim Schlüssel unter "Bearbeiten" auf "Schreiben" setzen.'
+      if (body?.error === 'API key is read-only') {
+        return sagt(
+          'Der Schlüssel ist als Nur-Lesen angelegt und darf nichts verändern. ' +
+            'Zum Anlegen braucht es einen Schlüssel ohne dieses Kennzeichen — in cflux ' +
+            'unter System → API-Schlüssel beim Schlüssel auf "Bearbeiten".'
+        );
+      }
+      if (typeof detail === 'string' && detail.includes('missing scope')) {
+        const schreiben = detail.includes(':write');
+        return sagt(
+          `Zugriff verweigert: ${detail}.` +
+            (schreiben
+              ? ' Der Scope lässt sich in cflux beim Schlüssel unter "Bearbeiten" auf "Schreiben" setzen.'
+              : ' Der Scope lässt sich in cflux beim Schlüssel unter "Bearbeiten" nachtragen.'),
+          'missing-scope'
         );
       }
       // Zugriff auf einen einzelnen Datensatz, nicht auf das Modul: bei
@@ -68,33 +88,50 @@ const describeFailure = async (res: Response, path: string): Promise<string> => 
         typeof body?.error === 'string' &&
         /^No permission to (access|approve|reject|publish|modify) this/.test(body.error)
       ) {
-        return (
+        return sagt(
           'Kein Zugriff auf diesen Eintrag. Der Benutzer, zu dem der Schlüssel gehört, ist in ' +
-          'keiner Gruppe mit ausreichender Rechtestufe — bei Intranet-Dokumenten zählt dabei ' +
-          'auch das Recht auf dem Ordner darüber. Freigeben, Ablehnen und Veröffentlichen ' +
-          'verlangen die Stufe ADMIN, Ändern die Stufe WRITE.'
+            'keiner Gruppe mit ausreichender Rechtestufe — bei Intranet-Dokumenten zählt dabei ' +
+            'auch das Recht auf dem Ordner darüber. Freigeben, Ablehnen und Veröffentlichen ' +
+            'verlangen die Stufe ADMIN, Ändern die Stufe WRITE.'
         );
       }
       // Die Modulrechte des Benutzers selbst, unabhaengig vom Schluessel.
       if (body?.error?.startsWith?.('No permission to')) {
-        return (
+        return sagt(
           `${body.error}. Der Schlüssel handelt im Namen eines Benutzers, dem in cflux ` +
-          'das Recht für dieses Modul fehlt — ein Schlüssel kann nie mehr als dieser Benutzer.'
+            'das Recht für dieses Modul fehlt — ein Schlüssel kann nie mehr als dieser Benutzer.'
         );
       }
-      return detail
-        ? `Zugriff verweigert: ${detail}`
-        : `Zugriff auf ${path} verweigert.`;
+      // authorize() liefert nur "Forbidden" — das sagt nicht, was fehlt.
+      if (body?.error === 'Forbidden') {
+        return sagt(
+          `Zugriff auf ${path} verweigert. Dieser Endpunkt verlangt zusätzlich zur ` +
+            'Modulfreigabe die Rolle ADMIN — der Benutzer, zu dem der Schlüssel gehört, ' +
+            'hat sie nicht. Beim Geräteregister betrifft das fast alles; ohne Adminrolle ' +
+            'bleibt nur cflux_list_user_devices.',
+          'needs-admin'
+        );
+      }
+      return sagt(
+        detail ? `Zugriff verweigert: ${detail}` : `Zugriff auf ${path} verweigert.`
+      );
+
     case 400:
-      return detail
-        ? `cflux hat die Angaben abgelehnt: ${detail}`
-        : `cflux hat die Angaben zu ${path} abgelehnt.`;
+      return sagt(
+        detail
+          ? `cflux hat die Angaben abgelehnt: ${detail}`
+          : `cflux hat die Angaben zu ${path} abgelehnt.`
+      );
+
     case 404:
-      return `Nicht gefunden: ${path}`;
+      return sagt(`Nicht gefunden: ${path}`);
+
     default:
-      return detail
-        ? `cflux antwortete mit ${res.status}: ${detail}`
-        : `cflux antwortete mit ${res.status} auf ${path}.`;
+      return sagt(
+        detail
+          ? `cflux antwortete mit ${res.status}: ${detail}`
+          : `cflux antwortete mit ${res.status} auf ${path}.`
+      );
   }
 };
 
@@ -122,7 +159,8 @@ export class CfluxClient {
     }
 
     if (!res.ok) {
-      throw new CfluxError(await describeFailure(res, path), res.status);
+      const { message, reason } = await describeFailure(res, path);
+      throw new CfluxError(message, res.status, reason);
     }
 
     return res;

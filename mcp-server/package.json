@@ -1,6 +1,6 @@
 {
   "name": "cflux-mcp",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "MCP-Server fuer die cflux Public API",
   "type": "module",
   "bin": {
