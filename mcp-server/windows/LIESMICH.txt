@@ -17,6 +17,9 @@ Damit kannst du Claude nach Daten aus cflux fragen:
     installierter Software und offenen Schwachstellen - fuer das ganze
     Register brauchst du in cflux allerdings Adminrechte, ohne sie
     siehst du nur die Geraete eines Mitarbeiters
+  - Kontakte: Adressbuch durchsuchen, Erreichbarkeiten nachschlagen,
+    Kontaktgruppen ansehen
+  - Kontakte anlegen - nur wenn dein Schluessel das darf
 
 Du brauchst dafuer nichts zu installieren. Kein Node, kein npm, keine
 Adminrechte. Alles Noetige liegt in diesem Ordner.
@@ -46,6 +49,7 @@ Ausfuellen:
                   bei "Vorfaelle" ebenfalls auf  Lesen  stellen
                   bei "Intranet" ebenfalls auf  Lesen  stellen
                   bei "Geraete" ebenfalls auf  Lesen  stellen
+                  bei "Kontakte" ebenfalls auf  Lesen  stellen
 
 Du brauchst nur die Module, die du wirklich verwendest. Fehlt eines, sagen
 die betroffenen Werkzeuge das im Klartext - der Rest funktioniert weiter.
@@ -120,6 +124,8 @@ Frag Claude einfach:
     Lade mir den Novartis-Bericht als PDF herunter.
     Welche Laptops sind gerade niemandem zugewiesen?
     Auf wie vielen Geraeten laeuft Microsoft 365?
+    Wie erreiche ich den Einkauf bei Novartis?
+    Such mir alle Lieferantenkontakte in Aarau.
 
 
 WENN ETWAS NICHT GEHT
@@ -165,6 +171,12 @@ genauso, und ein Recht auf einem Ordner gilt fuer alles darin.
 Bei den Geraeten gibt Claude keine Lizenzschluessel heraus. Sie stehen im
 Register, gehoeren aber nicht in einen Chatverlauf - wer einen braucht,
 sieht ihn in cflux.
+
+Beim Adressbuch entscheiden die Kontaktgruppen: du siehst die Kontakte,
+deren Gruppe fuer eine deiner Benutzergruppen freigegeben ist, und alle,
+die keiner Gruppe angehoeren. Findest du jemanden nicht, liegt es meist
+daran - nicht am Suchbegriff. Denk daran, dass im Adressbuch auch
+Personalien von Kolleginnen und Kollegen stehen, samt Privatadresse.
 
 Der Schluessel ist nur lesend und nur fuer die Module freigegeben, die du
 angehakt hast. Damit kann Claude ueber diesen Weg:

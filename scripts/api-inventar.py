@@ -128,6 +128,10 @@ MCP_ENDPUNKTE = {
     "GET /api/devices/:id/vulnerabilities",
     "GET /api/devices/software/report",
     "GET /api/devices/user/:userId",
+    "GET /api/contacts",
+    "GET /api/contacts/:id",
+    "POST /api/contacts",
+    "GET /api/contacts/groups",
 }
 
 
