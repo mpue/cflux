@@ -1,8 +1,8 @@
 # cflux-mcp
 
 MCP-Server für die cflux Public API. Läuft lokal auf dem Rechner und macht
-Rundgangsberichte, Vorfälle, Intranet-Dokumente und das Geräteregister in
-Claude Desktop und Claude Code verfügbar.
+Rundgangsberichte, Vorfälle, Intranet-Dokumente, das Geräteregister und das
+Adressbuch in Claude Desktop und Claude Code verfügbar.
 
 Jeder benutzt **seinen eigenen** API-Schlüssel. Der Server hat keine eigenen
 Rechte — er kann genau das, was der Schlüssel erlaubt, und nicht mehr.
@@ -152,6 +152,29 @@ entsprechend als Hinweis und nicht als Defekt aus.
 **Lizenzschlüssel gibt dieser Server nicht heraus.** Sie stehen im Register,
 gehören aber nicht in einen Chatverlauf — wer sie braucht, sieht sie in cflux.
 
+**Kontakte** — Scope `contacts:read`, zum Anlegen `contacts:write`
+
+| Werkzeug | Zweck |
+|---|---|
+| `cflux_search_contacts` | Adressbuch durchsuchen; Filter nach Text, Kategorie, Gruppe, stillgelegte |
+| `cflux_get_contact` | Ein Kontakt vollständig, mit Anschrift, Notizen und Sichtbarkeit |
+| `cflux_list_contact_groups` | Kontaktgruppen und für welche Benutzergruppen sie freigegeben sind |
+| `cflux_create_contact` | Neuen Kontakt anlegen, optional in einer Kontaktgruppe |
+
+Wer welchen Kontakt sieht, entscheidet die **Kontaktgruppe**: sichtbar ist, was
+für eine Benutzergruppe des Schlüsselinhabers freigegeben ist — und alles, was
+gar keiner Gruppe angehört. Das gilt auch für den Einzelabruf; ein nicht
+freigegebener Kontakt verhält sich wie ein nicht vorhandener.
+
+Beim Anlegen wird die Gruppe über ihren **Namen** angegeben, nicht über eine ID.
+Passt der Name auf mehrere Gruppen, bricht das Werkzeug ab und fragt nach —
+die Gruppe entscheidet, wer den Kontakt später sehen darf, das ist kein Feld
+zum Raten.
+
+Zu beachten: über die Mitarbeiter-Synchronisation stehen im Adressbuch auch
+Personalien mitsamt Privatanschrift. `cflux_get_contact` weist sie mit
+`herkunft: "Mitarbeiterstamm"` aus.
+
 **Schreibend** — Scope `<modul>:write`, Schlüssel **ohne** Nur-Lesen
 
 | Werkzeug | Zweck | Nötige Stufe |
@@ -242,6 +265,15 @@ vom Rechner des Kollegen; der Pfad muss vollständig angegeben werden.
 > Auf wie vielen Geräten läuft Microsoft 365, und in welchen Versionen?
 
 > Welche Schwachstellen sind auf dem ThinkPad offen?
+
+> Wie erreiche ich den Einkauf bei Novartis?
+
+> Such mir alle Lieferantenkontakte in Aarau.
+
+> Leg Erika Muster von der Muster AG als Kundenkontakt an, Leitung Einkauf,
+> e.muster@muster.example.
+
+> Welche Kontaktgruppen gibt es, und wer darf sie sehen?
 
 ## Wenn etwas nicht geht
 

@@ -17,7 +17,7 @@ steht in [`PUBLIC_API.md`](PUBLIC_API.md), die offenen Punkte in
 | davon Bereiche, die gesperrt bleiben sollen | 73 |
 | freigegeben, aber zusätzlich nur für Administratoren | 103 |
 | freigegeben und mit einer Modulrechtsprüfung | 45 |
-| freigegeben und von einem MCP-Werkzeug benutzt | 27 |
+| freigegeben und von einem MCP-Werkzeug benutzt | 31 |
 
 **Marken:** `MCP` — ein Werkzeug des MCP-Servers ruft diesen Endpunkt auf.
 `ADMIN` — verlangt zusätzlich zur Modulfreigabe die Rolle `ADMIN`.
@@ -235,12 +235,12 @@ Scope `contacts:read` bzw. `contacts:write` · 10 Endpunkte
 
 | Methode | Pfad | |
 |---|---|---|
-| `GET` | `/api/contacts` | — |
-| `POST` | `/api/contacts` | Modulrecht |
+| `GET` | `/api/contacts` | MCP |
+| `POST` | `/api/contacts` | MCP, Modulrecht |
 | `DELETE` | `/api/contacts/:id` | Modulrecht |
-| `GET` | `/api/contacts/:id` | — |
+| `GET` | `/api/contacts/:id` | MCP |
 | `PUT` | `/api/contacts/:id` | Modulrecht |
-| `GET` | `/api/contacts/groups` | — |
+| `GET` | `/api/contacts/groups` | MCP |
 | `POST` | `/api/contacts/groups` | ADMIN |
 | `DELETE` | `/api/contacts/groups/:id` | ADMIN |
 | `PUT` | `/api/contacts/groups/:id` | ADMIN |

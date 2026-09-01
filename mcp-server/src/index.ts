@@ -7,6 +7,7 @@ import { registerBerichtTools } from './tools/berichte.js';
 import { registerIncidentTools } from './tools/incidents.js';
 import { registerIntranetTools } from './tools/intranet.js';
 import { registerDeviceTools } from './tools/devices.js';
+import { registerKontaktTools } from './tools/kontakte.js';
 
 /**
  * MCP-Server fuer cflux.
@@ -53,6 +54,7 @@ registerBerichtTools(server, client);
 registerIncidentTools(server, client);
 registerIntranetTools(server, client);
 registerDeviceTools(server, client);
+registerKontaktTools(server, client);
 
 /**
  * Was der Selbsttest prueft — je Modul ein Endpunkt und der noetige Scope.
@@ -66,6 +68,7 @@ const MODULES = [
   { name: 'Vorfälle', scope: 'incidents:read', probe: '/incidents' },
   { name: 'Intranet-Dokumente', scope: 'intranet:read', probe: '/intranet/tree' },
   { name: 'Geräte', scope: 'devices:read', probe: '/devices', adminOnly: true },
+  { name: 'Kontakte', scope: 'contacts:read', probe: '/contacts' },
 ];
 
 /**

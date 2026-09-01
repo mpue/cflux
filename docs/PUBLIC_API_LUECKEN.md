@@ -85,15 +85,15 @@ verursacht, nur sichtbarer gemacht. Ob es sich filtern lässt, hängt daran, ob
 die Oberfläche die vollständige Liste für die Gruppenauswahl beim Anlegen
 braucht.
 
-## 7. 21 von 25 freigegebenen Modulen haben keine MCP-Werkzeuge
+## 7. 20 von 25 freigegebenen Modulen haben keine MCP-Werkzeuge
 
-Über HTTP erreichbar, in Claude aber unsichtbar: Kontakte, Aufträge, Kunden,
+Über HTTP erreichbar, in Claude aber unsichtbar: Aufträge, Kunden,
 Lieferanten, Rechnungen, Zeiterfassung, Abwesenheiten, Checklisten, Projekte,
 Lager, Reisekosten und weitere.
 
-Auf Endpunktebene: 27 von 317 freigegebenen Endpunkten haben ein Werkzeug,
-290 nicht. Auch in den vier angebundenen Modulen ist die Abdeckung dünn —
-bei den Geräten 6 von 23, beim Intranet 12 von 44.
+Auf Endpunktebene: 31 von 317 freigegebenen Endpunkten haben ein Werkzeug,
+286 nicht. Auch in den fünf angebundenen Modulen ist die Abdeckung dünn —
+bei den Geräten 6 von 23, beim Intranet 12 von 44, bei den Kontakten 4 von 10.
 
 Jedes weitere Modul ist eine Datei unter `mcp-server/src/tools/` plus ein
 Eintrag in `index.ts`; der Aufwand liegt im Entwerfen der Werkzeuge, nicht in
@@ -122,8 +122,8 @@ aber kein Schema.
 
 ## 11. Der MCP-Server hat keine Tests
 
-Das Backend deckt die Zugangslogik mit 32 Testfällen ab (`apiScope.test.ts` und
-`auth.middleware.test.ts`). Für die 24 MCP-Werkzeuge gibt es keinen einzigen
+Das Backend deckt die Zugangslogik mit 45 Testfällen ab (`apiScope.test.ts` und
+`auth.middleware.test.ts`). Für die 28 MCP-Werkzeuge gibt es keinen einzigen
 automatisierten Test; geprüft wird von Hand gegen eine Wegwerf-Instanz.
 
 Genau die Feldzuordnungen, die dabei wiederholt falsch waren — `reason` statt
