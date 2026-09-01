@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   PUBLIC_API_ROUTES,
   checkApiKeyAccess,
@@ -138,20 +140,17 @@ describe('publicApiScopeModules', () => {
   });
 
   it('benutzt ausschliesslich Modul-Keys, die es in der Anwendung gibt', () => {
-    // Gegen die Modultabelle gepflegt: ein Scope auf ein unbekanntes Modul
-    // liesse sich im Controller gar nicht erst vergeben.
-    const KNOWN_MODULE_KEYS = [
-      'absences', 'articles', 'berichte', 'checklists', 'compliance', 'cost_centers',
-      'customers', 'dashboard', 'departments', 'devices', 'elearning', 'holidays',
-      'incidents', 'intranet', 'inventory', 'invoices', 'job_functions', 'locations',
-      'modules', 'news', 'onboarding', 'orders', 'payroll', 'project_budget',
-      'project_planning', 'project_reports', 'projects', 'reminders', 'reports',
-      'settings', 'suppliers', 'system_logs', 'time_tracking', 'travel_expenses',
-      'user_groups', 'users', 'workflows', 'zeitmodelle',
-    ];
+    // Ein Scope auf ein unbekanntes Modul liesse sich im Controller gar nicht
+    // erst vergeben. Die Liste wird aus dem Seed gelesen statt hier gepflegt:
+    // eine zweite Abschrift der Modultabelle laeuft sonst auseinander und
+    // meldet dann ein voellig gueltiges Modul als Fehler.
+    const seed = readFileSync(join(__dirname, '../../scripts/seedModules.ts'), 'utf-8');
+    const bekannt = new Set([...seed.matchAll(/^\s*key: '([a-z_]+)',$/gm)].map((m) => m[1]));
+
+    expect(bekannt.size).toBeGreaterThan(30);
 
     for (const moduleKey of publicApiScopeModules()) {
-      expect(KNOWN_MODULE_KEYS).toContain(moduleKey);
+      expect([...bekannt]).toContain(moduleKey);
     }
   });
 
