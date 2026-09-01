@@ -6,6 +6,14 @@ mehr als dieser — und zusätzlich schränken seine Scopes ein.
 
 Verwaltet wird das im Admin-Panel unter **System → 🔌 API-Schlüssel**.
 
+Dieses Dokument beschreibt die Mechanik. Daneben liegen:
+
+- [`PUBLIC_API_ENDPUNKTE.md`](PUBLIC_API_ENDPUNKTE.md) — alle 658 Endpunkte
+  danach sortiert, was ein Schlüssel erreicht und was nicht. Erzeugt von
+  `scripts/api-inventar.py`; nach einer neuen Route neu laufen lassen.
+- [`PUBLIC_API_LUECKEN.md`](PUBLIC_API_LUECKEN.md) — was noch fehlt,
+  von der fehlenden Ratenbegrenzung bis zur MCP-Abdeckung.
+
 ## Authentifizierung
 
 Der Schlüssel geht entweder in einen eigenen Header oder als Bearer-Token:
@@ -66,6 +74,7 @@ benutzen beide diese Quelle, damit niemand einen Scope setzt, der ins Leere grei
 | `/api/articles`, `/api/article-groups` | `articles` |
 | `/api/berichte` | `berichte` |
 | `/api/checklists` | `checklists` |
+| `/api/contacts` | `contacts` |
 | `/api/cost-centers` | `cost_centers` |
 | `/api/customers` | `customers` |
 | `/api/departments` | `departments` |

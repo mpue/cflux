@@ -30,6 +30,7 @@ export const PUBLIC_API_ROUTES: Record<string, string> = {
   '/api/articles': 'articles',
   '/api/berichte': 'berichte',
   '/api/checklists': 'checklists',
+  '/api/contacts': 'contacts',
   '/api/cost-centers': 'cost_centers',
   '/api/customers': 'customers',
   '/api/departments': 'departments',
