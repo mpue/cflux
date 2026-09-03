@@ -44,6 +44,7 @@ import {
   InvoicesTab,
   RemindersTab,
   DevicesTab,
+  HandoverProtocolsTab,
   SoftwareReportTab,
   ContactsTab,
   TravelExpensesTab,
@@ -80,7 +81,7 @@ import ZeitmodelleVerwaltung from './ZeitmodelleVerwaltung';
 import '../App.css';
 import './AdminDashboard.css';
 
-type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'softwareReport' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'onboardingEmployees' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel' | 'informationen' | 'contacts' | 'apiKeys';
+type TabType = 'users' | 'userGroups' | 'projects' | 'locations' | 'customers' | 'suppliers' | 'departments' | 'orgChart' | 'orders' | 'articleGroups' | 'articles' | 'invoices' | 'invoiceTemplates' | 'reminders' | 'absences' | 'timeEntries' | 'reports' | 'timeBookings' | 'userTimeBookings' | 'businessReport' | 'backup' | 'vacationPlanner' | 'holidays' | 'compliance' | 'modules' | 'modulePermissions' | 'workflows' | 'workflowActions' | 'systemLogs' | 'settings' | 'payroll' | 'devices' | 'handoverProtocols' | 'softwareReport' | 'travelExpenses' | 'costCenters' | 'inventory' | 'projectBudget' | 'projectReports' | 'projectPlanning' | 'zeitmodelle' | 'elearning' | 'onboarding' | 'onboardingEmployees' | 'jobFunctions' | 'checklists' | 'news' | 'dokumente' | 'werkzeuge' | 'hilfsmittel' | 'informationen' | 'contacts' | 'apiKeys';
 
 const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -182,6 +183,7 @@ const AdminDashboard: React.FC = () => {
       reports: 'Berichte',
       compliance: 'Compliance',
       devices: 'Geräte',
+      handoverProtocols: 'Übergabeprotokolle',
       softwareReport: 'Software',
       inventory: 'Inventar',
       workflows: 'Workflows',
@@ -339,6 +341,7 @@ const AdminDashboard: React.FC = () => {
         case 'compliance':
           await loadComplianceData();
           break;
+        case 'handoverProtocols':
         case 'devices':
           const devicesData = await deviceService.getAllDevices();
           setDevices(devicesData);
@@ -755,6 +758,14 @@ const AdminDashboard: React.FC = () => {
                       label="💻 Geräte"
                     />
                   )}
+                  {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Übergabeprotokolle Uebergabeprotokolle Protokolle')) && (
+                    <TabButton
+                      active={activeTab === 'handoverProtocols'}
+                      onClick={() => changeTab('handoverProtocols')}
+                      tabId="handoverProtocols"
+                      label="📄 Übergabeprotokolle"
+                    />
+                  )}
                   {user?.role === 'ADMIN' && (groupCheck.showAll || matchesSearch('Software')) && (
                     <TabButton
                       active={activeTab === 'softwareReport'}
@@ -1082,6 +1093,7 @@ const AdminDashboard: React.FC = () => {
             {activeTab === 'projects' && <ProjectsTab projects={projects} onUpdate={loadData} />}
             {activeTab === 'locations' && <LocationsTab locations={locations} onUpdate={loadData} />}
             {activeTab === 'devices' && <DevicesTab devices={devices} users={users} onUpdate={loadData} />}
+            {activeTab === 'handoverProtocols' && <HandoverProtocolsTab users={users} devices={devices} />}
             {activeTab === 'softwareReport' && <SoftwareReportTab />}
             {activeTab === 'contacts' && <ContactsTab contacts={contacts} contactGroups={contactGroups} userGroups={userGroups} onUpdate={loadData} />}
             {activeTab === 'werkzeuge' && <WerkzeugeTab tools={tools} users={users} onUpdate={loadData} />}

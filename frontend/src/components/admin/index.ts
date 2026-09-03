@@ -29,4 +29,6 @@ export { default as ApplicantsTab } from './ApplicantsTab';
 export { default as SystemLogsTab } from './SystemLogsTab';
 export { default as BusinessReportTab } from './BusinessReportTab';
 export { WerkzeugeTab } from './WerkzeugeTab';
+export { HandoverProtocolsTab } from './HandoverProtocolsTab';
+export { HandoverProtocolModal } from './HandoverProtocolModal';
 export { ApiKeysTab } from './ApiKeysTab';

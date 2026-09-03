@@ -190,6 +190,10 @@ const TABLE_MAP: Record<string, string> = {
   tools: 'tool',
   toolAssignments: 'toolAssignment',
 
+  // Übergabeprotokolle
+  handoverProtocols: 'handoverProtocol',
+  handoverProtocolItems: 'handoverProtocolItem',
+
   // Calendar
   calendarEvents: 'calendarEvent',
   calendarEventAttendees: 'calendarEventAttendee',
@@ -424,6 +428,10 @@ export const restoreBackup = async (req: Request, res: Response) => {
     // Calendar (children before parent, both before User)
     await prisma.calendarEventAttendee.deleteMany();
     await prisma.calendarEvent.deleteMany();
+
+    // Übergabeprotokolle (Positionen vor Kopf, beides vor Device/Tool/Equipment)
+    await prisma.handoverProtocolItem.deleteMany();
+    await prisma.handoverProtocol.deleteMany();
 
     // Tools (assignments before tools, both before User)
     await prisma.toolAssignment.deleteMany();
@@ -912,7 +920,12 @@ export const restoreBackup = async (req: Request, res: Response) => {
 
     // ── Phase 24: Devices ────────────────────────────────────
     restoredCount += await restoreTable('devices', 'device', 'Devices');
-    restoredCount += await restoreTable('deviceAssignments', 'deviceAssignment', 'DeviceAssignments');
+    // Verweise auf Übergabeprotokolle erst in Phase 40 setzen (Protokolle brauchen Tools/Equipment)
+    const deviceAssignmentDeferredFKs = await restoreWithDeferredFKs(
+      'deviceAssignments', 'deviceAssignment',
+      ['handoverProtocolId', 'returnProtocolId'],
+      'DeviceAssignments'
+    );
     restoredCount += await restoreTable('deviceSoftware', 'deviceSoftware', 'DeviceSoftware');
     restoredCount += await restoreTable('deviceUpdates', 'deviceUpdate', 'DeviceUpdates');
     restoredCount += await restoreTable('deviceVulnerabilities', 'deviceVulnerability', 'DeviceVulnerabilities');
@@ -1013,6 +1026,17 @@ export const restoreBackup = async (req: Request, res: Response) => {
     restoredCount += await restoreTable('reportAreas', 'reportArea', 'ReportAreas');
     restoredCount += await restoreTable('reportPhotos', 'reportPhoto', 'ReportPhotos');
     restoredCount += await restoreTable('reportFindings', 'reportFinding', 'ReportFindings');
+
+    // ── Phase 40: Übergabeprotokolle (nach Device, Tool, Equipment) ─
+    restoredCount += await restoreTable('handoverProtocols', 'handoverProtocol', 'HandoverProtocols');
+    restoredCount += await restoreTable('handoverProtocolItems', 'handoverProtocolItem', 'HandoverProtocolItems');
+
+    if (deviceAssignmentDeferredFKs.length > 0) {
+      for (const { id, updates } of deviceAssignmentDeferredFKs) {
+        await prisma.deviceAssignment.update({ where: { id }, data: updates }).catch(() => {});
+      }
+      console.log(`  ✓ DeviceAssignment FK updates applied: ${deviceAssignmentDeferredFKs.length}`);
+    }
 
     // ── Restore uploaded files from ZIP ───────────────────
     let filesRestored = 0;

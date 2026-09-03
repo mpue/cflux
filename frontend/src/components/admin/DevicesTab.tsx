@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import { Device, DeviceSoftware, DeviceUpdate, DeviceVulnerability, deviceService } from '../../services/device.service';
+import { HandoverProtocol, handoverProtocolService } from '../../services/handoverProtocol.service';
+import { HandoverProtocolModal } from './HandoverProtocolModal';
+import { HandoverProtocolsTab } from './HandoverProtocolsTab';
 import { User } from '../../types';
 
 interface DevicesTabProps {
@@ -32,9 +35,15 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
   const [categoryFilter, setCategoryFilter] = useState('');
   const [userFilter, setUserFilter] = useState('');
 
+  // Übergabeprotokolle
+  const [protocolDevice, setProtocolDevice] = useState<Device | null>(null);
+  const [protocolInitialUserId, setProtocolInitialUserId] = useState('');
+  // Anzahl Protokolle je Gerät für das Badge am Zeilen-Button
+  const [protocolCounts, setProtocolCounts] = useState<Record<string, number>>({});
+
   // Software / Lizenzen (Assetkatalog pro Gerät)
   const [softwareModalDevice, setSoftwareModalDevice] = useState<Device | null>(null);
-  const [assetTab, setAssetTab] = useState<'software' | 'updates' | 'vulnerabilities'>('software');
+  const [assetTab, setAssetTab] = useState<'software' | 'updates' | 'vulnerabilities' | 'protocols'>('software');
   const [softwareList, setSoftwareList] = useState<DeviceSoftware[]>([]);
   const [softwareLoading, setSoftwareLoading] = useState(false);
   const [deviceUpdates, setDeviceUpdates] = useState<DeviceUpdate[]>([]);
@@ -440,6 +449,35 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
     setSelectedUserId('');
   };
 
+  // Anzahl Übergabeprotokolle je Gerät (Badge in der Aktionsspalte)
+  const loadProtocolCounts = async () => {
+    try {
+      const protocols = await handoverProtocolService.getAll();
+      const counts: Record<string, number> = {};
+      protocols.forEach((protocol: HandoverProtocol) => {
+        protocol.items.forEach((item) => {
+          if (item.deviceId) counts[item.deviceId] = (counts[item.deviceId] || 0) + 1;
+        });
+      });
+      setProtocolCounts(counts);
+    } catch (error) {
+      console.error('Fehler beim Laden der Protokollanzahl:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadProtocolCounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Öffnet den Protokoll-Dialog für ein Gerät, optional mit vorgewähltem Empfänger. */
+  const handleCreateProtocol = (device: Device, userId?: string) => {
+    setProtocolDevice(device);
+    setProtocolInitialUserId(userId || '');
+    setIsAssignModalOpen(false);
+    setSelectedUserId('');
+  };
+
   const handleDuplicate = (device: Device) => {
     setEditingDevice(null);
     setFormData({
@@ -573,7 +611,10 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
     }
   };
 
-  const handleOpenSoftware = async (device: Device, tab: 'software' | 'updates' | 'vulnerabilities' = 'software') => {
+  const handleOpenSoftware = async (
+    device: Device,
+    tab: 'software' | 'updates' | 'vulnerabilities' | 'protocols' = 'software'
+  ) => {
     setSoftwareModalDevice(device);
     setAssetTab(tab);
     setShowSoftwareForm(false);
@@ -583,10 +624,11 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
     setDeviceVulns([]);
     if (tab === 'software') await loadSoftware(device.id);
     else if (tab === 'updates') await loadUpdates(device.id);
-    else await loadVulns(device.id);
+    else if (tab === 'vulnerabilities') await loadVulns(device.id);
+    // Protokolle lädt die eingebettete Übersicht selbst
   };
 
-  const handleSelectAssetTab = async (tab: 'software' | 'updates' | 'vulnerabilities') => {
+  const handleSelectAssetTab = async (tab: 'software' | 'updates' | 'vulnerabilities' | 'protocols') => {
     setAssetTab(tab);
     setShowSoftwareForm(false);
     if (!softwareModalDevice) return;
@@ -1191,6 +1233,21 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
                     })()}
                     <button
                       className="btn btn-sm btn-secondary"
+                      onClick={() => handleOpenSoftware(device, 'protocols')}
+                      title="Übergabeprotokolle"
+                      style={{ position: 'relative' }}
+                    >
+                      📄
+                      {protocolCounts[device.id] > 0 && (
+                        <span style={{
+                          position: 'absolute', top: '-6px', right: '-6px', minWidth: '16px', height: '16px',
+                          padding: '0 4px', borderRadius: '8px', fontSize: '10px', lineHeight: '16px',
+                          fontWeight: 700, color: '#fff', background: '#7f8c8d'
+                        }}>{protocolCounts[device.id]}</span>
+                      )}
+                    </button>
+                    <button
+                      className="btn btn-sm btn-secondary"
                       onClick={() => handleOpenModal(device)}
                       title="Bearbeiten"
                     >
@@ -1402,6 +1459,15 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
                 </button>
                 <button
                   type="button"
+                  className="btn btn-info"
+                  onClick={() => handleCreateProtocol(assigningDevice, selectedUserId)}
+                  disabled={!selectedUserId}
+                  title="Zuweisung über ein unterschriftsreifes Übergabeprotokoll dokumentieren"
+                >
+                  📄 Mit Protokoll zuweisen
+                </button>
+                <button
+                  type="button"
                   className="btn btn-primary"
                   onClick={handleConfirmAssign}
                   disabled={!selectedUserId}
@@ -1426,7 +1492,8 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
               {([
                 { key: 'software', label: `💿 Software (${softwareModalDevice.software?.length ?? 0})` },
                 { key: 'updates', label: `🩹 Updates (${softwareModalDevice.updates?.length ?? 0})` },
-                { key: 'vulnerabilities', label: `🛡️ CVEs (${softwareModalDevice.vulnerabilities?.length ?? 0})` }
+                { key: 'vulnerabilities', label: `🛡️ CVEs (${softwareModalDevice.vulnerabilities?.length ?? 0})` },
+                { key: 'protocols', label: `📄 Protokolle (${protocolCounts[softwareModalDevice.id] ?? 0})` }
               ] as const).map(t => (
                 <button
                   key={t.key}
@@ -1787,9 +1854,51 @@ export const DevicesTab: React.FC<DevicesTabProps> = ({ devices, users, onUpdate
                   </table>
                 </>
               )}
+
+              {assetTab === 'protocols' && (
+                <HandoverProtocolsTab
+                  users={users}
+                  devices={devices}
+                  deviceId={softwareModalDevice.id}
+                  embedded
+                  defaultType={softwareModalDevice.userId ? 'RETURN' : 'HANDOVER'}
+                  defaultUserId={softwareModalDevice.userId || ''}
+                />
+              )}
             </div>
           </div>
         </div>
+      )}
+
+      {protocolDevice && (
+        <HandoverProtocolModal
+          users={users}
+          devices={devices}
+          initialDeviceIds={[protocolDevice.id]}
+          initialUserId={protocolInitialUserId}
+          initialType={protocolDevice.userId ? 'RETURN' : 'HANDOVER'}
+          onClose={() => {
+            setProtocolDevice(null);
+            setProtocolInitialUserId('');
+          }}
+          onSaved={async (protocol) => {
+            setProtocolDevice(null);
+            setProtocolInitialUserId('');
+            await loadProtocolCounts();
+            onUpdate();
+            if (window.confirm(`Protokoll ${protocol.protocolNumber} erstellt. PDF jetzt öffnen?`)) {
+              try {
+                const blob = await handoverProtocolService.getPdf(protocol.id);
+                const url = window.URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+              } catch (error) {
+                console.error('Fehler beim Erzeugen des PDFs:', error);
+                alert('PDF konnte nicht erzeugt werden');
+              }
+            }
+          }}
+        />
       )}
     </div>
   );

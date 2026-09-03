@@ -192,6 +192,10 @@ model User {
   // Werkzeuge
   assignedTools    Tool[]             @relation("ToolAssignedTo")
   toolAssignments  ToolAssignment[]   @relation("ToolAssignments")
+
+  // Übergabeprotokolle (IT-Ausstattung, Werkzeuge, Ausrüstung)
+  receivedHandoverProtocols HandoverProtocol[] @relation("HandoverProtocolRecipient")
+  issuedHandoverProtocols   HandoverProtocol[] @relation("HandoverProtocolIssuer")
   
   // Berichte
   createdReports       Report[]      @relation("ReportCreatedBy")
@@ -1582,6 +1586,7 @@ model Device {
   software      DeviceSoftware[]
   updates       DeviceUpdate[]
   vulnerabilities DeviceVulnerability[]
+  protocolItems HandoverProtocolItem[]
 
   // Action1-Integration: verknüpfter Endpoint (managed endpoint id)
   action1EndpointId String?
@@ -1676,12 +1681,20 @@ model DeviceAssignment {
   assignedAt    DateTime  @default(now())
   returnedAt    DateTime?
   notes         String?
-  
+
+  // Übergabeprotokolle: dokumentieren Ausgabe bzw. Rücknahme dieses Vorgangs
+  handoverProtocolId String?
+  returnProtocolId   String?
+
   device        Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
   assignedUser  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  handoverProtocol HandoverProtocol? @relation("AssignmentHandover", fields: [handoverProtocolId], references: [id], onDelete: SetNull)
+  returnProtocol   HandoverProtocol? @relation("AssignmentReturn", fields: [returnProtocolId], references: [id], onDelete: SetNull)
 
   @@index([deviceId])
   @@index([userId])
+  @@index([handoverProtocolId])
+  @@index([returnProtocolId])
   @@map("device_assignments")
 }
 
@@ -3166,6 +3179,9 @@ model Employee {
   // Kontakt-Synchronisation (Mitarbeiter -> Kontakt)
   syncedContact       Contact?          @relation("EmployeeContactSync")
 
+  // Übergabeprotokolle
+  handoverProtocols   HandoverProtocol[]
+
   @@index([email])
   @@index([userId])
   @@index([supervisorId])
@@ -3395,6 +3411,7 @@ model Equipment {
   updatedAt       DateTime          @updatedAt
   
   assignments     EquipmentAssignment[]
+  protocolItems   HandoverProtocolItem[]
   
   @@index([category])
   @@index([inventoryNumber])
@@ -3823,6 +3840,7 @@ model Tool {
 
   assignedTo      User?     @relation("ToolAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
   assignments     ToolAssignment[]
+  protocolItems   HandoverProtocolItem[]
 
   @@index([assignedToId])
   @@index([inventoryNumber])
@@ -3844,6 +3862,114 @@ model ToolAssignment {
   @@index([toolId])
   @@index([userId])
   @@map("tool_assignments")
+}
+
+// ============================================================
+// ÜBERGABEPROTOKOLLE (IT-Ausstattung, Werkzeuge, Ausrüstung)
+// ============================================================
+
+enum HandoverProtocolType {
+  HANDOVER   // Übergabe an den Mitarbeiter
+  RETURN     // Rücknahme vom Mitarbeiter
+}
+
+enum HandoverProtocolStatus {
+  DRAFT      // Erfasst, noch nicht unterschrieben
+  SIGNED     // Unterschrieben (Papier eingescannt oder digital)
+  CANCELLED  // Storniert
+}
+
+enum HandoverItemKind {
+  DEVICE     // Gerät aus der IT-Geräteverwaltung
+  TOOL       // Werkzeug
+  EQUIPMENT  // Ausrüstung aus dem Onboarding (Zugangskarte, Schlüssel, Kleidung …)
+  OTHER      // Freie Position ohne Asset-Bezug
+}
+
+// Übergabeprotokoll: dokumentiert einen Übergabe- bzw. Rücknahmevorgang.
+// Ein Protokoll umfasst mehrere Positionen (Laptop + Handy + Dock + Zugangskarte),
+// weil ein Mitarbeiter in der Praxis ein Blatt unterschreibt und nicht eines pro Gerät.
+model HandoverProtocol {
+  id             String                 @id @default(uuid())
+  protocolNumber String                 @unique  // z.B. UEB-2026-0001
+  type           HandoverProtocolType   @default(HANDOVER)
+  status         HandoverProtocolStatus @default(DRAFT)
+
+  // Empfänger: Benutzerkonto und – falls vorhanden – der Mitarbeiterdatensatz
+  userId         String?
+  employeeId     String?
+
+  handoverDate   DateTime               @default(now())
+  location       String?
+  notes          String?                @db.Text
+
+  issuedById     String                 // Übergeber / erfassender Benutzer
+
+  // Unterschriften
+  signedAt               DateTime?
+  signatureRecipientPath String?        // Unterschriftsbild Empfänger
+  signatureIssuerPath    String?        // Unterschriftsbild Übergeber
+  signedDocumentPath     String?        // Eingescanntes, unterschriebenes Protokoll
+
+  // Erzeugtes PDF
+  pdfPath        String?
+  pdfGeneratedAt DateTime?
+
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  user           User?                  @relation("HandoverProtocolRecipient", fields: [userId], references: [id], onDelete: SetNull)
+  employee       Employee?              @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  issuedBy       User                   @relation("HandoverProtocolIssuer", fields: [issuedById], references: [id])
+  items          HandoverProtocolItem[]
+
+  // Gegenrichtung der Verknüpfung aus DeviceAssignment
+  handedOverAssignments DeviceAssignment[] @relation("AssignmentHandover")
+  returnedAssignments   DeviceAssignment[] @relation("AssignmentReturn")
+
+  @@index([userId])
+  @@index([employeeId])
+  @@index([issuedById])
+  @@index([status])
+  @@index([handoverDate])
+  @@map("handover_protocols")
+}
+
+// Position eines Übergabeprotokolls. Name/Seriennummer/Inventarnummer werden als
+// Momentaufnahme mitgeschrieben, damit das Protokoll auch nach Löschen oder Umbenennen
+// des Assets noch aussagekräftig bleibt (Audit-Nachweis).
+model HandoverProtocolItem {
+  id              String             @id @default(uuid())
+  protocolId      String
+  kind            HandoverItemKind   @default(DEVICE)
+
+  deviceId        String?
+  toolId          String?
+  equipmentId     String?
+
+  // Momentaufnahme zum Übergabezeitpunkt
+  name            String
+  category        String?
+  serialNumber    String?
+  inventoryNumber String?
+
+  condition       EquipmentCondition @default(GOOD)
+  accessories     String?            // Zubehör: Netzteil, Tasche, Dockingstation …
+  notes           String?
+
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  protocol        HandoverProtocol   @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  device          Device?            @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  tool            Tool?              @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  equipment       Equipment?         @relation(fields: [equipmentId], references: [id], onDelete: SetNull)
+
+  @@index([protocolId])
+  @@index([deviceId])
+  @@index([toolId])
+  @@index([equipmentId])
+  @@map("handover_protocol_items")
 }
 
 // ============================================================

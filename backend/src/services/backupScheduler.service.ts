@@ -129,6 +129,8 @@ export const TABLE_MAP: Record<string, string> = {
   contacts: 'contact',
   tools: 'tool',
   toolAssignments: 'toolAssignment',
+  handoverProtocols: 'handoverProtocol',
+  handoverProtocolItems: 'handoverProtocolItem',
   calendarEvents: 'calendarEvent',
   calendarEventAttendees: 'calendarEventAttendee',
   reports: 'report',

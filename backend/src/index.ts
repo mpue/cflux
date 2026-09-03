@@ -59,6 +59,7 @@ import werkzeugeRoutes from './routes/werkzeuge.routes';
 import calendarRoutes from './routes/calendar.routes';
 import apiKeyRoutes from './routes/apiKey.routes';
 import berichtRoutes from './routes/bericht.routes';
+import handoverProtocolRoutes from './routes/handoverProtocol.routes';
 import { errorHandler } from './middleware/errorHandler';
 import { authenticate } from './middleware/auth';
 import { backupScheduler } from './services/backupScheduler.service';
@@ -89,6 +90,16 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 
+// Übergabeprotokolle enthalten Personendaten (Name, Personalnummer, Abteilung) und
+// haben vorhersagbare Dateinamen. Sie werden deshalb NICHT statisch ausgeliefert,
+// sondern nur über die authentifizierten Endpunkte unter /api/handover-protocols.
+app.use('/uploads/handover-protocols', (_req, res) => {
+  res.status(403).json({
+    error: 'Übergabeprotokolle sind nur über die API abrufbar',
+    message: 'Use GET /api/handover-protocols/:id/pdf or /:id/signed-document.',
+  });
+});
+
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/uploads/course-thumbnails', express.static(path.join(__dirname, '../uploads/course-thumbnails')));
@@ -97,7 +108,6 @@ app.use('/uploads/course-pdfs', express.static(path.join(__dirname, '../uploads/
 app.use('/uploads/certificates', express.static(path.join(__dirname, '../uploads/certificates')));
 app.use('/uploads/applicant-documents', express.static(path.join(__dirname, '../uploads/applicant-documents')));
 app.use('/uploads/employee-documents', express.static(path.join(__dirname, '../uploads/employee-documents')));
-app.use('/uploads/handover-protocols', express.static(path.join(__dirname, '../uploads/handover-protocols')));
 app.use('/uploads/avatars', express.static(path.join(__dirname, '../uploads/avatars')));
 
 // Routes
@@ -157,6 +167,7 @@ app.use('/api/werkzeuge', werkzeugeRoutes);
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/api-keys', apiKeyRoutes);
 app.use('/api/berichte', berichtRoutes);
+app.use('/api/handover-protocols', handoverProtocolRoutes);
 
 // Version endpoint
 app.get('/api/version', (req, res) => {
