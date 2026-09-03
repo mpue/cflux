@@ -36,9 +36,11 @@ import documentNodeSearchService, {
 
 interface IntranetSearchProps {
   onResultClick: (nodeId: string) => void;
+  /** Kompakte Variante: schmales Suchfeld für die Toolbar, Filter im Ergebnis-Dropdown */
+  compact?: boolean;
 }
 
-const IntranetSearch: React.FC<IntranetSearchProps> = ({ onResultClick }) => {
+const IntranetSearch: React.FC<IntranetSearchProps> = ({ onResultClick, compact = false }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchType, setSearchType] = useState<'all' | 'node' | 'attachment' | 'version'>('all');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -112,30 +114,54 @@ const IntranetSearch: React.FC<IntranetSearchProps> = ({ onResultClick }) => {
     return <span dangerouslySetInnerHTML={{ __html: html }} />;
   };
 
+  const typeFilter = (
+    <ToggleButtonGroup
+      value={searchType}
+      exclusive
+      onChange={handleTypeChange}
+      size="small"
+    >
+      <ToggleButton value="all">
+        Alle
+      </ToggleButton>
+      <ToggleButton value="node">
+        Dokumente
+      </ToggleButton>
+      <ToggleButton value="attachment">
+        Anhänge
+      </ToggleButton>
+      <ToggleButton value="version">
+        Versionen
+      </ToggleButton>
+    </ToggleButtonGroup>
+  );
+
   return (
-    <Box sx={{ mb: 3, position: 'relative' }}>
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+    <Box sx={{ mb: compact ? 0 : 3, position: 'relative' }}>
+      <Box sx={{ display: 'flex', gap: compact ? 1 : 2, alignItems: compact ? 'center' : 'flex-start' }}>
         {/* Search Input */}
         <TextField
-          fullWidth
-          placeholder="Durchsuche Dokumente, Anhänge..."
+          fullWidth={!compact}
+          size="small"
+          placeholder={compact ? 'Suchen...' : 'Durchsuche Dokumente, Anhänge...'}
           value={searchQuery}
           onChange={handleSearchChange}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                {loading ? <CircularProgress size={20} /> : <SearchIcon />}
+                {loading ? <CircularProgress size={16} /> : <SearchIcon fontSize="small" />}
               </InputAdornment>
             ),
             endAdornment: searchQuery && (
               <InputAdornment position="end">
                 <IconButton size="small" onClick={handleClearSearch}>
-                  <CloseIcon />
+                  <CloseIcon fontSize="small" />
                 </IconButton>
               </InputAdornment>
             ),
           }}
           sx={{
+            width: compact ? { xs: 160, sm: 220, md: 280 } : undefined,
             '& mark': {
               backgroundColor: '#ffeb3b',
               fontWeight: 'bold',
@@ -145,25 +171,7 @@ const IntranetSearch: React.FC<IntranetSearchProps> = ({ onResultClick }) => {
         />
 
         {/* Type Filter */}
-        <ToggleButtonGroup
-          value={searchType}
-          exclusive
-          onChange={handleTypeChange}
-          size="small"
-        >
-          <ToggleButton value="all">
-            Alle
-          </ToggleButton>
-          <ToggleButton value="node">
-            Dokumente
-          </ToggleButton>
-          <ToggleButton value="attachment">
-            Anhänge
-          </ToggleButton>
-          <ToggleButton value="version">
-            Versionen
-          </ToggleButton>
-        </ToggleButtonGroup>
+        {!compact && typeFilter}
       </Box>
 
       {/* Results */}
@@ -174,11 +182,17 @@ const IntranetSearch: React.FC<IntranetSearchProps> = ({ onResultClick }) => {
             maxHeight: '500px',
             overflow: 'auto',
             position: 'absolute',
-            width: '100%',
-            zIndex: 1000,
+            right: compact ? 0 : 'auto',
+            width: compact ? 'min(640px, 80vw)' : '100%',
+            zIndex: 1200,
           }}
           elevation={3}
         >
+          {compact && (
+            <Box sx={{ p: 1, borderBottom: 1, borderColor: 'divider' }}>
+              {typeFilter}
+            </Box>
+          )}
           {error && (
             <Alert severity="error" sx={{ m: 2 }}>
               {error}

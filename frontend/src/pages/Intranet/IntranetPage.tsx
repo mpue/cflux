@@ -592,26 +592,41 @@ const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
           onLogout={handleLogout}
         />
       )}
-      <Box sx={{ p: embedded ? 0 : 2, pb: 0, height: embedded ? 'calc(100vh - 200px)' : 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ p: embedded ? 0 : 2, pb: 0, height: embedded ? '100%' : 'calc(100vh - 64px)', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {/* Modern Toolbar */}
         <Paper
           elevation={0}
           sx={{
-            mb: 2,
-            p: 1.5,
+            mb: 1,
+            p: 1,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            gap: 1,
+            flexShrink: 0,
+            flexWrap: 'wrap',
             borderRadius: 2,
             bgcolor: 'background.default',
             border: 1,
             borderColor: 'divider'
           }}
         >
-          <Typography variant="h5" sx={{ fontWeight: 500, color: 'text.primary' }}>
+          <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>
             Dokumente
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            {/* Suche - kompakt, oben rechts */}
+            <IntranetSearch
+              compact
+              onResultClick={(nodeId) => {
+                documentNodeService.getById(nodeId).then((node) => {
+                  handleNodeClick(node);
+                }).catch(() => {
+                  setError('Fehler beim Laden des Dokuments');
+                });
+              }}
+            />
+            <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
             {canEditIntranet && (
               <>
                 <Tooltip title="ZIP-Datei importieren">
@@ -656,18 +671,6 @@ const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
             {error}
           </Alert>
         )}
-
-        {/* Search Component */}
-        <IntranetSearch 
-          onResultClick={(nodeId) => {
-            // Find and load the node
-            documentNodeService.getById(nodeId).then((node) => {
-              handleNodeClick(node);
-            }).catch((err) => {
-              setError('Fehler beim Laden des Dokuments');
-            });
-          }} 
-        />
 
         <Box sx={{ display: 'flex', gap: 0, flexGrow: 1, position: 'relative', minHeight: 0 }}>
           {/* Tree Navigation with Drag and Drop */}

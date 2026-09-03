@@ -3,7 +3,9 @@
 .admin-dashboard {
   display: flex;
   flex-direction: column;
+  height: 100vh;
   min-height: 100vh;
+  overflow: hidden;
   background-color: var(--bg-secondary);
 }
 
@@ -32,27 +34,27 @@
 
 .admin-dashboard .admin-container {
   flex: 1;
+  display: flex;
   width: 100%;
   max-width: 100%;
-  padding: 20px;
+  min-height: 0;
+  padding: 0;
   margin: 0;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .admin-dashboard .admin-card {
   background: var(--card-bg);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px var(--shadow-color);
+  border-radius: 0;
+  box-shadow: none;
   padding: 0;
-  height: calc(100vh - 140px);
+  flex: 1;
+  width: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: row;
   overflow: hidden;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-[data-theme='dark'] .admin-dashboard .admin-card {
-  border: 1px solid #3a3a3a;
+  transition: background-color 0.3s ease;
 }
 
 /* Admin Sidebar (collapsible) */
@@ -253,14 +255,6 @@
 
 /* Responsive Design - Tablet */
 @media (max-width: 1024px) {
-  .admin-dashboard .admin-container {
-    padding: 16px;
-  }
-
-  .admin-dashboard .admin-card {
-    height: calc(100vh - 130px);
-  }
-
   .admin-dashboard .admin-sidebar {
     width: 200px;
   }
@@ -285,14 +279,8 @@
 
 /* Responsive Design - Mobile */
 @media (max-width: 768px) {
-  .admin-dashboard .admin-container {
-    padding: 12px;
-  }
-
   .admin-dashboard .admin-card {
-    height: calc(100vh - 180px);
     flex-direction: column;
-    border-radius: 8px;
   }
 
   .admin-dashboard .admin-sidebar {
@@ -396,14 +384,6 @@
 
 /* Extra Small Mobile */
 @media (max-width: 480px) {
-  .admin-dashboard .admin-container {
-    padding: 8px;
-  }
-
-  .admin-dashboard .admin-card {
-    border-radius: 6px;
-  }
-
   .admin-dashboard .tab-navigation {
     padding: 8px;
   }
@@ -433,7 +413,6 @@
 /* Landscape Mobile */
 @media (max-width: 896px) and (orientation: landscape) {
   .admin-dashboard .admin-card {
-    height: calc(100vh - 100px);
     flex-direction: row;
   }
 
