@@ -1,4 +1,4 @@
-import api, { getBackendURL } from './api';
+import api from './api';
 
 export interface DocumentNodeAttachment {
   id: string;
@@ -204,19 +204,14 @@ class DocumentNodeAttachmentService {
   }
 
   /**
-   * Get the thumbnail image URL for an attachment (static file path).
-   * Thumbnails are cached in /uploads/attachments-thumbnails/.
+   * Vorschaubild eines Anhangs laden.
+   *
+   * Bewusst ueber die API statt ueber /uploads/...: der Endpunkt prueft die
+   * Gruppenrechte des Dokuments und liefert immer das zur aktuellen Version
+   * passende Bild - eine statische URL wuerde alte Cache-Dateien ausliefern.
+   * Rueckgabe ist eine Blob-URL, die der Aufrufer wieder freigeben muss.
    */
-  getThumbnailUrl(attachment: DocumentNodeAttachment): string {
-    const filename = attachment.filename.replace(/\.[^.]+$/, '.jpg');
-    return `${getBackendURL()}/uploads/attachments-thumbnails/${filename}`;
-  }
-
-  /**
-   * Trigger lazy thumbnail generation via API (for attachments without cached thumbnails).
-   * Returns the blob URL of the generated thumbnail, or null on failure.
-   */
-  async generateThumbnail(attachmentId: string): Promise<string | null> {
+  async loadThumbnail(attachmentId: string): Promise<string | null> {
     try {
       const response = await api.get(
         `/document-nodes/attachments/${attachmentId}/thumbnail`,

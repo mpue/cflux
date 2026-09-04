@@ -63,6 +63,16 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({ content, onChange, editable
     }
   }, [editor, editable]);
 
+  // Von aussen geaenderten Inhalt uebernehmen (z.B. Hybrid-Modus: Tippen im
+  // Markdown-Feld). Ohne das zeigt der Editor dauerhaft den Stand vom Mounten.
+  // Der Vergleich mit getHTML() verhindert, dass eigene Eingaben den Cursor
+  // zuruecksetzen - dabei kommt der Inhalt unveraendert wieder herein.
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content, { emitUpdate: false });
+    }
+  }, [editor, content]);
+
   if (!editor) {
     return null;
   }

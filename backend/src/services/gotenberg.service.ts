@@ -1,9 +1,15 @@
 import axios from 'axios';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import FormData from 'form-data';
 import AdmZip from 'adm-zip';
 import sharp from 'sharp';
+import { v4 as uuidv4 } from 'uuid';
+
+const execFileAsync = promisify(execFile);
 
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3000';
 
@@ -168,11 +174,73 @@ const IMAGE_EXTENSIONS = new Set([
 ]);
 
 /**
+ * Revision des Thumbnail-Renderers. Wird hochgezaehlt, wenn sich das Rendering
+ * aendert - dadurch werden alte Cache-Dateien ignoriert statt weiter ausgeliefert.
+ */
+const THUMBNAIL_REVISION = 2;
+
+/**
+ * Cache-Dateiname des Thumbnails zu einer Anhang-Datei (UUID-Dateiname).
+ */
+export function thumbnailFilenameFor(attachmentFilename: string): string {
+  const base = attachmentFilename.replace(path.extname(attachmentFilename), '');
+  return `${base}.v${THUMBNAIL_REVISION}.jpg`;
+}
+
+/**
+ * Rendert die erste Seite eines PDF als JPEG-Buffer.
+ *
+ * Poppler (pdftoppm) rastert die Seite selbst. Der frueher genutzte Chromium-
+ * Screenshot eines <embed>-PDFs lieferte stattdessen ein Bild der PDF-Viewer-
+ * Oberflaeche (Toolbar, Seitenleiste, dunkler Hintergrund) - also eine Vorschau,
+ * die nichts mit dem Dokument zu tun hatte.
+ */
+async function renderPdfFirstPage(pdfFilePath: string): Promise<Buffer | null> {
+  const outPrefix = path.join(os.tmpdir(), `attachment-thumb-${uuidv4()}`);
+  const outFile = `${outPrefix}.jpg`;
+
+  try {
+    await execFileAsync(
+      'pdftoppm',
+      [
+        '-jpeg',
+        '-jpegopt', 'quality=90',
+        '-r', '100',
+        '-f', '1',
+        '-l', '1',
+        '-singlefile',
+        pdfFilePath,
+        outPrefix,
+      ],
+      { timeout: 30000 }
+    );
+
+    if (!fs.existsSync(outFile)) {
+      return null;
+    }
+    return fs.readFileSync(outFile);
+  } catch (error: any) {
+    if (error?.code === 'ENOENT') {
+      console.error(
+        'pdftoppm nicht gefunden - poppler-utils muss im Backend-Image installiert sein.'
+      );
+    } else {
+      console.error('PDF-Seitenrendering fehlgeschlagen:', error);
+    }
+    return null;
+  } finally {
+    if (fs.existsSync(outFile)) {
+      fs.unlinkSync(outFile);
+    }
+  }
+}
+
+/**
  * Generate a thumbnail image (JPEG) for an attachment.
  * - For images: resize directly with sharp.
- * - For PDFs: use Gotenberg Chromium screenshot of an HTML page embedding the PDF.
+ * - For PDFs: render page 1 with poppler.
  * - For office documents: uses the previously generated PDF preview.
- * Returns the path to the generated thumbnail, or null if unsupported.
+ * Returns true if a thumbnail was written to thumbnailOutputPath.
  */
 export async function generateThumbnail(
   originalFilePath: string,
@@ -198,7 +266,7 @@ export async function generateThumbnail(
       return true;
     }
 
-    // For PDFs and converted documents, use Gotenberg Chromium screenshot
+    // For PDFs and converted documents, render the first PDF page
     let pdfFilePath: string | null = null;
 
     if (ext === '.pdf') {
@@ -212,50 +280,13 @@ export async function generateThumbnail(
     }
 
     if (pdfFilePath) {
-      // Create HTML that embeds the PDF for Chromium rendering
-      const htmlContent = `<!DOCTYPE html>
-<html><head><style>
-* { margin: 0; padding: 0; }
-body { width: 794px; height: 1123px; overflow: hidden; background: white; }
-embed { width: 100%; height: 100%; }
-</style></head><body>
-<embed src="preview.pdf" type="application/pdf" />
-</body></html>`;
-
-      const form = new FormData();
-
-      // Add the HTML file as index.html
-      form.append('files', Buffer.from(htmlContent), {
-        filename: 'index.html',
-        contentType: 'text/html',
-      });
-
-      // Add the PDF file
-      form.append('files', fs.createReadStream(pdfFilePath), {
-        filename: 'preview.pdf',
-        contentType: 'application/pdf',
-      });
-
-      // Screenshot settings
-      form.append('width', '794');
-      form.append('height', '1123');
-      form.append('clip', 'true');
-      form.append('format', 'jpeg');
-      form.append('quality', '80');
-      form.append('skipNetworkIdleEvent', 'false');
-
-      const response = await axios.post(
-        `${GOTENBERG_URL}/forms/chromium/screenshot/html`,
-        form,
-        {
-          headers: form.getHeaders(),
-          responseType: 'arraybuffer',
-          timeout: 30000,
-        }
-      );
+      const pageImage = await renderPdfFirstPage(pdfFilePath);
+      if (!pageImage) {
+        return false;
+      }
 
       // Resize to thumbnail size with sharp
-      await sharp(Buffer.from(response.data))
+      await sharp(pageImage)
         .resize(400, 566, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 80 })
         .toFile(thumbnailOutputPath);

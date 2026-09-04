@@ -30,8 +30,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install build dependencies for native modules (bcrypt, etc.) and OpenSSL for Prisma
-RUN apk add --no-cache openssl python3 make g++
+# Install build dependencies for native modules (bcrypt, etc.), OpenSSL for Prisma
+# and poppler-utils (pdftoppm) fuer die Anhang-Vorschaubilder
+RUN apk add --no-cache openssl python3 make g++ poppler-utils
 
 # Copy package files
 COPY package*.json ./

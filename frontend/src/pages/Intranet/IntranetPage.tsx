@@ -32,9 +32,12 @@ import {
   Alert,
   Tooltip,
   Divider,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Tabs,
+  Tab,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import {
   CreateNewFolder as FolderIcon,
@@ -47,7 +50,6 @@ import {
   NavigateNext as NavigateNextIcon,
   Upload as UploadIcon,
   Group as GroupIcon,
-  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import AppNavbar from '../../components/AppNavbar';
 import documentNodeService, { DocumentNode, CreateDocumentNodeData } from '../../services/documentNode.service';
@@ -76,6 +78,10 @@ const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
   
   // Track expanded/collapsed folders
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+
+  // Aktiver Bereich des Inhaltsbereichs
+  const [contentTab, setContentTab] = useState<'content' | 'approval' | 'attachments'>('content');
+  const [attachmentCount, setAttachmentCount] = useState<number | null>(null);
 
   // Splitter state
   const [leftWidth, setLeftWidth] = useState(300);
@@ -189,6 +195,12 @@ const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
       setBreadcrumb([]);
     }
   }, [currentNode, loadBreadcrumb]);
+
+  // Beim Wechsel des Knotens wieder mit dem Inhalt starten
+  useEffect(() => {
+    setContentTab('content');
+    setAttachmentCount(null);
+  }, [currentNode?.id]);
 
   // Update clock
   useEffect(() => {
@@ -611,10 +623,45 @@ const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
             borderColor: 'divider'
           }}
         >
-          <Typography variant="h6" sx={{ fontWeight: 500, color: 'text.primary' }}>
-            Dokumente
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          {/* Der Pfad steht in der Toolbar statt ueber dem Dokument - das
+              spart im Inhaltsbereich eine komplette Zeile. */}
+          <Breadcrumbs
+            separator={<NavigateNextIcon fontSize="small" />}
+            maxItems={4}
+            sx={{
+              minWidth: 0,
+              flexGrow: 1,
+              '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap' },
+              '& .MuiBreadcrumbs-li': { minWidth: 0 },
+            }}
+          >
+            <Link
+              component="button"
+              variant="body2"
+              onClick={() => setCurrentNode(null)}
+              sx={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
+            >
+              Dokumente
+            </Link>
+            {breadcrumb.map((item, index) =>
+              index === breadcrumb.length - 1 ? (
+                <Typography key={item.id} variant="body2" color="text.primary" noWrap sx={{ fontWeight: 600 }}>
+                  {item.title}
+                </Typography>
+              ) : (
+                <Link
+                  key={item.id}
+                  component="button"
+                  variant="body2"
+                  onClick={() => handleNodeClick(item)}
+                  sx={{ cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  {item.title}
+                </Link>
+              )
+            )}
+          </Breadcrumbs>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexShrink: 0 }}>
             {/* Suche - kompakt, oben rechts */}
             <IntranetSearch
               compact
@@ -683,21 +730,21 @@ const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
             onDragCancel={handleDragCancel}
           >
             <Paper
-              sx={{ width: `${leftWidth}px`, p: 2, overflow: 'auto', flexShrink: 0 }}
+              sx={{ width: `${leftWidth}px`, p: 1, overflow: 'auto', flexShrink: 0 }}
               onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
               onDrop={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }}
             >
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Navigation
-                {canEditIntranet && (
-                  <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Drag & Drop zum Verschieben
-                  </Typography>
-                )}
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
+              {canEditIntranet && tree.length > 0 && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ display: 'block', px: 1, pb: 0.5, fontSize: '0.7rem' }}
+                >
+                  Drag &amp; Drop zum Verschieben
+                </Typography>
+              )}
               {tree.length === 0 ? (
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
                   Noch keine Dokumente vorhanden
                 </Typography>
               ) : (
@@ -758,57 +805,73 @@ const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
             }}
           />
 
-          {/* Content Area */}
-          <Paper sx={{ flexGrow: 1, p: 2, overflow: 'hidden', ml: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          {/* Content Area - Tabs statt gestapelter Aufklapp-Bereiche, damit der
+              aktive Bereich die volle Hoehe bekommt statt einer 300px-Box. */}
+          <Paper sx={{ flexGrow: 1, overflow: 'hidden', ml: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {currentNode ? (
               <>
-                {/* Breadcrumb */}
-                <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} sx={{ mb: 2, flexShrink: 0 }}>
-                  <Link
-                    component="button"
-                    variant="body1"
-                    onClick={() => setCurrentNode(null)}
-                    sx={{ cursor: 'pointer' }}
-                  >
-                    Intranet
-                  </Link>
-                  {breadcrumb.map((item) => (
-                    <Link
-                      key={item.id}
-                      component="button"
-                      variant="body1"
-                      onClick={() => handleNodeClick(item)}
-                      sx={{ cursor: 'pointer' }}
-                    >
-                      {item.title}
-                    </Link>
-                  ))}
-                </Breadcrumbs>
+                <Tabs
+                  value={contentTab}
+                  onChange={(_e, value) => setContentTab(value)}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  sx={{ minHeight: 40, flexShrink: 0, borderBottom: 1, borderColor: 'divider' }}
+                >
+                  <Tab
+                    value="content"
+                    sx={{ minHeight: 40 }}
+                    label={currentNode.type === 'DOCUMENT' ? 'Inhalt' : 'Ordnerinhalt'}
+                  />
+                  {currentNode.type === 'DOCUMENT' && (
+                    <Tab value="approval" sx={{ minHeight: 40 }} label="Freigabe" />
+                  )}
+                  <Tab
+                    value="attachments"
+                    sx={{ minHeight: 40 }}
+                    label={attachmentCount === null ? 'Anhänge' : `Anhänge (${attachmentCount})`}
+                  />
+                </Tabs>
 
-                {/* Document Content or Folder View */}
-                {currentNode.type === 'DOCUMENT' ? (
-                  <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'auto' }}>
-                    <Accordion
-                      defaultExpanded={currentNode.contentType !== 'ATTACHMENT'}
-                      sx={{ flexShrink: 0 }}
-                    >
-                      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography sx={{ fontWeight: 'bold' }}>Dokumenteninhalt</Typography>
-                      </AccordionSummary>
-                      <AccordionDetails sx={{ p: 0 }}>
-                        <Box sx={{ p: 2, minHeight: 300 }}>
-                          <DocumentEditor
-                            key={currentNode.id}
-                            document={currentNode}
-                            onSave={handleDocumentSave}
-                            canEdit={canEditIntranet}
-                          />
-                        </Box>
-                      </AccordionDetails>
-                    </Accordion>
-                    
-                    {/* Approval Panel */}
-                    <Box sx={{ mt: 2, mb: 2 }}>
+                <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', p: 2 }}>
+                  {contentTab === 'content' && currentNode.type === 'DOCUMENT' && (
+                    <DocumentEditor
+                      key={currentNode.id}
+                      document={currentNode}
+                      onSave={handleDocumentSave}
+                      canEdit={canEditIntranet}
+                    />
+                  )}
+
+                  {contentTab === 'content' && currentNode.type === 'FOLDER' && (
+                    <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'auto' }}>
+                      {currentNode.children && currentNode.children.length > 0 ? (
+                        <List dense disablePadding>
+                          {currentNode.children.map((child) => (
+                            <ListItemButton key={child.id} onClick={() => handleNodeClick(child)}>
+                              <ListItemIcon sx={{ minWidth: 36 }}>
+                                {child.type === 'FOLDER' ? (
+                                  <FolderClosedIcon fontSize="small" sx={{ color: 'warning.main' }} />
+                                ) : (
+                                  <DocumentIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                                )}
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={child.title}
+                                secondary={child.type === 'FOLDER' ? 'Ordner' : 'Dokument'}
+                              />
+                            </ListItemButton>
+                          ))}
+                        </List>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          Dieser Ordner ist leer.
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+
+                  {contentTab === 'approval' && currentNode.type === 'DOCUMENT' && (
+                    <Box sx={{ flexGrow: 1, minHeight: 0, overflow: 'auto' }}>
                       <DocumentApprovalPanel
                         documentId={currentNode.id}
                         currentStatus={currentNode.approvalStatus || 'DRAFT'}
@@ -829,31 +892,26 @@ const IntranetPage: React.FC<IntranetPageProps> = ({ embedded = false }) => {
                         canPublish={currentNode.userPermissions?.canAdmin || isAdmin}
                       />
                     </Box>
-                    
-                    {/* Attachments Section */}
-                    <Box sx={{ mt: 2, mb: 2 }}>
-                      <DocumentNodeAttachments 
-                        nodeId={currentNode.id} 
-                        canEdit={canEditIntranet} 
-                      />
-                    </Box>
-                  </Box>
-                ) : (
-                  <Box>
-                    <Typography variant="h5" sx={{ mb: 2 }}>
-                      {currentNode.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Ordner mit {currentNode.children?.length || 0} Elementen
-                    </Typography>
-                    
-                    {/* Attachments Section for Folders */}
-                    <DocumentNodeAttachments 
-                      nodeId={currentNode.id} 
-                      canEdit={canEditIntranet} 
+                  )}
+
+                  {/* Bleibt gemountet, damit die Anzahl im Tab-Label auch dann
+                      stimmt, wenn der Tab noch nicht geoeffnet wurde. */}
+                  <Box
+                    sx={{
+                      flexGrow: 1,
+                      minHeight: 0,
+                      overflow: 'auto',
+                      display: contentTab === 'attachments' ? 'block' : 'none',
+                    }}
+                  >
+                    <DocumentNodeAttachments
+                      key={currentNode.id}
+                      nodeId={currentNode.id}
+                      canEdit={canEditIntranet}
+                      onCountChange={setAttachmentCount}
                     />
                   </Box>
-                )}
+                </Box>
               </>
             ) : (
               <Box

@@ -4,6 +4,7 @@ import {
   Typography,
   Button,
   Alert,
+  Chip,
   ToggleButtonGroup,
   ToggleButton,
   TextField,
@@ -241,9 +242,29 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexShrink: 0 }}>
-        <Typography variant="h5">{document.title}</Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 1,
+          mb: 1,
+          flexShrink: 0,
+          flexWrap: 'wrap',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+          <Typography variant="h6" noWrap>{document.title}</Typography>
+          {/* Statt einer Alert-Zeile ueber die volle Breite: ein Chip in der
+              Kopfzeile - gleiche Information, kein verschenkter Platz. */}
+          {!hasEditPermission && (
+            <Chip size="small" icon={<LockIcon />} label="Keine Bearbeitungsrechte" />
+          )}
+          {hasEditPermission && !isEditMode && (
+            <Chip size="small" color="warning" variant="outlined" label="Nur-Lese-Modus" />
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           {/* Edit Mode Toggle */}
           {hasEditPermission && (
             <Tooltip title={isEditMode ? "Bearbeitungsmodus deaktivieren" : "Bearbeitungsmodus aktivieren"}>
@@ -307,20 +328,8 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
         </Box>
       </Box>
 
-      {!hasEditPermission && (
-        <Alert severity="info" sx={{ mb: 2, flexShrink: 0 }}>
-          Sie haben keine Berechtigung, dieses Dokument zu bearbeiten.
-        </Alert>
-      )}
-
-      {hasEditPermission && !isEditMode && (
-        <Alert severity="warning" sx={{ mb: 2, flexShrink: 0 }}>
-          Nur-Lese-Modus - Klicken Sie auf das Schloss-Symbol, um den Bearbeitungsmodus zu aktivieren.
-        </Alert>
-      )}
-
       {success && (
-        <Alert severity="success" sx={{ mb: 2, flexShrink: 0 }}>
+        <Alert severity="success" sx={{ mb: 1, py: 0, flexShrink: 0 }}>
           Dokument erfolgreich gespeichert
         </Alert>
       )}
@@ -329,7 +338,7 @@ const DocumentEditor: React.FC<DocumentEditorProps> = ({ document, onSave, canEd
         {renderEditor()}
       </Paper>
 
-      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+      <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <Typography variant="caption" color="text.secondary">
           Zuletzt bearbeitet: {new Date(document.updatedAt).toLocaleString('de-DE')} von{' '}
           {document.updatedBy.firstName} {document.updatedBy.lastName}

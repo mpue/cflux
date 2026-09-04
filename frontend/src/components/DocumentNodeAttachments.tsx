@@ -26,9 +26,6 @@ import {
   CardMedia,
   CardContent,
   CardActions,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
 } from '@mui/material';
 import {
   AttachFile as AttachFileIcon,
@@ -41,7 +38,6 @@ import {
   Info as InfoIcon,
   Image as ImageIcon,
   Visibility as VisibilityIcon,
-  ExpandMore as ExpandMoreIcon,
   PictureAsPdf as PdfIcon,
 } from '@mui/icons-material';
 import documentNodeAttachmentService, {
@@ -54,11 +50,74 @@ import { normalizeUploadUrl } from '../services/api';
 interface DocumentNodeAttachmentsProps {
   nodeId: string;
   canEdit: boolean;
+  /** Meldet die Anzahl der Anhaenge, z.B. fuer eine Beschriftung im Aufrufer. */
+  onCountChange?: (count: number) => void;
 }
+
+/**
+ * Vorschaubild eines Nicht-Bild-Anhangs. Faellt auf das Datei-Emoji zurueck,
+ * wenn der Server kein Thumbnail rendern kann (z.B. unbekanntes Format).
+ */
+const AttachmentThumbnail: React.FC<{ attachment: DocumentNodeAttachment }> = ({
+  attachment,
+}) => {
+  const [src, setSrc] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    setSrc(null);
+    setFailed(false);
+
+    documentNodeAttachmentService.loadThumbnail(attachment.id).then((url) => {
+      if (cancelled) {
+        if (url) window.URL.revokeObjectURL(url);
+        return;
+      }
+      if (url) {
+        objectUrl = url;
+        setSrc(url);
+      } else {
+        setFailed(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) window.URL.revokeObjectURL(objectUrl);
+    };
+    // Die Version gehoert in die Abhaengigkeiten: nach einem Datei-Update
+    // muss das Vorschaubild neu geladen werden.
+  }, [attachment.id, attachment.version]);
+
+  if (failed) {
+    return (
+      <Box sx={{ fontSize: '4rem', textAlign: 'center' }}>
+        {documentNodeAttachmentService.getFileIcon(attachment.mimeType)}
+      </Box>
+    );
+  }
+
+  if (!src) {
+    return <CircularProgress size={28} />;
+  }
+
+  return (
+    <Box
+      component="img"
+      src={src}
+      alt={attachment.originalFilename}
+      sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+    />
+  );
+};
 
 const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
   nodeId,
   canEdit,
+  onCountChange,
 }) => {
   const [attachments, setAttachments] = useState<DocumentNodeAttachment[]>([]);
   const [loading, setLoading] = useState(false);
@@ -103,9 +162,6 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
 
-  // Accordion expanded state
-  const [expanded, setExpanded] = useState(false);
-
   useEffect(() => {
     loadAttachments();
   }, [nodeId]);
@@ -116,6 +172,7 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
       setError(null);
       const data = await documentNodeAttachmentService.getNodeAttachments(nodeId);
       setAttachments(data);
+      onCountChange?.(data.length);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Fehler beim Laden der Anhänge');
     } finally {
@@ -358,25 +415,19 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
   }
 
   return (
-    <Accordion expanded={expanded} onChange={(e, isExpanded) => setExpanded(isExpanded)}>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AttachFileIcon /> <strong>Anhänge ({attachments.length})</strong>
-        </Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Box>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-            {canEdit && (
-              <Button
-                variant="contained"
-                startIcon={<UploadIcon />}
-                onClick={handleUploadClick}
-              >
-                Anhang hinzufügen
-              </Button>
-            )}
-          </Box>
+    <Box>
+      {canEdit && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<UploadIcon />}
+            onClick={handleUploadClick}
+          >
+            Anhang hinzufügen
+          </Button>
+        </Box>
+      )}
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
@@ -513,44 +564,7 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
                               : handleDownload(attachment)
                           }
                         >
-                          <Box
-                            component="img"
-                            src={documentNodeAttachmentService.getThumbnailUrl(attachment)}
-                            alt={attachment.originalFilename}
-                            onError={async (e: React.SyntheticEvent<HTMLImageElement>) => {
-                              const img = e.currentTarget;
-                              // Prevent infinite retry loop
-                              if (img.dataset.retried) {
-                                img.style.display = 'none';
-                                img.parentElement!.querySelector('.fallback-icon')?.removeAttribute('style');
-                                return;
-                              }
-                              img.dataset.retried = 'true';
-                              // Trigger lazy generation via API
-                              const blobUrl = await documentNodeAttachmentService.generateThumbnail(attachment.id);
-                              if (blobUrl) {
-                                img.src = blobUrl;
-                              } else {
-                                img.style.display = 'none';
-                                img.parentElement!.querySelector('.fallback-icon')?.removeAttribute('style');
-                              }
-                            }}
-                            sx={{
-                              maxWidth: '100%',
-                              maxHeight: '100%',
-                              objectFit: 'contain',
-                            }}
-                          />
-                          <Box
-                            className="fallback-icon"
-                            style={{ display: 'none' }}
-                            sx={{
-                              fontSize: '4rem',
-                              textAlign: 'center',
-                            }}
-                          >
-                            {documentNodeAttachmentService.getFileIcon(attachment.mimeType)}
-                          </Box>
+                          <AttachmentThumbnail attachment={attachment} />
                         </Box>
                         <CardContent sx={{ pb: 1 }}>
                           <Tooltip title={attachment.originalFilename}>
@@ -893,9 +907,7 @@ const DocumentNodeAttachments: React.FC<DocumentNodeAttachmentsProps> = ({
           <Button onClick={() => setVersionDialogOpen(false)}>Schließen</Button>
         </DialogActions>
       </Dialog>
-        </Box>
-      </AccordionDetails>
-    </Accordion>
+    </Box>
   );
 };
 

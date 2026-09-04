@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Accordion, AccordionSummary, AccordionDetails, Typography } from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import api from '../../services/api';
 import DocumentApprovalStatus, { ApprovalStatus } from './DocumentApprovalStatus';
 import './DocumentApprovalPanel.css';
@@ -52,7 +50,6 @@ const DocumentApprovalPanel: React.FC<DocumentApprovalPanelProps> = ({
   const [selectedApproverId, setSelectedApproverId] = useState<string>('');
   const [approvers, setApprovers] = useState<User[]>([]);
   const [loadingApprovers, setLoadingApprovers] = useState(false);
-  const [expanded, setExpanded] = useState(false);
 
   // Load potential approvers (admins and users with admin permissions)
   useEffect(() => {
@@ -189,23 +186,20 @@ const DocumentApprovalPanel: React.FC<DocumentApprovalPanelProps> = ({
   };
 
   return (
-    <Accordion expanded={expanded} onChange={(e, isExpanded) => setExpanded(isExpanded)}>
-      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-        <Typography sx={{ display: 'flex', alignItems: 'center', gap: 2, flexGrow: 1 }}>
-          <strong>Freigabestatus</strong>
-          <DocumentApprovalStatus status={currentStatus} />
-        </Typography>
-      </AccordionSummary>
-      <AccordionDetails>
-        <div className="document-approval-panel">
-          {error && (
-            <div className="approval-error">
-              {error}
-            </div>
-          )}
+    <div className="document-approval-panel">
+      <div className="approval-header">
+        <strong>Freigabestatus</strong>
+        <DocumentApprovalStatus status={currentStatus} />
+      </div>
 
-          {/* Status History */}
-          <div className="approval-history">
+      {error && (
+        <div className="approval-error">
+          {error}
+        </div>
+      )}
+
+      {/* Status History */}
+      <div className="approval-history">
         {submittedAt && (
           <div className="approval-history-item">
             <span className="history-icon">📤</span>
@@ -410,9 +404,7 @@ const DocumentApprovalPanel: React.FC<DocumentApprovalPanelProps> = ({
           </div>
         </div>
       )}
-        </div>
-      </AccordionDetails>
-    </Accordion>
+    </div>
   );
 };
 

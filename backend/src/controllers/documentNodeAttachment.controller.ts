@@ -7,7 +7,7 @@ import {
   hasAttachmentVersionAccess,
   hasNodeAccess,
 } from '../services/documentAccess.service';
-import { generatePdfPreview, generateThumbnail, isPdf } from '../services/gotenberg.service';
+import { generatePdfPreview, generateThumbnail, isPdf, thumbnailFilenameFor } from '../services/gotenberg.service';
 import fs from 'fs';
 import path from 'path';
 
@@ -139,8 +139,7 @@ export const uploadAttachment = async (req: AuthRequest, res: Response) => {
 
     // Generate thumbnail (async, non-blocking)
     const thumbnailDir = path.join(__dirname, '../../uploads/attachments-thumbnails');
-    const thumbnailFilename = `${file.filename.replace(path.extname(file.filename), '')}.jpg`;
-    const thumbnailPath = path.join(thumbnailDir, thumbnailFilename);
+    const thumbnailPath = path.join(thumbnailDir, thumbnailFilenameFor(file.filename));
     generateThumbnail(file.path, file.originalname, thumbnailPath, pdfPath).catch(err =>
       console.warn('Thumbnail generation failed:', err)
     );
@@ -277,8 +276,11 @@ export const updateAttachment = async (req: AuthRequest, res: Response) => {
     }
 
     // Remove old thumbnail if it exists
-    const oldThumbFilename = `${existingAttachment.filename.replace(path.extname(existingAttachment.filename), '')}.jpg`;
-    const oldThumbPath = path.join(__dirname, '../../uploads/attachments-thumbnails', oldThumbFilename);
+    const oldThumbPath = path.join(
+      __dirname,
+      '../../uploads/attachments-thumbnails',
+      thumbnailFilenameFor(existingAttachment.filename)
+    );
     if (fs.existsSync(oldThumbPath)) {
       fs.unlinkSync(oldThumbPath);
     }
@@ -297,8 +299,7 @@ export const updateAttachment = async (req: AuthRequest, res: Response) => {
 
     // Generate new thumbnail (async, non-blocking)
     const thumbnailDir = path.join(__dirname, '../../uploads/attachments-thumbnails');
-    const thumbnailFilename = `${file.filename.replace(path.extname(file.filename), '')}.jpg`;
-    const thumbnailPath = path.join(thumbnailDir, thumbnailFilename);
+    const thumbnailPath = path.join(thumbnailDir, thumbnailFilenameFor(file.filename));
     generateThumbnail(file.path, file.originalname, thumbnailPath, pdfPath).catch(err =>
       console.warn('Thumbnail generation failed:', err)
     );
@@ -735,8 +736,7 @@ export const getAttachmentThumbnail = async (req: AuthRequest, res: Response) =>
 
     // Thumbnail cache path
     const thumbnailDir = path.join(__dirname, '../../uploads/attachments-thumbnails');
-    const thumbnailFilename = `${attachment.filename.replace(path.extname(attachment.filename), '')}.jpg`;
-    const thumbnailPath = path.join(thumbnailDir, thumbnailFilename);
+    const thumbnailPath = path.join(thumbnailDir, thumbnailFilenameFor(attachment.filename));
 
     // Serve cached thumbnail if it exists
     if (fs.existsSync(thumbnailPath)) {
