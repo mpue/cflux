@@ -1,5 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import multer from 'multer';
+import os from 'os';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
@@ -66,12 +67,25 @@ const photoUpload = multer({
 });
 
 /**
- * Import-Archive landen im Speicher: erst nach erfolgreicher Pruefung sollen
- * Bilddateien im uploads-Ordner auftauchen.
+ * Import-Archive landen auf der Platte, nicht im Speicher: ein Export mit
+ * mehreren hundert Originalfotos ist schnell ueber ein Gigabyte gross.
+ * Der Controller raeumt die Datei nach dem Import wieder weg.
  */
+// Bewusst NICHT unterhalb von uploads/: das Verzeichnis wird in index.ts per
+// express.static ohne Authentifizierung ausgeliefert, und ein Importarchiv
+// enthaelt saemtliche Fotos der Berichte.
+const IMPORT_TMP_DIR = path.join(os.tmpdir(), 'cflux-report-imports');
+const MAX_ARCHIVE_BYTES = 2 * 1024 * 1024 * 1024;
+
 const archiveUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 500 * 1024 * 1024 },
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      fs.mkdirSync(IMPORT_TMP_DIR, { recursive: true });
+      cb(null, IMPORT_TMP_DIR);
+    },
+    filename: (_req, _file, cb) => cb(null, `${uuidv4()}.zip`),
+  }),
+  limits: { fileSize: MAX_ARCHIVE_BYTES },
   fileFilter: (_req, file, cb) => {
     if (!/zip/i.test(file.mimetype) && !/\.zip$/i.test(file.originalname)) {
       return cb(new Error('Es werden nur ZIP-Archive akzeptiert'));
@@ -79,6 +93,31 @@ const archiveUpload = multer({
     cb(null, true);
   },
 });
+
+/**
+ * Multer meldet Ueberschreitungen sonst an den globalen Fehler-Handler, der
+ * pauschal "Internal server error" zurueckgibt — damit steht der Benutzer vor
+ * einer Meldung, aus der sich nichts ableiten laesst.
+ */
+const handleUploadError = (
+  err: any,
+  _req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (!err) return next();
+
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        error: `Das Archiv ist grösser als ${Math.round(MAX_ARCHIVE_BYTES / 1024 / 1024)} MB.`,
+      });
+    }
+    return res.status(400).json({ error: `Upload fehlgeschlagen: ${err.message}` });
+  }
+
+  return res.status(400).json({ error: err.message || 'Upload fehlgeschlagen' });
+};
 
 router.use(authenticate);
 
@@ -91,6 +130,7 @@ router.post(
   '/import',
   requireModuleAccess(MODULE_KEY, 'canCreate'),
   archiveUpload.single('archive'),
+  handleUploadError,
   requireProjectAccess('body'),
   berichtController.importArchive
 );

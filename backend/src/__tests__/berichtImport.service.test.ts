@@ -13,7 +13,7 @@ jest.mock('../services/bericht.service', () => ({
 
 jest.mock('../lib/prisma', () => ({
   prisma: {
-    report: { findFirst: jest.fn(), create: jest.fn() },
+    report: { findMany: jest.fn(), create: jest.fn() },
     reportArea: { createMany: jest.fn() },
     reportPhoto: { create: jest.fn() },
     reportFinding: { create: jest.fn() },
@@ -30,6 +30,15 @@ import {
 const PROJECT_ID = 'project-1';
 const SHEET_ID = 'sheet-1';
 const PHOTO_ID = 'photo-old-1';
+
+/** Schreibt das Archiv auf die Platte — der Import liest jetzt Pfade, keine Puffer. */
+const writeArchive = (zip: AdmZip): string => {
+  const file = path.join(TMP_PHOTOS_DIR, `archive-${archiveSeq++}.zip`);
+  zip.writeZip(file);
+  return file;
+};
+
+let archiveSeq = 0;
 
 const buildArchive = (overrides: Record<string, any> = {}) => {
   const zip = new AdmZip();
@@ -85,7 +94,7 @@ const buildArchive = (overrides: Record<string, any> = {}) => {
 
   zip.addFile('wochenbericht.json', Buffer.from(JSON.stringify(manifest), 'utf-8'));
   zip.addFile(`photos/${SHEET_ID}/abc-123.jpg`, Buffer.from('jpeg-bytes'));
-  return zip.toBuffer();
+  return writeArchive(zip);
 };
 
 describe('importWochenberichtArchive', () => {
@@ -99,7 +108,7 @@ describe('importWochenberichtArchive', () => {
     createdFindings.length = 0;
     createdAreas.length = 0;
 
-    (prisma.report.findFirst as jest.Mock).mockResolvedValue(null);
+    (prisma.report.findMany as jest.Mock).mockResolvedValue([]);
     (prisma.report.create as jest.Mock).mockResolvedValue({ id: 'new-report-1' });
     (prisma.reportArea.createMany as jest.Mock).mockImplementation(({ data }: any) => {
       createdAreas.push(...data);
@@ -161,7 +170,9 @@ describe('importWochenberichtArchive', () => {
   });
 
   it('überspringt bereits vorhandene Berichte', async () => {
-    (prisma.report.findFirst as jest.Mock).mockResolvedValue({ id: 'existing' });
+    (prisma.report.findMany as jest.Mock).mockResolvedValue([
+      { weekday: 'Di', date: new Date('2026-08-25') },
+    ]);
 
     const result = await importWochenberichtArchive(buildArchive(), { projectId: PROJECT_ID });
 
@@ -171,7 +182,9 @@ describe('importWochenberichtArchive', () => {
   });
 
   it('importiert trotz Duplikat, wenn skipDuplicates aus ist', async () => {
-    (prisma.report.findFirst as jest.Mock).mockResolvedValue({ id: 'existing' });
+    (prisma.report.findMany as jest.Mock).mockResolvedValue([
+      { weekday: 'Di', date: new Date('2026-08-25') },
+    ]);
 
     const result = await importWochenberichtArchive(buildArchive(), {
       projectId: PROJECT_ID,
@@ -181,7 +194,7 @@ describe('importWochenberichtArchive', () => {
     expect(result.imported).toBe(1);
   });
 
-  it('meldet Felder, für die es in cflux keine Entsprechung gibt', async () => {
+  it('übernimmt Titel und löst die Ordnerzuordnung in den Ordnernamen auf', async () => {
     const archive = buildArchive({
       folders: [{ id: 'f1', name: 'KW 35' }],
       sheets: [
@@ -191,6 +204,7 @@ describe('importWochenberichtArchive', () => {
           date: '2026-08-26',
           titel: 'Rückbau Halle 4',
           projekt: 'Novartis',
+          folderId: 'f1',
           bereiche: [],
           feststellungen: [],
           photos: [],
@@ -198,15 +212,71 @@ describe('importWochenberichtArchive', () => {
       ],
     });
 
+    await importWochenberichtArchive(archive, { projectId: PROJECT_ID });
+
+    expect(prisma.report.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ titel: 'Rückbau Halle 4', ordner: 'KW 35' }),
+      })
+    );
+  });
+
+  it('lässt Ordner leer, wenn das Tagesblatt in keinem Ordner liegt', async () => {
+    await importWochenberichtArchive(buildArchive(), { projectId: PROJECT_ID });
+
+    expect(prisma.report.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ ordner: null }) })
+    );
+  });
+
+  it('importiert mehrere Tagesblätter zum selben Tag vollständig', async () => {
+    const sheet = (titel: string) => ({
+      id: `${SHEET_ID}-${titel}`,
+      weekday: 'Di',
+      date: '2026-08-25',
+      titel,
+      bereiche: [],
+      feststellungen: [],
+      photos: [],
+    });
+
+    const archive = buildArchive({ sheets: [sheet('Vormittag'), sheet('Nachmittag')] });
     const result = await importWochenberichtArchive(archive, { projectId: PROJECT_ID });
 
-    expect(result.droppedFields).toEqual(
-      expect.arrayContaining([
-        'Titel des Berichts',
-        'Ordnerzuordnung (1 Ordner)',
-        expect.stringContaining('Projekttext'),
-      ])
-    );
+    // Beide sind eigenständige Rundgänge, keiner davon ist ein Duplikat.
+    expect(result.imported).toBe(2);
+    expect(result.skipped).toBe(0);
+  });
+
+  it('lässt beim zweiten Lauf genau so viele Blätter aus wie schon vorhanden sind', async () => {
+    const sheet = (titel: string) => ({
+      id: `${SHEET_ID}-${titel}`,
+      weekday: 'Di',
+      date: '2026-08-25',
+      titel,
+      bereiche: [],
+      feststellungen: [],
+      photos: [],
+    });
+
+    (prisma.report.findMany as jest.Mock).mockResolvedValue([
+      { weekday: 'Di', date: new Date('2026-08-25') },
+      { weekday: 'Di', date: new Date('2026-08-25') },
+    ]);
+
+    const archive = buildArchive({ sheets: [sheet('Vormittag'), sheet('Nachmittag')] });
+    const result = await importWochenberichtArchive(archive, { projectId: PROJECT_ID });
+
+    expect(result.imported).toBe(0);
+    expect(result.skipped).toBe(2);
+  });
+
+  it('meldet den Projekttext des Quelltools als nicht übernommen', async () => {
+    const result = await importWochenberichtArchive(buildArchive(), { projectId: PROJECT_ID });
+
+    expect(result.droppedFields).toEqual([
+      expect.stringContaining('Projekttext'),
+    ]);
   });
 
   it('entschärft Pfadangriffe im Dateinamen (Zip Slip)', async () => {
@@ -241,7 +311,7 @@ describe('importWochenberichtArchive', () => {
     );
     zip.addFile('photos/evil', Buffer.from('pwned'));
 
-    await importWochenberichtArchive(zip.toBuffer(), { projectId: PROJECT_ID });
+    await importWochenberichtArchive(writeArchive(zip), { projectId: PROJECT_ID });
 
     // Der Traversal-Anteil wird abgeschnitten, die Datei landet im Berichtsordner.
     expect(fs.existsSync(path.join(TMP_PHOTOS_DIR, 'new-report-1', 'evil.txt'))).toBe(true);
@@ -274,7 +344,7 @@ describe('importWochenberichtArchive', () => {
     );
     zip.addFile('photos/x', Buffer.from('data'));
 
-    const result = await importWochenberichtArchive(zip.toBuffer(), { projectId: PROJECT_ID });
+    const result = await importWochenberichtArchive(writeArchive(zip), { projectId: PROJECT_ID });
 
     expect(result.photos).toBe(0);
     expect(result.warnings[0]).toContain('Foto fehlt im Archiv');
@@ -285,7 +355,7 @@ describe('importWochenberichtArchive', () => {
     zip.addFile('wochenbericht.json', Buffer.from(JSON.stringify({ format: 'etwas-anderes' })));
 
     await expect(
-      importWochenberichtArchive(zip.toBuffer(), { projectId: PROJECT_ID })
+      importWochenberichtArchive(writeArchive(zip), { projectId: PROJECT_ID })
     ).rejects.toBeInstanceOf(ImportFormatError);
   });
 
@@ -294,7 +364,7 @@ describe('importWochenberichtArchive', () => {
     zip.addFile('irgendwas.txt', Buffer.from('nix'));
 
     await expect(
-      importWochenberichtArchive(zip.toBuffer(), { projectId: PROJECT_ID })
+      importWochenberichtArchive(writeArchive(zip), { projectId: PROJECT_ID })
     ).rejects.toThrow(/wochenbericht\.json/);
   });
 });

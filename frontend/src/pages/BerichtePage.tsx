@@ -20,6 +20,7 @@ import {
   Grid,
   IconButton,
   InputLabel,
+  LinearProgress,
   List,
   ListItemButton,
   ListItemText,
@@ -161,6 +162,7 @@ const BerichtePage: React.FC = () => {
   const [importProjectId, setImportProjectId] = useState('');
   const [importSkipDuplicates, setImportSkipDuplicates] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
   const [importResult, setImportResult] = useState<BerichtImportResult | null>(null);
   /** Index der Feststellung, fuer die gerade ein Foto gewaehlt wird. */
   const [photoPickerIndex, setPhotoPickerIndex] = useState<number | null>(null);
@@ -239,7 +241,9 @@ const BerichtePage: React.FC = () => {
           date: report.date,
           referent: report.referent,
           rundgangDurchgefuehrt: report.rundgangDurchgefuehrt,
-          weitereTeilnehmer: report.weitereTeilnehmer,
+          titel: report.titel,
+        ordner: report.ordner,
+        weitereTeilnehmer: report.weitereTeilnehmer,
           areas: report.areas,
           findings: report.findings,
         })
@@ -273,6 +277,8 @@ const BerichtePage: React.FC = () => {
         date: report.date,
         referent: report.referent,
         rundgangDurchgefuehrt: report.rundgangDurchgefuehrt,
+        titel: report.titel,
+        ordner: report.ordner,
         weitereTeilnehmer: report.weitereTeilnehmer,
         areas: report.areas,
         findings: report.findings,
@@ -386,13 +392,15 @@ const BerichtePage: React.FC = () => {
     if (!importFile || !importProjectId) return;
 
     setImporting(true);
+    setImportProgress(0);
     setImportResult(null);
 
     try {
       const result = await berichtService.importArchive(
         importFile,
         importProjectId,
-        importSkipDuplicates
+        importSkipDuplicates,
+        setImportProgress
       );
       setImportResult(result);
       await loadReports(projectFilter);
@@ -531,8 +539,18 @@ const BerichtePage: React.FC = () => {
               onClick={() => selectReport(report.id)}
             >
               <ListItemText
-                primary={`${report.weekday}, ${formatDate(report.date)}`}
-                secondary={`${report.project.name} · ${report._count.findings} Feststellung(en)`}
+                primary={
+                  report.titel?.trim()
+                    ? `${report.titel.trim()} (${report.weekday}, ${formatDate(report.date)})`
+                    : `${report.weekday}, ${formatDate(report.date)}`
+                }
+                secondary={[
+                  report.project.name,
+                  report.ordner?.trim() || null,
+                  `${report._count.findings} Feststellung(en)`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               />
             </ListItemButton>
           ))}
@@ -630,6 +648,28 @@ const BerichtePage: React.FC = () => {
               value={report.weitereTeilnehmer || ''}
               disabled={!mayEdit}
               onChange={(e) => patchCurrent({ weitereTeilnehmer: e.target.value })}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={8}>
+            <TextField
+              fullWidth
+              label="Titel des Berichts (optional)"
+              helperText="Steht im Export über dem Protokoll. Leer lassen für „Toolbox-Rundgang · Tagesprotokoll — …“."
+              value={report.titel || ''}
+              disabled={!mayEdit}
+              onChange={(e) => patchCurrent({ titel: e.target.value })}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              label="Wochenbericht / Ordner (optional)"
+              helperText="Klammert mehrere Tage zu einem Wochenbericht."
+              value={report.ordner || ''}
+              disabled={!mayEdit}
+              onChange={(e) => patchCurrent({ ordner: e.target.value })}
             />
           </Grid>
         </Grid>
@@ -1216,7 +1256,14 @@ const BerichtePage: React.FC = () => {
 
           {importing && (
             <Alert severity="info" icon={<CircularProgress size={18} />} sx={{ mt: 2 }}>
-              Archiv wird verarbeitet. Bei vielen Fotos kann das eine Weile dauern.
+              {importProgress < 100
+                ? `Archiv wird hochgeladen … ${importProgress}%`
+                : 'Archiv wird entpackt und verarbeitet. Bei hunderten Fotos dauert das einige Minuten.'}
+              <LinearProgress
+                variant={importProgress < 100 ? 'determinate' : 'indeterminate'}
+                value={importProgress}
+                sx={{ mt: 1 }}
+              />
             </Alert>
           )}
 

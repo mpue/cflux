@@ -364,12 +364,16 @@ export const renderReportHtml = (
   const accent = safeColor(report.project.accentColor, DEFAULT_BRANDING.accentColor);
   const logo = logoDataUri(report.project.logoUrl);
   const dateLabel = formatDate(report.date);
+  // Ein gepflegter Titel ersetzt die Standardzeile, so wie im Quelltool.
+  const heading = report.titel?.trim()
+    ? report.titel.trim()
+    : `Toolbox-Rundgang · Tagesprotokoll — ${report.weekday}, ${dateLabel}`;
 
   return `<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Toolbox-Rundgang ${esc(report.weekday)} – ${esc(dateLabel)}</title>
+<title>${esc(heading)}</title>
 <style>
   body {
     font-family: Calibri, Arial, sans-serif;
@@ -449,15 +453,22 @@ export const renderReportHtml = (
 <body>
   <div class="doc-header">
     <div>
-      <h1>Toolbox-Rundgang · Tagesprotokoll — ${esc(report.weekday)}, ${esc(dateLabel)}</h1>
-      <div class="subtitle">${esc(report.project.name)}</div>
+      <h1>${esc(heading)}</h1>
+      <div class="subtitle">${esc(report.project.name)}${
+        report.ordner ? ` · ${esc(report.ordner)}` : ''
+      }</div>
     </div>
     ${logo ? `<img src="${logo}" alt="${esc(report.project.name)}" class="doc-logo">` : ''}
   </div>
 
   <table class="kopfdaten">
     <tr><td class="label">Projekt / Objekt</td><td class="value" colspan="3">${esc(report.project.name)}</td></tr>
-    <tr><td class="label">Datum des Rundgangs</td><td class="value" colspan="3">${esc(dateLabel)}</td></tr>
+    <tr><td class="label">Datum des Rundgangs</td><td class="value" colspan="3">${esc(dateLabel)} (${esc(report.weekday)})</td></tr>
+    ${
+      report.ordner
+        ? `<tr><td class="label">Wochenbericht / Ordner</td><td class="value" colspan="3">${esc(report.ordner)}</td></tr>`
+        : ''
+    }
     <tr><td class="label">Referent / CM</td><td class="value" colspan="3">${esc(report.referent)}</td></tr>
     <tr><td class="label">Rundgang durchgeführt (Ja/Nein)</td><td class="value" colspan="3">${esc(report.rundgangDurchgefuehrt)}</td></tr>
     <tr><td class="label">Weitere Teilnehmer (Name / Firma)</td><td class="value" colspan="3">${esc(report.weitereTeilnehmer)}</td></tr>
@@ -518,7 +529,12 @@ export const renderReportPdf = async (
 
 /** Dateiname fuer den Download, ohne Sonderzeichen. */
 export const exportFilename = (report: ReportWithRelations, extension: string): string => {
-  const project = report.project.name.replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 40);
   const date = new Date(report.date).toISOString().slice(0, 10);
-  return `Rundgang_${project}_${report.weekday}_${date}.${extension}`;
+  const ascii = (value: string) => value.replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 40);
+
+  if (report.titel?.trim()) {
+    return `${ascii(report.titel.trim())}_${date}.${extension}`;
+  }
+
+  return `Rundgang_${ascii(report.project.name)}_${report.weekday}_${date}.${extension}`;
 };

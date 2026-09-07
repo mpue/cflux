@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import AdmZip from 'adm-zip';
+import AdmZip, { IZipEntry } from 'adm-zip';
 import { prisma } from '../lib/prisma';
 import { PHOTOS_DIR } from './bericht.service';
 
@@ -117,26 +117,57 @@ const readManifest = (zip: AdmZip) => {
   return manifest;
 };
 
-/** Bericht mit gleichem Projekt, Datum und Wochentag gilt als bereits importiert. */
-const findExistingReport = async (projectId: string, date: Date, weekday: string) => {
-  const dayStart = new Date(date);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(date);
-  dayEnd.setHours(23, 59, 59, 999);
+/** Schluessel der Duplikaterkennung: Wochentag plus Kalendertag. */
+const duplicateKey = (weekday: string, date: Date): string =>
+  `${weekday}|${date.toISOString().slice(0, 10)}`;
 
-  return prisma.report.findFirst({
-    where: { projectId, weekday, date: { gte: dayStart, lte: dayEnd } },
-    select: { id: true },
+/**
+ * Zaehlt je Schluessel, wie viele Berichte im Zielprojekt schon existieren.
+ *
+ * Bewusst als Zaehler und nicht als "gibt es schon ja/nein": ein Archiv kann
+ * mehrere Tagesblaetter mit demselben Wochentag und Datum enthalten (im
+ * Quelltool ganz normal, etwa zwei Rundgaenge an einem Tag). Mit einer reinen
+ * Ja/Nein-Pruefung wuerde das zweite davon als Duplikat des ersten verschwinden.
+ */
+const countExistingByKey = async (
+  projectId: string,
+  dates: Date[]
+): Promise<Map<string, number>> => {
+  const counts = new Map<string, number>();
+  if (!dates.length) return counts;
+
+  const times = dates.map((date) => date.getTime());
+  const from = new Date(Math.min(...times));
+  const to = new Date(Math.max(...times));
+  to.setUTCHours(23, 59, 59, 999);
+
+  const existing = await prisma.report.findMany({
+    where: { projectId, date: { gte: from, lte: to } },
+    select: { weekday: true, date: true },
   });
+
+  for (const report of existing) {
+    const key = duplicateKey(report.weekday, report.date);
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+
+  return counts;
 };
 
+/**
+ * @param archivePath Pfad zur hochgeladenen ZIP-Datei. Bewusst ein Pfad und
+ *   kein Puffer: Archive mit mehreren hundert Originalfotos sind schnell ueber
+ *   ein Gigabyte gross. adm-zip liest die Datei zwar ebenfalls am Stueck ein,
+ *   aber so liegt sie nur einmal im Speicher statt zusaetzlich als
+ *   Multer-Puffer. Die Fotos selbst werden einzeln ausgepackt.
+ */
 export const importWochenberichtArchive = async (
-  archive: Buffer,
+  archivePath: string,
   { projectId, createdById = null, skipDuplicates = true }: ImportOptions
 ): Promise<ImportResult> => {
   let zip: AdmZip;
   try {
-    zip = new AdmZip(archive);
+    zip = new AdmZip(archivePath);
   } catch {
     throw new ImportFormatError('Die Datei ist kein lesbares ZIP-Archiv.');
   }
@@ -155,16 +186,24 @@ export const importWochenberichtArchive = async (
     reports: [],
   };
 
+  // Ordnernamen aufloesen: im Archiv steht am Tagesblatt nur die folderId.
+  const folderNames = new Map<string, string>(
+    (Array.isArray(manifest.folders) ? manifest.folders : [])
+      .filter((folder: any) => folder?.id && folder?.name)
+      .map((folder: any) => [folder.id as string, folder.name as string])
+  );
+
   // Das Quelltool kennt Felder, fuer die es in cflux keine Entsprechung gibt.
-  if (sheets.some((sheet) => str(sheet.titel))) {
-    result.droppedFields.push('Titel des Berichts');
-  }
-  if (Array.isArray(manifest.folders) && manifest.folders.length > 0) {
-    result.droppedFields.push(`Ordnerzuordnung (${manifest.folders.length} Ordner)`);
-  }
   if (sheets.some((sheet) => str(sheet.projekt))) {
     result.droppedFields.push('Projekttext des Quelltools (ersetzt durch das gewählte Projekt)');
   }
+
+  const existingByKey = skipDuplicates
+    ? await countExistingByKey(
+        projectId,
+        sheets.map((sheet) => toDate(sheet.date)).filter((date): date is Date => date !== null)
+      )
+    : new Map<string, number>();
 
   for (const sheet of sheets) {
     const weekday = str(sheet.weekday) || 'Mo';
@@ -176,14 +215,21 @@ export const importWochenberichtArchive = async (
       continue;
     }
 
-    if (skipDuplicates && (await findExistingReport(projectId, date, weekday))) {
+    // Pro vorhandenem Bericht wird genau ein Tagesblatt ausgelassen. Enthaelt
+    // das Archiv mehr Blaetter zu einem Tag als die Datenbank Berichte, landen
+    // die zusaetzlichen im Import.
+    const key = duplicateKey(weekday, date);
+    const stillExisting = existingByKey.get(key) || 0;
+
+    if (stillExisting > 0) {
+      existingByKey.set(key, stillExisting - 1);
       result.skipped += 1;
       continue;
     }
 
-    // Fotos zuerst aus dem Archiv holen — ein Bericht ohne die zugehoerigen
-    // Bilddateien waere nur halb importiert.
-    const photoFiles: { newName: string; content: Buffer; source: SourcePhoto }[] = [];
+    // Nur die Eintraege heraussuchen — ausgepackt wird spaeter, ein Bild nach
+    // dem anderen. Ein Bericht mit 200 Fotos soll nicht 200 Puffer halten.
+    const photoFiles: { newName: string; entry: IZipEntry; source: SourcePhoto }[] = [];
 
     for (const photo of sheet.photos || []) {
       const entryPath = photo.path || `photos/${sheet.id}/${photo.filename}`;
@@ -195,7 +241,7 @@ export const importWochenberichtArchive = async (
         continue;
       }
 
-      photoFiles.push({ newName: safeName, content: entry.getData(), source: photo });
+      photoFiles.push({ newName: safeName, entry, source: photo });
     }
 
     const created = await prisma.$transaction(async (tx) => {
@@ -204,6 +250,8 @@ export const importWochenberichtArchive = async (
           projectId,
           weekday,
           date,
+          titel: str(sheet.titel),
+          ordner: (sheet.folderId && folderNames.get(sheet.folderId)) || null,
           referent: str(sheet.referent),
           rundgangDurchgefuehrt: str(sheet.rundgangDurchgefuehrt),
           weitereTeilnehmer: str(sheet.weitereTeilnehmer),
@@ -234,7 +282,7 @@ export const importWochenberichtArchive = async (
             filename: file.newName,
             originalName: file.source.originalName || file.newName,
             mimeType: file.source.mimeType || null,
-            fileSize: file.content.length,
+            fileSize: file.entry.header.size,
             uploadedById: createdById,
           },
           select: { id: true },
@@ -274,7 +322,9 @@ export const importWochenberichtArchive = async (
     try {
       fs.mkdirSync(targetDir, { recursive: true });
       for (const file of photoFiles) {
-        fs.writeFileSync(path.join(targetDir, file.newName), file.content);
+        // getData() packt genau diesen einen Eintrag aus; der Puffer ist nach
+        // dem Schreiben wieder frei.
+        fs.writeFileSync(path.join(targetDir, file.newName), file.entry.getData());
       }
       result.photos += photoFiles.length;
     } catch (error: any) {

@@ -95,7 +95,8 @@ export const getReportById = async (req: AuthRequest, res: Response) => {
 
 export const createReport = async (req: AuthRequest, res: Response) => {
   try {
-    const { projectId, weekday, date, referent, rundgangDurchgefuehrt, weitereTeilnehmer } = req.body;
+    const { projectId, weekday, date, titel, ordner, referent, rundgangDurchgefuehrt, weitereTeilnehmer } =
+      req.body;
 
     if (!projectId || !weekday || !date) {
       return res.status(400).json({ error: 'projectId, weekday und date sind erforderlich' });
@@ -106,6 +107,8 @@ export const createReport = async (req: AuthRequest, res: Response) => {
       projectId,
       weekday,
       date,
+      titel,
+      ordner,
       referent,
       rundgangDurchgefuehrt,
       weitereTeilnehmer,
@@ -124,8 +127,18 @@ export const updateReport = async (req: AuthRequest, res: Response) => {
     const existing = await loadAccessibleReport(req, res);
     if (!existing) return;
 
-    const { weekday, date, referent, rundgangDurchgefuehrt, weitereTeilnehmer, status, areas, findings } =
-      req.body;
+    const {
+      weekday,
+      date,
+      titel,
+      ordner,
+      referent,
+      rundgangDurchgefuehrt,
+      weitereTeilnehmer,
+      status,
+      areas,
+      findings,
+    } = req.body;
 
     if (status !== undefined && !Object.values(ReportStatus).includes(status)) {
       return res.status(400).json({ error: 'Ungültiger Status' });
@@ -134,6 +147,8 @@ export const updateReport = async (req: AuthRequest, res: Response) => {
     const report = await berichtService.updateReport(existing.id, {
       weekday,
       date,
+      titel,
+      ordner,
       referent,
       rundgangDurchgefuehrt,
       weitereTeilnehmer,
@@ -276,7 +291,7 @@ export const importArchive = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: 'Es wurde keine Archivdatei hochgeladen' });
     }
 
-    const result = await importWochenberichtArchive(req.file.buffer, {
+    const result = await importWochenberichtArchive(req.file.path, {
       projectId: req.body.projectId,
       createdById: req.user!.id,
       // Standard: doppelte Berichte auslassen, damit ein zweiter Lauf
@@ -290,7 +305,15 @@ export const importArchive = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: error.message });
     }
     console.error('Import report archive error:', error);
-    res.status(500).json({ error: 'Import fehlgeschlagen', details: error?.message });
+    res.status(500).json({
+      error: `Import fehlgeschlagen: ${error?.message || 'unbekannter Fehler'}`,
+    });
+  } finally {
+    // Die hochgeladene Datei ist mehrere hundert MB gross — nach dem Import
+    // hat sie im Upload-Ordner nichts mehr verloren.
+    if (req.file?.path) {
+      fs.promises.unlink(req.file.path).catch(() => undefined);
+    }
   }
 };
 

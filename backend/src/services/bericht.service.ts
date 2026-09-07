@@ -88,6 +88,8 @@ export const berichtService = {
         projectId: true,
         weekday: true,
         date: true,
+        titel: true,
+        ordner: true,
         referent: true,
         status: true,
         createdAt: true,
@@ -111,6 +113,8 @@ export const berichtService = {
     projectId: string;
     weekday: string;
     date: string | Date;
+    titel?: string | null;
+    ordner?: string | null;
     referent?: string | null;
     rundgangDurchgefuehrt?: string | null;
     weitereTeilnehmer?: string | null;
@@ -127,6 +131,8 @@ export const berichtService = {
         projectId: data.projectId,
         weekday: data.weekday,
         date,
+        titel: data.titel ?? null,
+        ordner: data.ordner ?? null,
         referent: data.referent ?? null,
         rundgangDurchgefuehrt: data.rundgangDurchgefuehrt ?? null,
         weitereTeilnehmer: data.weitereTeilnehmer ?? null,
@@ -149,6 +155,8 @@ export const berichtService = {
     patch: {
       weekday?: string;
       date?: string | Date;
+      titel?: string | null;
+      ordner?: string | null;
       referent?: string | null;
       rundgangDurchgefuehrt?: string | null;
       weitereTeilnehmer?: string | null;
@@ -165,6 +173,8 @@ export const berichtService = {
       if (!date) throw new Error('Ungültiges Datum');
       data.date = date;
     }
+    if (patch.titel !== undefined) data.titel = patch.titel || null;
+    if (patch.ordner !== undefined) data.ordner = patch.ordner || null;
     if (patch.referent !== undefined) data.referent = patch.referent || null;
     if (patch.rundgangDurchgefuehrt !== undefined) {
       data.rundgangDurchgefuehrt = patch.rundgangDurchgefuehrt || null;

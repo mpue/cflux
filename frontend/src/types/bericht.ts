@@ -50,6 +50,10 @@ export interface Bericht {
   projectId: string;
   weekday: string;
   date: string;
+  /** Freier Titel; steht im Export über dem Protokoll. */
+  titel?: string | null;
+  /** Gruppierung mehrerer Tage zu einem Wochenbericht. */
+  ordner?: string | null;
   referent?: string | null;
   rundgangDurchgefuehrt?: string | null;
   weitereTeilnehmer?: string | null;
@@ -69,6 +73,8 @@ export interface BerichtListItem {
   projectId: string;
   weekday: string;
   date: string;
+  titel?: string | null;
+  ordner?: string | null;
   referent?: string | null;
   status: ReportStatus;
   createdAt: string;

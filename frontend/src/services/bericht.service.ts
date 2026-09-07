@@ -81,17 +81,25 @@ export const berichtService = {
   importArchive: async (
     file: File,
     projectId: string,
-    skipDuplicates = true
+    skipDuplicates = true,
+    onProgress?: (percent: number) => void
   ): Promise<BerichtImportResult> => {
     const formData = new FormData();
-    formData.append('archive', file, file.name);
+    // projectId vor der Datei anhängen: die Zugriffsprüfung im Backend liest
+    // das Feld, und so steht es am Anfang des Multipart-Streams.
     formData.append('projectId', projectId);
     formData.append('skipDuplicates', String(skipDuplicates));
+    formData.append('archive', file, file.name);
 
     const response = await api.post('/berichte/import', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      // Bildreiche Archive brauchen laenger als der Standard-Timeout erlaubt.
-      timeout: 10 * 60 * 1000,
+      // Ein Export mit hunderten Originalfotos ist schnell ueber ein Gigabyte
+      // gross — Hochladen und Entpacken dauern entsprechend.
+      timeout: 30 * 60 * 1000,
+      onUploadProgress: (event) => {
+        if (!onProgress || !event.total) return;
+        onProgress(Math.round((event.loaded / event.total) * 100));
+      },
     });
     return response.data;
   },

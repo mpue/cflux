@@ -4074,6 +4074,8 @@ model Report {
   projectId             String
   weekday               String // "Mo" | "Di" | "Mi" | "Do" | "Fr"
   date                  DateTime // Datum des Rundgangs
+  titel                 String? // Freier Titel, steht im Export ueber dem Protokoll
+  ordner                String? // Gruppiert mehrere Tagesblaetter zu einem Wochenbericht
   referent              String? // Referent / CM
   rundgangDurchgefuehrt String? // "Ja" | "Nein" | null
   weitereTeilnehmer     String?
@@ -4091,6 +4093,7 @@ model Report {
   @@index([projectId])
   @@index([date])
   @@index([createdById])
+  @@index([projectId, ordner])
   @@map("reports")
 }
 
