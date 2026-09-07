@@ -14,6 +14,7 @@ jest.mock('../services/bericht.service', () => ({
 jest.mock('../lib/prisma', () => ({
   prisma: {
     report: { findMany: jest.fn(), create: jest.fn() },
+    reportFolder: { findFirst: jest.fn(), create: jest.fn() },
     reportArea: { createMany: jest.fn() },
     reportPhoto: { create: jest.fn() },
     reportFinding: { create: jest.fn() },
@@ -101,14 +102,21 @@ describe('importWochenberichtArchive', () => {
   const createdPhotos: any[] = [];
   const createdFindings: any[] = [];
   const createdAreas: any[] = [];
+  const createdFolders: any[] = [];
 
   beforeEach(() => {
     jest.clearAllMocks();
     createdPhotos.length = 0;
     createdFindings.length = 0;
     createdAreas.length = 0;
+    createdFolders.length = 0;
 
     (prisma.report.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.reportFolder.findFirst as jest.Mock).mockResolvedValue(null);
+    (prisma.reportFolder.create as jest.Mock).mockImplementation(({ data }: any) => {
+      createdFolders.push(data);
+      return Promise.resolve({ id: `folder-${createdFolders.length}` });
+    });
     (prisma.report.create as jest.Mock).mockResolvedValue({ id: 'new-report-1' });
     (prisma.reportArea.createMany as jest.Mock).mockImplementation(({ data }: any) => {
       createdAreas.push(...data);
@@ -194,7 +202,7 @@ describe('importWochenberichtArchive', () => {
     expect(result.imported).toBe(1);
   });
 
-  it('übernimmt Titel und löst die Ordnerzuordnung in den Ordnernamen auf', async () => {
+  it('übernimmt Titel und legt den Ordner im Zielprojekt an', async () => {
     const archive = buildArchive({
       folders: [{ id: 'f1', name: 'KW 35' }],
       sheets: [
@@ -212,20 +220,50 @@ describe('importWochenberichtArchive', () => {
       ],
     });
 
-    await importWochenberichtArchive(archive, { projectId: PROJECT_ID });
+    const result = await importWochenberichtArchive(archive, { projectId: PROJECT_ID });
 
+    expect(createdFolders).toEqual([{ projectId: PROJECT_ID, name: 'KW 35' }]);
+    expect(result.foldersCreated).toBe(1);
     expect(prisma.report.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ titel: 'Rückbau Halle 4', ordner: 'KW 35' }),
+        data: expect.objectContaining({ titel: 'Rückbau Halle 4', folderId: 'folder-1' }),
       })
     );
   });
 
-  it('lässt Ordner leer, wenn das Tagesblatt in keinem Ordner liegt', async () => {
+  it('verwendet einen gleichnamigen vorhandenen Ordner weiter', async () => {
+    (prisma.reportFolder.findFirst as jest.Mock).mockResolvedValue({ id: 'bestehend' });
+
+    const archive = buildArchive({
+      folders: [{ id: 'f1', name: 'KW 35' }],
+      sheets: [
+        {
+          id: SHEET_ID,
+          weekday: 'Mi',
+          date: '2026-08-26',
+          folderId: 'f1',
+          bereiche: [],
+          feststellungen: [],
+          photos: [],
+        },
+      ],
+    });
+
+    const result = await importWochenberichtArchive(archive, { projectId: PROJECT_ID });
+
+    // Ein zweiter Import darf nicht "KW 35" ein zweites Mal danebenlegen.
+    expect(prisma.reportFolder.create).not.toHaveBeenCalled();
+    expect(result.foldersCreated).toBe(0);
+    expect(prisma.report.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ folderId: 'bestehend' }) })
+    );
+  });
+
+  it('lässt die Ordnerzuordnung leer, wenn das Tagesblatt in keinem Ordner liegt', async () => {
     await importWochenberichtArchive(buildArchive(), { projectId: PROJECT_ID });
 
     expect(prisma.report.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ ordner: null }) })
+      expect.objectContaining({ data: expect.objectContaining({ folderId: null }) })
     );
   });
 

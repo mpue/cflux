@@ -4,9 +4,21 @@ import { Response } from 'express';
 import { ReportStatus } from '@prisma/client';
 import { AuthRequest } from '../types/auth';
 import { prisma } from '../lib/prisma';
-import { berichtService, PHOTOS_DIR, ReportWithRelations } from '../services/bericht.service';
+import {
+  berichtService,
+  berichtFolderService,
+  PHOTOS_DIR,
+  ReportWithRelations,
+} from '../services/bericht.service';
 import { getAccessibleProjectIds, hasProjectAccess } from '../middleware/projectAccess';
-import { renderReportHtml, renderReportPdf, exportFilename } from '../services/berichtExport.service';
+import {
+  renderReportHtml,
+  renderReportPdf,
+  renderFolderHtml,
+  renderHtmlAsPdf,
+  exportFilename,
+  folderExportFilename,
+} from '../services/berichtExport.service';
 import { getEHSReportSection, EHSReportSection } from '../services/ehs.service';
 import {
   importWochenberichtArchive,
@@ -95,7 +107,7 @@ export const getReportById = async (req: AuthRequest, res: Response) => {
 
 export const createReport = async (req: AuthRequest, res: Response) => {
   try {
-    const { projectId, weekday, date, titel, ordner, referent, rundgangDurchgefuehrt, weitereTeilnehmer } =
+    const { projectId, weekday, date, titel, folderId, referent, rundgangDurchgefuehrt, weitereTeilnehmer } =
       req.body;
 
     if (!projectId || !weekday || !date) {
@@ -108,7 +120,7 @@ export const createReport = async (req: AuthRequest, res: Response) => {
       weekday,
       date,
       titel,
-      ordner,
+      folderId,
       referent,
       rundgangDurchgefuehrt,
       weitereTeilnehmer,
@@ -131,7 +143,7 @@ export const updateReport = async (req: AuthRequest, res: Response) => {
       weekday,
       date,
       titel,
-      ordner,
+      folderId,
       referent,
       rundgangDurchgefuehrt,
       weitereTeilnehmer,
@@ -148,7 +160,7 @@ export const updateReport = async (req: AuthRequest, res: Response) => {
       weekday,
       date,
       titel,
-      ordner,
+      folderId,
       referent,
       rundgangDurchgefuehrt,
       weitereTeilnehmer,
@@ -314,6 +326,145 @@ export const importArchive = async (req: AuthRequest, res: Response) => {
     if (req.file?.path) {
       fs.promises.unlink(req.file.path).catch(() => undefined);
     }
+  }
+};
+
+
+// ============================================================
+// Ordner — klammern die Tagesblaetter einer Woche zusammen
+// ============================================================
+
+/**
+ * Laedt einen Ordner und stellt sicher, dass der Benutzer dem Projekt
+ * zugeordnet ist. Antwortet selbst mit 404/403 und liefert dann null.
+ */
+const loadAccessibleFolder = async (req: AuthRequest, res: Response) => {
+  const folder = await berichtFolderService.getById(req.params.id);
+
+  if (!folder) {
+    res.status(404).json({ error: 'Ordner nicht gefunden' });
+    return null;
+  }
+
+  if (!(await hasProjectAccess(req.user!, folder.projectId))) {
+    res.status(403).json({
+      error: 'Access denied',
+      message: 'Sie sind diesem Projekt nicht zugeordnet',
+    });
+    return null;
+  }
+
+  return folder;
+};
+
+export const getFolders = async (req: AuthRequest, res: Response) => {
+  try {
+    const allowed = await getAccessibleProjectIds(req.user!);
+    res.json(await berichtFolderService.list(allowed, req.query.projectId as string | undefined));
+  } catch (error) {
+    console.error('Get report folders error:', error);
+    res.status(500).json({ error: 'Ordner konnten nicht geladen werden' });
+  }
+};
+
+export const createFolder = async (req: AuthRequest, res: Response) => {
+  try {
+    const name = (req.body.name || '').trim();
+    if (!name) {
+      return res.status(400).json({ error: 'Name ist erforderlich' });
+    }
+
+    res.status(201).json(await berichtFolderService.create(req.body.projectId, name));
+  } catch (error: any) {
+    // Der Unique-Index auf (projectId, name) haelt Doppelungen ab.
+    if (error?.code === 'P2002') {
+      return res.status(409).json({ error: 'In diesem Projekt gibt es den Ordner bereits' });
+    }
+    console.error('Create report folder error:', error);
+    res.status(500).json({ error: 'Ordner konnte nicht angelegt werden' });
+  }
+};
+
+export const renameFolder = async (req: AuthRequest, res: Response) => {
+  try {
+    const folder = await loadAccessibleFolder(req, res);
+    if (!folder) return;
+
+    const name = (req.body.name || '').trim();
+    if (!name) {
+      return res.status(400).json({ error: 'Name ist erforderlich' });
+    }
+
+    res.json(await berichtFolderService.rename(folder.id, name));
+  } catch (error: any) {
+    if (error?.code === 'P2002') {
+      return res.status(409).json({ error: 'In diesem Projekt gibt es den Ordner bereits' });
+    }
+    console.error('Rename report folder error:', error);
+    res.status(500).json({ error: 'Ordner konnte nicht umbenannt werden' });
+  }
+};
+
+/** Loeschen laesst die Berichte stehen — sie landen wieder in "Ohne Ordner". */
+export const deleteFolder = async (req: AuthRequest, res: Response) => {
+  try {
+    const folder = await loadAccessibleFolder(req, res);
+    if (!folder) return;
+
+    await berichtFolderService.remove(folder.id);
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Delete report folder error:', error);
+    res.status(500).json({ error: 'Ordner konnte nicht gelöscht werden' });
+  }
+};
+
+/**
+ * Gesamt-Wochenbericht: Deckblatt mit Kennzahlen, danach jedes Tagesblatt.
+ * `format` ist 'html' oder 'pdf'.
+ */
+const exportFolder = async (req: AuthRequest, res: Response, format: 'html' | 'pdf') => {
+  const folder = await loadAccessibleFolder(req, res);
+  if (!folder) return;
+
+  const reports = await berichtFolderService.getReports(folder.id);
+
+  if (!reports.length) {
+    return res.status(400).json({ error: 'Der Ordner enthält keine Berichte' });
+  }
+
+  const ehs = await loadEhsSection(req, reports[0]);
+  const html = renderFolderHtml(folder, reports, ehs);
+  const filename = folderExportFilename(folder.name, format);
+
+  if (format === 'html') {
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  }
+
+  const pdf = await renderHtmlAsPdf(html);
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Length', pdf.length);
+  res.end(pdf);
+};
+
+export const exportFolderHtml = async (req: AuthRequest, res: Response) => {
+  try {
+    await exportFolder(req, res, 'html');
+  } catch (error) {
+    console.error('Export folder HTML error:', error);
+    res.status(500).json({ error: 'HTML-Export fehlgeschlagen' });
+  }
+};
+
+export const exportFolderPdf = async (req: AuthRequest, res: Response) => {
+  try {
+    await exportFolder(req, res, 'pdf');
+  } catch (error: any) {
+    console.error('Export folder PDF error:', error);
+    res.status(500).json({ error: 'PDF-Erzeugung fehlgeschlagen', details: error?.message });
   }
 };
 

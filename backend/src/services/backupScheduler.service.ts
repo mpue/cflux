@@ -133,6 +133,7 @@ export const TABLE_MAP: Record<string, string> = {
   handoverProtocolItems: 'handoverProtocolItem',
   calendarEvents: 'calendarEvent',
   calendarEventAttendees: 'calendarEventAttendee',
+  reportFolders: 'reportFolder',
   reports: 'report',
   reportAreas: 'reportArea',
   reportPhotos: 'reportPhoto',

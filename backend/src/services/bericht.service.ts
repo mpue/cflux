@@ -46,6 +46,9 @@ const reportInclude = {
       accentColor: true,
     },
   },
+  folder: {
+    select: { id: true, name: true },
+  },
   createdBy: {
     select: { id: true, firstName: true, lastName: true },
   },
@@ -89,7 +92,8 @@ export const berichtService = {
         weekday: true,
         date: true,
         titel: true,
-        ordner: true,
+        folderId: true,
+        folder: { select: { id: true, name: true } },
         referent: true,
         status: true,
         createdAt: true,
@@ -114,7 +118,7 @@ export const berichtService = {
     weekday: string;
     date: string | Date;
     titel?: string | null;
-    ordner?: string | null;
+    folderId?: string | null;
     referent?: string | null;
     rundgangDurchgefuehrt?: string | null;
     weitereTeilnehmer?: string | null;
@@ -132,7 +136,7 @@ export const berichtService = {
         weekday: data.weekday,
         date,
         titel: data.titel ?? null,
-        ordner: data.ordner ?? null,
+        folderId: data.folderId ?? null,
         referent: data.referent ?? null,
         rundgangDurchgefuehrt: data.rundgangDurchgefuehrt ?? null,
         weitereTeilnehmer: data.weitereTeilnehmer ?? null,
@@ -156,7 +160,7 @@ export const berichtService = {
       weekday?: string;
       date?: string | Date;
       titel?: string | null;
-      ordner?: string | null;
+      folderId?: string | null;
       referent?: string | null;
       rundgangDurchgefuehrt?: string | null;
       weitereTeilnehmer?: string | null;
@@ -174,7 +178,11 @@ export const berichtService = {
       data.date = date;
     }
     if (patch.titel !== undefined) data.titel = patch.titel || null;
-    if (patch.ordner !== undefined) data.ordner = patch.ordner || null;
+    if (patch.folderId !== undefined) {
+      data.folder = patch.folderId
+        ? { connect: { id: patch.folderId } }
+        : { disconnect: true };
+    }
     if (patch.referent !== undefined) data.referent = patch.referent || null;
     if (patch.rundgangDurchgefuehrt !== undefined) {
       data.rundgangDurchgefuehrt = patch.rundgangDurchgefuehrt || null;
@@ -309,3 +317,65 @@ export const berichtService = {
 export type ReportWithRelations = NonNullable<
   Awaited<ReturnType<typeof berichtService.getReportById>>
 >;
+
+/**
+ * Ordner klammern die Tagesblaetter einer Woche zu einem Gesamt-Wochenbericht.
+ * Sie haengen am Projekt — die Zugriffspruefung laeuft deshalb wie bei den
+ * Berichten ueber requireProjectAccess bzw. getAccessibleProjectIds.
+ */
+export const berichtFolderService = {
+  /** Ordner der erlaubten Projekte, mit Anzahl der enthaltenen Berichte. */
+  list: async (allowedProjectIds: string[] | null, projectId?: string) => {
+    const where: Prisma.ReportFolderWhereInput = {};
+
+    if (allowedProjectIds !== null) {
+      where.projectId = { in: allowedProjectIds };
+    }
+    if (projectId) {
+      where.AND = [{ projectId }];
+    }
+
+    return prisma.reportFolder.findMany({
+      where,
+      select: {
+        id: true,
+        projectId: true,
+        name: true,
+        createdAt: true,
+        project: { select: { id: true, name: true } },
+        _count: { select: { reports: true } },
+      },
+      orderBy: [{ projectId: 'asc' }, { name: 'asc' }],
+    });
+  },
+
+  getById: async (id: string) =>
+    prisma.reportFolder.findUnique({
+      where: { id },
+      include: { project: true },
+    }),
+
+  create: async (projectId: string, name: string) =>
+    prisma.reportFolder.create({
+      data: { projectId, name },
+      select: { id: true, projectId: true, name: true, createdAt: true },
+    }),
+
+  rename: async (id: string, name: string) =>
+    prisma.reportFolder.update({
+      where: { id },
+      data: { name },
+      select: { id: true, projectId: true, name: true, createdAt: true },
+    }),
+
+  /** Loeschen laesst die Berichte stehen; sie landen wieder in "Ohne Ordner". */
+  remove: async (id: string) => prisma.reportFolder.delete({ where: { id } }),
+
+  /** Vollstaendige Berichte eines Ordners, nach Datum — fuer den Gesamtbericht. */
+  getReports: async (folderId: string) =>
+    prisma.report.findMany({
+      where: { folderId },
+      include: reportInclude,
+      orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+    }),
+};

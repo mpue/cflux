@@ -355,27 +355,22 @@ const buildEhsSection = (ehs: EHSReportSection): string => {
   </div>`;
 };
 
-export const renderReportHtml = (
-  report: ReportWithRelations,
-  ehs: EHSReportSection | null = null
-): string => {
-  const primary = safeColor(report.project.primaryColor, DEFAULT_BRANDING.primaryColor);
-  const secondary = safeColor(report.project.secondaryColor, DEFAULT_BRANDING.secondaryColor);
-  const accent = safeColor(report.project.accentColor, DEFAULT_BRANDING.accentColor);
-  const logo = logoDataUri(report.project.logoUrl);
-  const dateLabel = formatDate(report.date);
-  // Ein gepflegter Titel ersetzt die Standardzeile, so wie im Quelltool.
-  const heading = report.titel?.trim()
-    ? report.titel.trim()
-    : `Toolbox-Rundgang · Tagesprotokoll — ${report.weekday}, ${dateLabel}`;
+/** Farbschema des Dokuments — aus dem Projekt, mit Fallback auf das Originallayout. */
+const brandingOf = (project: ReportWithRelations['project']) => ({
+  primary: safeColor(project.primaryColor, DEFAULT_BRANDING.primaryColor),
+  secondary: safeColor(project.secondaryColor, DEFAULT_BRANDING.secondaryColor),
+  accent: safeColor(project.accentColor, DEFAULT_BRANDING.accentColor),
+});
 
-  return `<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
-<title>${esc(heading)}</title>
-<style>
-  body {
+const buildStyles = ({
+  primary,
+  secondary,
+  accent,
+}: {
+  primary: string;
+  secondary: string;
+  accent: string;
+}): string => `  body {
     font-family: Calibri, Arial, sans-serif;
     background: #f4f1ec;
     padding: 24px;
@@ -406,6 +401,23 @@ export const renderReportHtml = (
   .feststellungen td.center { text-align: center; }
   .beweisfoto { max-width: 110px; max-height: 110px; display: block; margin: 0 auto; }
   .footnote { font-size: 8pt; color: #666; margin-top: 8px; }
+
+  /* ---- Gesamt-Wochenbericht ---- */
+  .kennzahlen td {
+    text-align: center;
+    background: ${accent};
+    width: 16.6%;
+  }
+  .kennzahl-zahl { font-size: 20pt; font-weight: bold; color: ${primary}; line-height: 1.2; }
+  .kennzahl-bez { font-size: 8.5pt; color: #555; }
+  .ampel-gruen { color: #2e7d32; }
+  .ampel-gelb { color: #b8860b; }
+  .ampel-rot { color: #c62828; }
+  .uebersicht th { background: ${primary}; color: #fff; text-align: center; font-size: 8.5pt; }
+  .uebersicht td.center { text-align: center; }
+  /* Jedes Tagesblatt beginnt auf einer neuen Seite. */
+  .sheet-page + .sheet-page,
+  .sheet-page:first-of-type { page-break-before: always; }
 
   /* ---- EHS-Auswertung (Anhang) ---- */
   .ehs-section { page-break-before: always; }
@@ -447,15 +459,30 @@ export const renderReportHtml = (
     .ehs-section table { page-break-inside: auto; }
     .ehs-section tr { page-break-inside: avoid; }
     .ehs-pyramid { page-break-inside: avoid; }
+    .kennzahlen, .uebersicht { page-break-inside: avoid; }
   }
-</style>
-</head>
-<body>
-  <div class="doc-header">
+`;
+
+/** Ueberschrift eines Tagesblatts: der gepflegte Titel, sonst die Standardzeile. */
+const reportHeading = (report: ReportWithRelations): string =>
+  report.titel?.trim()
+    ? report.titel.trim()
+    : `Toolbox-Rundgang · Tagesprotokoll — ${report.weekday}, ${formatDate(report.date)}`;
+
+/**
+ * Der Rumpf eines Tagesblatts ohne Dokumentgeruest — der Gesamt-Wochenbericht
+ * reiht mehrere davon hintereinander.
+ */
+const buildReportBody = (report: ReportWithRelations): string => {
+  const heading = reportHeading(report);
+  const dateLabel = formatDate(report.date);
+  const logo = logoDataUri(report.project.logoUrl);
+
+  return `  <div class="doc-header">
     <div>
       <h1>${esc(heading)}</h1>
       <div class="subtitle">${esc(report.project.name)}${
-        report.ordner ? ` · ${esc(report.ordner)}` : ''
+        report.folder ? ` · ${esc(report.folder.name)}` : ''
       }</div>
     </div>
     ${logo ? `<img src="${logo}" alt="${esc(report.project.name)}" class="doc-logo">` : ''}
@@ -465,8 +492,8 @@ export const renderReportHtml = (
     <tr><td class="label">Projekt / Objekt</td><td class="value" colspan="3">${esc(report.project.name)}</td></tr>
     <tr><td class="label">Datum des Rundgangs</td><td class="value" colspan="3">${esc(dateLabel)} (${esc(report.weekday)})</td></tr>
     ${
-      report.ordner
-        ? `<tr><td class="label">Wochenbericht / Ordner</td><td class="value" colspan="3">${esc(report.ordner)}</td></tr>`
+      report.folder
+        ? `<tr><td class="label">Wochenbericht / Ordner</td><td class="value" colspan="3">${esc(report.folder.name)}</td></tr>`
         : ''
     }
     <tr><td class="label">Referent / CM</td><td class="value" colspan="3">${esc(report.referent)}</td></tr>
@@ -487,21 +514,135 @@ export const renderReportHtml = (
     </tr>
     ${buildFindingRows(report) || '<tr><td colspan="13" class="center">Keine Feststellungen erfasst</td></tr>'}
   </table>
+`;
+};
 
-  ${ehs ? buildEhsSection(ehs) : ''}
+/** Gemeinsames Dokumentgeruest fuer Einzel- und Gesamtbericht. */
+const docShell = (
+  title: string,
+  colors: { primary: string; secondary: string; accent: string },
+  body: string
+): string => `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>${esc(title)}</title>
+<style>
+${buildStyles(colors)}
+</style>
+</head>
+<body>
+${body}
 
   <div class="footnote">Erzeugt mit cflux · Modul Berichte.</div>
 </body>
 </html>`;
+
+export const renderReportHtml = (
+  report: ReportWithRelations,
+  ehs: EHSReportSection | null = null
+): string =>
+  docShell(
+    reportHeading(report),
+    brandingOf(report.project),
+    `${buildReportBody(report)}\n\n  ${ehs ? buildEhsSection(ehs) : ''}`
+  );
+
+export interface ReportFolderInfo {
+  id: string;
+  name: string;
+  project: ReportWithRelations['project'];
+}
+
+const countAmpel = (reports: ReportWithRelations[], value: string): number =>
+  reports.reduce(
+    (sum, report) => sum + report.findings.filter((finding) => finding.ampel === value).length,
+    0
+  );
+
+/** Deckblatt des Gesamtberichts: Zeitraum, Kennzahlen, Uebersicht der Tage. */
+const buildFolderCover = (folder: ReportFolderInfo, reports: ReportWithRelations[]): string => {
+  const logo = logoDataUri(folder.project.logoUrl);
+  const dates = reports.map((report) => new Date(report.date).getTime()).sort((a, b) => a - b);
+
+  const zeitraum = dates.length
+    ? dates.length === 1 || dates[0] === dates[dates.length - 1]
+      ? formatDate(new Date(dates[0]))
+      : `${formatDate(new Date(dates[0]))} – ${formatDate(new Date(dates[dates.length - 1]))}`
+    : 'kein Datum';
+
+  const findingCount = reports.reduce((sum, report) => sum + report.findings.length, 0);
+  const photoCount = reports.reduce((sum, report) => sum + report.photos.length, 0);
+
+  const rows = reports
+    .map(
+      (report) => `
+      <tr>
+        <td>${esc(report.weekday)}</td>
+        <td>${formatDate(report.date)}</td>
+        <td>${esc(report.titel)}</td>
+        <td>${esc(report.referent)}</td>
+        <td class="center">${esc(report.rundgangDurchgefuehrt)}</td>
+        <td class="center">${report.findings.length}</td>
+        <td class="center">${report.photos.length}</td>
+      </tr>`
+    )
+    .join('');
+
+  return `  <div class="doc-header">
+    <div>
+      <h1>${esc(folder.name)}</h1>
+      <div class="subtitle">Gesamt-Wochenbericht · ${esc(folder.project.name)} · ${esc(zeitraum)}</div>
+    </div>
+    ${logo ? `<img src="${logo}" alt="${esc(folder.project.name)}" class="doc-logo">` : ''}
+  </div>
+
+  <table class="kennzahlen">
+    <tr>
+      <td><div class="kennzahl-zahl">${reports.length}</div><div class="kennzahl-bez">${
+        reports.length === 1 ? 'Tagesblatt' : 'Tagesblätter'
+      }</div></td>
+      <td><div class="kennzahl-zahl">${findingCount}</div><div class="kennzahl-bez">Feststellungen</div></td>
+      <td><div class="kennzahl-zahl ampel-gruen">${countAmpel(reports, 'Grün')}</div><div class="kennzahl-bez">Ampel grün</div></td>
+      <td><div class="kennzahl-zahl ampel-gelb">${countAmpel(reports, 'Gelb')}</div><div class="kennzahl-bez">Ampel gelb</div></td>
+      <td><div class="kennzahl-zahl ampel-rot">${countAmpel(reports, 'Rot')}</div><div class="kennzahl-bez">Ampel rot</div></td>
+      <td><div class="kennzahl-zahl">${photoCount}</div><div class="kennzahl-bez">Fotos</div></td>
+    </tr>
+  </table>
+
+  <table class="uebersicht">
+    <tr><td colspan="7" class="section-header">Übersicht der enthaltenen Tagesblätter</td></tr>
+    <tr>
+      <th>Wochentag</th><th>Datum</th><th>Titel</th><th>Referent / CM</th>
+      <th>Rundgang</th><th>Feststellungen</th><th>Fotos</th>
+    </tr>
+    ${rows || '<tr><td colspan="7" class="center">Keine Tagesblätter in diesem Ordner</td></tr>'}
+  </table>`;
+};
+
+/**
+ * Gesamt-Wochenbericht: Deckblatt mit Uebersicht, danach jedes Tagesblatt auf
+ * einer eigenen Seite, optional die EHS-Auswertung am Ende.
+ */
+export const renderFolderHtml = (
+  folder: ReportFolderInfo,
+  reports: ReportWithRelations[],
+  ehs: EHSReportSection | null = null
+): string => {
+  const pages = reports
+    .map((report) => `  <div class="sheet-page">\n${buildReportBody(report)}\n  </div>`)
+    .join('\n\n');
+
+  return docShell(
+    `${folder.name} – Gesamt-Wochenbericht`,
+    brandingOf(folder.project),
+    `${buildFolderCover(folder, reports)}\n\n${pages}\n\n  ${ehs ? buildEhsSection(ehs) : ''}`
+  );
 };
 
 /** Rendert den Bericht ueber Gotenberg (Chromium) als A4-Querformat-PDF. */
-export const renderReportPdf = async (
-  report: ReportWithRelations,
-  ehs: EHSReportSection | null = null
-): Promise<Buffer> => {
-  const html = renderReportHtml(report, ehs);
-
+/** Schickt fertiges HTML durch Gotenberg (Chromium) und liefert das A4-Quer-PDF. */
+export const renderHtmlAsPdf = async (html: string): Promise<Buffer> => {
   const form = new FormData();
   form.append('files', Buffer.from(html, 'utf-8'), {
     filename: 'index.html',
@@ -521,13 +662,26 @@ export const renderReportPdf = async (
   const response = await axios.post(`${GOTENBERG_URL}/forms/chromium/convert/html`, form, {
     headers: form.getHeaders(),
     responseType: 'arraybuffer',
-    timeout: 60000,
+    // Ein Gesamt-Wochenbericht bringt alle Fotos einer Woche mit; Chromium
+    // braucht dafuer deutlich laenger als fuer ein einzelnes Tagesblatt.
+    timeout: 5 * 60 * 1000,
   });
 
   return Buffer.from(response.data);
 };
 
+export const renderReportPdf = async (
+  report: ReportWithRelations,
+  ehs: EHSReportSection | null = null
+): Promise<Buffer> => renderHtmlAsPdf(renderReportHtml(report, ehs));
+
 /** Dateiname fuer den Download, ohne Sonderzeichen. */
+/** Dateiname des Gesamt-Wochenberichts, ohne Sonderzeichen. */
+export const folderExportFilename = (folderName: string, extension: string): string => {
+  const name = folderName.replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 60);
+  return `Wochenbericht_${name || 'Ordner'}.${extension}`;
+};
+
 export const exportFilename = (report: ReportWithRelations, extension: string): string => {
   const date = new Date(report.date).toISOString().slice(0, 10);
   const ascii = (value: string) => value.replace(/[^A-Za-z0-9_-]+/g, '_').slice(0, 40);

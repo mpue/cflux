@@ -14,16 +14,20 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Collapse,
   Divider,
   FormControl,
   FormControlLabel,
+  FormHelperText,
   Grid,
   IconButton,
   InputLabel,
   LinearProgress,
   List,
   ListItemButton,
+  ListItemIcon,
   ListItemText,
+  Menu,
   MenuItem,
   Paper,
   Select,
@@ -47,6 +51,13 @@ import {
   PhotoCamera as PhotoCameraIcon,
   PictureAsPdf as PdfIcon,
   Upload as UploadIcon,
+  CreateNewFolder as NewFolderIcon,
+  Folder as FolderIcon,
+  FolderOpen as FolderOpenIcon,
+  MoreVert as MoreVertIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
+  MenuBook as WeeklyReportIcon,
 } from '@mui/icons-material';
 import AppNavbar from '../components/AppNavbar';
 import { useModules } from '../contexts/ModuleContext';
@@ -55,6 +66,7 @@ import { normalizeUploadUrl } from '../services/api';
 import {
   Bericht,
   BerichtArea,
+  BerichtFolder,
   BerichtImportResult,
   BerichtFinding,
   BerichtListItem,
@@ -62,6 +74,9 @@ import {
 } from '../types/bericht';
 
 const MODULE_KEY = 'berichte';
+
+/** Sentinel im Ordner-Auswahlfeld: öffnet den Dialog, statt zu verschieben. */
+const NEW_FOLDER_OPTION = '__new_folder__';
 
 const WEEKDAYS = [
   { value: 'Mo', label: 'Montag' },
@@ -141,6 +156,17 @@ const BerichtePage: React.FC = () => {
 
   const [projects, setProjects] = useState<BerichtProject[]>([]);
   const [reports, setReports] = useState<BerichtListItem[]>([]);
+  const [folders, setFolders] = useState<BerichtFolder[]>([]);
+  /** Zugeklappte Ordner; standardmäßig ist alles offen. */
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
+  const [folderDialog, setFolderDialog] = useState<{
+    folder: BerichtFolder | null;
+    name: string;
+    projectId: string;
+  } | null>(null);
+  const [folderMenu, setFolderMenu] = useState<{ anchor: HTMLElement; folder: BerichtFolder } | null>(
+    null
+  );
   const [projectFilter, setProjectFilter] = useState<string>('');
   const [current, setCurrent] = useState<Bericht | null>(null);
   const [step, setStep] = useState(0);
@@ -190,6 +216,14 @@ const BerichtePage: React.FC = () => {
     }
   }, []);
 
+  const loadFolders = useCallback(async (projectId?: string) => {
+    try {
+      setFolders(await berichtService.listFolders(projectId || undefined));
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Ordner konnten nicht geladen werden');
+    }
+  }, []);
+
   const loadReports = useCallback(async (projectId?: string) => {
     try {
       setReports(await berichtService.list(projectId || undefined));
@@ -201,14 +235,15 @@ const BerichtePage: React.FC = () => {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await Promise.all([loadProjects(), loadReports()]);
+      await Promise.all([loadProjects(), loadReports(), loadFolders()]);
       setLoading(false);
     })();
-  }, [loadProjects, loadReports]);
+  }, [loadProjects, loadReports, loadFolders]);
 
   useEffect(() => {
     loadReports(projectFilter);
-  }, [projectFilter, loadReports]);
+    loadFolders(projectFilter);
+  }, [projectFilter, loadReports, loadFolders]);
 
   // Der EHS-Anhang startet beim Monat und Projekt des geoeffneten Berichts,
   // laesst sich im letzten Schritt aber frei umstellen.
@@ -242,7 +277,7 @@ const BerichtePage: React.FC = () => {
           referent: report.referent,
           rundgangDurchgefuehrt: report.rundgangDurchgefuehrt,
           titel: report.titel,
-        ordner: report.ordner,
+        folderId: report.folderId,
         weitereTeilnehmer: report.weitereTeilnehmer,
           areas: report.areas,
           findings: report.findings,
@@ -278,7 +313,7 @@ const BerichtePage: React.FC = () => {
         referent: report.referent,
         rundgangDurchgefuehrt: report.rundgangDurchgefuehrt,
         titel: report.titel,
-        ordner: report.ordner,
+        folderId: report.folderId,
         weitereTeilnehmer: report.weitereTeilnehmer,
         areas: report.areas,
         findings: report.findings,
@@ -416,6 +451,118 @@ const BerichtePage: React.FC = () => {
     }
   };
 
+  // --- Ordner ---
+
+  /**
+   * Vorbelegung des Ordner-Projekts: das Projekt des offenen Berichts hat
+   * Vorrang — sonst legt man den Ordner neben den Berichten an, für die er
+   * gedacht war, und er taucht in deren Auswahl nie auf.
+   */
+  const defaultFolderProjectId = () =>
+    current?.projectId || projectFilter || projects[0]?.id || '';
+
+  const openFolderDialog = (folder: BerichtFolder | null, projectId?: string) =>
+    setFolderDialog({
+      folder,
+      name: folder?.name || '',
+      projectId: folder?.projectId || projectId || defaultFolderProjectId(),
+    });
+
+  const toggleFolder = (folderId: string) => {
+    setCollapsedFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
+      }
+      return next;
+    });
+  };
+
+  const saveFolder = async () => {
+    if (!folderDialog) return;
+
+    const name = folderDialog.name.trim();
+    if (!name) return;
+
+    try {
+      if (folderDialog.folder) {
+        await berichtService.renameFolder(folderDialog.folder.id, name);
+        setToast('Ordner umbenannt');
+      } else {
+        if (!folderDialog.projectId) return;
+        await berichtService.createFolder(folderDialog.projectId, name);
+        setToast('Ordner angelegt');
+      }
+
+      setFolderDialog(null);
+      await Promise.all([loadFolders(projectFilter), loadReports(projectFilter)]);
+      if (current) setCurrent(await berichtService.getById(current.id));
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Ordner konnte nicht gespeichert werden');
+    }
+  };
+
+  const removeFolder = async (folder: BerichtFolder) => {
+    const count = folder._count?.reports ?? 0;
+    const question =
+      count > 0
+        ? `Ordner „${folder.name}" löschen? Die ${count} enthaltenen Berichte bleiben erhalten und landen in „Ohne Ordner".`
+        : `Ordner „${folder.name}" löschen?`;
+
+    if (!window.confirm(question)) return;
+
+    try {
+      await berichtService.deleteFolder(folder.id);
+      setToast('Ordner gelöscht');
+      await Promise.all([loadFolders(projectFilter), loadReports(projectFilter)]);
+      if (current) setCurrent(await berichtService.getById(current.id));
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Ordner konnte nicht gelöscht werden');
+    }
+  };
+
+  /** Verschiebt den offenen Bericht in einen Ordner (oder heraus). */
+  const moveCurrentToFolder = async (folderId: string) => {
+    if (!current) return;
+
+    patchCurrent({ folderId: folderId || null });
+
+    try {
+      const updated = await berichtService.update(current.id, { folderId: folderId || null });
+      setCurrent(updated);
+      await Promise.all([loadReports(projectFilter), loadFolders(projectFilter)]);
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Bericht konnte nicht verschoben werden');
+    }
+  };
+
+  /** Gesamt-Wochenbericht eines Ordners herunterladen. */
+  const handleFolderExport = async (folderId: string, format: 'pdf' | 'html') => {
+    setExporting(true);
+
+    try {
+      // Offene Eingaben zuerst sichern, sonst fehlen sie im Gesamtbericht.
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+        await persist();
+      }
+
+      await berichtService.downloadFolder(
+        folderId,
+        format,
+        ehsInclude ? { year: ehsYear, month: ehsMonth, projectId: ehsProjectId || 'all' } : undefined
+      );
+      setToast('Gesamt-Wochenbericht wird heruntergeladen');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Export fehlgeschlagen');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleExport = async (format: 'pdf' | 'html') => {
     if (!current) return;
 
@@ -480,6 +627,28 @@ const BerichtePage: React.FC = () => {
 
   const projectBranding = current?.project;
 
+  /** Berichte ohne Ordner — stehen unter den Ordnern. */
+  const looseReports = reports.filter((report) => !report.folderId);
+
+  const renderReportListItem = (report: BerichtListItem, indent: number) => (
+    <ListItemButton
+      key={report.id}
+      selected={current?.id === report.id}
+      onClick={() => selectReport(report.id)}
+      sx={{ pl: indent }}
+    >
+      <ListItemText
+        primary={
+          report.titel?.trim()
+            ? `${report.titel.trim()} (${report.weekday}, ${formatDate(report.date)})`
+            : `${report.weekday}, ${formatDate(report.date)}`
+        }
+        secondary={`${report.project.name} · ${report._count.findings} Feststellung(en)`}
+        primaryTypographyProps={{ variant: 'body2' }}
+      />
+    </ListItemButton>
+  );
+
   const renderSidebar = () => (
     <Paper sx={{ p: 2, height: '100%' }}>
       <Button
@@ -494,6 +663,17 @@ const BerichtePage: React.FC = () => {
         sx={{ mb: 2 }}
       >
         Neuer Bericht
+      </Button>
+
+      <Button
+        fullWidth
+        variant="outlined"
+        startIcon={<NewFolderIcon />}
+        disabled={!mayCreate || projects.length === 0}
+        onClick={() => openFolderDialog(null)}
+        sx={{ mb: 1 }}
+      >
+        Neuer Ordner
       </Button>
 
       <Button
@@ -526,40 +706,88 @@ const BerichtePage: React.FC = () => {
 
       <Divider sx={{ mb: 1 }} />
 
-      {reports.length === 0 ? (
+      {reports.length === 0 && folders.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
           Noch keine Berichte vorhanden.
         </Typography>
       ) : (
         <List dense disablePadding>
-          {reports.map((report) => (
-            <ListItemButton
-              key={report.id}
-              selected={current?.id === report.id}
-              onClick={() => selectReport(report.id)}
-            >
-              <ListItemText
-                primary={
-                  report.titel?.trim()
-                    ? `${report.titel.trim()} (${report.weekday}, ${formatDate(report.date)})`
-                    : `${report.weekday}, ${formatDate(report.date)}`
-                }
-                secondary={[
-                  report.project.name,
-                  report.ordner?.trim() || null,
-                  `${report._count.findings} Feststellung(en)`,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              />
-            </ListItemButton>
-          ))}
+          {folders.map((folder) => {
+            const inFolder = reports.filter((report) => report.folderId === folder.id);
+            const open = !collapsedFolders.has(folder.id);
+
+            return (
+              <React.Fragment key={folder.id}>
+                <ListItemButton onClick={() => toggleFolder(folder.id)}>
+                  <ListItemIcon sx={{ minWidth: 34 }}>
+                    {open ? <FolderOpenIcon fontSize="small" /> : <FolderIcon fontSize="small" />}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={folder.name}
+                    secondary={[
+                      // Ohne Projektfilter stehen Ordner mehrerer Projekte
+                      // untereinander — ohne den Namen ist nicht erkennbar,
+                      // warum ein Ordner bei einem Bericht nicht wählbar ist.
+                      projectFilter ? null : folder.project?.name,
+                      `${inFolder.length} ${inFolder.length === 1 ? 'Bericht' : 'Berichte'}`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                    primaryTypographyProps={{ fontWeight: 600 }}
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setFolderMenu({ anchor: event.currentTarget, folder });
+                    }}
+                  >
+                    <MoreVertIcon fontSize="small" />
+                  </IconButton>
+                  {open ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                </ListItemButton>
+
+                <Collapse in={open} unmountOnExit>
+                  <List dense disablePadding>
+                    {inFolder.length === 0 ? (
+                      <Typography variant="caption" color="text.secondary" sx={{ pl: 5, py: 0.5, display: 'block' }}>
+                        Noch kein Bericht in diesem Ordner
+                      </Typography>
+                    ) : (
+                      inFolder.map((report) => renderReportListItem(report, 4))
+                    )}
+                  </List>
+                </Collapse>
+              </React.Fragment>
+            );
+          })}
+
+          {looseReports.length > 0 && (
+            <>
+              {folders.length > 0 && (
+                <ListItemButton disabled sx={{ opacity: 1 }}>
+                  <ListItemIcon sx={{ minWidth: 34 }}>
+                    <PdfIcon fontSize="small" sx={{ visibility: 'hidden' }} />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary="Ohne Ordner"
+                    primaryTypographyProps={{ fontWeight: 600, color: 'text.secondary' }}
+                  />
+                </ListItemButton>
+              )}
+              {looseReports.map((report) => renderReportListItem(report, folders.length > 0 ? 4 : 2))}
+            </>
+          )}
         </List>
       )}
     </Paper>
   );
 
-  const renderKopfdaten = (report: Bericht) => (
+  const renderKopfdaten = (report: Bericht) => {
+    // Ordner sind projektgebunden — fremde gehören nicht in die Auswahl.
+    const projectFolders = folders.filter((folder) => folder.projectId === report.projectId);
+
+    return (
     <Card>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
@@ -663,19 +891,42 @@ const BerichtePage: React.FC = () => {
           </Grid>
 
           <Grid item xs={12} sm={4}>
-            <TextField
-              fullWidth
-              label="Wochenbericht / Ordner (optional)"
-              helperText="Klammert mehrere Tage zu einem Wochenbericht."
-              value={report.ordner || ''}
-              disabled={!mayEdit}
-              onChange={(e) => patchCurrent({ ordner: e.target.value })}
-            />
+            <FormControl fullWidth disabled={!mayEdit}>
+              <InputLabel id="bericht-folder">Ordner (optional)</InputLabel>
+              <Select
+                labelId="bericht-folder"
+                label="Ordner (optional)"
+                value={report.folderId || ''}
+                onChange={(e) => {
+                  if (e.target.value === NEW_FOLDER_OPTION) {
+                    openFolderDialog(null, report.projectId);
+                    return;
+                  }
+                  moveCurrentToFolder(e.target.value);
+                }}
+              >
+                <MenuItem value="">Ohne Ordner</MenuItem>
+                {projectFolders.map((folder) => (
+                  <MenuItem key={folder.id} value={folder.id}>
+                    {folder.name}
+                  </MenuItem>
+                ))}
+                <MenuItem value={NEW_FOLDER_OPTION}>
+                  <em>Neuen Ordner anlegen …</em>
+                </MenuItem>
+              </Select>
+              <FormHelperText>
+                {projectFolders.length === 0
+                  ? `Für „${report.project.name}" gibt es noch keinen Ordner.`
+                  : 'Klammert mehrere Tage zu einem Gesamt-Wochenbericht.'}
+              </FormHelperText>
+            </FormControl>
           </Grid>
         </Grid>
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   const renderBereiche = (report: Bericht) => (
     <Grid container spacing={2}>
@@ -1073,6 +1324,41 @@ const BerichtePage: React.FC = () => {
             Als HTML herunterladen
           </Button>
         </Box>
+
+        {current?.folder && (
+          <>
+            <Divider flexItem />
+
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                Gesamt-Wochenbericht „{current.folder.name}"
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Deckblatt mit Zeitraum, Kennzahlen und Übersicht, danach jedes Tagesblatt des
+                Ordners auf einer eigenen Seite. Die EHS-Auswahl oben gilt auch hier.
+              </Typography>
+
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Button
+                  variant="contained"
+                  startIcon={exporting ? <CircularProgress size={18} color="inherit" /> : <WeeklyReportIcon />}
+                  disabled={exporting}
+                  onClick={() => handleFolderExport(current.folder!.id, 'pdf')}
+                >
+                  Gesamtbericht als PDF
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<DownloadIcon />}
+                  disabled={exporting}
+                  onClick={() => handleFolderExport(current.folder!.id, 'html')}
+                >
+                  Gesamtbericht als HTML
+                </Button>
+              </Box>
+            </Box>
+          </>
+        )}
       </CardContent>
     </Card>
   );
@@ -1181,6 +1467,99 @@ const BerichtePage: React.FC = () => {
         )}
       </Container>
 
+      <Menu
+        open={folderMenu !== null}
+        anchorEl={folderMenu?.anchor}
+        onClose={() => setFolderMenu(null)}
+      >
+        <MenuItem
+          disabled={!mayEdit}
+          onClick={() => {
+            if (folderMenu) openFolderDialog(folderMenu.folder);
+            setFolderMenu(null);
+          }}
+        >
+          Umbenennen
+        </MenuItem>
+        <MenuItem
+          disabled={exporting}
+          onClick={() => {
+            if (folderMenu) handleFolderExport(folderMenu.folder.id, 'pdf');
+            setFolderMenu(null);
+          }}
+        >
+          Gesamt-Wochenbericht (PDF)
+        </MenuItem>
+        <MenuItem
+          disabled={exporting}
+          onClick={() => {
+            if (folderMenu) handleFolderExport(folderMenu.folder.id, 'html');
+            setFolderMenu(null);
+          }}
+        >
+          Gesamt-Wochenbericht (HTML)
+        </MenuItem>
+        <Divider />
+        <MenuItem
+          disabled={!mayDelete}
+          onClick={() => {
+            if (folderMenu) removeFolder(folderMenu.folder);
+            setFolderMenu(null);
+          }}
+        >
+          Löschen
+        </MenuItem>
+      </Menu>
+
+      <Dialog open={folderDialog !== null} onClose={() => setFolderDialog(null)} fullWidth maxWidth="xs">
+        <DialogTitle>{folderDialog?.folder ? 'Ordner umbenennen' : 'Neuen Ordner anlegen'}</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Name"
+            placeholder="z.B. KW 36"
+            sx={{ mt: 1, mb: 2 }}
+            value={folderDialog?.name || ''}
+            onChange={(event) =>
+              setFolderDialog((prev) => (prev ? { ...prev, name: event.target.value } : prev))
+            }
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') saveFolder();
+            }}
+          />
+
+          <FormControl fullWidth disabled={folderDialog?.folder !== null}>
+            <InputLabel id="folder-project">Projekt</InputLabel>
+            <Select
+              labelId="folder-project"
+              label="Projekt"
+              value={folderDialog?.projectId || ''}
+              onChange={(event) =>
+                setFolderDialog((prev) => (prev ? { ...prev, projectId: event.target.value } : prev))
+              }
+            >
+              {projects.map((project) => (
+                <MenuItem key={project.id} value={project.id}>
+                  {project.name}
+                </MenuItem>
+              ))}
+            </Select>
+            <FormHelperText>
+              {folderDialog?.folder
+                ? 'Das Projekt eines bestehenden Ordners lässt sich nicht wechseln.'
+                : 'Der Ordner steht nur Berichten dieses Projekts zur Auswahl.'}
+            </FormHelperText>
+          </FormControl>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setFolderDialog(null)}>Abbrechen</Button>
+          <Button variant="contained" disabled={!folderDialog?.name.trim()} onClick={saveFolder}>
+            {folderDialog?.folder ? 'Umbenennen' : 'Anlegen'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Dialog
         open={importDialogOpen}
         onClose={() => !importing && setImportDialogOpen(false)}
@@ -1272,7 +1651,7 @@ const BerichtePage: React.FC = () => {
               <Typography variant="body2">
                 {importResult.imported} Bericht(e) importiert, {importResult.skipped}{' '}
                 übersprungen — {importResult.findings} Feststellung(en), {importResult.photos}{' '}
-                Foto(s).
+                Foto(s), {importResult.foldersCreated} neue(r) Ordner.
               </Typography>
 
               {importResult.droppedFields.length > 0 && (

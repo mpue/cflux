@@ -473,6 +473,7 @@ model Project {
   checklistInstances ChecklistInstance[]
   stories     Story[]
   reports     Report[]
+  reportFolders ReportFolder[]
 
   @@map("projects")
 }
@@ -4075,7 +4076,7 @@ model Report {
   weekday               String // "Mo" | "Di" | "Mi" | "Do" | "Fr"
   date                  DateTime // Datum des Rundgangs
   titel                 String? // Freier Titel, steht im Export ueber dem Protokoll
-  ordner                String? // Gruppiert mehrere Tagesblaetter zu einem Wochenbericht
+  folderId              String? // Ordner, der mehrere Tagesblaetter zu einem Wochenbericht klammert
   referent              String? // Referent / CM
   rundgangDurchgefuehrt String? // "Ja" | "Nein" | null
   weitereTeilnehmer     String?
@@ -4085,6 +4086,7 @@ model Report {
   updatedAt             DateTime     @updatedAt
 
   project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  folder    ReportFolder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
   createdBy User?           @relation("ReportCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   areas     ReportArea[]
   findings  ReportFinding[]
@@ -4093,8 +4095,26 @@ model Report {
   @@index([projectId])
   @@index([date])
   @@index([createdById])
-  @@index([projectId, ordner])
+  @@index([folderId])
   @@map("reports")
+}
+
+// Ordner fasst die Tagesblaetter einer Woche zu einem Gesamt-Wochenbericht
+// zusammen. Gehoert zu genau einem Projekt — ein Wochenbericht ueber mehrere
+// Projekte hinweg haette weder ein einheitliches Branding noch eine Aussage.
+model ReportFolder {
+  id        String   @id @default(uuid())
+  projectId String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reports Report[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@map("report_folders")
 }
 
 // Kontrollierter Bereich im Rundgang, Status: i.O. / Abweichung / nicht geprueft

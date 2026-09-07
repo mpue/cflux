@@ -135,6 +135,32 @@ router.post(
   berichtController.importArchive
 );
 
+// --- Ordner (Gesamt-Wochenbericht) ---
+// Vor /:id, sonst schluckt die Einzelbericht-Route den Pfad "folders".
+router.get('/folders', requireModuleAccess(MODULE_KEY, 'canView'), berichtController.getFolders);
+router.post(
+  '/folders',
+  requireModuleAccess(MODULE_KEY, 'canCreate'),
+  requireProjectAccess('body'),
+  berichtController.createFolder
+);
+router.get(
+  '/folders/:id/export.html',
+  requireModuleAccess(MODULE_KEY, 'canView'),
+  berichtController.exportFolderHtml
+);
+router.get(
+  '/folders/:id/export.pdf',
+  requireModuleAccess(MODULE_KEY, 'canView'),
+  berichtController.exportFolderPdf
+);
+router.put('/folders/:id', requireModuleAccess(MODULE_KEY, 'canEdit'), berichtController.renameFolder);
+router.delete(
+  '/folders/:id',
+  requireModuleAccess(MODULE_KEY, 'canDelete'),
+  berichtController.deleteFolder
+);
+
 // Liste (optional gefiltert per ?projectId=)
 router.get('/', requireModuleAccess(MODULE_KEY, 'canView'), berichtController.getReports);
 

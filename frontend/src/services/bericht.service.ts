@@ -1,6 +1,7 @@
 import api, { getBackendURL } from './api';
 import {
   Bericht,
+  BerichtFolder,
   BerichtImportResult,
   BerichtListItem,
   BerichtProject,
@@ -12,11 +13,77 @@ import {
  * Alle Endpunkte sind projektgebunden — das Backend liefert nur Berichte zu
  * Projekten, denen der angemeldete Benutzer zugeordnet ist.
  */
+export interface EhsExportOptions {
+  year: number;
+  month: number;
+  projectId?: string | null;
+}
+
+/**
+ * Holt einen Export als Blob und stösst den Download an. Der Dateiname kommt
+ * aus Content-Disposition, damit Backend und Download denselben Namen tragen.
+ */
+const downloadExport = async (
+  path: string,
+  fallbackName: string,
+  ehs?: EhsExportOptions
+): Promise<void> => {
+  const response = await api.get(path, {
+    responseType: 'blob',
+    params: ehs
+      ? {
+          ehs: 'true',
+          ehsYear: ehs.year,
+          ehsMonth: ehs.month,
+          ehsProjectId: ehs.projectId || 'all',
+        }
+      : undefined,
+    // Ein Gesamt-Wochenbericht bringt alle Fotos einer Woche mit.
+    timeout: 5 * 60 * 1000,
+  });
+
+  const disposition = response.headers['content-disposition'] as string | undefined;
+  const match = disposition?.match(/filename="?([^"]+)"?/);
+
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = match ? match[1] : fallbackName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};
+
 export const berichtService = {
   /** Projekte, denen der Benutzer zugeordnet ist (Auswahl beim Anlegen). */
   getProjects: async (): Promise<BerichtProject[]> => {
     const response = await api.get('/berichte/projects');
     return response.data;
+  },
+
+  // --- Ordner ---
+
+  listFolders: async (projectId?: string): Promise<BerichtFolder[]> => {
+    const response = await api.get('/berichte/folders', {
+      params: projectId ? { projectId } : undefined,
+    });
+    return response.data;
+  },
+
+  createFolder: async (projectId: string, name: string): Promise<BerichtFolder> => {
+    const response = await api.post('/berichte/folders', { projectId, name });
+    return response.data;
+  },
+
+  renameFolder: async (id: string, name: string): Promise<BerichtFolder> => {
+    const response = await api.put(`/berichte/folders/${id}`, { name });
+    return response.data;
+  },
+
+  /** Löscht nur den Ordner — die Berichte darin landen wieder in „Ohne Ordner". */
+  deleteFolder: async (id: string): Promise<void> => {
+    await api.delete(`/berichte/folders/${id}`);
   },
 
   list: async (projectId?: string): Promise<BerichtListItem[]> => {
@@ -104,39 +171,26 @@ export const berichtService = {
     return response.data;
   },
 
-  /**
-   * Lädt den Export als Blob und stößt den Download an. Mit `ehs` wird die
-   * EHS-Auswertung (Kennzahlen, Pyramide, Jahresmatrix) hinten angehängt.
-   */
+  /** Einzelner Bericht; mit `ehs` hängt die EHS-Auswertung hinten an. */
   download: async (
     id: string,
     format: 'pdf' | 'html',
-    ehs?: { year: number; month: number; projectId?: string | null }
+    ehs?: EhsExportOptions
   ): Promise<void> => {
-    const response = await api.get(`/berichte/${id}/export.${format}`, {
-      responseType: 'blob',
-      params: ehs
-        ? {
-            ehs: 'true',
-            ehsYear: ehs.year,
-            ehsMonth: ehs.month,
-            ehsProjectId: ehs.projectId || 'all',
-          }
-        : undefined,
-    });
+    await downloadExport(`/berichte/${id}/export.${format}`, `bericht.${format}`, ehs);
+  },
 
-    const disposition = response.headers['content-disposition'] as string | undefined;
-    const match = disposition?.match(/filename="?([^"]+)"?/);
-    const filename = match ? match[1] : `bericht.${format}`;
-
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
+  /** Gesamt-Wochenbericht: Deckblatt mit Kennzahlen, danach jedes Tagesblatt. */
+  downloadFolder: async (
+    folderId: string,
+    format: 'pdf' | 'html',
+    ehs?: EhsExportOptions
+  ): Promise<void> => {
+    await downloadExport(
+      `/berichte/folders/${folderId}/export.${format}`,
+      `wochenbericht.${format}`,
+      ehs
+    );
   },
 };
 

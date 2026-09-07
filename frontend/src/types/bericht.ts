@@ -52,8 +52,9 @@ export interface Bericht {
   date: string;
   /** Freier Titel; steht im Export über dem Protokoll. */
   titel?: string | null;
-  /** Gruppierung mehrerer Tage zu einem Wochenbericht. */
-  ordner?: string | null;
+  /** Ordner, der mehrere Tage zu einem Wochenbericht klammert. */
+  folderId?: string | null;
+  folder?: { id: string; name: string } | null;
   referent?: string | null;
   rundgangDurchgefuehrt?: string | null;
   weitereTeilnehmer?: string | null;
@@ -74,7 +75,8 @@ export interface BerichtListItem {
   weekday: string;
   date: string;
   titel?: string | null;
-  ordner?: string | null;
+  folderId?: string | null;
+  folder?: { id: string; name: string } | null;
   referent?: string | null;
   status: ReportStatus;
   createdAt: string;
@@ -88,6 +90,8 @@ export interface BerichtListItem {
 export interface BerichtImportResult {
   imported: number;
   skipped: number;
+  /** Neu angelegte Ordner; gleichnamige vorhandene werden wiederverwendet. */
+  foldersCreated: number;
   photos: number;
   findings: number;
   areas: number;
@@ -95,4 +99,14 @@ export interface BerichtImportResult {
   droppedFields: string[];
   warnings: string[];
   reports: { id: string; weekday: string; date: string }[];
+}
+
+/** Ordner fasst die Tagesblätter einer Woche zu einem Gesamt-Wochenbericht zusammen. */
+export interface BerichtFolder {
+  id: string;
+  projectId: string;
+  name: string;
+  createdAt: string;
+  project?: { id: string; name: string };
+  _count?: { reports: number };
 }

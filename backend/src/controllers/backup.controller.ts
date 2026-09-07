@@ -199,6 +199,7 @@ const TABLE_MAP: Record<string, string> = {
   calendarEventAttendees: 'calendarEventAttendee',
 
   // Berichte
+  reportFolders: 'reportFolder',
   reports: 'report',
   reportAreas: 'reportArea',
   reportPhotos: 'reportPhoto',
@@ -568,11 +569,12 @@ export const restoreBackup = async (req: Request, res: Response) => {
     await prisma.projectTimeAllocation.deleteMany();
     await prisma.timeEntry.deleteMany();
 
-    // Berichte (depend on Project)
+    // Berichte (depend on Project); Ordner zuletzt, die Berichte zeigen darauf.
     await prisma.reportFinding.deleteMany();
     await prisma.reportPhoto.deleteMany();
     await prisma.reportArea.deleteMany();
     await prisma.report.deleteMany();
+    await prisma.reportFolder.deleteMany();
 
     // Stories (depends on Project, referenced by TimeEntry)
     await prisma.story.deleteMany();
@@ -1022,6 +1024,8 @@ export const restoreBackup = async (req: Request, res: Response) => {
     restoredCount += await restoreTable('probationReviews', 'probationReview', 'ProbationReviews');
 
     // ── Phase 39: Berichte (depend on Project + User) ────────
+    // Ordner zuerst — reports.folderId zeigt darauf.
+    restoredCount += await restoreTable('reportFolders', 'reportFolder', 'ReportFolders');
     restoredCount += await restoreTable('reports', 'report', 'Reports');
     restoredCount += await restoreTable('reportAreas', 'reportArea', 'ReportAreas');
     restoredCount += await restoreTable('reportPhotos', 'reportPhoto', 'ReportPhotos');

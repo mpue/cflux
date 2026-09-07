@@ -51,6 +51,8 @@ export interface ImportOptions {
 export interface ImportResult {
   imported: number;
   skipped: number;
+  /** Neu angelegte Ordner; gleichnamige vorhandene werden wiederverwendet. */
+  foldersCreated: number;
   photos: number;
   findings: number;
   areas: number;
@@ -178,6 +180,7 @@ export const importWochenberichtArchive = async (
   const result: ImportResult = {
     imported: 0,
     skipped: 0,
+    foldersCreated: 0,
     photos: 0,
     findings: 0,
     areas: 0,
@@ -186,12 +189,26 @@ export const importWochenberichtArchive = async (
     reports: [],
   };
 
-  // Ordnernamen aufloesen: im Archiv steht am Tagesblatt nur die folderId.
-  const folderNames = new Map<string, string>(
-    (Array.isArray(manifest.folders) ? manifest.folders : [])
-      .filter((folder: any) => folder?.id && folder?.name)
-      .map((folder: any) => [folder.id as string, folder.name as string])
-  );
+  // Ordner des Archivs auf cflux-Ordner im Zielprojekt abbilden. Gleichnamige
+  // Ordner werden wiederverwendet, damit ein zweiter Import nicht "KW35 (2)"
+  // danebenlegt.
+  const folderIdMap = new Map<string, string>();
+
+  for (const folder of Array.isArray(manifest.folders) ? manifest.folders : []) {
+    const name = str(folder?.name);
+    if (!folder?.id || !name) continue;
+
+    const existing = await prisma.reportFolder.findFirst({
+      where: { projectId, name },
+      select: { id: true },
+    });
+
+    const target =
+      existing ?? (await prisma.reportFolder.create({ data: { projectId, name }, select: { id: true } }));
+
+    folderIdMap.set(folder.id as string, target.id);
+    if (!existing) result.foldersCreated += 1;
+  }
 
   // Das Quelltool kennt Felder, fuer die es in cflux keine Entsprechung gibt.
   if (sheets.some((sheet) => str(sheet.projekt))) {
@@ -251,7 +268,7 @@ export const importWochenberichtArchive = async (
           weekday,
           date,
           titel: str(sheet.titel),
-          ordner: (sheet.folderId && folderNames.get(sheet.folderId)) || null,
+          folderId: (sheet.folderId && folderIdMap.get(sheet.folderId)) || null,
           referent: str(sheet.referent),
           rundgangDurchgefuehrt: str(sheet.rundgangDurchgefuehrt),
           weitereTeilnehmer: str(sheet.weitereTeilnehmer),
