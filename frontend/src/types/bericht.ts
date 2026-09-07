@@ -77,3 +77,16 @@ export interface BerichtListItem {
   createdBy?: { id: string; firstName: string; lastName: string } | null;
   _count: { findings: number; photos: number };
 }
+
+/** Ergebnis eines Datenimports aus dem Wochenbericht-Tool. */
+export interface BerichtImportResult {
+  imported: number;
+  skipped: number;
+  photos: number;
+  findings: number;
+  areas: number;
+  /** Felder des Quelltools ohne Entsprechung in cflux. */
+  droppedFields: string[];
+  warnings: string[];
+  reports: { id: string; weekday: string; date: string }[];
+}

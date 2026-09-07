@@ -7,6 +7,11 @@ import { prisma } from '../lib/prisma';
 import { berichtService, PHOTOS_DIR, ReportWithRelations } from '../services/bericht.service';
 import { getAccessibleProjectIds, hasProjectAccess } from '../middleware/projectAccess';
 import { renderReportHtml, renderReportPdf, exportFilename } from '../services/berichtExport.service';
+import { getEHSReportSection, EHSReportSection } from '../services/ehs.service';
+import {
+  importWochenberichtArchive,
+  ImportFormatError,
+} from '../services/berichtImport.service';
 
 /**
  * Laedt einen Bericht und stellt sicher, dass der Benutzer dem zugehoerigen
@@ -220,12 +225,82 @@ export const deletePhoto = async (req: AuthRequest, res: Response) => {
   }
 };
 
+
+/**
+ * Optionaler EHS-Anhang am Ende des Berichts. Jahr/Monat/Projekt werden beim
+ * Export frei gewaehlt (`?ehsYear=&ehsMonth=&ehsProjectId=`); fehlt ehsMonth,
+ * bleibt der Bericht wie bisher ohne Auswertung.
+ */
+const loadEhsSection = async (
+  req: AuthRequest,
+  report: ReportWithRelations
+): Promise<EHSReportSection | null> => {
+  const { ehs, ehsYear, ehsMonth, ehsProjectId } = req.query;
+
+  if (ehs === 'false' || ehs === '0') return null;
+  if (!ehsYear && !ehsMonth && !ehs) return null;
+
+  const reportDate = new Date(report.date);
+  const year = ehsYear ? parseInt(ehsYear as string, 10) : reportDate.getFullYear();
+  const month = ehsMonth ? parseInt(ehsMonth as string, 10) : reportDate.getMonth() + 1;
+
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    return null;
+  }
+
+  // 'all' = keine Projekteinschraenkung; sonst nur Projekte, die der Benutzer sehen darf.
+  let projectId: string | null = null;
+  if (ehsProjectId && ehsProjectId !== 'all') {
+    if (!(await hasProjectAccess(req.user!, ehsProjectId as string))) {
+      return null;
+    }
+    projectId = ehsProjectId as string;
+  }
+
+  return getEHSReportSection({
+    year,
+    month,
+    projectId,
+    allowedProjectIds: await getAccessibleProjectIds(req.user!),
+  });
+};
+
+
+/**
+ * Import eines Datenexports aus dem eigenstaendigen Wochenbericht-Tool.
+ * Das Archiv kommt als Multipart-Feld `archive`, das Zielprojekt im Body.
+ */
+export const importArchive = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Es wurde keine Archivdatei hochgeladen' });
+    }
+
+    const result = await importWochenberichtArchive(req.file.buffer, {
+      projectId: req.body.projectId,
+      createdById: req.user!.id,
+      // Standard: doppelte Berichte auslassen, damit ein zweiter Lauf
+      // desselben Archivs nichts verdoppelt.
+      skipDuplicates: req.body.skipDuplicates !== 'false',
+    });
+
+    res.status(201).json(result);
+  } catch (error: any) {
+    if (error instanceof ImportFormatError) {
+      return res.status(400).json({ error: error.message });
+    }
+    console.error('Import report archive error:', error);
+    res.status(500).json({ error: 'Import fehlgeschlagen', details: error?.message });
+  }
+};
+
 export const exportHtml = async (req: AuthRequest, res: Response) => {
   try {
     const report = await loadAccessibleReport(req, res);
     if (!report) return;
 
-    const html = renderReportHtml(report);
+    const ehs = await loadEhsSection(req, report);
+    const html = renderReportHtml(report, ehs);
 
     res.setHeader('Content-Disposition', `attachment; filename="${exportFilename(report, 'html')}"`);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -241,7 +316,8 @@ export const exportPdf = async (req: AuthRequest, res: Response) => {
     const report = await loadAccessibleReport(req, res);
     if (!report) return;
 
-    const pdf = await renderReportPdf(report);
+    const ehs = await loadEhsSection(req, report);
+    const pdf = await renderReportPdf(report, ehs);
 
     res.setHeader('Content-Disposition', `attachment; filename="${exportFilename(report, 'pdf')}"`);
     res.setHeader('Content-Type', 'application/pdf');

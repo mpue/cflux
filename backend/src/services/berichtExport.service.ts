@@ -3,6 +3,12 @@ import path from 'path';
 import axios from 'axios';
 import FormData from 'form-data';
 import { PHOTOS_DIR, ReportWithRelations } from './bericht.service';
+import {
+  EHSReportSection,
+  EHS_CATEGORY_LABELS,
+  EHSCategoryKey,
+  MONTH_NAMES,
+} from './ehs.service';
 
 /**
  * Export eines Berichts als HTML bzw. PDF.
@@ -138,7 +144,221 @@ const buildFindingRows = (report: ReportWithRelations): string => {
     .join('');
 };
 
-export const renderReportHtml = (report: ReportWithRelations): string => {
+
+/** Farbskala der EHS-Pyramide, von der Spitze (schwerste Kategorie) abwaerts. */
+const PYRAMID_LEVELS: { key: keyof EHSReportSection['pyramid']; label: string; color: string }[] = [
+  { key: 'fatalities', label: 'Todesfälle', color: '#7f1d1d' },
+  { key: 'ltis', label: 'LTI (Lost Time Injuries)', color: '#b91c1c' },
+  { key: 'recordables', label: 'Meldepflichtige Unfälle', color: '#dc2626' },
+  { key: 'firstAids', label: 'Erste Hilfe', color: '#ea580c' },
+  { key: 'nearMisses', label: 'Beinahe-Unfälle', color: '#f59e0b' },
+  { key: 'unsafeBehaviors', label: 'Unsicheres Verhalten', color: '#eab308' },
+  { key: 'unsafeConditions', label: 'Unsichere Zustände', color: '#a3a635' },
+  { key: 'propertyDamages', label: 'Sachschäden', color: '#65a30d' },
+  { key: 'environmentIncidents', label: 'Umweltvorfälle', color: '#16a34a' },
+  { key: 'safetyObservations', label: 'Sicherheitsbeobachtungen', color: '#0d9488' },
+];
+
+const formatNumber = (value: number | null | undefined, decimals = 2): string =>
+  (value ?? 0).toLocaleString('de-CH', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+
+const formatInt = (value: number | null | undefined): string =>
+  Math.round(value ?? 0).toLocaleString('de-CH');
+
+/**
+ * EHS-Pyramide als Inline-SVG: zehn Trapezstufen, die zusammen ein Dreieck
+ * bilden — Spitze = schwerste Kategorie. Chromium rendert das im PDF genauso
+ * wie am Bildschirm; CSS-Formen (clip-path, Border-Tricks) sind im Druck
+ * deutlich unzuverlaessiger.
+ */
+const buildPyramidSvg = (pyramid: EHSReportSection['pyramid']): string => {
+  const WIDTH = 790;
+  const TOP = 16;
+  const BAND = 50;
+  const GAP = 3;
+  const HALF_BASE = 235;
+  const HALF_APEX = 20;
+  const CX = 258;
+  const LABEL_X = 530;
+  const HEIGHT = TOP + PYRAMID_LEVELS.length * BAND + 16;
+
+  /** Halbe Breite des Dreiecks auf Hoehe y — linear von Spitze zur Basis. */
+  const halfWidthAt = (y: number): number => {
+    const progress = (y - TOP) / (PYRAMID_LEVELS.length * BAND);
+    return HALF_APEX + progress * (HALF_BASE - HALF_APEX);
+  };
+
+  const bands = PYRAMID_LEVELS.map((level, index) => {
+    const count = pyramid[level.key] ?? 0;
+    const yTop = TOP + index * BAND;
+    const yBottom = yTop + BAND - GAP;
+    const halfTop = halfWidthAt(yTop);
+    const halfBottom = halfWidthAt(yBottom);
+    const middle = yTop + (BAND - GAP) / 2;
+
+    const points = [
+      `${(CX - halfTop).toFixed(1)},${yTop}`,
+      `${(CX + halfTop).toFixed(1)},${yTop}`,
+      `${(CX + halfBottom).toFixed(1)},${yBottom}`,
+      `${(CX - halfBottom).toFixed(1)},${yBottom}`,
+    ].join(' ');
+
+    return `
+      <polygon points="${points}" fill="${level.color}" />
+      <text x="${CX}" y="${middle}" class="ehs-pyr-num" text-anchor="middle" dominant-baseline="central">${count}</text>
+      <line x1="${(CX + halfBottom + 8).toFixed(1)}" y1="${middle}" x2="${LABEL_X - 10}" y2="${middle}" class="ehs-pyr-leader" />
+      <text x="${LABEL_X}" y="${middle}" class="ehs-pyr-cat" dominant-baseline="central">${esc(level.label)}</text>`;
+  }).join('');
+
+  return `
+    <svg class="ehs-pyramid-svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EHS-Pyramide">
+      ${bands}
+    </svg>`;
+};
+
+const buildMatrixRows = (matrix: EHSReportSection['matrix']): string => {
+  const rows = matrix.rows
+    .map(
+      (row) => `
+      <tr${row.total > 0 ? ' class="has-incidents"' : ''}>
+        <td class="ehs-cat">${esc(row.label)}</td>
+        ${row.counts.map((count) => `<td class="center">${count > 0 ? count : '–'}</td>`).join('')}
+        <td class="center total">${row.total > 0 ? row.total : '–'}</td>
+      </tr>`
+    )
+    .join('');
+
+  return `${rows}
+      <tr class="ehs-sum">
+        <td class="ehs-cat"><strong>Summe</strong></td>
+        ${matrix.monthTotals
+          .map((total) => `<td class="center"><strong>${total > 0 ? total : '–'}</strong></td>`)
+          .join('')}
+        <td class="center total"><strong>${matrix.grandTotal}</strong></td>
+      </tr>`;
+};
+
+const buildIncidentRows = (incidents: EHSReportSection['incidents']): string => {
+  if (incidents.length === 0) {
+    return '<tr><td colspan="5" class="center">Keine Vorfälle in diesem Monat</td></tr>';
+  }
+
+  return incidents
+    .map((incident: any) => {
+      const category = EHS_CATEGORY_LABELS[incident.ehsCategory as EHSCategoryKey];
+
+      return `
+      <tr>
+        <td class="center">${formatDate(incident.incidentDate ?? incident.reportedAt)}</td>
+        <td>${esc(category ?? incident.ehsCategory)}</td>
+        <td>${esc(incident.title ? `${incident.title} — ${incident.description ?? ''}` : incident.description)}</td>
+        <td class="center">${esc(incident.ehsSeverity)}</td>
+        <td class="center">${esc(incident.status)}</td>
+      </tr>`;
+    })
+    .join('');
+};
+
+/** Freitextfelder aus den EHS-Monatsdaten, nur wenn gepflegt. */
+const buildNotesRows = (monthlyData: EHSReportSection['monthlyData']): string => {
+  if (!monthlyData) return '';
+
+  const fields: [string, string | null][] = [
+    ['Highlights', monthlyData.highlights],
+    ['Erfolge', monthlyData.achievements],
+    ['Brennende Themen', monthlyData.hotTopics],
+    ['Safety Award', monthlyData.safetyAward],
+  ];
+
+  const rows = fields
+    .filter(([, value]) => value && value.trim() !== '')
+    .map(([label, value]) => `<tr><td class="label">${esc(label)}</td><td class="value">${esc(value)}</td></tr>`)
+    .join('');
+
+  if (!rows) return '';
+
+  return `
+  <table class="kopfdaten ehs-notes">
+    <tr><td colspan="2" class="section-header">Anmerkungen zum Monat</td></tr>
+    ${rows}
+  </table>`;
+};
+
+/**
+ * EHS-Auswertung als Anhang hinter dem Rundgangsprotokoll — Inhalt entspricht
+ * dem frueheren EHS-Dashboard (Arbeitsdaten, KPIs, Pyramide, Jahresmatrix,
+ * Vorfaelle des Monats).
+ */
+const buildEhsSection = (ehs: EHSReportSection): string => {
+  const monthLabel = `${MONTH_NAMES[ehs.month - 1]} ${ehs.year}`;
+  const scope = ehs.project ? ehs.project.name : 'Alle Projekte';
+  const monthly = ehs.monthlyData;
+
+  return `
+  <div class="ehs-section">
+    <h2 class="ehs-title">EHS-Auswertung — ${esc(monthLabel)}</h2>
+    <div class="ehs-scope">Auswertungsbereich: ${esc(scope)}</div>
+
+    <table class="kopfdaten">
+      <tr><td colspan="4" class="section-header">Arbeitsdaten ${esc(monthLabel)}</td></tr>
+      <tr>
+        <td class="label">Arbeitstage</td><td class="value">${formatInt(monthly?.workingDays)}</td>
+        <td class="label">Arbeiter pro Tag</td><td class="value">${formatInt(monthly?.workersPerDay)}</td>
+      </tr>
+      <tr>
+        <td class="label">Stunden pro Tag</td><td class="value">${formatNumber(monthly?.hoursPerDay, 1)}</td>
+        <td class="label">Gesamtstunden</td><td class="value">${formatInt(ehs.kpis.totalHours)}</td>
+      </tr>
+    </table>
+
+    <table class="ehs-kpis">
+      <tr><td colspan="4" class="section-header">Kennzahlen</td></tr>
+      <tr>
+        <td><div class="ehs-kpi-label">LTIFR (Monat)</div><div class="ehs-kpi-value">${formatNumber(ehs.kpis.ltifr)}</div><div class="ehs-kpi-hint">Lost Time Injury Frequency Rate</div></td>
+        <td><div class="ehs-kpi-label">TRIR (Monat)</div><div class="ehs-kpi-value">${formatNumber(ehs.kpis.trir)}</div><div class="ehs-kpi-hint">Total Recordable Injury Rate</div></td>
+        <td><div class="ehs-kpi-label">LTIFR (YTD)</div><div class="ehs-kpi-value">${formatNumber(ehs.kpis.ytdLTIFR)}</div><div class="ehs-kpi-hint">Jahr bis ${esc(MONTH_NAMES[ehs.month - 1])}</div></td>
+        <td><div class="ehs-kpi-label">TRIR (YTD)</div><div class="ehs-kpi-value">${formatNumber(ehs.kpis.ytdTRIR)}</div><div class="ehs-kpi-hint">Jahr bis ${esc(MONTH_NAMES[ehs.month - 1])}</div></td>
+      </tr>
+      <tr>
+        <td colspan="4" class="ehs-kpi-foot">
+          Gesamtstunden Monat: ${formatInt(ehs.kpis.totalHours)} · YTD: ${formatInt(ehs.kpis.ytdTotalHours)}
+          ${ehs.kpis.totalHours === 0 ? ' · <strong>Ohne gepflegte Arbeitsstunden bleiben LTIFR und TRIR 0.</strong>' : ''}
+        </td>
+      </tr>
+    </table>
+
+    <div class="ehs-pyramid">
+      <div class="section-header">EHS-Pyramide ${esc(monthLabel)}</div>
+      <div class="ehs-pyramid-body">${buildPyramidSvg(ehs.pyramid)}</div>
+    </div>
+
+    <table class="ehs-matrix">
+      <tr><td colspan="14" class="section-header">Jahresübersicht ${ehs.year} — Vorfälle nach Kategorie und Monat</td></tr>
+      <tr>
+        <th>Kategorie</th>
+        ${MONTH_NAMES.map((name) => `<th>${esc(name.substring(0, 3))}</th>`).join('')}
+        <th>Gesamt</th>
+      </tr>
+      ${buildMatrixRows(ehs.matrix)}
+    </table>
+
+    <table class="ehs-incidents">
+      <tr><td colspan="5" class="section-header">Vorfälle im Monat (${ehs.incidents.length})</td></tr>
+      <tr><th>Datum</th><th>Kategorie</th><th>Beschreibung</th><th>Schweregrad</th><th>Status</th></tr>
+      ${buildIncidentRows(ehs.incidents)}
+    </table>
+
+    ${buildNotesRows(ehs.monthlyData)}
+  </div>`;
+};
+
+export const renderReportHtml = (
+  report: ReportWithRelations,
+  ehs: EHSReportSection | null = null
+): string => {
   const primary = safeColor(report.project.primaryColor, DEFAULT_BRANDING.primaryColor);
   const secondary = safeColor(report.project.secondaryColor, DEFAULT_BRANDING.secondaryColor);
   const accent = safeColor(report.project.accentColor, DEFAULT_BRANDING.accentColor);
@@ -183,6 +403,34 @@ export const renderReportHtml = (report: ReportWithRelations): string => {
   .beweisfoto { max-width: 110px; max-height: 110px; display: block; margin: 0 auto; }
   .footnote { font-size: 8pt; color: #666; margin-top: 8px; }
 
+  /* ---- EHS-Auswertung (Anhang) ---- */
+  .ehs-section { page-break-before: always; }
+  .ehs-title { font-size: 14pt; margin: 0 0 2px; color: ${primary}; }
+  .ehs-scope { font-size: 9pt; color: #555; margin-bottom: 14px; }
+  .ehs-kpis td { text-align: center; background: ${accent}; }
+  /* Der Abschnittskopf darf nicht von der Kachel-Faerbung ueberschrieben werden. */
+  .ehs-kpis td.section-header { background: ${primary}; color: #fff; text-align: left; }
+  .ehs-kpi-label { font-size: 8.5pt; color: #555; }
+  .ehs-kpi-value { font-size: 18pt; font-weight: bold; color: ${primary}; line-height: 1.2; }
+  .ehs-kpi-hint { font-size: 7.5pt; color: #777; }
+  .ehs-kpis td.ehs-kpi-foot { background: #fff; text-align: left; font-size: 8pt; color: #555; }
+  .ehs-pyramid { background: #fff; border: 1px solid #d9d0c3; margin-bottom: 20px; }
+  .ehs-pyramid-body { padding: 10px 12px; }
+  .ehs-pyramid-svg { display: block; width: 100%; height: auto; max-width: 620px; margin: 0 auto; }
+  .ehs-pyr-num { fill: #fff; font-size: 17px; font-weight: bold; }
+  .ehs-pyr-cat { fill: #1a1a1a; font-size: 17px; }
+  .ehs-pyr-leader { stroke: #cfc6b8; stroke-width: 1; }
+  .ehs-matrix th { background: ${primary}; color: #fff; text-align: center; font-size: 8pt; }
+  .ehs-matrix td { font-size: 8.5pt; }
+  .ehs-matrix td.ehs-cat { width: 200px; }
+  .ehs-matrix td.center { text-align: center; }
+  .ehs-matrix td.total { background: ${accent}; font-weight: bold; }
+  .ehs-matrix tr.has-incidents td.ehs-cat { font-weight: bold; }
+  .ehs-matrix tr.ehs-sum td { background: ${secondary}; }
+  .ehs-incidents th { background: ${primary}; color: #fff; text-align: center; font-size: 8pt; }
+  .ehs-incidents td { font-size: 8.5pt; }
+  .ehs-incidents td.center { text-align: center; }
+
   /* Fuer den PDF-Export: A4 quer bietet bei 0.3in Rand rund 1065px Inhalt,
      die Bildschirmbreite von 1400px wuerde rechts abgeschnitten. */
   @media print {
@@ -192,6 +440,9 @@ export const renderReportHtml = (report: ReportWithRelations): string => {
     .doc-header { margin-bottom: 12px; padding-bottom: 10px; }
     .feststellungen { page-break-inside: auto; }
     .feststellungen tr { page-break-inside: avoid; }
+    .ehs-section table { page-break-inside: auto; }
+    .ehs-section tr { page-break-inside: avoid; }
+    .ehs-pyramid { page-break-inside: avoid; }
   }
 </style>
 </head>
@@ -226,14 +477,19 @@ export const renderReportHtml = (report: ReportWithRelations): string => {
     ${buildFindingRows(report) || '<tr><td colspan="13" class="center">Keine Feststellungen erfasst</td></tr>'}
   </table>
 
+  ${ehs ? buildEhsSection(ehs) : ''}
+
   <div class="footnote">Erzeugt mit cflux · Modul Berichte.</div>
 </body>
 </html>`;
 };
 
 /** Rendert den Bericht ueber Gotenberg (Chromium) als A4-Querformat-PDF. */
-export const renderReportPdf = async (report: ReportWithRelations): Promise<Buffer> => {
-  const html = renderReportHtml(report);
+export const renderReportPdf = async (
+  report: ReportWithRelations,
+  ehs: EHSReportSection | null = null
+): Promise<Buffer> => {
+  const html = renderReportHtml(report, ehs);
 
   const form = new FormData();
   form.append('files', Buffer.from(html, 'utf-8'), {

@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import { Incident } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { generateEHSReport } from '../services/ehs-pdf.service';
+import { getEHSDashboardData } from '../services/ehs.service';
 
 
 // Get EHS KPI Dashboard Data
@@ -10,117 +11,18 @@ export const getEHSKPIDashboard = async (req: AuthRequest, res: Response) => {
   try {
     const { year, month, projectId } = req.query;
 
-    const currentYear = year ? parseInt(year as string) : new Date().getFullYear();
-    const currentMonth = month ? parseInt(month as string) : new Date().getMonth() + 1;
-
-    // Get monthly data
-    const monthlyData = await prisma.eHSMonthlyData.findFirst({
-      where: {
-        year: currentYear,
-        month: currentMonth,
-        projectId: projectId as string || null,
-      },
-      include: {
-        project: true,
-      },
+    const data = await getEHSDashboardData({
+      year: year ? parseInt(year as string) : new Date().getFullYear(),
+      month: month ? parseInt(month as string) : new Date().getMonth() + 1,
+      projectId: (projectId as string) || null,
     });
-
-    // Get incidents for the month
-    const startDate = new Date(currentYear, currentMonth - 1, 1);
-    const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59);
-
-    const incidents = await prisma.incident.findMany({
-      where: {
-        isEHSRelevant: true,
-        OR: [
-          {
-            incidentDate: {
-              gte: startDate,
-              lte: endDate,
-            },
-          },
-          {
-            incidentDate: null,
-            reportedAt: {
-              gte: startDate,
-              lte: endDate,
-            },
-          },
-        ],
-        ...(projectId && { projectId: projectId as string }),
-      },
-      include: {
-        reportedBy: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        assignedTo: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        project: true,
-      },
-      orderBy: {
-        incidentDate: 'desc',
-      },
-    });
-
-    // Calculate EHS Pyramid
-    const pyramid = {
-      fatalities: incidents.filter((i: Incident) => i.ehsCategory === 'FATALITY').length,
-      ltis: incidents.filter((i: Incident) => i.ehsCategory === 'LTI').length,
-      recordables: incidents.filter((i: Incident) => i.ehsCategory === 'RECORDABLE').length,
-      firstAids: incidents.filter((i: Incident) => i.ehsCategory === 'FIRST_AID').length,
-      nearMisses: incidents.filter((i: Incident) => i.ehsCategory === 'NEAR_MISS').length,
-      unsafeBehaviors: incidents.filter((i: Incident) => i.ehsCategory === 'UNSAFE_BEHAVIOR').length,
-      unsafeConditions: incidents.filter((i: Incident) => i.ehsCategory === 'UNSAFE_CONDITION').length,
-      propertyDamages: incidents.filter((i: Incident) => i.ehsCategory === 'PROPERTY_DAMAGE').length,
-      environmentIncidents: incidents.filter((i: Incident) => i.ehsCategory === 'ENVIRONMENT').length,
-      safetyObservations: incidents.filter((i: Incident) => i.ehsCategory === 'SAFETY_OBSERVATION').length,
-    };
-
-    // Calculate KPIs
-    const totalHours = monthlyData?.totalHours || 0;
-    const ltifr = totalHours > 0 ? (pyramid.ltis / totalHours) * 1000000 : 0;
-    const trir = totalHours > 0 ? (pyramid.recordables / totalHours) * 200000 : 0;
-
-    // Get year-to-date data
-    const ytdData = await prisma.eHSMonthlyData.findMany({
-      where: {
-        year: currentYear,
-        month: { lte: currentMonth },
-        projectId: projectId as string || null,
-      },
-      orderBy: {
-        month: 'asc',
-      },
-    });
-
-    const ytdTotalHours = ytdData.reduce((sum: number, d: any) => sum + d.totalHours, 0);
-    const ytdLTIs = ytdData.reduce((sum: number, d: any) => sum + d.ltis, 0);
-    const ytdRecordables = ytdData.reduce((sum: number, d: any) => sum + d.recordables, 0);
-    const ytdLTIFR = ytdTotalHours > 0 ? (ytdLTIs / ytdTotalHours) * 1000000 : 0;
-    const ytdTRIR = ytdTotalHours > 0 ? (ytdRecordables / ytdTotalHours) * 200000 : 0;
 
     res.json({
-      monthlyData,
-      incidents,
-      pyramid,
-      kpis: {
-        ltifr,
-        trir,
-        ytdLTIFR,
-        ytdTRIR,
-        totalHours,
-        ytdTotalHours,
-      },
-      ytdData,
+      monthlyData: data.monthlyData,
+      incidents: data.incidents,
+      pyramid: data.pyramid,
+      kpis: data.kpis,
+      ytdData: data.ytdData,
     });
   } catch (error) {
     console.error('Error fetching EHS KPI dashboard:', error);

@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   CardContent,
+  Checkbox,
   Chip,
   CircularProgress,
   Container,
@@ -15,6 +16,7 @@ import {
   DialogTitle,
   Divider,
   FormControl,
+  FormControlLabel,
   Grid,
   IconButton,
   InputLabel,
@@ -43,6 +45,7 @@ import {
   Download as DownloadIcon,
   PhotoCamera as PhotoCameraIcon,
   PictureAsPdf as PdfIcon,
+  Upload as UploadIcon,
 } from '@mui/icons-material';
 import AppNavbar from '../components/AppNavbar';
 import { useModules } from '../contexts/ModuleContext';
@@ -51,6 +54,7 @@ import { normalizeUploadUrl } from '../services/api';
 import {
   Bericht,
   BerichtArea,
+  BerichtImportResult,
   BerichtFinding,
   BerichtListItem,
   BerichtProject,
@@ -67,6 +71,14 @@ const WEEKDAYS = [
 ];
 
 const STEPS = ['Wer & Wo', 'Rundgang', 'Fotos', 'Feststellungen', 'Fertig'];
+
+const MONTH_NAMES = [
+  'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+  'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
+];
+
+/** Auswahl im Export: aktuelles Jahr plus die vier vorangegangenen. */
+const EHS_YEARS = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
 const AREA_STATUS = [
   { value: 'i.O.', label: 'i.O.', color: 'success' as const },
@@ -137,7 +149,19 @@ const BerichtePage: React.FC = () => {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [uploading, setUploading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  /** EHS-Auswertung als Anhang am Ende des Berichts. */
+  const [ehsInclude, setEhsInclude] = useState(true);
+  const [ehsYear, setEhsYear] = useState(() => new Date().getFullYear());
+  const [ehsMonth, setEhsMonth] = useState(() => new Date().getMonth() + 1);
+  const [ehsProjectId, setEhsProjectId] = useState<string>('');
   const [newDialogOpen, setNewDialogOpen] = useState(false);
+  /** Datenimport aus dem eigenständigen Wochenbericht-Tool. */
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importProjectId, setImportProjectId] = useState('');
+  const [importSkipDuplicates, setImportSkipDuplicates] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<BerichtImportResult | null>(null);
   /** Index der Feststellung, fuer die gerade ein Foto gewaehlt wird. */
   const [photoPickerIndex, setPhotoPickerIndex] = useState<number | null>(null);
   const [newReport, setNewReport] = useState({
@@ -147,6 +171,7 @@ const BerichtePage: React.FC = () => {
   });
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentRef = useRef<Bericht | null>(null);
   /** Zaehlt lokale Aenderungen mit, damit eine langsame Antwort keine neueren
@@ -182,6 +207,19 @@ const BerichtePage: React.FC = () => {
   useEffect(() => {
     loadReports(projectFilter);
   }, [projectFilter, loadReports]);
+
+  // Der EHS-Anhang startet beim Monat und Projekt des geoeffneten Berichts,
+  // laesst sich im letzten Schritt aber frei umstellen.
+  useEffect(() => {
+    if (!current) return;
+    const date = new Date(current.date);
+    if (!Number.isNaN(date.getTime())) {
+      setEhsYear(date.getFullYear());
+      setEhsMonth(date.getMonth() + 1);
+    }
+    setEhsProjectId(current.projectId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current?.id]);
 
   // Ausstehenden Autosave beim Verlassen der Seite noch abschicken
   useEffect(() => {
@@ -337,6 +375,39 @@ const BerichtePage: React.FC = () => {
     }
   };
 
+  const openImportDialog = () => {
+    setImportFile(null);
+    setImportResult(null);
+    setImportProjectId(projectFilter || projects[0]?.id || '');
+    setImportDialogOpen(true);
+  };
+
+  const handleImport = async () => {
+    if (!importFile || !importProjectId) return;
+
+    setImporting(true);
+    setImportResult(null);
+
+    try {
+      const result = await berichtService.importArchive(
+        importFile,
+        importProjectId,
+        importSkipDuplicates
+      );
+      setImportResult(result);
+      await loadReports(projectFilter);
+      setToast(
+        result.imported === 1
+          ? '1 Bericht importiert'
+          : `${result.imported} Berichte importiert`
+      );
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Import fehlgeschlagen');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const handleExport = async (format: 'pdf' | 'html') => {
     if (!current) return;
 
@@ -349,7 +420,11 @@ const BerichtePage: React.FC = () => {
         saveTimer.current = null;
         await persist();
       }
-      await berichtService.download(current.id, format);
+      await berichtService.download(
+        current.id,
+        format,
+        ehsInclude ? { year: ehsYear, month: ehsMonth, projectId: ehsProjectId || 'all' } : undefined
+      );
       setToast(format === 'pdf' ? 'PDF wird heruntergeladen' : 'HTML wird heruntergeladen');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Export fehlgeschlagen');
@@ -411,6 +486,17 @@ const BerichtePage: React.FC = () => {
         sx={{ mb: 2 }}
       >
         Neuer Bericht
+      </Button>
+
+      <Button
+        fullWidth
+        variant="outlined"
+        startIcon={<UploadIcon />}
+        disabled={!mayCreate || projects.length === 0}
+        onClick={openImportDialog}
+        sx={{ mb: 2 }}
+      >
+        Daten importieren
       </Button>
 
       <FormControl fullWidth size="small" sx={{ mb: 2 }}>
@@ -859,6 +945,76 @@ const BerichtePage: React.FC = () => {
         <Typography variant="body1">
           Alle Angaben sind gespeichert. Der Export verwendet Logo und Farben des Projekts.
         </Typography>
+
+        <Divider flexItem />
+
+        <Box sx={{ width: '100%' }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={ehsInclude}
+                onChange={(event) => setEhsInclude(event.target.checked)}
+              />
+            }
+            label="EHS-Auswertung anhängen"
+          />
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Hängt Kennzahlen (LTIFR/TRIR), EHS-Pyramide, Jahresübersicht und die Vorfälle des
+            gewählten Monats als eigenen Abschnitt hinten an den Bericht.
+          </Typography>
+
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <FormControl size="small" sx={{ minWidth: 160 }} disabled={!ehsInclude}>
+              <InputLabel id="ehs-month-label">Monat</InputLabel>
+              <Select
+                labelId="ehs-month-label"
+                label="Monat"
+                value={ehsMonth}
+                onChange={(event) => setEhsMonth(Number(event.target.value))}
+              >
+                {MONTH_NAMES.map((name, index) => (
+                  <MenuItem key={name} value={index + 1}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 120 }} disabled={!ehsInclude}>
+              <InputLabel id="ehs-year-label">Jahr</InputLabel>
+              <Select
+                labelId="ehs-year-label"
+                label="Jahr"
+                value={ehsYear}
+                onChange={(event) => setEhsYear(Number(event.target.value))}
+              >
+                {EHS_YEARS.map((year) => (
+                  <MenuItem key={year} value={year}>
+                    {year}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 240 }} disabled={!ehsInclude}>
+              <InputLabel id="ehs-project-label">Projekt</InputLabel>
+              <Select
+                labelId="ehs-project-label"
+                label="Projekt"
+                value={ehsProjectId}
+                onChange={(event) => setEhsProjectId(event.target.value)}
+              >
+                <MenuItem value="all">Alle Projekte</MenuItem>
+                {projects.map((project) => (
+                  <MenuItem key={project.id} value={project.id}>
+                    {project.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </Box>
+
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <Button
             variant="contained"
@@ -984,6 +1140,131 @@ const BerichtePage: React.FC = () => {
           </Grid>
         )}
       </Container>
+
+      <Dialog
+        open={importDialogOpen}
+        onClose={() => !importing && setImportDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Daten aus dem Wochenbericht-Tool importieren</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Lade das ZIP-Archiv aus dem Wochenbericht-Tool hoch („Alle Daten exportieren"). Die
+            enthaltenen Tagesblätter werden mit Bereichen, Feststellungen und Originalfotos als
+            Berichte im gewählten Projekt angelegt.
+          </Typography>
+
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".zip,application/zip"
+            hidden
+            onChange={(event) => {
+              setImportFile(event.target.files?.[0] || null);
+              setImportResult(null);
+              // Zuruecksetzen, damit dieselbe Datei erneut gewaehlt werden kann.
+              event.target.value = '';
+            }}
+          />
+
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<UploadIcon />}
+              disabled={importing}
+              onClick={() => importInputRef.current?.click()}
+            >
+              Archiv wählen
+            </Button>
+            <Typography variant="body2" color={importFile ? 'text.primary' : 'text.secondary'}>
+              {importFile
+                ? `${importFile.name} (${(importFile.size / 1024 / 1024).toFixed(1)} MB)`
+                : 'Keine Datei gewählt'}
+            </Typography>
+          </Box>
+
+          <FormControl fullWidth sx={{ mb: 1 }} disabled={importing}>
+            <InputLabel id="import-bericht-project">Zielprojekt</InputLabel>
+            <Select
+              labelId="import-bericht-project"
+              label="Zielprojekt"
+              value={importProjectId}
+              onChange={(event) => setImportProjectId(event.target.value)}
+            >
+              {projects.map((project) => (
+                <MenuItem key={project.id} value={project.id}>
+                  {project.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={importSkipDuplicates}
+                disabled={importing}
+                onChange={(event) => setImportSkipDuplicates(event.target.checked)}
+              />
+            }
+            label="Bereits vorhandene Berichte überspringen"
+          />
+          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+            Erkannt an Projekt, Datum und Wochentag — so verdoppelt ein zweiter Import nichts.
+          </Typography>
+
+          {importing && (
+            <Alert severity="info" icon={<CircularProgress size={18} />} sx={{ mt: 2 }}>
+              Archiv wird verarbeitet. Bei vielen Fotos kann das eine Weile dauern.
+            </Alert>
+          )}
+
+          {importResult && (
+            <Alert severity={importResult.imported > 0 ? 'success' : 'warning'} sx={{ mt: 2 }}>
+              <Typography variant="body2">
+                {importResult.imported} Bericht(e) importiert, {importResult.skipped}{' '}
+                übersprungen — {importResult.findings} Feststellung(en), {importResult.photos}{' '}
+                Foto(s).
+              </Typography>
+
+              {importResult.droppedFields.length > 0 && (
+                <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                  Ohne Entsprechung in cflux und daher nicht übernommen:{' '}
+                  {importResult.droppedFields.join(', ')}.
+                </Typography>
+              )}
+
+              {importResult.warnings.length > 0 && (
+                <Box component="ul" sx={{ m: 0, mt: 1, pl: 2 }}>
+                  {importResult.warnings.slice(0, 5).map((warning) => (
+                    <Typography component="li" variant="caption" key={warning}>
+                      {warning}
+                    </Typography>
+                  ))}
+                  {importResult.warnings.length > 5 && (
+                    <Typography component="li" variant="caption">
+                      … und {importResult.warnings.length - 5} weitere Hinweise
+                    </Typography>
+                  )}
+                </Box>
+              )}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={importing} onClick={() => setImportDialogOpen(false)}>
+            {importResult ? 'Schliessen' : 'Abbrechen'}
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!importFile || !importProjectId || importing}
+            onClick={handleImport}
+          >
+            Importieren
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={newDialogOpen} onClose={() => setNewDialogOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Neuen Bericht anlegen</DialogTitle>

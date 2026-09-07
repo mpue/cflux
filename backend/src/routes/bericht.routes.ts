@@ -65,10 +65,35 @@ const photoUpload = multer({
   },
 });
 
+/**
+ * Import-Archive landen im Speicher: erst nach erfolgreicher Pruefung sollen
+ * Bilddateien im uploads-Ordner auftauchen.
+ */
+const archiveUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 500 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!/zip/i.test(file.mimetype) && !/\.zip$/i.test(file.originalname)) {
+      return cb(new Error('Es werden nur ZIP-Archive akzeptiert'));
+    }
+    cb(null, true);
+  },
+});
+
 router.use(authenticate);
 
 // Projekte, denen der Benutzer zugeordnet ist (Auswahl beim Anlegen)
 router.get('/projects', requireModuleAccess(MODULE_KEY, 'canView'), berichtController.getMyReportProjects);
+
+// Import eines Wochenbericht-Datenexports (ZIP mit JSON + Fotos).
+// requireProjectAccess laeuft nach Multer, weil die projectId im Multipart-Body steckt.
+router.post(
+  '/import',
+  requireModuleAccess(MODULE_KEY, 'canCreate'),
+  archiveUpload.single('archive'),
+  requireProjectAccess('body'),
+  berichtController.importArchive
+);
 
 // Liste (optional gefiltert per ?projectId=)
 router.get('/', requireModuleAccess(MODULE_KEY, 'canView'), berichtController.getReports);

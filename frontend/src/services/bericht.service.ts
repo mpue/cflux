@@ -1,5 +1,11 @@
 import api, { getBackendURL } from './api';
-import { Bericht, BerichtListItem, BerichtProject, BerichtPhoto } from '../types/bericht';
+import {
+  Bericht,
+  BerichtImportResult,
+  BerichtListItem,
+  BerichtProject,
+  BerichtPhoto,
+} from '../types/bericht';
 
 /**
  * Modul "Berichte" (Toolbox-Rundgang / Tagesprotokoll).
@@ -68,10 +74,47 @@ export const berichtService = {
     return `${base}/api/berichte/${id}/photos/${photoId}?token=${encodeURIComponent(token)}`;
   },
 
-  /** Lädt den Export als Blob und stößt den Download an. */
-  download: async (id: string, format: 'pdf' | 'html'): Promise<void> => {
+  /**
+   * Importiert einen Datenexport (ZIP) aus dem eigenständigen
+   * Wochenbericht-Tool in das gewählte Projekt.
+   */
+  importArchive: async (
+    file: File,
+    projectId: string,
+    skipDuplicates = true
+  ): Promise<BerichtImportResult> => {
+    const formData = new FormData();
+    formData.append('archive', file, file.name);
+    formData.append('projectId', projectId);
+    formData.append('skipDuplicates', String(skipDuplicates));
+
+    const response = await api.post('/berichte/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      // Bildreiche Archive brauchen laenger als der Standard-Timeout erlaubt.
+      timeout: 10 * 60 * 1000,
+    });
+    return response.data;
+  },
+
+  /**
+   * Lädt den Export als Blob und stößt den Download an. Mit `ehs` wird die
+   * EHS-Auswertung (Kennzahlen, Pyramide, Jahresmatrix) hinten angehängt.
+   */
+  download: async (
+    id: string,
+    format: 'pdf' | 'html',
+    ehs?: { year: number; month: number; projectId?: string | null }
+  ): Promise<void> => {
     const response = await api.get(`/berichte/${id}/export.${format}`, {
       responseType: 'blob',
+      params: ehs
+        ? {
+            ehs: 'true',
+            ehsYear: ehs.year,
+            ehsMonth: ehs.month,
+            ehsProjectId: ehs.projectId || 'all',
+          }
+        : undefined,
     });
 
     const disposition = response.headers['content-disposition'] as string | undefined;

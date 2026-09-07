@@ -60,12 +60,12 @@ const MORE_MODULES: ShortcutItem[] = [
   { key: 'calendar', label: 'Kalender', route: '/calendar', icon: 'calendar' },
   { key: 'travel_expenses', label: 'Reisekosten', route: '/travel-expenses', icon: 'money' },
   { key: 'incidents', label: 'Incidents', route: '/incidents', icon: 'incident' },
-  { key: 'ehs', label: 'EHS Dashboard', route: '/ehs-dashboard', icon: 'ehs' },
   { key: 'ehs', label: 'EHS Todos', route: '/ehs-todos', icon: 'ehs' },
   { key: 'intranet', label: 'Dokumente', route: '/admin?tab=dokumente', icon: 'intranet' },
   { key: 'media', label: 'Medien', route: '/media', icon: 'media' },
   { key: 'elearning', label: 'E-Learning', route: '/elearning', icon: 'school' },
   { key: 'checklists', label: 'Checklisten', route: '/checklists', icon: 'checklist' },
+  // Die EHS-Auswertung haengt jetzt als Abschnitt hinten am Rundgangsbericht-Export.
   { key: 'berichte', label: 'Rundgangsberichte', route: '/berichte', icon: 'report' },
 ];
 
