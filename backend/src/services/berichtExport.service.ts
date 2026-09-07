@@ -149,15 +149,6 @@ const buildFindingRows = (report: ReportWithRelations): string => {
 };
 
 
-const formatNumber = (value: number | null | undefined, decimals = 2): string =>
-  (value ?? 0).toLocaleString('de-CH', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
-
-const formatInt = (value: number | null | undefined): string =>
-  Math.round(value ?? 0).toLocaleString('de-CH');
-
 /**
  * Sicherheitspyramide als Inline-SVG: eine Trapezstufe je Klassifizierung, die
  * zusammen ein Dreieck bilden — Spitze = schwerste Stufe. Chromium rendert das
@@ -262,9 +253,7 @@ const buildNotesRows = (monthlyData: ReportEhsSection['monthlyData']): string =>
  * Berichte des Projekts, dazu Arbeitsdaten und Kennzahlen des Monats.
  */
 const buildEhsSection = (ehs: ReportEhsSection): string => {
-  const monthLabel = `${MONTH_NAMES[ehs.month - 1]} ${ehs.year}`;
   const scope = ehs.projectName ?? 'Alle Projekte';
-  const monthly = ehs.monthlyData;
 
   return `
   <div class="ehs-section">
@@ -297,37 +286,6 @@ const buildEhsSection = (ehs: ReportEhsSection): string => {
         <th>Gesamt</th>
       </tr>
       ${buildMatrixRows(ehs.matrix)}
-    </table>
-
-    <table class="kopfdaten">
-      <tr><td colspan="4" class="section-header">Arbeitsdaten ${esc(monthLabel)}</td></tr>
-      <tr>
-        <td class="label">Arbeitstage</td><td class="value">${formatInt(monthly?.workingDays)}</td>
-        <td class="label">Arbeiter pro Tag</td><td class="value">${formatInt(monthly?.workersPerDay)}</td>
-      </tr>
-      <tr>
-        <td class="label">Stunden pro Tag</td><td class="value">${formatNumber(monthly?.hoursPerDay, 1)}</td>
-        <td class="label">Gesamtstunden</td><td class="value">${formatInt(ehs.kpis.totalHours)}</td>
-      </tr>
-    </table>
-
-    <table class="ehs-kpis">
-      <tr><td colspan="4" class="section-header">Kennzahlen ${esc(monthLabel)}</td></tr>
-      <tr>
-        <td><div class="ehs-kpi-label">LTIFR</div><div class="ehs-kpi-value">${formatNumber(ehs.kpis.ltifr)}</div><div class="ehs-kpi-hint">Lost Time Injury Frequency Rate</div></td>
-        <td><div class="ehs-kpi-label">TRIR</div><div class="ehs-kpi-value">${formatNumber(ehs.kpis.trir)}</div><div class="ehs-kpi-hint">Total Recordable Injury Rate</div></td>
-        <td><div class="ehs-kpi-label">LTI</div><div class="ehs-kpi-value">${ehs.kpis.ltis}</div><div class="ehs-kpi-hint">Unfälle mit Ausfallzeit</div></td>
-        <td><div class="ehs-kpi-label">Recordable</div><div class="ehs-kpi-value">${ehs.kpis.recordables}</div><div class="ehs-kpi-hint">MTC, RWC, LTI und Todesfälle</div></td>
-      </tr>
-      <tr>
-        <td colspan="4" class="ehs-kpi-foot">
-          Bezugsgrösse: ${ehs.kpis.monthFindings} Feststellung(en) und ${formatInt(ehs.kpis.totalHours)} Arbeitsstunden im ${esc(monthLabel)}.${
-            ehs.kpis.totalHours === 0
-              ? ' <strong>Ohne gepflegte Arbeitsstunden lassen sich LTIFR und TRIR nicht berechnen — die Fallzahlen daneben stimmen trotzdem.</strong>'
-              : ''
-          }
-        </td>
-      </tr>
     </table>
 
     ${buildNotesRows(ehs.monthlyData)}
@@ -404,13 +362,6 @@ const buildStyles = ({
   .ehs-scope { font-size: 9pt; color: #555; margin-bottom: 14px; }
   .ehs-empty td.label { width: 110px; }
   .ehs-empty td.value { line-height: 1.45; }
-  .ehs-kpis td { text-align: center; background: ${accent}; }
-  /* Der Abschnittskopf darf nicht von der Kachel-Faerbung ueberschrieben werden. */
-  .ehs-kpis td.section-header { background: ${primary}; color: #fff; text-align: left; }
-  .ehs-kpi-label { font-size: 8.5pt; color: #555; }
-  .ehs-kpi-value { font-size: 18pt; font-weight: bold; color: ${primary}; line-height: 1.2; }
-  .ehs-kpi-hint { font-size: 7.5pt; color: #777; }
-  .ehs-kpis td.ehs-kpi-foot { background: #fff; text-align: left; font-size: 8pt; color: #555; }
   .ehs-pyramid { background: #fff; border: 1px solid #d9d0c3; margin-bottom: 20px; }
   .ehs-pyramid-body { padding: 10px 12px; }
   .ehs-pyramid-svg { display: block; width: 100%; height: auto; max-width: 620px; margin: 0 auto; }

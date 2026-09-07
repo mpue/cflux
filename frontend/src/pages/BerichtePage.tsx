@@ -1251,8 +1251,8 @@ const BerichtePage: React.FC = () => {
           />
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             Hängt die Sicherheitspyramide aus den Klassifizierungen dieses Berichts an, dazu die
-            Jahresübersicht und die Kennzahlen. Monat, Jahr und Projekt steuern Jahresübersicht
-            und Kennzahlen — die Pyramide zählt immer die Feststellungen des Dokuments.
+            Jahresübersicht. Jahr und Projekt steuern die Jahresübersicht — die Pyramide zählt
+            immer die Feststellungen des Dokuments.
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>

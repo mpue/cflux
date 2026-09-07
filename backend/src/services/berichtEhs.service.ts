@@ -27,9 +27,6 @@ export const KLASSIFIZIERUNGEN = [
 
 export type KlassifizierungKey = (typeof KLASSIFIZIERUNGEN)[number]['key'];
 
-/** Kennzahlen zaehlen nach OSHA: Recordable = MTC + RWC + LTI + Todesfall. */
-const RECORDABLE_KEYS: KlassifizierungKey[] = ['MTC', 'RWC', 'LTI', 'SIF'];
-
 /**
  * Die im Wochenbericht-Tool erfassten Werte tragen ein Emoji vorweg
  * ("⚠️ Unsafe Act (unsichere Handlung)"), die in cflux angelegten nicht.
@@ -175,53 +172,14 @@ export interface ReportEhsSection {
   pyramidScope: string;
   pyramid: FindingPyramid;
   matrix: KlassifizierungMatrix;
+  /** Freitext-Anmerkungen zum Monat, falls gepflegt. */
   monthlyData: {
-    workingDays: number;
-    workersPerDay: number;
-    hoursPerDay: number;
-    totalHours: number;
     highlights: string | null;
     achievements: string | null;
     hotTopics: string | null;
     safetyAward: string | null;
   } | null;
-  kpis: {
-    ltifr: number;
-    trir: number;
-    ltis: number;
-    recordables: number;
-    totalHours: number;
-    /** Feststellungen des gewaehlten Monats — Bezugsgroesse der Kennzahlen. */
-    monthFindings: number;
-  };
 }
-
-/** Feststellungen eines Monats — Bezugsgroesse fuer LTIFR und TRIR. */
-const monthFindingCounts = async (year: number, month: number, projectId: string | null) => {
-  const findings = await prisma.reportFinding.findMany({
-    where: {
-      report: {
-        date: {
-          gte: new Date(Date.UTC(year, month - 1, 1)),
-          lte: new Date(Date.UTC(year, month, 0, 23, 59, 59)),
-        },
-        ...(projectId ? { projectId } : {}),
-      },
-    },
-    select: { klassifizierung: true },
-  });
-
-  let ltis = 0;
-  let recordables = 0;
-
-  for (const finding of findings) {
-    const key = klassifizierungKey(finding.klassifizierung);
-    if (key === 'LTI' || key === 'SIF') ltis += 1;
-    if (key && RECORDABLE_KEYS.includes(key)) recordables += 1;
-  }
-
-  return { ltis, recordables, total: findings.length };
-};
 
 export const getReportEhsSection = async ({
   reports,
@@ -238,16 +196,14 @@ export const getReportEhsSection = async ({
   pyramidScope: string;
   allowedProjectIds?: string[] | null;
 }): Promise<ReportEhsSection> => {
-  const [matrix, monthCounts, monthly, project] = await Promise.all([
+  const [matrix, monthly, project] = await Promise.all([
     getKlassifizierungMatrix(year, projectId, allowedProjectIds),
-    monthFindingCounts(year, month, projectId),
+    // Nur noch fuer die Freitext-Anmerkungen zum Monat.
     prisma.eHSMonthlyData.findFirst({ where: { year, month, projectId } }),
     projectId
       ? prisma.project.findUnique({ where: { id: projectId }, select: { name: true } })
       : Promise.resolve(null),
   ]);
-
-  const totalHours = monthly?.totalHours || 0;
 
   return {
     year,
@@ -258,23 +214,11 @@ export const getReportEhsSection = async ({
     matrix,
     monthlyData: monthly
       ? {
-          workingDays: monthly.workingDays,
-          workersPerDay: monthly.workersPerDay,
-          hoursPerDay: monthly.hoursPerDay,
-          totalHours: monthly.totalHours,
           highlights: monthly.highlights,
           achievements: monthly.achievements,
           hotTopics: monthly.hotTopics,
           safetyAward: monthly.safetyAward,
         }
       : null,
-    kpis: {
-      ltifr: totalHours > 0 ? (monthCounts.ltis / totalHours) * 1000000 : 0,
-      trir: totalHours > 0 ? (monthCounts.recordables / totalHours) * 200000 : 0,
-      ltis: monthCounts.ltis,
-      recordables: monthCounts.recordables,
-      totalHours,
-      monthFindings: monthCounts.total,
-    },
   };
 };

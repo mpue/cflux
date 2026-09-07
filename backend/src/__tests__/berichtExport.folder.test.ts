@@ -60,7 +60,6 @@ const ehsSection = (overrides: any = {}): any => ({
   },
   matrix: { rows: [], monthTotals: new Array(12).fill(0), grandTotal: 0 },
   monthlyData: null,
-  kpis: { ltifr: 0, trir: 0, ltis: 0, recordables: 0, totalHours: 0, monthFindings: 44 },
   ...overrides,
 });
 
@@ -106,9 +105,31 @@ describe('renderFolderHtml', () => {
     expect(html).toContain('Feststellungen nach Klassifizierung und Monat');
   });
 
-  it('sagt es, wenn ohne Arbeitsstunden keine Rate berechenbar ist', () => {
+  it('führt keine Arbeitsdaten- und Kennzahlentabelle mehr mit', () => {
     const html = renderFolderHtml(folder, reports, ehsSection());
-    expect(html).toContain('Ohne gepflegte Arbeitsstunden lassen sich LTIFR und TRIR nicht berechnen');
+
+    expect(html).not.toContain('Arbeitsdaten');
+    expect(html).not.toContain('LTIFR');
+    expect(html).not.toContain('class="ehs-kpis"');
+  });
+
+  it('zeigt gepflegte Anmerkungen zum Monat', () => {
+    const html = renderFolderHtml(
+      folder,
+      reports,
+      ehsSection({
+        monthlyData: {
+          highlights: 'Null LTI seit 120 Tagen',
+          achievements: null,
+          hotTopics: null,
+          safetyAward: 'Team Rohbau',
+        },
+      })
+    );
+
+    expect(html).toContain('Anmerkungen zum Monat');
+    expect(html).toContain('Null LTI seit 120 Tagen');
+    expect(html).toContain('Team Rohbau');
   });
 
   it('weist auf Feststellungen ohne zuordenbare Klassifizierung hin', () => {
