@@ -4,12 +4,8 @@ import axios from 'axios';
 import FormData from 'form-data';
 import { PHOTOS_DIR, ReportWithRelations } from './bericht.service';
 import { findThumbnail } from './reportPhotoThumbs.service';
-import {
-  EHSReportSection,
-  EHS_CATEGORY_LABELS,
-  EHSCategoryKey,
-  MONTH_NAMES,
-} from './ehs.service';
+import { MONTH_NAMES } from './ehs.service';
+import { ReportEhsSection } from './berichtEhs.service';
 
 /**
  * Export eines Berichts als HTML bzw. PDF.
@@ -153,20 +149,6 @@ const buildFindingRows = (report: ReportWithRelations): string => {
 };
 
 
-/** Farbskala der EHS-Pyramide, von der Spitze (schwerste Kategorie) abwaerts. */
-const PYRAMID_LEVELS: { key: keyof EHSReportSection['pyramid']; label: string; color: string }[] = [
-  { key: 'fatalities', label: 'Todesfälle', color: '#7f1d1d' },
-  { key: 'ltis', label: 'LTI (Lost Time Injuries)', color: '#b91c1c' },
-  { key: 'recordables', label: 'Meldepflichtige Unfälle', color: '#dc2626' },
-  { key: 'firstAids', label: 'Erste Hilfe', color: '#ea580c' },
-  { key: 'nearMisses', label: 'Beinahe-Unfälle', color: '#f59e0b' },
-  { key: 'unsafeBehaviors', label: 'Unsicheres Verhalten', color: '#eab308' },
-  { key: 'unsafeConditions', label: 'Unsichere Zustände', color: '#a3a635' },
-  { key: 'propertyDamages', label: 'Sachschäden', color: '#65a30d' },
-  { key: 'environmentIncidents', label: 'Umweltvorfälle', color: '#16a34a' },
-  { key: 'safetyObservations', label: 'Sicherheitsbeobachtungen', color: '#0d9488' },
-];
-
 const formatNumber = (value: number | null | undefined, decimals = 2): string =>
   (value ?? 0).toLocaleString('de-CH', {
     minimumFractionDigits: decimals,
@@ -177,57 +159,57 @@ const formatInt = (value: number | null | undefined): string =>
   Math.round(value ?? 0).toLocaleString('de-CH');
 
 /**
- * EHS-Pyramide als Inline-SVG: zehn Trapezstufen, die zusammen ein Dreieck
- * bilden — Spitze = schwerste Kategorie. Chromium rendert das im PDF genauso
- * wie am Bildschirm; CSS-Formen (clip-path, Border-Tricks) sind im Druck
- * deutlich unzuverlaessiger.
+ * Sicherheitspyramide als Inline-SVG: eine Trapezstufe je Klassifizierung, die
+ * zusammen ein Dreieck bilden — Spitze = schwerste Stufe. Chromium rendert das
+ * im PDF genauso wie am Bildschirm; CSS-Formen (clip-path, Border-Tricks) sind
+ * im Druck deutlich unzuverlaessiger.
  */
-const buildPyramidSvg = (pyramid: EHSReportSection['pyramid']): string => {
-  const WIDTH = 790;
+const buildPyramidSvg = (pyramid: ReportEhsSection['pyramid']): string => {
+  const levels = pyramid.levels;
+  const WIDTH = 940;
   const TOP = 16;
-  const BAND = 50;
+  const BAND = 46;
   const GAP = 3;
   const HALF_BASE = 235;
   const HALF_APEX = 20;
   const CX = 258;
   const LABEL_X = 530;
-  const HEIGHT = TOP + PYRAMID_LEVELS.length * BAND + 16;
+  const HEIGHT = TOP + levels.length * BAND + 16;
 
   /** Halbe Breite des Dreiecks auf Hoehe y — linear von Spitze zur Basis. */
-  const halfWidthAt = (y: number): number => {
-    const progress = (y - TOP) / (PYRAMID_LEVELS.length * BAND);
-    return HALF_APEX + progress * (HALF_BASE - HALF_APEX);
-  };
+  const halfWidthAt = (y: number): number =>
+    HALF_APEX + ((y - TOP) / (levels.length * BAND)) * (HALF_BASE - HALF_APEX);
 
-  const bands = PYRAMID_LEVELS.map((level, index) => {
-    const count = pyramid[level.key] ?? 0;
-    const yTop = TOP + index * BAND;
-    const yBottom = yTop + BAND - GAP;
-    const halfTop = halfWidthAt(yTop);
-    const halfBottom = halfWidthAt(yBottom);
-    const middle = yTop + (BAND - GAP) / 2;
+  const bands = levels
+    .map((level, index) => {
+      const yTop = TOP + index * BAND;
+      const yBottom = yTop + BAND - GAP;
+      const halfTop = halfWidthAt(yTop);
+      const halfBottom = halfWidthAt(yBottom);
+      const middle = yTop + (BAND - GAP) / 2;
 
-    const points = [
-      `${(CX - halfTop).toFixed(1)},${yTop}`,
-      `${(CX + halfTop).toFixed(1)},${yTop}`,
-      `${(CX + halfBottom).toFixed(1)},${yBottom}`,
-      `${(CX - halfBottom).toFixed(1)},${yBottom}`,
-    ].join(' ');
+      const points = [
+        `${(CX - halfTop).toFixed(1)},${yTop}`,
+        `${(CX + halfTop).toFixed(1)},${yTop}`,
+        `${(CX + halfBottom).toFixed(1)},${yBottom}`,
+        `${(CX - halfBottom).toFixed(1)},${yBottom}`,
+      ].join(' ');
 
-    return `
+      return `
       <polygon points="${points}" fill="${level.color}" />
-      <text x="${CX}" y="${middle}" class="ehs-pyr-num" text-anchor="middle" dominant-baseline="central">${count}</text>
+      <text x="${CX}" y="${middle}" class="ehs-pyr-num" text-anchor="middle" dominant-baseline="central">${level.count}</text>
       <line x1="${(CX + halfBottom + 8).toFixed(1)}" y1="${middle}" x2="${LABEL_X - 10}" y2="${middle}" class="ehs-pyr-leader" />
       <text x="${LABEL_X}" y="${middle}" class="ehs-pyr-cat" dominant-baseline="central">${esc(level.label)}</text>`;
-  }).join('');
+    })
+    .join('');
 
   return `
-    <svg class="ehs-pyramid-svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EHS-Pyramide">
+    <svg class="ehs-pyramid-svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sicherheitspyramide">
       ${bands}
     </svg>`;
 };
 
-const buildMatrixRows = (matrix: EHSReportSection['matrix']): string => {
+const buildMatrixRows = (matrix: ReportEhsSection['matrix']): string => {
   const rows = matrix.rows
     .map(
       (row) => `
@@ -249,29 +231,8 @@ const buildMatrixRows = (matrix: EHSReportSection['matrix']): string => {
       </tr>`;
 };
 
-const buildIncidentRows = (incidents: EHSReportSection['incidents']): string => {
-  if (incidents.length === 0) {
-    return '<tr><td colspan="5" class="center">Keine Vorfälle in diesem Monat</td></tr>';
-  }
-
-  return incidents
-    .map((incident: any) => {
-      const category = EHS_CATEGORY_LABELS[incident.ehsCategory as EHSCategoryKey];
-
-      return `
-      <tr>
-        <td class="center">${formatDate(incident.incidentDate ?? incident.reportedAt)}</td>
-        <td>${esc(category ?? incident.ehsCategory)}</td>
-        <td>${esc(incident.title ? `${incident.title} — ${incident.description ?? ''}` : incident.description)}</td>
-        <td class="center">${esc(incident.ehsSeverity)}</td>
-        <td class="center">${esc(incident.status)}</td>
-      </tr>`;
-    })
-    .join('');
-};
-
 /** Freitextfelder aus den EHS-Monatsdaten, nur wenn gepflegt. */
-const buildNotesRows = (monthlyData: EHSReportSection['monthlyData']): string => {
+const buildNotesRows = (monthlyData: ReportEhsSection['monthlyData']): string => {
   if (!monthlyData) return '';
 
   const fields: [string, string | null][] = [
@@ -296,67 +257,47 @@ const buildNotesRows = (monthlyData: EHSReportSection['monthlyData']): string =>
 };
 
 /**
- * EHS-Auswertung als Anhang hinter dem Rundgangsprotokoll — Inhalt entspricht
- * dem frueheren EHS-Dashboard (Arbeitsdaten, KPIs, Pyramide, Jahresmatrix,
- * Vorfaelle des Monats).
+ * EHS-Auswertung als Anhang hinter dem Protokoll: die Sicherheitspyramide aus
+ * den Feststellungen dieses Dokuments, die Jahresuebersicht ueber alle
+ * Berichte des Projekts, dazu Arbeitsdaten und Kennzahlen des Monats.
  */
-/**
- * Ohne gepflegte Arbeitsstunden und ohne EHS-relevante Vorfaelle bestehen alle
- * Tabellen nur aus Nullen. Eine Seite voller Nullen sagt dem Leser nicht, ob
- * nichts passiert ist oder nichts erfasst wurde — deshalb wird der Grund
- * benannt statt der leere Rahmen gedruckt.
- */
-const ehsHasData = (ehs: EHSReportSection): boolean =>
-  ehs.kpis.totalHours > 0 || ehs.incidents.length > 0 || ehs.matrix.grandTotal > 0;
-
-const buildEhsEmptyNotice = (ehs: EHSReportSection): string => {
-  const reasons: string[] = [];
-
-  if (ehs.kpis.totalHours === 0) {
-    reasons.push(
-      'Für diesen Monat sind keine Arbeitsdaten gepflegt (Arbeitstage × Arbeiter pro Tag × ' +
-        'Stunden pro Tag). Ohne Gesamtstunden lassen sich LTIFR und TRIR nicht berechnen.'
-    );
-  }
-
-  if (ehs.incidents.length === 0) {
-    reasons.push(
-      'Es sind keine EHS-relevanten Vorfälle erfasst. Ein Vorfall zählt hier erst mit, wenn er ' +
-        'als EHS-relevant markiert und einer Kategorie zugeordnet ist.'
-    );
-  }
-
-  if (ehs.matrix.grandTotal === 0) {
-    reasons.push(`Auch im übrigen Jahr ${ehs.year} ist kein Vorfall mit EHS-Kategorie erfasst.`);
-  }
-
-  return `
-    <table class="kopfdaten ehs-empty">
-      <tr><td colspan="2" class="section-header">Keine EHS-Daten für diesen Zeitraum</td></tr>
-      ${reasons
-        .map((reason, index) => `<tr><td class="label">Hinweis ${index + 1}</td><td class="value">${esc(reason)}</td></tr>`)
-        .join('')}
-    </table>`;
-};
-
-const buildEhsSection = (ehs: EHSReportSection): string => {
+const buildEhsSection = (ehs: ReportEhsSection): string => {
   const monthLabel = `${MONTH_NAMES[ehs.month - 1]} ${ehs.year}`;
-  const scope = ehs.project ? ehs.project.name : 'Alle Projekte';
+  const scope = ehs.projectName ?? 'Alle Projekte';
   const monthly = ehs.monthlyData;
 
-  if (!ehsHasData(ehs)) {
-    return `
-  <div class="ehs-section">
-    <h2 class="ehs-title">EHS-Auswertung — ${esc(monthLabel)}</h2>
-    <div class="ehs-scope">Auswertungsbereich: ${esc(scope)}</div>
-    ${buildEhsEmptyNotice(ehs)}
-  </div>`;
-  }
-
   return `
   <div class="ehs-section">
-    <h2 class="ehs-title">EHS-Auswertung — ${esc(monthLabel)}</h2>
+    <h2 class="ehs-title">EHS-Auswertung</h2>
     <div class="ehs-scope">Auswertungsbereich: ${esc(scope)}</div>
+
+    <div class="ehs-pyramid">
+      <div class="section-header">Sicherheitspyramide — ${esc(ehs.pyramidScope)} (${ehs.pyramid.total} ${
+        ehs.pyramid.total === 1 ? 'Feststellung' : 'Feststellungen'
+      })</div>
+      <div class="ehs-pyramid-body">
+        ${
+          ehs.pyramid.total === 0
+            ? '<p class="ehs-hint">Hier ist keine Feststellung erfasst.</p>'
+            : buildPyramidSvg(ehs.pyramid)
+        }
+        ${
+          ehs.pyramid.unclassified > 0
+            ? `<p class="ehs-hint">${ehs.pyramid.unclassified} Feststellung(en) ohne zuordenbare Klassifizierung sind in der Pyramide nicht enthalten.</p>`
+            : ''
+        }
+      </div>
+    </div>
+
+    <table class="ehs-matrix">
+      <tr><td colspan="14" class="section-header">Jahresübersicht ${ehs.year} — Feststellungen nach Klassifizierung und Monat</td></tr>
+      <tr>
+        <th>Klassifizierung</th>
+        ${MONTH_NAMES.map((name) => `<th>${esc(name.substring(0, 3))}</th>`).join('')}
+        <th>Gesamt</th>
+      </tr>
+      ${buildMatrixRows(ehs.matrix)}
+    </table>
 
     <table class="kopfdaten">
       <tr><td colspan="4" class="section-header">Arbeitsdaten ${esc(monthLabel)}</td></tr>
@@ -371,40 +312,22 @@ const buildEhsSection = (ehs: EHSReportSection): string => {
     </table>
 
     <table class="ehs-kpis">
-      <tr><td colspan="4" class="section-header">Kennzahlen</td></tr>
+      <tr><td colspan="4" class="section-header">Kennzahlen ${esc(monthLabel)}</td></tr>
       <tr>
-        <td><div class="ehs-kpi-label">LTIFR (Monat)</div><div class="ehs-kpi-value">${formatNumber(ehs.kpis.ltifr)}</div><div class="ehs-kpi-hint">Lost Time Injury Frequency Rate</div></td>
-        <td><div class="ehs-kpi-label">TRIR (Monat)</div><div class="ehs-kpi-value">${formatNumber(ehs.kpis.trir)}</div><div class="ehs-kpi-hint">Total Recordable Injury Rate</div></td>
-        <td><div class="ehs-kpi-label">LTIFR (YTD)</div><div class="ehs-kpi-value">${formatNumber(ehs.kpis.ytdLTIFR)}</div><div class="ehs-kpi-hint">Jahr bis ${esc(MONTH_NAMES[ehs.month - 1])}</div></td>
-        <td><div class="ehs-kpi-label">TRIR (YTD)</div><div class="ehs-kpi-value">${formatNumber(ehs.kpis.ytdTRIR)}</div><div class="ehs-kpi-hint">Jahr bis ${esc(MONTH_NAMES[ehs.month - 1])}</div></td>
+        <td><div class="ehs-kpi-label">LTIFR</div><div class="ehs-kpi-value">${formatNumber(ehs.kpis.ltifr)}</div><div class="ehs-kpi-hint">Lost Time Injury Frequency Rate</div></td>
+        <td><div class="ehs-kpi-label">TRIR</div><div class="ehs-kpi-value">${formatNumber(ehs.kpis.trir)}</div><div class="ehs-kpi-hint">Total Recordable Injury Rate</div></td>
+        <td><div class="ehs-kpi-label">LTI</div><div class="ehs-kpi-value">${ehs.kpis.ltis}</div><div class="ehs-kpi-hint">Unfälle mit Ausfallzeit</div></td>
+        <td><div class="ehs-kpi-label">Recordable</div><div class="ehs-kpi-value">${ehs.kpis.recordables}</div><div class="ehs-kpi-hint">MTC, RWC, LTI und Todesfälle</div></td>
       </tr>
       <tr>
         <td colspan="4" class="ehs-kpi-foot">
-          Gesamtstunden Monat: ${formatInt(ehs.kpis.totalHours)} · YTD: ${formatInt(ehs.kpis.ytdTotalHours)}
-          ${ehs.kpis.totalHours === 0 ? ' · <strong>Ohne gepflegte Arbeitsstunden bleiben LTIFR und TRIR 0.</strong>' : ''}
+          Bezugsgrösse: ${ehs.kpis.monthFindings} Feststellung(en) und ${formatInt(ehs.kpis.totalHours)} Arbeitsstunden im ${esc(monthLabel)}.${
+            ehs.kpis.totalHours === 0
+              ? ' <strong>Ohne gepflegte Arbeitsstunden lassen sich LTIFR und TRIR nicht berechnen — die Fallzahlen daneben stimmen trotzdem.</strong>'
+              : ''
+          }
         </td>
       </tr>
-    </table>
-
-    <div class="ehs-pyramid">
-      <div class="section-header">EHS-Pyramide ${esc(monthLabel)}</div>
-      <div class="ehs-pyramid-body">${buildPyramidSvg(ehs.pyramid)}</div>
-    </div>
-
-    <table class="ehs-matrix">
-      <tr><td colspan="14" class="section-header">Jahresübersicht ${ehs.year} — Vorfälle nach Kategorie und Monat</td></tr>
-      <tr>
-        <th>Kategorie</th>
-        ${MONTH_NAMES.map((name) => `<th>${esc(name.substring(0, 3))}</th>`).join('')}
-        <th>Gesamt</th>
-      </tr>
-      ${buildMatrixRows(ehs.matrix)}
-    </table>
-
-    <table class="ehs-incidents">
-      <tr><td colspan="5" class="section-header">Vorfälle im Monat (${ehs.incidents.length})</td></tr>
-      <tr><th>Datum</th><th>Kategorie</th><th>Beschreibung</th><th>Schweregrad</th><th>Status</th></tr>
-      ${buildIncidentRows(ehs.incidents)}
     </table>
 
     ${buildNotesRows(ehs.monthlyData)}
@@ -598,7 +521,7 @@ ${body}
 
 export const renderReportHtml = (
   report: ReportWithRelations,
-  ehs: EHSReportSection | null = null
+  ehs: ReportEhsSection | null = null
 ): string =>
   docShell(
     reportHeading(report),
@@ -685,7 +608,7 @@ const buildFolderCover = (folder: ReportFolderInfo, reports: ReportWithRelations
 export const renderFolderHtml = (
   folder: ReportFolderInfo,
   reports: ReportWithRelations[],
-  ehs: EHSReportSection | null = null
+  ehs: ReportEhsSection | null = null
 ): string => {
   const pages = reports
     .map((report) => `  <div class="sheet-page">\n${buildReportBody(report)}\n  </div>`)
@@ -730,7 +653,7 @@ export const renderHtmlAsPdf = async (html: string): Promise<Buffer> => {
 
 export const renderReportPdf = async (
   report: ReportWithRelations,
-  ehs: EHSReportSection | null = null
+  ehs: ReportEhsSection | null = null
 ): Promise<Buffer> => renderHtmlAsPdf(renderReportHtml(report, ehs));
 
 /** Dateiname fuer den Download, ohne Sonderzeichen. */

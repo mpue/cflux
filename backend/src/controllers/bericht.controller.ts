@@ -19,12 +19,16 @@ import {
   exportFilename,
   folderExportFilename,
 } from '../services/berichtExport.service';
-import { getEHSReportSection, EHSReportSection } from '../services/ehs.service';
 import {
   importWochenberichtArchive,
   ImportFormatError,
 } from '../services/berichtImport.service';
 import { ensureThumbnails, deleteThumbnail } from '../services/reportPhotoThumbs.service';
+import { getReportEhsSection, ReportEhsSection } from '../services/berichtEhs.service';
+
+/** Beschriftung der Pyramide beim Einzelbericht. */
+const reportLabel = (report: ReportWithRelations): string =>
+  `${report.weekday}, ${new Date(report.date).toLocaleDateString('de-CH')}`;
 
 /**
  * Laedt einen Bericht und stellt sicher, dass der Benutzer dem zugehoerigen
@@ -259,20 +263,26 @@ export const deletePhoto = async (req: AuthRequest, res: Response) => {
 
 
 /**
- * Optionaler EHS-Anhang am Ende des Berichts. Jahr/Monat/Projekt werden beim
- * Export frei gewaehlt (`?ehsYear=&ehsMonth=&ehsProjectId=`); fehlt ehsMonth,
- * bleibt der Bericht wie bisher ohne Auswertung.
+ * Optionaler EHS-Anhang am Ende des Berichts.
+ *
+ * Die Pyramide zaehlt die Klassifizierungen der Feststellungen, die im
+ * Dokument stehen — beim Einzelbericht dessen eigene, beim Gesamt-Wochenbericht
+ * die der ganzen Woche. Jahr/Monat/Projekt aus der Anfrage
+ * (`?ehsYear=&ehsMonth=&ehsProjectId=`) steuern die Jahresuebersicht und die
+ * Kennzahlen; fehlt ehsMonth, bleibt der Bericht ohne Auswertung.
  */
 const loadEhsSection = async (
   req: AuthRequest,
-  report: ReportWithRelations
-): Promise<EHSReportSection | null> => {
+  reports: ReportWithRelations[],
+  pyramidScope: string
+): Promise<ReportEhsSection | null> => {
   const { ehs, ehsYear, ehsMonth, ehsProjectId } = req.query;
 
   if (ehs === 'false' || ehs === '0') return null;
   if (!ehsYear && !ehsMonth && !ehs) return null;
+  if (!reports.length) return null;
 
-  const reportDate = new Date(report.date);
+  const reportDate = new Date(reports[0].date);
   const year = ehsYear ? parseInt(ehsYear as string, 10) : reportDate.getFullYear();
   const month = ehsMonth ? parseInt(ehsMonth as string, 10) : reportDate.getMonth() + 1;
 
@@ -289,10 +299,12 @@ const loadEhsSection = async (
     projectId = ehsProjectId as string;
   }
 
-  return getEHSReportSection({
+  return getReportEhsSection({
+    reports,
     year,
     month,
     projectId,
+    pyramidScope,
     allowedProjectIds: await getAccessibleProjectIds(req.user!),
   });
 };
@@ -442,7 +454,7 @@ const exportFolder = async (req: AuthRequest, res: Response, format: 'html' | 'p
   // dreistellig viele Megabyte gross.
   await ensureThumbnails(reports);
 
-  const ehs = await loadEhsSection(req, reports[0]);
+  const ehs = await loadEhsSection(req, reports, folder.name);
   const html = renderFolderHtml(folder, reports, ehs);
   const filename = folderExportFilename(folder.name, format);
 
@@ -485,7 +497,7 @@ export const exportHtml = async (req: AuthRequest, res: Response) => {
     // Verkleinerungen vorab erzeugen — der Renderer ist synchron.
     await ensureThumbnails([report]);
 
-    const ehs = await loadEhsSection(req, report);
+    const ehs = await loadEhsSection(req, [report], reportLabel(report));
     const html = renderReportHtml(report, ehs);
 
     res.setHeader('Content-Disposition', `attachment; filename="${exportFilename(report, 'html')}"`);
@@ -504,7 +516,7 @@ export const exportPdf = async (req: AuthRequest, res: Response) => {
 
     await ensureThumbnails([report]);
 
-    const ehs = await loadEhsSection(req, report);
+    const ehs = await loadEhsSection(req, [report], reportLabel(report));
     const pdf = await renderReportPdf(report, ehs);
 
     res.setHeader('Content-Disposition', `attachment; filename="${exportFilename(report, 'pdf')}"`);

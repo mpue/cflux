@@ -43,21 +43,25 @@ const report = (day: number, weekday: string, ampeln: string[], titel: string | 
 
 const folder = { id: 'f1', name: 'KW 35', project };
 
-/** EHS-Abschnitt ohne jede Zahl — so sieht er ohne gepflegte Daten aus. */
-const emptyEhs = (): any => ({
+/** EHS-Abschnitt, wie ihn ein Bericht ohne Feststellungen erzeugt. */
+const ehsSection = (overrides: any = {}): any => ({
   year: 2026,
   month: 8,
-  project: { id: 'p1', name: 'Novartis WSJ' },
-  monthlyData: null,
-  incidents: [],
+  projectName: 'Novartis WSJ',
+  pyramidScope: 'KW 35',
   pyramid: {
-    fatalities: 0, ltis: 0, recordables: 0, firstAids: 0, nearMisses: 0,
-    unsafeBehaviors: 0, unsafeConditions: 0, propertyDamages: 0,
-    environmentIncidents: 0, safetyObservations: 0,
+    levels: [
+      { key: 'SIF', label: 'SIF / Fatality', color: '#7f1d1d', count: 0 },
+      { key: 'GOOD_CATCH', label: 'Good Catch', color: '#65a30d', count: 16 },
+      { key: 'SAFE_BEHAVIOR', label: 'Safe Behavior / Positive Beobachtung', color: '#0e7490', count: 28 },
+    ],
+    total: 44,
+    unclassified: 0,
   },
-  kpis: { ltifr: 0, trir: 0, ytdLTIFR: 0, ytdTRIR: 0, totalHours: 0, ytdTotalHours: 0 },
-  ytdData: [],
   matrix: { rows: [], monthTotals: new Array(12).fill(0), grandTotal: 0 },
+  monthlyData: null,
+  kpis: { ltifr: 0, trir: 0, ltis: 0, recordables: 0, totalHours: 0, monthFindings: 44 },
+  ...overrides,
 });
 
 describe('renderFolderHtml', () => {
@@ -91,28 +95,39 @@ describe('renderFolderHtml', () => {
   it('hängt die EHS-Auswertung nur an, wenn sie mitgegeben wird', () => {
     // Auf die Sektion pruefen, nicht auf den Text — der steht auch im CSS-Kommentar.
     expect(renderFolderHtml(folder, reports)).not.toContain('class="ehs-section"');
-    expect(renderFolderHtml(folder, reports, emptyEhs())).toContain('class="ehs-section"');
+    expect(renderFolderHtml(folder, reports, ehsSection())).toContain('class="ehs-section"');
   });
 
-  it('nennt bei fehlenden EHS-Daten den Grund statt einer Seite voller Nullen', () => {
-    const html = renderFolderHtml(folder, reports, emptyEhs());
+  it('beschriftet die Pyramide mit dem Ordner und der Zahl der Feststellungen', () => {
+    const html = renderFolderHtml(folder, reports, ehsSection());
 
-    expect(html).toContain('Keine EHS-Daten für diesen Zeitraum');
-    expect(html).toContain('keine Arbeitsdaten gepflegt');
-    expect(html).toContain('keine EHS-relevanten Vorfälle erfasst');
-    // Die leeren Tabellen bleiben aussen vor.
-    expect(html).not.toContain('EHS-Pyramide');
-    expect(html).not.toContain('class="ehs-kpis"');
+    expect(html).toContain('Sicherheitspyramide — KW 35 (44 Feststellungen)');
+    expect(html).toContain('Safe Behavior / Positive Beobachtung');
+    expect(html).toContain('Feststellungen nach Klassifizierung und Monat');
   });
 
-  it('zeigt die Tabellen, sobald wenigstens Arbeitsstunden gepflegt sind', () => {
-    const ehs = emptyEhs();
-    ehs.kpis.totalHours = 8568;
-    ehs.monthlyData = { workingDays: 21, workersPerDay: 48, hoursPerDay: 8.5, totalHours: 8568 };
+  it('sagt es, wenn ohne Arbeitsstunden keine Rate berechenbar ist', () => {
+    const html = renderFolderHtml(folder, reports, ehsSection());
+    expect(html).toContain('Ohne gepflegte Arbeitsstunden lassen sich LTIFR und TRIR nicht berechnen');
+  });
+
+  it('weist auf Feststellungen ohne zuordenbare Klassifizierung hin', () => {
+    const ehs = ehsSection();
+    ehs.pyramid.unclassified = 3;
+
+    expect(renderFolderHtml(folder, reports, ehs)).toContain(
+      '3 Feststellung(en) ohne zuordenbare Klassifizierung'
+    );
+  });
+
+  it('zeigt statt der Pyramide einen Hinweis, wenn nichts erfasst ist', () => {
+    const ehs = ehsSection();
+    ehs.pyramid.total = 0;
+    ehs.pyramid.levels = ehs.pyramid.levels.map((level: any) => ({ ...level, count: 0 }));
 
     const html = renderFolderHtml(folder, reports, ehs);
 
-    expect(html).not.toContain('Keine EHS-Daten für diesen Zeitraum');
-    expect(html).toContain('EHS-Pyramide');
+    expect(html).toContain('Hier ist keine Feststellung erfasst.');
+    expect(html).not.toContain('<svg class="ehs-pyramid-svg"');
   });
 });

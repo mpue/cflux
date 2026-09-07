@@ -2,10 +2,11 @@ import { Incident } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 
 /**
- * Aufbereitung der EHS-Kennzahlen (Pyramide, LTIFR/TRIR, Jahresmatrix).
+ * Aufbereitung der EHS-Kennzahlen fuer das EHS-Dashboard (Pyramide, LTIFR/TRIR)
+ * aus den Incident-Daten.
  *
- * Wird sowohl vom EHS-Dashboard-Endpunkt als auch vom Wochenbericht-Export
- * benutzt — die Auswertung haengt als eigener Abschnitt hinten am Bericht.
+ * Die Auswertung im Rundgangsbericht speist sich dagegen aus den
+ * Klassifizierungen der Feststellungen — siehe berichtEhs.service.ts.
  */
 
 /** Reihenfolge = Reihenfolge in Pyramide und Jahresmatrix (oben = schwerste). */
@@ -156,78 +157,3 @@ export const getEHSDashboardData = async ({
     ytdData,
   };
 };
-
-export interface EHSYearMatrix {
-  /** Pro Kategorie zwoelf Monatswerte (Index 0 = Januar). */
-  rows: { category: EHSCategoryKey; label: string; counts: number[]; total: number }[];
-  monthTotals: number[];
-  grandTotal: number;
-}
-
-/**
- * Jahresuebersicht "Vorfaelle nach Kategorie und Monat" — im Dashboard wird
- * dieselbe Matrix im Frontend aus /api/incidents gebaut.
- */
-export const getEHSYearMatrix = async (
-  year: number,
-  projectId?: string | null,
-  allowedProjectIds?: string[] | null
-): Promise<EHSYearMatrix> => {
-  const pid = projectId || null;
-  const startDate = new Date(year, 0, 1);
-  const endDate = new Date(year, 11, 31, 23, 59, 59);
-
-  const incidents = await prisma.incident.findMany({
-    where: {
-      ehsCategory: { not: null },
-      OR: [
-        { incidentDate: { gte: startDate, lte: endDate } },
-        { incidentDate: null, reportedAt: { gte: startDate, lte: endDate } },
-      ],
-      ...projectScope(pid, allowedProjectIds),
-    },
-    select: { ehsCategory: true, incidentDate: true, reportedAt: true },
-  });
-
-  const counts = new Map<string, number[]>(
-    EHS_CATEGORIES.map((category) => [category, new Array(12).fill(0)])
-  );
-
-  for (const incident of incidents) {
-    const row = counts.get(incident.ehsCategory as string);
-    if (!row) continue;
-    row[incidentDateOf(incident).getMonth()] += 1;
-  }
-
-  const rows = EHS_CATEGORIES.map((category) => {
-    const values = counts.get(category)!;
-    return {
-      category,
-      label: EHS_CATEGORY_LABELS[category],
-      counts: values,
-      total: values.reduce((sum, value) => sum + value, 0),
-    };
-  });
-
-  const monthTotals = Array.from({ length: 12 }, (_, index) =>
-    rows.reduce((sum, row) => sum + row.counts[index], 0)
-  );
-
-  return {
-    rows,
-    monthTotals,
-    grandTotal: monthTotals.reduce((sum, value) => sum + value, 0),
-  };
-};
-
-/** Vollstaendiger Datensatz fuer den EHS-Abschnitt im Wochenbericht. */
-export const getEHSReportSection = async (filter: EHSDashboardFilter) => {
-  const [dashboard, matrix] = await Promise.all([
-    getEHSDashboardData(filter),
-    getEHSYearMatrix(filter.year, filter.projectId, filter.allowedProjectIds),
-  ]);
-
-  return { ...dashboard, matrix };
-};
-
-export type EHSReportSection = Awaited<ReturnType<typeof getEHSReportSection>>;
