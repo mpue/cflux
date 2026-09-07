@@ -3,6 +3,7 @@ import path from 'path';
 import axios from 'axios';
 import FormData from 'form-data';
 import { PHOTOS_DIR, ReportWithRelations } from './bericht.service';
+import { findThumbnail } from './reportPhotoThumbs.service';
 import {
   EHSReportSection,
   EHS_CATEGORY_LABELS,
@@ -88,13 +89,20 @@ const logoDataUri = (logoUrl: string | null | undefined): string | null => {
   return fileToDataUri(resolved);
 };
 
+/**
+ * Bevorzugt die verkleinerte Fassung — das Original waere im Dokument ein
+ * Vielfaches gross und wird ohnehin nur in einem 110px-Kaestchen gezeigt.
+ * Fehlt die Verkleinerung, geht der Export lieber gross als ohne Foto.
+ */
 const photoDataUri = (reportId: string, filename: string | null | undefined): string | null => {
   if (!filename) return null;
+
   const resolved = path.resolve(PHOTOS_DIR, reportId, filename);
   if (!resolved.startsWith(path.join(PHOTOS_DIR, reportId) + path.sep)) {
     return null;
   }
-  return fileToDataUri(resolved);
+
+  return fileToDataUri(findThumbnail(reportId, filename) ?? resolved);
 };
 
 const buildAreaRows = (areas: ReportWithRelations['areas']): string => {
@@ -292,10 +300,58 @@ const buildNotesRows = (monthlyData: EHSReportSection['monthlyData']): string =>
  * dem frueheren EHS-Dashboard (Arbeitsdaten, KPIs, Pyramide, Jahresmatrix,
  * Vorfaelle des Monats).
  */
+/**
+ * Ohne gepflegte Arbeitsstunden und ohne EHS-relevante Vorfaelle bestehen alle
+ * Tabellen nur aus Nullen. Eine Seite voller Nullen sagt dem Leser nicht, ob
+ * nichts passiert ist oder nichts erfasst wurde — deshalb wird der Grund
+ * benannt statt der leere Rahmen gedruckt.
+ */
+const ehsHasData = (ehs: EHSReportSection): boolean =>
+  ehs.kpis.totalHours > 0 || ehs.incidents.length > 0 || ehs.matrix.grandTotal > 0;
+
+const buildEhsEmptyNotice = (ehs: EHSReportSection): string => {
+  const reasons: string[] = [];
+
+  if (ehs.kpis.totalHours === 0) {
+    reasons.push(
+      'Für diesen Monat sind keine Arbeitsdaten gepflegt (Arbeitstage × Arbeiter pro Tag × ' +
+        'Stunden pro Tag). Ohne Gesamtstunden lassen sich LTIFR und TRIR nicht berechnen.'
+    );
+  }
+
+  if (ehs.incidents.length === 0) {
+    reasons.push(
+      'Es sind keine EHS-relevanten Vorfälle erfasst. Ein Vorfall zählt hier erst mit, wenn er ' +
+        'als EHS-relevant markiert und einer Kategorie zugeordnet ist.'
+    );
+  }
+
+  if (ehs.matrix.grandTotal === 0) {
+    reasons.push(`Auch im übrigen Jahr ${ehs.year} ist kein Vorfall mit EHS-Kategorie erfasst.`);
+  }
+
+  return `
+    <table class="kopfdaten ehs-empty">
+      <tr><td colspan="2" class="section-header">Keine EHS-Daten für diesen Zeitraum</td></tr>
+      ${reasons
+        .map((reason, index) => `<tr><td class="label">Hinweis ${index + 1}</td><td class="value">${esc(reason)}</td></tr>`)
+        .join('')}
+    </table>`;
+};
+
 const buildEhsSection = (ehs: EHSReportSection): string => {
   const monthLabel = `${MONTH_NAMES[ehs.month - 1]} ${ehs.year}`;
   const scope = ehs.project ? ehs.project.name : 'Alle Projekte';
   const monthly = ehs.monthlyData;
+
+  if (!ehsHasData(ehs)) {
+    return `
+  <div class="ehs-section">
+    <h2 class="ehs-title">EHS-Auswertung — ${esc(monthLabel)}</h2>
+    <div class="ehs-scope">Auswertungsbereich: ${esc(scope)}</div>
+    ${buildEhsEmptyNotice(ehs)}
+  </div>`;
+  }
 
   return `
   <div class="ehs-section">
@@ -423,6 +479,8 @@ const buildStyles = ({
   .ehs-section { page-break-before: always; }
   .ehs-title { font-size: 14pt; margin: 0 0 2px; color: ${primary}; }
   .ehs-scope { font-size: 9pt; color: #555; margin-bottom: 14px; }
+  .ehs-empty td.label { width: 110px; }
+  .ehs-empty td.value { line-height: 1.45; }
   .ehs-kpis td { text-align: center; background: ${accent}; }
   /* Der Abschnittskopf darf nicht von der Kachel-Faerbung ueberschrieben werden. */
   .ehs-kpis td.section-header { background: ${primary}; color: #fff; text-align: left; }

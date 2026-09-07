@@ -43,6 +43,23 @@ const report = (day: number, weekday: string, ampeln: string[], titel: string | 
 
 const folder = { id: 'f1', name: 'KW 35', project };
 
+/** EHS-Abschnitt ohne jede Zahl — so sieht er ohne gepflegte Daten aus. */
+const emptyEhs = (): any => ({
+  year: 2026,
+  month: 8,
+  project: { id: 'p1', name: 'Novartis WSJ' },
+  monthlyData: null,
+  incidents: [],
+  pyramid: {
+    fatalities: 0, ltis: 0, recordables: 0, firstAids: 0, nearMisses: 0,
+    unsafeBehaviors: 0, unsafeConditions: 0, propertyDamages: 0,
+    environmentIncidents: 0, safetyObservations: 0,
+  },
+  kpis: { ltifr: 0, trir: 0, ytdLTIFR: 0, ytdTRIR: 0, totalHours: 0, ytdTotalHours: 0 },
+  ytdData: [],
+  matrix: { rows: [], monthTotals: new Array(12).fill(0), grandTotal: 0 },
+});
+
 describe('renderFolderHtml', () => {
   const reports = [
     report(24, 'Mo', ['Grün', 'Gelb']),
@@ -74,23 +91,28 @@ describe('renderFolderHtml', () => {
   it('hängt die EHS-Auswertung nur an, wenn sie mitgegeben wird', () => {
     // Auf die Sektion pruefen, nicht auf den Text — der steht auch im CSS-Kommentar.
     expect(renderFolderHtml(folder, reports)).not.toContain('class="ehs-section"');
+    expect(renderFolderHtml(folder, reports, emptyEhs())).toContain('class="ehs-section"');
+  });
 
-    const ehs: any = {
-      year: 2026,
-      month: 8,
-      project: { id: 'p1', name: 'Novartis WSJ' },
-      monthlyData: null,
-      incidents: [],
-      pyramid: {
-        fatalities: 0, ltis: 0, recordables: 0, firstAids: 0, nearMisses: 0,
-        unsafeBehaviors: 0, unsafeConditions: 0, propertyDamages: 0,
-        environmentIncidents: 0, safetyObservations: 0,
-      },
-      kpis: { ltifr: 0, trir: 0, ytdLTIFR: 0, ytdTRIR: 0, totalHours: 0, ytdTotalHours: 0 },
-      ytdData: [],
-      matrix: { rows: [], monthTotals: new Array(12).fill(0), grandTotal: 0 },
-    };
+  it('nennt bei fehlenden EHS-Daten den Grund statt einer Seite voller Nullen', () => {
+    const html = renderFolderHtml(folder, reports, emptyEhs());
 
-    expect(renderFolderHtml(folder, reports, ehs)).toContain('class="ehs-section"');
+    expect(html).toContain('Keine EHS-Daten für diesen Zeitraum');
+    expect(html).toContain('keine Arbeitsdaten gepflegt');
+    expect(html).toContain('keine EHS-relevanten Vorfälle erfasst');
+    // Die leeren Tabellen bleiben aussen vor.
+    expect(html).not.toContain('EHS-Pyramide');
+    expect(html).not.toContain('class="ehs-kpis"');
+  });
+
+  it('zeigt die Tabellen, sobald wenigstens Arbeitsstunden gepflegt sind', () => {
+    const ehs = emptyEhs();
+    ehs.kpis.totalHours = 8568;
+    ehs.monthlyData = { workingDays: 21, workersPerDay: 48, hoursPerDay: 8.5, totalHours: 8568 };
+
+    const html = renderFolderHtml(folder, reports, ehs);
+
+    expect(html).not.toContain('Keine EHS-Daten für diesen Zeitraum');
+    expect(html).toContain('EHS-Pyramide');
   });
 });

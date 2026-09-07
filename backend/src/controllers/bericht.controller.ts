@@ -24,6 +24,7 @@ import {
   importWochenberichtArchive,
   ImportFormatError,
 } from '../services/berichtImport.service';
+import { ensureThumbnails, deleteThumbnail } from '../services/reportPhotoThumbs.service';
 
 /**
  * Laedt einen Bericht und stellt sicher, dass der Benutzer dem zugehoerigen
@@ -203,6 +204,9 @@ export const uploadPhotos = async (req: AuthRequest, res: Response) => {
 
     const photos = await berichtService.addPhotos(report.id, files, req.user!.id);
 
+    // Gleich beim Hochladen verkleinern, damit der Export spaeter nicht wartet.
+    await ensureThumbnails([{ id: report.id, photos }]);
+
     res.status(201).json(photos);
   } catch (error) {
     console.error('Upload report photos error:', error);
@@ -245,6 +249,7 @@ export const deletePhoto = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Foto nicht gefunden' });
     }
 
+    deleteThumbnail(report.id, photo.filename);
     res.json({ message: 'Foto gelöscht' });
   } catch (error) {
     console.error('Delete report photo error:', error);
@@ -433,6 +438,10 @@ const exportFolder = async (req: AuthRequest, res: Response, format: 'html' | 'p
     return res.status(400).json({ error: 'Der Ordner enthält keine Berichte' });
   }
 
+  // Ohne das waere ein Gesamt-Wochenbericht mit hundert Originalfotos
+  // dreistellig viele Megabyte gross.
+  await ensureThumbnails(reports);
+
   const ehs = await loadEhsSection(req, reports[0]);
   const html = renderFolderHtml(folder, reports, ehs);
   const filename = folderExportFilename(folder.name, format);
@@ -473,6 +482,9 @@ export const exportHtml = async (req: AuthRequest, res: Response) => {
     const report = await loadAccessibleReport(req, res);
     if (!report) return;
 
+    // Verkleinerungen vorab erzeugen — der Renderer ist synchron.
+    await ensureThumbnails([report]);
+
     const ehs = await loadEhsSection(req, report);
     const html = renderReportHtml(report, ehs);
 
@@ -489,6 +501,8 @@ export const exportPdf = async (req: AuthRequest, res: Response) => {
   try {
     const report = await loadAccessibleReport(req, res);
     if (!report) return;
+
+    await ensureThumbnails([report]);
 
     const ehs = await loadEhsSection(req, report);
     const pdf = await renderReportPdf(report, ehs);

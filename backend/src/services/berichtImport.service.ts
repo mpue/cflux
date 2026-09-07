@@ -3,6 +3,7 @@ import path from 'path';
 import AdmZip, { IZipEntry } from 'adm-zip';
 import { prisma } from '../lib/prisma';
 import { PHOTOS_DIR } from './bericht.service';
+import { ensureThumbnail } from './reportPhotoThumbs.service';
 
 /**
  * Import eines Datenexports aus dem eigenstaendigen Wochenbericht-Tool.
@@ -342,6 +343,9 @@ export const importWochenberichtArchive = async (
         // getData() packt genau diesen einen Eintrag aus; der Puffer ist nach
         // dem Schreiben wieder frei.
         fs.writeFileSync(path.join(targetDir, file.newName), file.entry.getData());
+        // Gleich verkleinern — sonst zieht der erste Export das nach und
+        // laeuft bei hunderten Fotos in den Timeout.
+        await ensureThumbnail(created.id, file.newName);
       }
       result.photos += photoFiles.length;
     } catch (error: any) {

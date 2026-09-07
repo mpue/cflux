@@ -84,6 +84,14 @@ export const getEHSDashboardData = async ({
     include: { project: true },
   });
 
+  // Den Auswertungsbereich am angefragten Projekt festmachen, nicht an den
+  // Monatsdaten: fehlen die fuer den Monat, stuende sonst "Alle Projekte" im
+  // Bericht, obwohl auf ein Projekt eingeschraenkt wurde.
+  const project = pid
+    ? monthlyData?.project ??
+      (await prisma.project.findUnique({ where: { id: pid }, select: { id: true, name: true } }))
+    : null;
+
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0, 23, 59, 59);
 
@@ -133,7 +141,7 @@ export const getEHSDashboardData = async ({
   return {
     year,
     month,
-    project: monthlyData?.project ?? null,
+    project,
     monthlyData,
     incidents,
     pyramid,
