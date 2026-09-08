@@ -189,6 +189,11 @@ export const berichtService = {
     await downloadExport(`/berichte/${id}/export.${format}`, `bericht.${format}`, ehs);
   },
 
+  /** Datenexport eines einzelnen Tagesblatts, wieder importierbar. */
+  downloadArchive: async (id: string): Promise<void> => {
+    await downloadExport(`/berichte/${id}/export.zip`, 'bericht-daten.zip');
+  },
+
   /** Gesamt-Wochenbericht: Deckblatt mit Kennzahlen, danach jedes Tagesblatt. */
   downloadFolder: async (
     folderId: string,
@@ -200,6 +205,15 @@ export const berichtService = {
       `wochenbericht.${format}`,
       ehs
     );
+  },
+
+  /**
+   * Datenexport eines Ordners im Austauschformat — dieselbe ZIP-Struktur, die
+   * „Daten importieren" wieder einliest. Ohne EHS-Parameter: das Archiv trägt
+   * die Rohdaten, keine Auswertung.
+   */
+  downloadFolderArchive: async (folderId: string): Promise<void> => {
+    await downloadExport(`/berichte/folders/${folderId}/export.zip`, 'wochenbericht-daten.zip');
   },
 };
 

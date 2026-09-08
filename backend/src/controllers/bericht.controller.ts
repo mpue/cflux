@@ -23,6 +23,11 @@ import {
   importWochenberichtArchive,
   ImportFormatError,
 } from '../services/berichtImport.service';
+import {
+  archiveFilename,
+  streamWochenberichtArchive,
+  ArchiveFolder,
+} from '../services/berichtArchiveExport.service';
 import { ensureThumbnails, deleteThumbnail } from '../services/reportPhotoThumbs.service';
 import {
   getBerichtDashboard,
@@ -512,6 +517,79 @@ const exportFolder = async (req: AuthRequest, res: Response, format: 'html' | 'p
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Length', pdf.length);
   res.end(pdf);
+};
+
+/**
+ * Datenexport im Austauschformat `wochenbericht-export` — dasselbe ZIP, das
+ * der Import wieder einliest. Anders als PDF/HTML enthaelt es die
+ * Originalfotos und alle Felder, damit ein Bericht verlustfrei in eine andere
+ * Instanz wandern kann.
+ *
+ * Wird gestreamt: bei ueber 200 Originalfotos hielte ein Puffer sonst
+ * mehrere hundert Megabyte.
+ */
+const sendArchive = async (
+  res: Response,
+  reports: ReportWithRelations[],
+  folders: ArchiveFolder[],
+  label: string
+) => {
+  res.setHeader('Content-Disposition', `attachment; filename="${archiveFilename(label)}"`);
+  res.setHeader('Content-Type', 'application/zip');
+
+  const { missingPhotos } = await streamWochenberichtArchive(res, reports, folders);
+
+  // Der Header ist zu diesem Zeitpunkt raus, eine Fehlerantwort geht nicht
+  // mehr — deshalb nur ins Log, das Archiv selbst bleibt gueltig.
+  if (missingPhotos.length) {
+    console.warn(
+      `Datenexport ${label}: ${missingPhotos.length} Foto(s) fehlen auf der Platte`,
+      missingPhotos.slice(0, 10)
+    );
+  }
+};
+
+/** Datenexport eines ganzen Ordners (Wochenbericht). */
+export const exportFolderArchive = async (req: AuthRequest, res: Response) => {
+  try {
+    const folder = await loadAccessibleFolder(req, res);
+    if (!folder) return;
+
+    const reports = await berichtFolderService.getReports(folder.id);
+
+    if (!reports.length) {
+      return res.status(400).json({ error: 'Der Ordner enthält keine Berichte' });
+    }
+
+    await sendArchive(res, reports, [{ id: folder.id, name: folder.name }], folder.name);
+  } catch (error: any) {
+    console.error('Export folder archive error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Datenexport fehlgeschlagen', details: error?.message });
+    } else {
+      res.destroy();
+    }
+  }
+};
+
+/** Datenexport eines einzelnen Tagesblatts. */
+export const exportArchive = async (req: AuthRequest, res: Response) => {
+  try {
+    const report = await loadAccessibleReport(req, res);
+    if (!report) return;
+
+    // Den Ordner mitgeben, damit die Zuordnung den Import ueberlebt.
+    const folders = report.folder ? [{ id: report.folder.id, name: report.folder.name }] : [];
+
+    await sendArchive(res, [report], folders, reportLabel(report));
+  } catch (error: any) {
+    console.error('Export report archive error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Datenexport fehlgeschlagen', details: error?.message });
+    } else {
+      res.destroy();
+    }
+  }
 };
 
 export const exportFolderHtml = async (req: AuthRequest, res: Response) => {

@@ -14,9 +14,21 @@ import { ensureThumbnail } from './reportPhotoThumbs.service';
  * Quelltool kennt nur einen freien Projekttext.
  */
 
-const EXPECTED_FORMAT = 'wochenbericht-export';
-const SUPPORTED_VERSION = 1;
-const MANIFEST_NAME = 'wochenbericht.json';
+/**
+ * Formatkonstanten des Austauschformats. Exportiert, weil cflux dasselbe
+ * Archiv inzwischen auch schreibt (berichtArchiveExport.service.ts) — die
+ * beiden Seiten sollen nicht auseinanderlaufen.
+ *
+ * Achtung: dieselben Konstanten stehen ein zweites Mal in der eigenstaendigen
+ * Wochenbericht-App (`export-archive.js`). Eine Strukturaenderung muss dort
+ * mitgezogen werden, sonst liest cflux deren Archive nicht mehr.
+ */
+export const ARCHIVE_FORMAT = 'wochenbericht-export';
+export const ARCHIVE_VERSION = 1;
+export const MANIFEST_NAME = 'wochenbericht.json';
+
+const EXPECTED_FORMAT = ARCHIVE_FORMAT;
+const SUPPORTED_VERSION = ARCHIVE_VERSION;
 
 interface SourcePhoto {
   id?: string;

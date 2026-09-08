@@ -158,6 +158,12 @@ router.get(
   requireModuleAccess(MODULE_KEY, 'canView'),
   berichtController.exportFolderPdf
 );
+// Datenexport im Austauschformat — das Gegenstueck zu POST /import.
+router.get(
+  '/folders/:id/export.zip',
+  requireModuleAccess(MODULE_KEY, 'canView'),
+  berichtController.exportFolderArchive
+);
 router.put('/folders/:id', requireModuleAccess(MODULE_KEY, 'canEdit'), berichtController.renameFolder);
 router.delete(
   '/folders/:id',
@@ -179,6 +185,7 @@ router.post(
 // Export (vor /:id, damit die Pfade nicht kollidieren)
 router.get('/:id/export.html', requireModuleAccess(MODULE_KEY, 'canView'), berichtController.exportHtml);
 router.get('/:id/export.pdf', requireModuleAccess(MODULE_KEY, 'canView'), berichtController.exportPdf);
+router.get('/:id/export.zip', requireModuleAccess(MODULE_KEY, 'canView'), berichtController.exportArchive);
 
 // Fotos
 router.post(

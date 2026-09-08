@@ -59,6 +59,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   MenuBook as WeeklyReportIcon,
   InsertChart as DashboardIcon,
+  Archive as ArchiveIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import AppNavbar from '../components/AppNavbar';
@@ -562,6 +563,35 @@ const BerichtePage: React.FC = () => {
       setToast('Gesamt-Wochenbericht wird heruntergeladen');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Export fehlgeschlagen');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  /**
+   * Datenexport im Austauschformat. Anders als PDF/HTML enthält das Archiv die
+   * Originalfotos und alle Felder — „Daten importieren" liest es wieder ein.
+   */
+  const handleArchiveExport = async (target: { folderId?: string; reportId?: string }) => {
+    setExporting(true);
+
+    try {
+      // Offene Eingaben zuerst sichern, sonst fehlen sie im Archiv.
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+        await persist();
+      }
+
+      if (target.folderId) {
+        await berichtService.downloadFolderArchive(target.folderId);
+      } else if (target.reportId) {
+        await berichtService.downloadArchive(target.reportId);
+      }
+
+      setToast('Datenexport wird heruntergeladen');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Datenexport fehlgeschlagen');
     } finally {
       setExporting(false);
     }
@@ -1396,6 +1426,41 @@ const BerichtePage: React.FC = () => {
             </Box>
           </>
         )}
+
+        <Divider flexItem />
+
+        <Box>
+          <Typography variant="subtitle2" gutterBottom>
+            Datenexport
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            ZIP mit allen Feldern und den Originalfotos — dasselbe Format, das „Daten importieren"
+            wieder einliest. Gedacht zum Umziehen in eine andere Instanz oder als Sicherung, nicht
+            zum Verschicken: die Datei wird mit vielen Fotos schnell mehrere hundert Megabyte gross.
+          </Typography>
+
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              startIcon={<ArchiveIcon />}
+              disabled={exporting || !current}
+              onClick={() => current && handleArchiveExport({ reportId: current.id })}
+            >
+              Dieses Tagesblatt (ZIP)
+            </Button>
+
+            {current?.folder && (
+              <Button
+                variant="outlined"
+                startIcon={<ArchiveIcon />}
+                disabled={exporting}
+                onClick={() => handleArchiveExport({ folderId: current.folder!.id })}
+              >
+                Ganzer Ordner „{current.folder.name}" (ZIP)
+              </Button>
+            )}
+          </Box>
+        </Box>
       </CardContent>
     </Card>
   );
@@ -1535,6 +1600,15 @@ const BerichtePage: React.FC = () => {
           }}
         >
           Gesamt-Wochenbericht (HTML)
+        </MenuItem>
+        <MenuItem
+          disabled={exporting}
+          onClick={() => {
+            if (folderMenu) handleArchiveExport({ folderId: folderMenu.folder.id });
+            setFolderMenu(null);
+          }}
+        >
+          Datenexport (ZIP)
         </MenuItem>
         <Divider />
         <MenuItem
