@@ -55,6 +55,7 @@ import UserProfile from './pages/UserProfile';
 import JobFunctionsPage from './pages/JobFunctionsPage';
 import ChecklistsPage from './pages/ChecklistsPage';
 import BerichtePage from './pages/BerichtePage';
+import BerichteDashboardPage from './pages/BerichteDashboardPage';
 import ProtectedModuleRoute from './components/ProtectedModuleRoute';
 import ChecklistInstanceDetailPage from './pages/ChecklistInstanceDetailPage';
 import ChecklistTemplateFormPage from './pages/ChecklistTemplateFormPage';
@@ -192,6 +193,22 @@ function App() {
                 <PrivateRoute>
                   <ProtectedModuleRoute moduleKey="berichte">
                     <BerichtePage />
+                  </ProtectedModuleRoute>
+                </PrivateRoute>
+              }
+            />
+            {/*
+              Flach, nicht /berichte/dashboard: package.json setzt
+              "homepage": ".", damit stehen die Asset-Pfade in der index.html
+              relativ und eine zweisegmentige Route laedt Bundle und CSS aus
+              dem falschen Verzeichnis.
+            */}
+            <Route
+              path="/berichte-dashboard"
+              element={
+                <PrivateRoute>
+                  <ProtectedModuleRoute moduleKey="berichte">
+                    <BerichteDashboardPage />
                   </ProtectedModuleRoute>
                 </PrivateRoute>
               }

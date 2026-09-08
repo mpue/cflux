@@ -1,6 +1,7 @@
 import api, { getBackendURL } from './api';
 import {
   Bericht,
+  BerichtDashboard,
   BerichtFolder,
   BerichtImportResult,
   BerichtListItem,
@@ -59,6 +60,14 @@ export const berichtService = {
   /** Projekte, denen der Benutzer zugeordnet ist (Auswahl beim Anlegen). */
   getProjects: async (): Promise<BerichtProject[]> => {
     const response = await api.get('/berichte/projects');
+    return response.data;
+  },
+
+  /** Jahresauswertung über die Feststellungen aller Rundgangsberichte. */
+  getDashboard: async (year: number, projectId?: string | null): Promise<BerichtDashboard> => {
+    const response = await api.get('/berichte/dashboard', {
+      params: { year, projectId: projectId || 'all' },
+    });
     return response.data;
   },
 

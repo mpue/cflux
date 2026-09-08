@@ -110,3 +110,61 @@ export interface BerichtFolder {
   project?: { id: string; name: string };
   _count?: { reports: number };
 }
+
+// --- Auswertung der Rundgangsberichte ---
+
+export interface BerichtAmpelCounts {
+  rot: number;
+  gelb: number;
+  gruen: number;
+}
+
+export interface BerichtPyramidLevel {
+  key: string;
+  label: string;
+  color: string;
+  count: number;
+}
+
+export interface BerichtMatrixRow {
+  key: string;
+  label: string;
+  counts: number[];
+  total: number;
+}
+
+export interface BerichtDashboardFolder {
+  /** null für Tagesblätter ohne Wochenbericht-Ordner. */
+  id: string | null;
+  name: string;
+  from: string | null;
+  to: string | null;
+  reports: number;
+  findings: number;
+  ampel: BerichtAmpelCounts;
+}
+
+export interface BerichtDashboard {
+  year: number;
+  projectId: string | null;
+  projectName: string | null;
+  kennzahlen: {
+    reports: number;
+    findings: number;
+    photos: number;
+    offeneMassnahmen: number;
+    ampel: BerichtAmpelCounts;
+  };
+  pyramid: {
+    levels: BerichtPyramidLevel[];
+    total: number;
+    unclassified: number;
+  };
+  matrix: {
+    rows: BerichtMatrixRow[];
+    monthTotals: number[];
+    grandTotal: number;
+  };
+  ampelByMonth: { rot: number[]; gelb: number[]; gruen: number[] };
+  folders: BerichtDashboardFolder[];
+}

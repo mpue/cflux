@@ -222,3 +222,165 @@ export const getReportEhsSection = async ({
       : null,
   };
 };
+
+/**
+ * Ampelstufe eines Feststellungswerts. Aus dem Wochenbericht-Tool kommen
+ * teils umlautlose Schreibweisen ("Gruen"), deshalb wird normalisiert.
+ */
+export type AmpelKey = 'rot' | 'gelb' | 'gruen';
+
+export const ampelKey = (value: string | null | undefined): AmpelKey | null => {
+  const key = normalize(value || '').replace(/ü/g, 'u');
+  if (key === 'rot') return 'rot';
+  if (key === 'gelb') return 'gelb';
+  if (key === 'grun' || key === 'gruen') return 'gruen';
+  return null;
+};
+
+export interface AmpelCounts {
+  rot: number;
+  gelb: number;
+  gruen: number;
+}
+
+export interface DashboardFolder {
+  /** null steht fuer Tagesblaetter, die keinem Wochenbericht-Ordner haengen. */
+  id: string | null;
+  name: string;
+  from: string | null;
+  to: string | null;
+  reports: number;
+  findings: number;
+  ampel: AmpelCounts;
+}
+
+export interface BerichtDashboard {
+  year: number;
+  projectId: string | null;
+  projectName: string | null;
+  kennzahlen: {
+    reports: number;
+    findings: number;
+    photos: number;
+    offeneMassnahmen: number;
+    ampel: AmpelCounts;
+  };
+  pyramid: FindingPyramid;
+  matrix: KlassifizierungMatrix;
+  /** Ampelverteilung je Monat (Index 0 = Januar) fuer den Jahresverlauf. */
+  ampelByMonth: { rot: number[]; gelb: number[]; gruen: number[] };
+  folders: DashboardFolder[];
+}
+
+const emptyAmpel = (): AmpelCounts => ({ rot: 0, gelb: 0, gruen: 0 });
+
+/** Offen im Sinne des Berichts: die Massnahme ist noch nicht erledigt. */
+const OFFENE_STATUS = new Set(['offen', 'in bearbeitung']);
+
+/**
+ * Kennzahlen, Pyramide und Jahresuebersicht der Rundgangsberichte eines Jahres
+ * — dieselbe Datenquelle wie der EHS-Anhang im Export, nur ueber das ganze
+ * Jahr statt ueber ein einzelnes Dokument.
+ */
+export const getBerichtDashboard = async ({
+  year,
+  projectId,
+  allowedProjectIds,
+}: {
+  year: number;
+  projectId: string | null;
+  allowedProjectIds?: string[] | null;
+}): Promise<BerichtDashboard> => {
+  const scope = projectId
+    ? { projectId }
+    : allowedProjectIds
+    ? { projectId: { in: allowedProjectIds } }
+    : {};
+
+  const [reports, matrix, project] = await Promise.all([
+    prisma.report.findMany({
+      where: {
+        date: {
+          gte: new Date(Date.UTC(year, 0, 1)),
+          lte: new Date(Date.UTC(year, 11, 31, 23, 59, 59)),
+        },
+        ...scope,
+      },
+      select: {
+        id: true,
+        date: true,
+        folder: { select: { id: true, name: true } },
+        findings: { select: { klassifizierung: true, ampel: true, status: true } },
+        _count: { select: { photos: true } },
+      },
+      orderBy: { date: 'asc' },
+    }),
+    getKlassifizierungMatrix(year, projectId, allowedProjectIds),
+    projectId
+      ? prisma.project.findUnique({ where: { id: projectId }, select: { name: true } })
+      : Promise.resolve(null),
+  ]);
+
+  const ampel = emptyAmpel();
+  const ampelByMonth = {
+    rot: new Array(12).fill(0),
+    gelb: new Array(12).fill(0),
+    gruen: new Array(12).fill(0),
+  };
+  const byFolder = new Map<string, DashboardFolder>();
+  let findings = 0;
+  let photos = 0;
+  let offeneMassnahmen = 0;
+
+  for (const report of reports) {
+    const month = new Date(report.date).getUTCMonth();
+    const isoDate = new Date(report.date).toISOString().slice(0, 10);
+    const folderKey = report.folder?.id ?? '';
+
+    let bucket = byFolder.get(folderKey);
+    if (!bucket) {
+      bucket = {
+        id: report.folder?.id ?? null,
+        name: report.folder?.name ?? 'Ohne Ordner',
+        from: isoDate,
+        to: isoDate,
+        reports: 0,
+        findings: 0,
+        ampel: emptyAmpel(),
+      };
+      byFolder.set(folderKey, bucket);
+    }
+
+    // Die Berichte kommen nach Datum sortiert, deshalb genuegt das Nachziehen.
+    bucket.to = isoDate;
+    bucket.reports += 1;
+    bucket.findings += report.findings.length;
+
+    findings += report.findings.length;
+    photos += report._count.photos;
+
+    for (const finding of report.findings) {
+      if (OFFENE_STATUS.has((finding.status || '').trim().toLowerCase())) {
+        offeneMassnahmen += 1;
+      }
+
+      const key = ampelKey(finding.ampel);
+      if (!key) continue;
+
+      ampel[key] += 1;
+      bucket.ampel[key] += 1;
+      ampelByMonth[key][month] += 1;
+    }
+  }
+
+  return {
+    year,
+    projectId,
+    projectName: project?.name ?? null,
+    kennzahlen: { reports: reports.length, findings, photos, offeneMassnahmen, ampel },
+    pyramid: buildPyramid(reports),
+    matrix,
+    ampelByMonth,
+    folders: [...byFolder.values()].sort((a, b) => (a.from || '').localeCompare(b.from || '')),
+  };
+};

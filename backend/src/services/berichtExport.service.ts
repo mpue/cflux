@@ -5,7 +5,7 @@ import FormData from 'form-data';
 import { PHOTOS_DIR, ReportWithRelations } from './bericht.service';
 import { findThumbnail } from './reportPhotoThumbs.service';
 import { MONTH_NAMES } from './ehs.service';
-import { ReportEhsSection } from './berichtEhs.service';
+import { ReportEhsSection, ampelKey } from './berichtEhs.service';
 
 /**
  * Export eines Berichts als HTML bzw. PDF.
@@ -130,14 +130,10 @@ const AMPEL_LEVELS = [
   { value: 'Grün', cls: 'ampel-cell-gruen', meaning: 'erledigt' },
 ] as const;
 
-const AMPEL_ALIASES: Record<string, string> = { gruen: 'Grün', gelb: 'Gelb', rot: 'Rot' };
-
 /** CSS-Klasse zur Ampelstufe, '' wenn nichts gesetzt oder unbekannt ist. */
 const ampelClass = (value?: string | null): string => {
-  const key = (value || '').trim().toLowerCase();
-  if (!key) return '';
-  const normalized = AMPEL_ALIASES[key] ?? value?.trim();
-  return AMPEL_LEVELS.find((level) => level.value === normalized)?.cls ?? '';
+  const key = ampelKey(value);
+  return key ? `ampel-cell-${key}` : '';
 };
 
 /** Farblegende unter der Feststellungstabelle. */

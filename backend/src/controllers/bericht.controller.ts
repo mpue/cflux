@@ -24,7 +24,11 @@ import {
   ImportFormatError,
 } from '../services/berichtImport.service';
 import { ensureThumbnails, deleteThumbnail } from '../services/reportPhotoThumbs.service';
-import { getReportEhsSection, ReportEhsSection } from '../services/berichtEhs.service';
+import {
+  getBerichtDashboard,
+  getReportEhsSection,
+  ReportEhsSection,
+} from '../services/berichtEhs.service';
 
 /** Beschriftung der Pyramide beim Einzelbericht. */
 const reportLabel = (report: ReportWithRelations): string =>
@@ -309,6 +313,45 @@ const loadEhsSection = async (
   });
 };
 
+
+/**
+ * Kennzahlen, Pyramide und Jahresuebersicht der Rundgangsberichte als eigene
+ * Auswertung — dieselbe Datenquelle wie der EHS-Anhang im Export, nur ueber
+ * ein ganzes Jahr statt ueber ein einzelnes Dokument.
+ */
+export const getDashboard = async (req: AuthRequest, res: Response) => {
+  try {
+    const { year, projectId: requestedProjectId } = req.query;
+
+    const parsedYear = year ? parseInt(year as string, 10) : new Date().getFullYear();
+    if (!Number.isFinite(parsedYear) || parsedYear < 2000 || parsedYear > 2100) {
+      return res.status(400).json({ error: 'Ungültiges Jahr' });
+    }
+
+    // 'all' (oder nichts) = alle Projekte, die der Benutzer sehen darf.
+    let projectId: string | null = null;
+    if (requestedProjectId && requestedProjectId !== 'all') {
+      if (!(await hasProjectAccess(req.user!, requestedProjectId as string))) {
+        return res.status(403).json({
+          error: 'Access denied',
+          message: 'Sie sind diesem Projekt nicht zugeordnet',
+        });
+      }
+      projectId = requestedProjectId as string;
+    }
+
+    const dashboard = await getBerichtDashboard({
+      year: parsedYear,
+      projectId,
+      allowedProjectIds: await getAccessibleProjectIds(req.user!),
+    });
+
+    res.json(dashboard);
+  } catch (error) {
+    console.error('Get bericht dashboard error:', error);
+    res.status(500).json({ error: 'Auswertung konnte nicht geladen werden' });
+  }
+};
 
 /**
  * Import eines Datenexports aus dem eigenstaendigen Wochenbericht-Tool.

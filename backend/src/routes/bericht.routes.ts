@@ -124,6 +124,10 @@ router.use(authenticate);
 // Projekte, denen der Benutzer zugeordnet ist (Auswahl beim Anlegen)
 router.get('/projects', requireModuleAccess(MODULE_KEY, 'canView'), berichtController.getMyReportProjects);
 
+// Jahresauswertung ueber die Feststellungen. Vor /:id, sonst greift die
+// Einzelbericht-Route nach dem Pfad "dashboard".
+router.get('/dashboard', requireModuleAccess(MODULE_KEY, 'canView'), berichtController.getDashboard);
+
 // Import eines Wochenbericht-Datenexports (ZIP mit JSON + Fotos).
 // requireProjectAccess laeuft nach Multer, weil die projectId im Multipart-Body steckt.
 router.post(

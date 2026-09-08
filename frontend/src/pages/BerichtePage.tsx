@@ -58,7 +58,9 @@ import {
   ExpandLess as ExpandLessIcon,
   ExpandMore as ExpandMoreIcon,
   MenuBook as WeeklyReportIcon,
+  InsertChart as DashboardIcon,
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import AppNavbar from '../components/AppNavbar';
 import { useModules } from '../contexts/ModuleContext';
 import berichtService from '../services/bericht.service';
@@ -150,6 +152,7 @@ const formatDate = (value?: string | null): string => {
 };
 
 const BerichtePage: React.FC = () => {
+  const navigate = useNavigate();
   const { canCreate, canEdit, canDelete } = useModules();
   const mayCreate = canCreate(MODULE_KEY);
   const mayEdit = canEdit(MODULE_KEY);
@@ -683,9 +686,19 @@ const BerichtePage: React.FC = () => {
         startIcon={<UploadIcon />}
         disabled={!mayCreate || projects.length === 0}
         onClick={openImportDialog}
-        sx={{ mb: 2 }}
+        sx={{ mb: 1 }}
       >
         Daten importieren
+      </Button>
+
+      <Button
+        fullWidth
+        variant="outlined"
+        startIcon={<DashboardIcon />}
+        onClick={() => navigate('/berichte-dashboard')}
+        sx={{ mb: 2 }}
+      >
+        Dashboard
       </Button>
 
       <FormControl fullWidth size="small" sx={{ mb: 2 }}>
