@@ -4131,7 +4131,7 @@ model ReportArea {
   @@map("report_areas")
 }
 
-// Einzelne Feststellung inkl. Massnahme und optionalem Beweisfoto
+// Einzelne Feststellung inkl. Massnahme und optionalem Foto
 model ReportFinding {
   id              String    @id @default(uuid())
   reportId        String
@@ -4146,7 +4146,7 @@ model ReportFinding {
   termin          DateTime?
   status          String? // "Offen" | "In Bearbeitung" | "Erledigt"
   erledigtAm      DateTime?
-  enablon         String?
+  kontrolle       String?
   photoId         String?
 
   report Report       @relation(fields: [reportId], references: [id], onDelete: Cascade)

@@ -227,7 +227,7 @@ export const berichtService = {
               termin: toDate(finding.termin),
               status: (finding.status as string) || null,
               erledigtAm: toDate(finding.erledigtAm),
-              enablon: (finding.enablon as string) || null,
+              kontrolle: (finding.kontrolle as string) || null,
               photoId: (finding.photoId as string) || null,
             },
           });

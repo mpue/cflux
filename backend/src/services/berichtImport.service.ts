@@ -216,6 +216,16 @@ export const importWochenberichtArchive = async (
     result.droppedFields.push('Projekttext des Quelltools (ersetzt durch das gewählte Projekt)');
   }
 
+  // Die Enablon-Spalte gibt es im Bericht nicht mehr; aeltere Archive fuehren
+  // sie noch mit und sollen das nicht stillschweigend verlieren.
+  if (
+    sheets.some((sheet) =>
+      (sheet.feststellungen || []).some((finding: Record<string, unknown>) => str(finding.enablon))
+    )
+  ) {
+    result.droppedFields.push('Enablon-Nummer der Feststellungen (Spalte entfällt)');
+  }
+
   const existingByKey = skipDuplicates
     ? await countExistingByKey(
         projectId,
@@ -325,7 +335,7 @@ export const importWochenberichtArchive = async (
             termin: toDate(finding.termin),
             status: str(finding.status),
             erledigtAm: toDate(finding.erledigtAm),
-            enablon: str(finding.enablon),
+            kontrolle: str(finding.kontrolle),
             photoId: (sourcePhotoId && photoIdMap.get(sourcePhotoId)) || null,
           },
         });

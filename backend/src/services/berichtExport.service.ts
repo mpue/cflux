@@ -119,6 +119,39 @@ const buildAreaRows = (areas: ReportWithRelations['areas']): string => {
   return rows.join('');
 };
 
+/**
+ * Ampelstufen des Berichts: Wert, CSS-Klasse fuer die Einfaerbung und die
+ * Bedeutung, die unter der Tabelle als Legende steht. Umlautlose Schreibweisen
+ * kommen aus aelteren Importen und werden mitgelesen.
+ */
+const AMPEL_LEVELS = [
+  { value: 'Rot', cls: 'ampel-cell-rot', meaning: 'Stop, Arbeit einstellen und Sicherheit wiederherstellen' },
+  { value: 'Gelb', cls: 'ampel-cell-gelb', meaning: 'Unsafe Condition / unsichere Handlung' },
+  { value: 'Grün', cls: 'ampel-cell-gruen', meaning: 'erledigt' },
+] as const;
+
+const AMPEL_ALIASES: Record<string, string> = { gruen: 'Grün', gelb: 'Gelb', rot: 'Rot' };
+
+/** CSS-Klasse zur Ampelstufe, '' wenn nichts gesetzt oder unbekannt ist. */
+const ampelClass = (value?: string | null): string => {
+  const key = (value || '').trim().toLowerCase();
+  if (!key) return '';
+  const normalized = AMPEL_ALIASES[key] ?? value?.trim();
+  return AMPEL_LEVELS.find((level) => level.value === normalized)?.cls ?? '';
+};
+
+/** Farblegende unter der Feststellungstabelle. */
+const buildAmpelLegend = (): string => `
+  <div class="ampel-legende">
+    <span class="ampel-legende-titel">Ampel:</span>
+    ${AMPEL_LEVELS.map(
+      (level) =>
+        `<span class="ampel-legende-eintrag"><span class="ampel-punkt ${level.cls}"></span>${esc(
+          level.value
+        )} = ${esc(level.meaning)}</span>`
+    ).join('')}
+  </div>`;
+
 const buildFindingRows = (report: ReportWithRelations): string => {
   const photosById = new Map(report.photos.map((photo) => [photo.id, photo]));
 
@@ -126,7 +159,7 @@ const buildFindingRows = (report: ReportWithRelations): string => {
     .map((finding, index) => {
       const photo = finding.photoId ? photosById.get(finding.photoId) : undefined;
       const uri = photo ? photoDataUri(report.id, photo.filename) : null;
-      const img = uri ? `<img src="${uri}" alt="Beweisfoto ${index + 1}" class="beweisfoto">` : '';
+      const img = uri ? `<img src="${uri}" alt="Foto ${index + 1}" class="beweisfoto">` : '';
 
       return `
       <tr>
@@ -134,15 +167,15 @@ const buildFindingRows = (report: ReportWithRelations): string => {
         <td>${esc(finding.feststellung)}</td>
         <td>${esc(finding.bereich)}</td>
         <td>${esc(finding.klassifizierung)}</td>
-        <td class="center">${esc(finding.ampel)}</td>
+        <td class="center ampel ${ampelClass(finding.ampel)}">${esc(finding.ampel)}</td>
         <td class="center stopp">${esc(finding.stopp)}</td>
         <td>${esc(finding.massnahme)}</td>
         <td>${esc(finding.verantwortlich)}</td>
         <td class="center">${formatDate(finding.termin)}</td>
         <td class="center">${esc(finding.status)}</td>
         <td class="center">${formatDate(finding.erledigtAm)}</td>
-        <td class="center">${esc(finding.enablon)}</td>
         <td class="center">${img}</td>
+        <td>${esc(finding.kontrolle)}</td>
       </tr>`;
     })
     .join('');
@@ -336,6 +369,35 @@ const buildStyles = ({
   .feststellungen td { font-size: 8.5pt; }
   .feststellungen td.pos { text-align: center; }
   .feststellungen td.center { text-align: center; }
+  /* Ampelzellen werden flaechig eingefaerbt; -webkit-print-color-adjust haelt
+     die Farbe im PDF, Chromium wuerde Hintergruende sonst wegoptimieren. */
+  .feststellungen td.ampel { font-weight: bold; }
+  .ampel-cell-rot, .ampel-cell-gelb, .ampel-cell-gruen {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .ampel-cell-rot { background: #dc2626; color: #fff; }
+  .ampel-cell-gelb { background: #f59e0b; color: #1a1a1a; }
+  .ampel-cell-gruen { background: #16a34a; color: #fff; }
+  .ampel-legende {
+    margin: -12px 0 20px;
+    font-size: 8.5pt;
+    color: #333;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 18px;
+  }
+  .ampel-legende-titel { font-weight: bold; }
+  .ampel-legende-eintrag { display: inline-flex; align-items: center; gap: 6px; }
+  .ampel-punkt {
+    width: 11px;
+    height: 11px;
+    border-radius: 2px;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    display: inline-block;
+    flex-shrink: 0;
+  }
   .beweisfoto { max-width: 110px; max-height: 110px; display: block; margin: 0 auto; }
   .footnote { font-size: 8pt; color: #666; margin-top: 8px; }
 
@@ -388,6 +450,7 @@ const buildStyles = ({
     .doc-header { margin-bottom: 12px; padding-bottom: 10px; }
     .feststellungen { page-break-inside: auto; }
     .feststellungen tr { page-break-inside: avoid; }
+    .ampel-legende { page-break-inside: avoid; }
     .ehs-section table { page-break-inside: auto; }
     .ehs-section tr { page-break-inside: avoid; }
     .ehs-pyramid { page-break-inside: avoid; }
@@ -439,13 +502,14 @@ const buildReportBody = (report: ReportWithRelations): string => {
   </table>
 
   <table class="feststellungen">
-    <tr><td colspan="13" class="section-header">Feststellungen · Klassifizierung · Massnahmen · Beweisfoto</td></tr>
+    <tr><td colspan="13" class="section-header">Feststellungen · Klassifizierung · Massnahmen · Foto</td></tr>
     <tr>
       <th>Pos.</th><th>Feststellung</th><th>Bereich</th><th>Klassifizierung</th><th>Ampel</th><th>Stopp</th>
-      <th>Massnahme</th><th>Verantwortlich</th><th>Termin</th><th>Status</th><th>Erledigt am</th><th>Enablon</th><th>Beweisfoto</th>
+      <th>Massnahme</th><th>Verantwortlich</th><th>Termin</th><th>Status</th><th>Erledigt am</th><th>Foto</th><th>Kontrolle</th>
     </tr>
     ${buildFindingRows(report) || '<tr><td colspan="13" class="center">Keine Feststellungen erfasst</td></tr>'}
   </table>
+  ${buildAmpelLegend()}
 `;
 };
 

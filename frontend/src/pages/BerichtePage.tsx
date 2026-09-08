@@ -116,10 +116,11 @@ const KLASSIFIZIERUNGEN = [
   'SIF / Fatality',
 ];
 
+/** Reihenfolge und Bedeutung wie in der Legende des Exports. */
 const AMPEL = [
-  { value: 'Grün', color: '#16a34a' },
-  { value: 'Gelb', color: '#f59e0b' },
-  { value: 'Rot', color: '#dc2626' },
+  { value: 'Rot', color: '#dc2626', textColor: '#fff', meaning: 'Stop, Arbeit einstellen und Sicherheit wiederherstellen' },
+  { value: 'Gelb', color: '#f59e0b', textColor: '#1a1a1a', meaning: 'Unsafe Condition / unsichere Handlung' },
+  { value: 'Grün', color: '#16a34a', textColor: '#fff', meaning: 'erledigt' },
 ];
 
 const FINDING_STATUS = ['Offen', 'In Bearbeitung', 'Erledigt'];
@@ -135,7 +136,7 @@ const emptyFinding = (): BerichtFinding => ({
   termin: '',
   status: '',
   erledigtAm: '',
-  enablon: '',
+  kontrolle: '',
   photoId: null,
 });
 
@@ -1086,12 +1087,23 @@ const BerichtePage: React.FC = () => {
                     <ToggleButton
                       key={option.value}
                       value={option.value}
-                      sx={{ '&.Mui-selected': { bgcolor: option.color, color: '#fff' } }}
+                      title={option.meaning}
+                      sx={{
+                        '&.Mui-selected': {
+                          bgcolor: option.color,
+                          color: option.textColor,
+                          '&:hover': { bgcolor: option.color },
+                        },
+                      }}
                     >
                       {option.value}
                     </ToggleButton>
                   ))}
                 </ToggleButtonGroup>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                  {AMPEL.find((option) => option.value === finding.ampel)?.meaning ||
+                    'Rot = Arbeit einstellen · Gelb = unsicherer Zustand/Handlung · Grün = erledigt'}
+                </Typography>
               </Grid>
 
               <Grid item xs={12}>
@@ -1160,7 +1172,7 @@ const BerichtePage: React.FC = () => {
 
               <Grid item xs={12}>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  Beweisfoto
+                  Foto
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Box
@@ -1183,7 +1195,7 @@ const BerichtePage: React.FC = () => {
                       <Box
                         component="img"
                         src={berichtService.photoUrl(report.id, finding.photoId)}
-                        alt="Beweisfoto"
+                        alt="Foto"
                         sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     ) : (
@@ -1218,6 +1230,17 @@ const BerichtePage: React.FC = () => {
                     )}
                   </Box>
                 </Box>
+              </Grid>
+
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Kontrolle"
+                  placeholder="Wer hat die Umsetzung wann kontrolliert?"
+                  value={finding.kontrolle || ''}
+                  disabled={!mayEdit}
+                  onChange={(e) => updateFinding(index, { kontrolle: e.target.value })}
+                />
               </Grid>
             </Grid>
           </CardContent>

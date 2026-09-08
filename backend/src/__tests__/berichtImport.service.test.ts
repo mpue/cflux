@@ -75,7 +75,7 @@ const buildArchive = (overrides: Record<string, any> = {}) => {
             termin: '2026-08-27',
             status: 'Offen',
             erledigtAm: '',
-            enablon: '',
+            kontrolle: '',
             photoId: PHOTO_ID,
           },
         ],
@@ -166,7 +166,24 @@ describe('importWochenberichtArchive', () => {
     expect(createdFindings[0].termin).toEqual(new Date('2026-08-27'));
     // Leere Strings aus dem Quelltool werden zu null, nicht zu ''.
     expect(createdFindings[0].erledigtAm).toBeNull();
-    expect(createdFindings[0].enablon).toBeNull();
+    expect(createdFindings[0].kontrolle).toBeNull();
+  });
+
+  it('meldet die weggefallene Enablon-Spalte als verworfenes Feld', async () => {
+    const archive = buildArchive({
+      sheets: [
+        {
+          id: SHEET_ID,
+          weekday: 'Mi',
+          date: '2026-08-26',
+          feststellungen: [{ feststellung: 'Geländer fehlt', enablon: 'ENB-4711' }],
+        },
+      ],
+    });
+
+    const result = await importWochenberichtArchive(archive, { projectId: PROJECT_ID });
+
+    expect(result.droppedFields).toContain('Enablon-Nummer der Feststellungen (Spalte entfällt)');
   });
 
   it('schreibt die Bilddateien unter die neue Bericht-ID', async () => {

@@ -36,7 +36,7 @@ const report = (day: number, weekday: string, ampeln: string[], titel: string | 
     termin: null,
     status: '',
     erledigtAm: null,
-    enablon: '',
+    kontrolle: '',
     photoId: null,
   })),
 });

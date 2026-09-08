@@ -30,7 +30,7 @@ export interface BerichtFinding {
   termin?: string | null;
   status?: string | null;
   erledigtAm?: string | null;
-  enablon?: string | null;
+  kontrolle?: string | null;
   photoId?: string | null;
 }
 
