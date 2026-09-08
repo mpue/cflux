@@ -78,6 +78,8 @@ jest.mock('@prisma/client', () => {
       },
       user: {
         count: jest.fn(),
+        findMany: jest.fn(),
+        findUnique: jest.fn(),
       },
     })),
   };
@@ -90,6 +92,23 @@ jest.mock('../lib/prisma', () => {
     prisma: new PrismaClient(),
   };
 });
+
+// Mock notification channels used by course assignments
+jest.mock('../controllers/message.controller', () => ({
+  sendSystemMessage: jest.fn(),
+}));
+
+jest.mock('../services/email.service', () => ({
+  emailService: {
+    sendCourseAssignmentEmail: jest.fn().mockResolvedValue(true),
+  },
+}));
+
+jest.mock('../services/systemSettings.service', () => ({
+  systemSettingsService: {
+    getSettings: jest.fn().mockResolvedValue({ companyName: 'CFlux' }),
+  },
+}));
 
 // Mock fs and pdfkit for certificate generation
 jest.mock('fs');
@@ -111,6 +130,8 @@ jest.mock('pdfkit', () => {
 });
 
 import { prisma } from '../lib/prisma';
+import { sendSystemMessage } from '../controllers/message.controller';
+import { emailService } from '../services/email.service';
 
 describe('E-Learning Service', () => {
   beforeEach(() => {
@@ -827,7 +848,8 @@ describe('E-Learning Service', () => {
 
       expect(prisma.courseAssignment.create).toHaveBeenCalled();
       expect(prisma.enrollment.upsert).toHaveBeenCalledTimes(2);
-      expect(result).toEqual(mockAssignment);
+      expect(result).toEqual({ ...mockAssignment, notification: null });
+      expect(sendSystemMessage).not.toHaveBeenCalled();
     });
 
     it('should auto-enroll users from groups', async () => {
@@ -861,6 +883,92 @@ describe('E-Learning Service', () => {
         },
       });
       expect(prisma.enrollment.upsert).toHaveBeenCalledTimes(2);
+    });
+
+    it('should notify enrolled users with a direct course link when notifyUsers is set', async () => {
+      (prisma.courseAssignment.create as jest.Mock).mockResolvedValue({ id: 'assign-1' });
+      (prisma.userGroupMembership.findMany as jest.Mock).mockResolvedValue([{ userId: 'user-2' }]);
+      (prisma.enrollment.upsert as jest.Mock).mockResolvedValue({});
+      (prisma.course.findUnique as jest.Mock).mockResolvedValue({ id: 'course-1', title: 'Arbeitssicherheit' });
+      (prisma.user.findMany as jest.Mock).mockResolvedValue([
+        { id: 'user-1', firstName: 'Anna', lastName: 'Meier', email: 'anna@example.com' },
+        { id: 'user-2', firstName: 'Ben', lastName: 'Ott', email: 'ben@example.com' },
+      ]);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ firstName: 'Admin', lastName: 'User' });
+
+      const result = await elearningService.createCourseAssignment({
+        courseId: 'course-1',
+        assignedToUserIds: ['user-1'],
+        assignedToGroupIds: ['group-1'],
+        assignedById: 'admin-1',
+        notifyUsers: true,
+      });
+
+      expect(sendSystemMessage).toHaveBeenCalledTimes(2);
+      const [receiverId, subject, body] = (sendSystemMessage as jest.Mock).mock.calls[0];
+      expect(receiverId).toBe('user-1');
+      expect(subject).toContain('Arbeitssicherheit');
+      expect(body).toContain('#/elearning/courses/course-1');
+      expect(emailService.sendCourseAssignmentEmail).not.toHaveBeenCalled();
+      expect(result.notification).toEqual({ messagesSent: 2, emailsSent: 0 });
+    });
+
+    it('should additionally send emails with an absolute course link when notifyByEmail is set', async () => {
+      const previousFrontendUrl = process.env.FRONTEND_URL;
+      process.env.FRONTEND_URL = 'https://cflux.example.com/';
+
+      (prisma.courseAssignment.create as jest.Mock).mockResolvedValue({ id: 'assign-1' });
+      (prisma.userGroupMembership.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.enrollment.upsert as jest.Mock).mockResolvedValue({});
+      (prisma.course.findUnique as jest.Mock).mockResolvedValue({ id: 'course-1', title: 'Arbeitssicherheit' });
+      (prisma.user.findMany as jest.Mock).mockResolvedValue([
+        { id: 'user-1', firstName: 'Anna', lastName: 'Meier', email: 'anna@example.com' },
+      ]);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue({ firstName: 'Admin', lastName: 'User' });
+
+      try {
+        const result = await elearningService.createCourseAssignment({
+          courseId: 'course-1',
+          assignedToUserIds: ['user-1'],
+          assignedById: 'admin-1',
+          notifyUsers: true,
+          notifyByEmail: true,
+        });
+
+        expect(emailService.sendCourseAssignmentEmail).toHaveBeenCalledWith(
+          expect.objectContaining({
+            recipient: expect.objectContaining({ email: 'anna@example.com' }),
+            courseTitle: 'Arbeitssicherheit',
+            courseUrl: 'https://cflux.example.com/#/elearning/courses/course-1',
+            assignedBy: 'Admin User',
+          })
+        );
+        expect(result.notification).toEqual({ messagesSent: 1, emailsSent: 1 });
+      } finally {
+        process.env.FRONTEND_URL = previousFrontendUrl;
+      }
+    });
+
+    it('should not fail the assignment when a notification cannot be delivered', async () => {
+      (prisma.courseAssignment.create as jest.Mock).mockResolvedValue({ id: 'assign-1' });
+      (prisma.userGroupMembership.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.enrollment.upsert as jest.Mock).mockResolvedValue({});
+      (prisma.course.findUnique as jest.Mock).mockResolvedValue({ id: 'course-1', title: 'Arbeitssicherheit' });
+      (prisma.user.findMany as jest.Mock).mockResolvedValue([
+        { id: 'user-1', firstName: 'Anna', lastName: 'Meier', email: 'anna@example.com' },
+      ]);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+      (sendSystemMessage as jest.Mock).mockRejectedValueOnce(new Error('mailbox down'));
+
+      const result = await elearningService.createCourseAssignment({
+        courseId: 'course-1',
+        assignedToUserIds: ['user-1'],
+        assignedById: 'admin-1',
+        notifyUsers: true,
+      });
+
+      expect(result.id).toBe('assign-1');
+      expect(result.notification).toEqual({ messagesSent: 0, emailsSent: 0 });
     });
   });
 

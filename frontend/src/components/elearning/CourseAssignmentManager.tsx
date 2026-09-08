@@ -25,6 +25,10 @@ import {
   Alert,
   Autocomplete,
   Grid,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+  Snackbar,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -33,6 +37,7 @@ import {
   Group as GroupIcon,
   Person as PersonIcon,
   Event as EventIcon,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 import api from '../../services/api';
 
@@ -96,6 +101,9 @@ const CourseAssignmentManager: React.FC<CourseAssignmentManagerProps> = ({ cours
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [reminderDays, setReminderDays] = useState<number[]>([7, 3, 1]);
   const [notes, setNotes] = useState('');
+  const [notifyUsers, setNotifyUsers] = useState(true);
+  const [notifyByEmail, setNotifyByEmail] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -136,6 +144,9 @@ const CourseAssignmentManager: React.FC<CourseAssignmentManagerProps> = ({ cours
       setDueDate(assignment.dueDate ? new Date(assignment.dueDate) : null);
       setReminderDays(assignment.reminderDays);
       setNotes(assignment.notes || '');
+      // Bei bestehenden Zuweisungen standardmäßig nicht erneut benachrichtigen
+      setNotifyUsers(false);
+      setNotifyByEmail(false);
     } else {
       setEditingAssignment(null);
       setSelectedCourse(courseId || '');
@@ -144,6 +155,8 @@ const CourseAssignmentManager: React.FC<CourseAssignmentManagerProps> = ({ cours
       setDueDate(null);
       setReminderDays([7, 3, 1]);
       setNotes('');
+      setNotifyUsers(true);
+      setNotifyByEmail(false);
     }
     setOpenDialog(true);
   };
@@ -174,12 +187,22 @@ const CourseAssignmentManager: React.FC<CourseAssignmentManagerProps> = ({ cours
         dueDate: dueDate?.toISOString(),
         reminderDays,
         notes,
+        notifyUsers,
+        notifyByEmail: notifyUsers && notifyByEmail,
       };
 
       if (editingAssignment) {
         await api.put(`/elearning/assignments/${editingAssignment.id}`, data);
       } else {
-        await api.post('/elearning/assignments', data);
+        const response = await api.post('/elearning/assignments', data);
+        const notification = response.data?.notification;
+        if (notification) {
+          const parts = [`${notification.messagesSent} Benachrichtigung(en) versendet`];
+          if (data.notifyByEmail) {
+            parts.push(`${notification.emailsSent} E-Mail(s) versendet`);
+          }
+          setSuccessMessage(parts.join(' · '));
+        }
       }
 
       await loadData();
@@ -468,6 +491,49 @@ const CourseAssignmentManager: React.FC<CourseAssignmentManagerProps> = ({ cours
                     onChange={(e) => setNotes(e.target.value)}
                   />
                 </Grid>
+
+                <Grid item xs={12}>
+                  <Box
+                    sx={{
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      p: 2,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <NotificationsIcon fontSize="small" color="action" />
+                      <Typography variant="subtitle2">Benachrichtigung</Typography>
+                    </Box>
+                    <FormGroup>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={notifyUsers}
+                            onChange={(e) => setNotifyUsers(e.target.checked)}
+                          />
+                        }
+                        label="Mitarbeiter benachrichtigen (Postfach-Nachricht mit direktem Link zum Kurs)"
+                      />
+                      <FormControlLabel
+                        sx={{ ml: 3 }}
+                        control={
+                          <Checkbox
+                            checked={notifyByEmail}
+                            disabled={!notifyUsers}
+                            onChange={(e) => setNotifyByEmail(e.target.checked)}
+                          />
+                        }
+                        label="Zusätzlich per E-Mail senden"
+                      />
+                    </FormGroup>
+                    {editingAssignment && notifyUsers && (
+                      <Alert severity="info" sx={{ mt: 1 }}>
+                        Benachrichtigungen werden nur beim Erstellen einer Zuweisung versendet.
+                      </Alert>
+                    )}
+                  </Box>
+                </Grid>
               </Grid>
             </Box>
           </DialogContent>
@@ -478,6 +544,16 @@ const CourseAssignmentManager: React.FC<CourseAssignmentManagerProps> = ({ cours
             </Button>
           </DialogActions>
         </Dialog>
+
+        <Snackbar
+          open={!!successMessage}
+          autoHideDuration={5000}
+          onClose={() => setSuccessMessage(null)}
+        >
+          <Alert severity="success" onClose={() => setSuccessMessage(null)}>
+            {successMessage}
+          </Alert>
+        </Snackbar>
       </Box>
   );
 };

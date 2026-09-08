@@ -187,6 +187,10 @@ router.get('/:id/export.html', requireModuleAccess(MODULE_KEY, 'canView'), beric
 router.get('/:id/export.pdf', requireModuleAccess(MODULE_KEY, 'canView'), berichtController.exportPdf);
 router.get('/:id/export.zip', requireModuleAccess(MODULE_KEY, 'canView'), berichtController.exportArchive);
 
+// Ablage im Dokumenten-Modul. Das Recht auf 'intranet' prueft der Controller
+// zusaetzlich — hier steht nur, dass man den Bericht ueberhaupt sehen darf.
+router.post('/:id/ablegen', requireModuleAccess(MODULE_KEY, 'canView'), berichtController.ablegen);
+
 // Fotos
 router.post(
   '/:id/photos',

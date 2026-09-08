@@ -1,6 +1,8 @@
 import api, { getBackendURL } from './api';
 import {
   Bericht,
+  BerichtAblageResult,
+  BerichtAblageVariant,
   BerichtDashboard,
   BerichtFolder,
   BerichtImportResult,
@@ -192,6 +194,27 @@ export const berichtService = {
   /** Datenexport eines einzelnen Tagesblatts, wieder importierbar. */
   downloadArchive: async (id: string): Promise<void> => {
     await downloadExport(`/berichte/${id}/export.zip`, 'bericht-daten.zip');
+  },
+
+  /**
+   * Legt den Bericht als Anhang im Dokumenten-Modul ab. Den Pfad bildet das
+   * Backend selbst: Rundgangsberichte / <Projekt> / <Ordner bzw. Jahr>.
+   */
+  ablegen: async (
+    id: string,
+    variant: BerichtAblageVariant,
+    ehs?: EhsExportOptions
+  ): Promise<BerichtAblageResult> => {
+    const response = await api.post(
+      `/berichte/${id}/ablegen`,
+      { variant },
+      {
+        params: ehs
+          ? { ehs: 'true', ehsYear: ehs.year, ehsMonth: ehs.month, ehsProjectId: ehs.projectId || 'all' }
+          : undefined,
+      }
+    );
+    return response.data;
   },
 
   /** Gesamt-Wochenbericht: Deckblatt mit Kennzahlen, danach jedes Tagesblatt. */

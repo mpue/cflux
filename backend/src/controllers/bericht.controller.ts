@@ -1,3 +1,4 @@
+import os from 'os';
 import fs from 'fs';
 import path from 'path';
 import { Response } from 'express';
@@ -28,6 +29,13 @@ import {
   streamWochenberichtArchive,
   ArchiveFolder,
 } from '../services/berichtArchiveExport.service';
+import {
+  ABLAGE_ROOT,
+  attachFileToNode,
+  ensureDocumentPath,
+} from '../services/berichtAblage.service';
+import { checkModulePermission } from '../services/module.service';
+import { hasNodeAccess } from '../services/documentAccess.service';
 import { ensureThumbnails, deleteThumbnail } from '../services/reportPhotoThumbs.service';
 import {
   getBerichtDashboard,
@@ -588,6 +596,129 @@ export const exportArchive = async (req: AuthRequest, res: Response) => {
       res.status(500).json({ error: 'Datenexport fehlgeschlagen', details: error?.message });
     } else {
       res.destroy();
+    }
+  }
+};
+
+/** Was der Knopf „Ablegen" in die Dokumente legt. */
+type AblageVariant = 'report-pdf' | 'folder-pdf' | 'archive';
+
+/**
+ * Legt den aktuellen Bericht als Anhang im Dokumenten-Modul ab.
+ *
+ * Der Pfad wird nicht ausgewaehlt, sondern gebildet:
+ * „Rundgangsberichte / <Projekt> / <Ordner, sonst Jahr>". Fehlende Ordner legt
+ * die Ablage an.
+ */
+export const ablegen = async (req: AuthRequest, res: Response) => {
+  let tempFile: string | null = null;
+
+  try {
+    const report = await loadAccessibleReport(req, res);
+    if (!report) return;
+
+    const variant: AblageVariant = req.body?.variant || 'report-pdf';
+
+    if (!['report-pdf', 'folder-pdf', 'archive'].includes(variant)) {
+      return res.status(400).json({ error: 'Unbekannte Ablage-Variante' });
+    }
+
+    if (variant === 'folder-pdf' && !report.folder) {
+      return res.status(400).json({ error: 'Der Bericht liegt in keinem Ordner' });
+    }
+
+    // Die Ablage schreibt ins Dokumenten-Modul, nicht ins Berichte-Modul —
+    // deshalb zaehlt hier das Recht auf 'intranet'.
+    if (!(await checkModulePermission(req.user!.id, 'intranet', 'WRITE'))) {
+      return res.status(403).json({
+        error: 'Keine Schreibrechte im Dokumenten-Modul',
+        message: 'Zum Ablegen wird Schreibrecht auf „Dokumente" benötigt.',
+      });
+    }
+
+    const reportDate = new Date(report.date);
+    const segments = [
+      ABLAGE_ROOT,
+      report.project.name,
+      report.folder?.name || String(reportDate.getFullYear()),
+    ];
+
+    const target = await ensureDocumentPath(segments, req.user!.id);
+
+    // Der Pfad kann in einen Teilbaum zeigen, den eine Gruppenberechtigung
+    // sperrt — dann darf auch die Ablage dort nichts hinlegen.
+    if (!(await hasNodeAccess(req.user!.id, target.nodeId, 'WRITE'))) {
+      return res.status(403).json({
+        error: 'Keine Schreibrechte auf dem Zielordner',
+        message: `Der Ordner „${segments.join(' / ')}" ist für Sie schreibgeschützt.`,
+      });
+    }
+
+    tempFile = path.join(os.tmpdir(), `bericht-ablage-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+    let displayName: string;
+    let mimeType: string;
+
+    if (variant === 'archive') {
+      const folders: ArchiveFolder[] = report.folder
+        ? [{ id: report.folder.id, name: report.folder.name }]
+        : [];
+
+      const out = fs.createWriteStream(tempFile);
+      await streamWochenberichtArchive(out, [report], folders);
+
+      displayName = archiveFilename(reportLabel(report));
+      mimeType = 'application/zip';
+    } else if (variant === 'folder-pdf') {
+      const reports = await berichtFolderService.getReports(report.folder!.id);
+      await ensureThumbnails(reports);
+
+      const ehs = await loadEhsSection(req, reports, report.folder!.name);
+      const pdf = await renderHtmlAsPdf(
+        renderFolderHtml({ ...report.folder!, project: report.project }, reports, ehs)
+      );
+
+      fs.writeFileSync(tempFile, pdf);
+      displayName = folderExportFilename(report.folder!.name, 'pdf');
+      mimeType = 'application/pdf';
+    } else {
+      await ensureThumbnails([report]);
+
+      const ehs = await loadEhsSection(req, [report], reportLabel(report));
+      fs.writeFileSync(tempFile, await renderReportPdf(report, ehs));
+
+      displayName = exportFilename(report, 'pdf');
+      mimeType = 'application/pdf';
+    }
+
+    // attachFileToNode verschiebt die Datei; danach gibt es nichts mehr
+    // aufzuraeumen.
+    const attachment = await attachFileToNode({
+      nodeId: target.nodeId,
+      sourcePath: tempFile,
+      displayName,
+      mimeType,
+      description: `${reportLabel(report)} · ${report.project.name}`,
+      userId: req.user!.id,
+    });
+    tempFile = null;
+
+    res.status(201).json({
+      nodeId: target.nodeId,
+      path: target.path,
+      createdFolders: target.created,
+      attachment,
+    });
+  } catch (error: any) {
+    console.error('Bericht ablegen error:', error);
+    res.status(500).json({ error: 'Ablage fehlgeschlagen', details: error?.message });
+  } finally {
+    if (tempFile && fs.existsSync(tempFile)) {
+      try {
+        fs.unlinkSync(tempFile);
+      } catch (err) {
+        console.warn('Temporäre Ablagedatei nicht gelöscht:', err);
+      }
     }
   }
 };

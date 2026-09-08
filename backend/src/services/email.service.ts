@@ -442,6 +442,47 @@ Ihr ${companyName} Team
     }
   }
 
+  async sendCourseAssignmentEmail(options: {
+    recipient: { email: string; firstName: string; lastName: string };
+    courseTitle: string;
+    courseUrl: string;
+    assignedBy?: string;
+    dueDate?: Date | null;
+    notes?: string | null;
+    companyName?: string;
+  }): Promise<boolean> {
+    const company = options.companyName || 'CFlux';
+    const dueDateStr = options.dueDate
+      ? options.dueDate.toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })
+      : 'Kein Fälligkeitsdatum';
+
+    return this.sendEmail({
+      to: options.recipient.email,
+      subject: `${company} – Kurs zugewiesen: ${options.courseTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+          <div style="background:linear-gradient(135deg,#10b981,#0ea5e9);color:white;padding:20px;border-radius:8px 8px 0 0">
+            <h2 style="margin:0">Neuer Kurs zugewiesen</h2>
+          </div>
+          <div style="background:#f9fafb;padding:24px;border-radius:0 0 8px 8px">
+            <p>Hallo ${options.recipient.firstName},</p>
+            <p>Ihnen wurde der folgende Kurs zugewiesen:</p>
+            <table style="width:100%;border-collapse:collapse;margin:16px 0">
+              <tr><td style="padding:8px;font-weight:bold;width:160px">Kurs</td><td style="padding:8px">${options.courseTitle}</td></tr>
+              <tr style="background:#fff"><td style="padding:8px;font-weight:bold">Fällig bis</td><td style="padding:8px">${dueDateStr}</td></tr>
+              ${options.assignedBy ? `<tr><td style="padding:8px;font-weight:bold">Zugewiesen von</td><td style="padding:8px">${options.assignedBy}</td></tr>` : ''}
+              ${options.notes ? `<tr style="background:#fff"><td style="padding:8px;font-weight:bold">Hinweis</td><td style="padding:8px">${options.notes}</td></tr>` : ''}
+            </table>
+            <p style="margin:24px 0">
+              <a href="${options.courseUrl}" style="display:inline-block;background:linear-gradient(to right,#10b981,#0ea5e9);color:white;padding:12px 24px;text-decoration:none;border-radius:8px;font-weight:600">Kurs jetzt öffnen</a>
+            </p>
+            <p style="color:#6b7280;font-size:13px">Falls der Button nicht funktioniert, kopieren Sie diesen Link in Ihren Browser:<br>${options.courseUrl}</p>
+          </div>
+        </div>
+      `,
+    });
+  }
+
   async sendChecklistItemNotification(options: {
     notifyUser: { email: string; firstName: string; lastName: string };
     checklistName: string;

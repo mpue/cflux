@@ -18,6 +18,8 @@ import {
   Divider,
   FormControl,
   FormControlLabel,
+  Radio,
+  RadioGroup,
   FormHelperText,
   Grid,
   IconButton,
@@ -60,6 +62,7 @@ import {
   MenuBook as WeeklyReportIcon,
   InsertChart as DashboardIcon,
   Archive as ArchiveIcon,
+  DriveFileMove as AblegenIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import AppNavbar from '../components/AppNavbar';
@@ -68,6 +71,8 @@ import berichtService from '../services/bericht.service';
 import { normalizeUploadUrl } from '../services/api';
 import {
   Bericht,
+  BerichtAblageResult,
+  BerichtAblageVariant,
   BerichtArea,
   BerichtFolder,
   BerichtImportResult,
@@ -182,6 +187,11 @@ const BerichtePage: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [exporting, setExporting] = useState(false);
   /** EHS-Auswertung als Anhang am Ende des Berichts. */
+  const [ablegenOpen, setAblegenOpen] = useState(false);
+  const [ablegenVariant, setAblegenVariant] = useState<BerichtAblageVariant>('report-pdf');
+  const [ablegenBusy, setAblegenBusy] = useState(false);
+  const [ablegenResult, setAblegenResult] = useState<BerichtAblageResult | null>(null);
+  const [ablegenError, setAblegenError] = useState('');
   const [ehsInclude, setEhsInclude] = useState(true);
   const [ehsYear, setEhsYear] = useState(() => new Date().getFullYear());
   const [ehsMonth, setEhsMonth] = useState(() => new Date().getMonth() + 1);
@@ -569,8 +579,48 @@ const BerichtePage: React.FC = () => {
   };
 
   /**
-   * Datenexport im Austauschformat. Anders als PDF/HTML enthält das Archiv die
-   * Originalfotos und alle Felder — „Daten importieren" liest es wieder ein.
+   * Ablage im Dokumenten-Modul. Der Zielpfad steht fest
+   * (Rundgangsberichte / Projekt / Ordner bzw. Jahr), gewählt wird nur, was
+   * abgelegt wird.
+   */
+  const handleAblegen = async () => {
+    if (!current) return;
+
+    setAblegenBusy(true);
+    setAblegenResult(null);
+    setAblegenError('');
+
+    try {
+      // Offene Eingaben zuerst sichern, sonst fehlen sie in der Ablage.
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+        await persist();
+      }
+
+      const result = await berichtService.ablegen(
+        current.id,
+        ablegenVariant,
+        // Das ZIP trägt Rohdaten, die EHS-Auswahl gilt nur für die PDFs.
+        ablegenVariant === 'archive' || !ehsInclude
+          ? undefined
+          : { year: ehsYear, month: ehsMonth, projectId: ehsProjectId || 'all' }
+      );
+
+      setAblegenResult(result);
+    } catch (err: any) {
+      setAblegenError(
+        err?.response?.data?.message || err?.response?.data?.error || 'Ablage fehlgeschlagen'
+      );
+    } finally {
+      setAblegenBusy(false);
+    }
+  };
+
+  /**
+   * Datenexport im Austauschformat. Anders als das Archiv enthält die Ablage
+   * dieselben Dateien, legt sie aber im Dokumenten-Modul ab statt sie
+   * herunterzuladen.
    */
   const handleArchiveExport = async (target: { folderId?: string; reportId?: string }) => {
     setExporting(true);
@@ -1431,6 +1481,34 @@ const BerichtePage: React.FC = () => {
 
         <Box>
           <Typography variant="subtitle2" gutterBottom>
+            Ablage in den Dokumenten
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Legt den Bericht als Anhang im Dokumenten-Modul ab, unter
+            „Rundgangsberichte / {current?.project?.name || 'Projekt'} /{' '}
+            {current?.folder?.name || new Date(current?.date || Date.now()).getFullYear()}".
+            Fehlende Ordner werden angelegt.
+          </Typography>
+
+          <Button
+            variant="contained"
+            startIcon={<AblegenIcon />}
+            disabled={!current}
+            onClick={() => {
+              setAblegenVariant('report-pdf');
+              setAblegenResult(null);
+              setAblegenError('');
+              setAblegenOpen(true);
+            }}
+          >
+            Ablegen
+          </Button>
+        </Box>
+
+        <Divider flexItem />
+
+        <Box>
+          <Typography variant="subtitle2" gutterBottom>
             Datenexport
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -1800,6 +1878,104 @@ const BerichtePage: React.FC = () => {
           >
             Importieren
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={ablegenOpen}
+        onClose={() => !ablegenBusy && setAblegenOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>In den Dokumenten ablegen</DialogTitle>
+        <DialogContent>
+          {ablegenResult ? (
+            <Alert severity="success" sx={{ mt: 1 }}>
+              <Typography variant="body2">
+                „{ablegenResult.attachment.filename}" liegt jetzt unter{' '}
+                <strong>{ablegenResult.path.join(' / ')}</strong>.
+              </Typography>
+              {ablegenResult.attachment.replacedVersion !== null && (
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Eine gleichnamige Datei war schon da — sie wurde als Version{' '}
+                  {ablegenResult.attachment.replacedVersion} fortgeschrieben, die alte bleibt in
+                  der Versionshistorie.
+                </Typography>
+              )}
+              {ablegenResult.createdFolders.length > 0 && (
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  Neu angelegt: {ablegenResult.createdFolders.join(', ')}
+                </Typography>
+              )}
+            </Alert>
+          ) : (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+                Zielordner:{' '}
+                <strong>
+                  Rundgangsberichte / {current?.project?.name} /{' '}
+                  {current?.folder?.name || new Date(current?.date || Date.now()).getFullYear()}
+                </strong>
+              </Typography>
+
+              <FormControl>
+                <RadioGroup
+                  value={ablegenVariant}
+                  onChange={(e) => setAblegenVariant(e.target.value as BerichtAblageVariant)}
+                >
+                  <FormControlLabel
+                    value="report-pdf"
+                    control={<Radio />}
+                    label="Dieses Tagesblatt als PDF"
+                  />
+                  <FormControlLabel
+                    value="folder-pdf"
+                    control={<Radio />}
+                    disabled={!current?.folder}
+                    label={
+                      current?.folder
+                        ? `Gesamt-Wochenbericht „${current.folder.name}" als PDF`
+                        : 'Gesamt-Wochenbericht als PDF (Bericht liegt in keinem Ordner)'
+                    }
+                  />
+                  <FormControlLabel
+                    value="archive"
+                    control={<Radio />}
+                    label="Datenexport (ZIP, wieder importierbar)"
+                  />
+                </RadioGroup>
+              </FormControl>
+
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
+                {ablegenVariant === 'archive'
+                  ? 'Enthält die Originalfotos — die Datei wird schnell mehrere hundert Megabyte gross.'
+                  : ehsInclude
+                  ? 'Die EHS-Auswahl aus dem Export-Schritt wird mit abgelegt.'
+                  : 'Ohne EHS-Anhang, entsprechend der Auswahl im Export-Schritt.'}
+              </Typography>
+
+              {ablegenError && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {ablegenError}
+                </Alert>
+              )}
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={ablegenBusy} onClick={() => setAblegenOpen(false)}>
+            {ablegenResult ? 'Schliessen' : 'Abbrechen'}
+          </Button>
+          {!ablegenResult && (
+            <Button
+              variant="contained"
+              disabled={ablegenBusy}
+              startIcon={ablegenBusy ? <CircularProgress size={18} color="inherit" /> : undefined}
+              onClick={handleAblegen}
+            >
+              Ablegen
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 

@@ -168,3 +168,23 @@ export interface BerichtDashboard {
   ampelByMonth: { rot: number[]; gelb: number[]; gruen: number[] };
   folders: BerichtDashboardFolder[];
 }
+
+// --- Ablage im Dokumenten-Modul ---
+
+/** Was der Knopf „Ablegen" in die Dokumente legt. */
+export type BerichtAblageVariant = 'report-pdf' | 'folder-pdf' | 'archive';
+
+export interface BerichtAblageResult {
+  nodeId: string;
+  /** Pfad im Dokumentenbaum, von der Wurzel bis zum Zielordner. */
+  path: string[];
+  /** Ordner, die diese Ablage neu angelegt hat. */
+  createdFolders: string[];
+  attachment: {
+    attachmentId: string;
+    filename: string;
+    fileSize: number;
+    /** Gesetzt, wenn eine gleichnamige Datei als neue Version fortgeschrieben wurde. */
+    replacedVersion: number | null;
+  };
+}

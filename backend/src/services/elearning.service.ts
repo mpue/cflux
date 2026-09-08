@@ -3,6 +3,9 @@ import { prisma } from '../lib/prisma';
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
+import { sendSystemMessage } from '../controllers/message.controller';
+import { emailService } from './email.service';
+import { systemSettingsService } from './systemSettings.service';
 
 
 /**
@@ -815,6 +818,111 @@ export async function getUserQuizAttempts(enrollmentId: string, quizId: string) 
 
 // ==================== ASSIGNMENTS ====================
 
+/**
+ * Baut den direkten Link zu einem Kurs.
+ * Das Frontend nutzt HashRouter, daher die #-Form.
+ */
+export function buildCourseUrl(courseId: string, absolute = false): string {
+  const coursePath = `#/elearning/courses/${courseId}`;
+  if (!absolute) return coursePath;
+  const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  return `${frontendUrl}/${coursePath}`;
+}
+
+/**
+ * Benachrichtigt zugewiesene Mitarbeiter über einen neuen Kurs -
+ * als Systemnachricht im Postfach und optional zusätzlich per E-Mail.
+ * Fehler werden geloggt, aber nie an den Aufrufer weitergereicht:
+ * eine fehlgeschlagene Benachrichtigung darf die Zuweisung nicht kippen.
+ */
+export async function notifyAssignedUsers(options: {
+  userIds: string[];
+  courseId: string;
+  assignedById?: string;
+  dueDate?: Date | null;
+  notes?: string | null;
+  sendEmail?: boolean;
+}): Promise<{ messagesSent: number; emailsSent: number }> {
+  const result = { messagesSent: 0, emailsSent: 0 };
+  if (options.userIds.length === 0) return result;
+
+  const course = await prisma.course.findUnique({
+    where: { id: options.courseId },
+    select: { id: true, title: true },
+  });
+  if (!course) return result;
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: options.userIds } },
+    select: { id: true, firstName: true, lastName: true, email: true },
+  });
+
+  const assignedBy = options.assignedById
+    ? await prisma.user.findUnique({
+        where: { id: options.assignedById },
+        select: { firstName: true, lastName: true },
+      })
+    : null;
+  const assignedByName = assignedBy
+    ? `${assignedBy.firstName} ${assignedBy.lastName}`
+    : undefined;
+
+  const dueDate = options.dueDate ? new Date(options.dueDate) : null;
+  const dueDateStr = dueDate
+    ? dueDate.toLocaleDateString('de-DE', { year: 'numeric', month: 'long', day: 'numeric' })
+    : null;
+
+  const relativeUrl = buildCourseUrl(course.id);
+  const absoluteUrl = buildCourseUrl(course.id, true);
+
+  const subject = `📚 Neuer Kurs zugewiesen: ${course.title}`;
+  const body = `
+    <p>Ihnen wurde der Kurs <strong>${course.title}</strong> zugewiesen.</p>
+    ${assignedByName ? `<p><strong>Zugewiesen von:</strong> ${assignedByName}</p>` : ''}
+    ${dueDateStr ? `<p><strong>Fällig bis:</strong> ${dueDateStr}</p>` : ''}
+    ${options.notes ? `<p><strong>Hinweis:</strong> ${options.notes}</p>` : ''}
+    <p><a href="${relativeUrl}">Kurs jetzt öffnen</a></p>
+  `;
+
+  let companyName: string | undefined;
+  if (options.sendEmail) {
+    try {
+      const settings = await systemSettingsService.getSettings();
+      companyName = settings.companyName || undefined;
+    } catch (error) {
+      console.error('[ELEARNING] Could not load system settings for course notification:', error);
+    }
+  }
+
+  for (const user of users) {
+    try {
+      await sendSystemMessage(user.id, subject, body, 'SYSTEM');
+      result.messagesSent++;
+    } catch (error) {
+      console.error(`[ELEARNING] Failed to send course assignment message to ${user.id}:`, error);
+    }
+
+    if (options.sendEmail && user.email) {
+      try {
+        const sent = await emailService.sendCourseAssignmentEmail({
+          recipient: { email: user.email, firstName: user.firstName, lastName: user.lastName },
+          courseTitle: course.title,
+          courseUrl: absoluteUrl,
+          assignedBy: assignedByName,
+          dueDate,
+          notes: options.notes,
+          companyName,
+        });
+        if (sent) result.emailsSent++;
+      } catch (error) {
+        console.error(`[ELEARNING] Failed to send course assignment email to ${user.id}:`, error);
+      }
+    }
+  }
+
+  return result;
+}
+
 export async function createCourseAssignment(data: {
   courseId: string;
   assignedToUserIds?: string[];
@@ -823,6 +931,8 @@ export async function createCourseAssignment(data: {
   reminderDays?: number[];
   assignedById: string;
   notes?: string;
+  notifyUsers?: boolean;
+  notifyByEmail?: boolean;
 }) {
   const assignment = await prisma.courseAssignment.create({
     data: {
@@ -879,7 +989,19 @@ export async function createCourseAssignment(data: {
     )
   );
 
-  return assignment;
+  let notification: { messagesSent: number; emailsSent: number } | null = null;
+  if (data.notifyUsers) {
+    notification = await notifyAssignedUsers({
+      userIds: uniqueUserIds,
+      courseId: data.courseId,
+      assignedById: data.assignedById,
+      dueDate: data.dueDate,
+      notes: data.notes,
+      sendEmail: data.notifyByEmail,
+    });
+  }
+
+  return { ...assignment, notification };
 }
 
 export async function getCourseAssignments(courseId: string) {
