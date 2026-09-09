@@ -6,9 +6,11 @@ import {
   uploadThumbnail,
   uploadContentImage,
   uploadPdf,
+  handleVideoUpload,
   uploadCourseThumbnail,
   uploadLessonContentImage,
   uploadLessonPdf,
+  uploadLessonVideo,
   deleteElearningUpload,
 } from '../controllers/elearning-upload.controller';
 
@@ -41,6 +43,15 @@ router.post(
   requireModuleAccess('elearning', 'canCreate'),
   uploadPdf.single('pdf'),
   uploadLessonPdf
+);
+
+// Upload lesson video file
+router.post(
+  '/upload/video',
+  authenticate,
+  requireModuleAccess('elearning', 'canCreate'),
+  handleVideoUpload,
+  uploadLessonVideo
 );
 
 // Delete uploaded file (thumbnail or content image)

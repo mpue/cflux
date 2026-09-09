@@ -36,7 +36,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import AppNavbar from '../components/AppNavbar';
 import QuizTaker from '../components/elearning/QuizTaker';
-import api from '../services/api';
+import api, { getBackendURL } from '../services/api';
 
 interface Course {
   id: string;
@@ -271,6 +271,10 @@ const CourseDetailPage: React.FC = () => {
     return url;
   };
 
+  // Selbst hochgeladene Videos liegen unter /uploads/course-videos/ und
+  // werden nativ abgespielt statt als Embed eingebunden.
+  const isUploadedVideo = (url?: string) => !!url && url.startsWith('/uploads/course-videos/');
+
   const getContentIcon = (type: string) => {
     switch (type) {
       case 'VIDEO':
@@ -295,7 +299,25 @@ const CourseDetailPage: React.FC = () => {
       case 'VIDEO':
         return (
           <Box>
-            {selectedLesson.videoUrl ? (
+            {!selectedLesson.videoUrl ? (
+              <Alert severity="info">Video-URL nicht verfügbar</Alert>
+            ) : isUploadedVideo(selectedLesson.videoUrl) ? (
+              // Hochgeladene Dateien direkt abspielen - ein iframe waere hier
+              // nur ein nackter Browser-Player ohne eigene Steuerung.
+              <Box
+                component="video"
+                src={`${getBackendURL()}${selectedLesson.videoUrl}`}
+                controls
+                controlsList="nodownload"
+                preload="metadata"
+                sx={{
+                  width: '100%',
+                  maxHeight: '400px',
+                  borderRadius: 1,
+                  bgcolor: 'common.black',
+                }}
+              />
+            ) : (
               <Box
                 component="iframe"
                 src={getEmbedUrl(selectedLesson.videoUrl)}
@@ -308,8 +330,6 @@ const CourseDetailPage: React.FC = () => {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
-            ) : (
-              <Alert severity="info">Video-URL nicht verfügbar</Alert>
             )}
           </Box>
         );

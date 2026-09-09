@@ -20,6 +20,9 @@ import {
   ListItemSecondaryAction,
   Chip,
   Divider,
+  ToggleButton,
+  ToggleButtonGroup,
+  LinearProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -35,7 +38,7 @@ import {
   ArrowDownward as DownIcon,
   CloudUpload as UploadIcon,
 } from '@mui/icons-material';
-import api from '../../services/api';
+import api, { getBackendURL } from '../../services/api';
 import RichTextEditor from './RichTextEditor';
 
 interface Lesson {
@@ -75,6 +78,19 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [pdfUrl, setPdfUrl] = useState('');
   const [pdfFileName, setPdfFileName] = useState('');
+  const [videoSource, setVideoSource] = useState<'url' | 'upload'>('url');
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [videoFileName, setVideoFileName] = useState('');
+  // URL eines in dieser Dialog-Sitzung hochgeladenen Videos. Nur so eine
+  // Datei darf beim Entfernen geloescht werden - ein bereits gespeichertes
+  // Video muss liegen bleiben, sonst zeigt die Lektion nach einem Abbruch
+  // des Dialogs ins Leere.
+  const [freshVideoUrl, setFreshVideoUrl] = useState('');
+
+  // Hochgeladene Videos liegen unter /uploads/course-videos/, externe
+  // Videos sind volle URLs (YouTube, Vimeo, ...).
+  const isUploadedVideo = (url?: string) => !!url && url.startsWith('/uploads/course-videos/');
 
   useEffect(() => {
     loadLessons();
@@ -103,6 +119,16 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
       setVideoUrl(lesson.videoUrl || '');
       setDuration(lesson.duration || '');
       setIsOptional(lesson.isOptional);
+
+      if (isUploadedVideo(lesson.videoUrl)) {
+        setVideoSource('upload');
+        setVideoFileName(lesson.videoUrl!.split('/').pop() || 'Video');
+      } else {
+        setVideoSource('url');
+        setVideoFileName('');
+      }
+      setVideoUploadProgress(0);
+      setFreshVideoUrl('');
       
       // Load PDF URL if content type is PDF
       if (lesson.contentType === 'PDF' && lesson.content) {
@@ -127,6 +153,10 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
       setPdfFile(null);
       setPdfUrl('');
       setPdfFileName('');
+      setVideoSource('url');
+      setVideoFileName('');
+      setVideoUploadProgress(0);
+      setFreshVideoUrl('');
     }
     setDialogOpen(true);
   };
@@ -138,6 +168,9 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
     setPdfFile(null);
     setPdfUrl('');
     setPdfFileName('');
+    setVideoFileName('');
+    setVideoUploadProgress(0);
+    setFreshVideoUrl('');
   };
 
   const handlePdfUpload = async (file: File) => {
@@ -175,6 +208,70 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
       }
       setPdfFile(file);
       handlePdfUpload(file);
+    }
+  };
+
+  const handleVideoUpload = async (file: File) => {
+    try {
+      setUploadingVideo(true);
+      setVideoUploadProgress(0);
+      setError(null);
+
+      const formData = new FormData();
+      formData.append('video', file);
+
+      const response = await api.post('/elearning/upload/video', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (event) => {
+          if (event.total) {
+            setVideoUploadProgress(Math.round((event.loaded * 100) / event.total));
+          }
+        },
+      });
+
+      setVideoUrl(response.data.url);
+      setFreshVideoUrl(response.data.url);
+      setVideoFileName(response.data.originalName || file.name);
+    } catch (err: any) {
+      console.error('Error uploading video:', err);
+      setError(err.response?.data?.error || 'Fehler beim Hochladen des Videos');
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
+
+  const handleVideoFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('video/')) {
+      setError('Bitte wählen Sie eine Videodatei aus');
+      return;
+    }
+    handleVideoUpload(file);
+    // Zuruecksetzen, damit dieselbe Datei erneut gewaehlt werden kann
+    event.target.value = '';
+  };
+
+  const handleRemoveVideo = async () => {
+    const currentUrl = videoUrl;
+    setVideoUrl('');
+    setVideoFileName('');
+    setVideoUploadProgress(0);
+
+    // Nur eine gerade eben hochgeladene Datei wieder wegraeumen. Ein bereits
+    // gespeichertes Video bleibt liegen, weil der Nutzer den Dialog noch
+    // abbrechen kann und die Lektion dann weiter darauf verweist.
+    if (currentUrl && currentUrl === freshVideoUrl && isUploadedVideo(currentUrl)) {
+      setFreshVideoUrl('');
+      const filename = currentUrl.split('/').pop();
+      try {
+        await api.delete(`/elearning/upload/video/${filename}`);
+      } catch (err) {
+        console.error('Error deleting video file:', err);
+      }
     }
   };
 
@@ -441,13 +538,101 @@ const LessonEditor: React.FC<LessonEditorProps> = ({ courseId, onUpdate }) => {
 
             {contentType === 'VIDEO' && (
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Video-URL"
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  placeholder="https://..."
-                />
+                <Typography variant="body2" color="textSecondary" gutterBottom>
+                  Videoquelle
+                </Typography>
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  value={videoSource}
+                  onChange={(_, value) => {
+                    if (!value || value === videoSource) return;
+                    setVideoSource(value);
+                    // Beim Wechsel der Quelle den Wert der anderen Quelle verwerfen
+                    handleRemoveVideo();
+                  }}
+                  sx={{ mb: 2 }}
+                >
+                  <ToggleButton value="url">
+                    <LinkIcon fontSize="small" sx={{ mr: 1 }} />
+                    Externe URL
+                  </ToggleButton>
+                  <ToggleButton value="upload">
+                    <UploadIcon fontSize="small" sx={{ mr: 1 }} />
+                    Video hochladen
+                  </ToggleButton>
+                </ToggleButtonGroup>
+
+                {videoSource === 'url' ? (
+                  <TextField
+                    fullWidth
+                    label="Video-URL"
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    placeholder="https://..."
+                    helperText="YouTube- und Vimeo-Links werden automatisch eingebettet."
+                  />
+                ) : (
+                  <Box>
+                    {videoUrl && !uploadingVideo && (
+                      <Box sx={{ mb: 2, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <VideoIcon color="primary" />
+                          <Typography variant="body2">{videoFileName || 'Video'}</Typography>
+                        </Box>
+                        <Box
+                          component="video"
+                          src={`${getBackendURL()}${videoUrl}`}
+                          controls
+                          preload="metadata"
+                          onLoadedMetadata={(e: React.SyntheticEvent<HTMLVideoElement>) => {
+                            // Dauer automatisch uebernehmen, solange nichts eingetragen ist
+                            const seconds = Math.round(e.currentTarget.duration);
+                            if (!duration && Number.isFinite(seconds) && seconds > 0) {
+                              setDuration(seconds);
+                            }
+                          }}
+                          sx={{ width: '100%', maxHeight: 240, mt: 1, borderRadius: 1, bgcolor: 'common.black' }}
+                        />
+                        <Button size="small" color="error" onClick={handleRemoveVideo} sx={{ mt: 1 }}>
+                          Entfernen
+                        </Button>
+                      </Box>
+                    )}
+
+                    {uploadingVideo && (
+                      <Box sx={{ mb: 2 }}>
+                        <LinearProgress variant="determinate" value={videoUploadProgress} />
+                        <Typography variant="caption" color="text.secondary">
+                          Wird hochgeladen… {videoUploadProgress}%
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {!videoUrl && (
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        startIcon={<UploadIcon />}
+                        disabled={uploadingVideo}
+                        fullWidth
+                      >
+                        {uploadingVideo ? 'Wird hochgeladen…' : 'Videodatei auswählen'}
+                        <input
+                          type="file"
+                          hidden
+                          accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                          onChange={handleVideoFileChange}
+                        />
+                      </Button>
+                    )}
+
+                    <Typography variant="caption" display="block" sx={{ mt: 1, color: 'text.secondary' }}>
+                      MP4, WebM oder Ogg, max. 2 GB. MOV-Dateien lassen sich nicht in jedem
+                      Browser abspielen – MP4 (H.264) ist die sicherste Wahl.
+                    </Typography>
+                  </Box>
+                )}
               </Grid>
             )}
 
