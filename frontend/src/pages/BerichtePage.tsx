@@ -1024,8 +1024,10 @@ const BerichtePage: React.FC = () => {
 
   const renderBereiche = (report: Bericht) => (
     <Grid container spacing={2}>
+      {/* Gleiche Begruendung wie bei den Feststellungen: die IDs wechseln bei
+          jedem Autosave, der Index nicht. */}
       {report.areas.map((area: BerichtArea, index: number) => (
-        <Grid item xs={12} md={6} key={area.id || area.name}>
+        <Grid item xs={12} md={6} key={index}>
           <Card>
             <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
               <Typography variant="body1">{area.name}</Typography>
@@ -1114,8 +1116,17 @@ const BerichtePage: React.FC = () => {
         </Typography>
       )}
 
+      {/*
+        Key ist bewusst der Index und nicht finding.id: der Autosave schickt die
+        Feststellungen komplett neu ans Backend, das sie loescht und neu anlegt
+        — jede Antwort bringt also neue IDs mit. Am id-Key haengt React die
+        Karte dann ab und baut sie neu auf, und das Feld, in dem gerade getippt
+        wird, verliert den Fokus. Die Karten haben keinen eigenen Zustand, alle
+        Felder sind kontrolliert; der Index ist hier deshalb der stabile
+        Schluessel.
+      */}
       {report.findings.map((finding, index) => (
-        <Card key={finding.id || index} sx={{ mb: 2 }}>
+        <Card key={index} sx={{ mb: 2 }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Chip label={`Feststellung ${index + 1}`} size="small" />
